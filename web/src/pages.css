@@ -102,6 +102,94 @@
 .field-note { margin: 0; color: var(--muted); font-size: 0.78rem; }
 .form-actions { padding-top: 0.5rem; border-top: 1px solid var(--line); }
 
+.opportunity-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(18rem, 0.7fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.record-stack { display: grid; gap: 0.8rem; }
+.record-card {
+  position: relative;
+  padding: 1.2rem 3.5rem 1.2rem 1.2rem;
+  color: var(--body);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+}
+.record-card:hover { border-color: var(--electric); }
+.record-card h2 { margin: 0.65rem 0 0; color: var(--navy); font-size: 1.15rem; }
+.record-card p { margin: 0.55rem 0 0; color: var(--muted); line-height: 1.5; }
+.record-arrow { position: absolute; top: 50%; right: 1.2rem; color: var(--electric-deep); font-size: 1.4rem; }
+.opportunity-form { position: sticky; top: 1rem; display: grid; gap: 1rem; }
+.opportunity-form h2,
+.action-panel h2,
+.qualification-card h2,
+.strategy-card h2 { margin: 0; color: var(--navy); }
+.field-group select,
+.field-group textarea {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  color: var(--body);
+  background: var(--white);
+  border: 1px solid var(--line-strong);
+  border-radius: 0.6rem;
+}
+.field-group textarea { min-height: 7rem; resize: vertical; }
+.back-link { margin-bottom: 1rem; }
+.opportunity-next { margin-bottom: 1rem; }
+.action-panel {
+  margin-bottom: 1rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.8rem;
+  background: var(--electric-wash);
+  border: 1px solid #c9dcff;
+  border-radius: 0.9rem;
+}
+.action-panel > .page-heading-split,
+.action-panel > .inline-alert,
+.action-panel > .action-form { flex-basis: 100%; }
+.action-form { display: grid; grid-template-columns: 1fr 1.3fr 1fr auto; gap: 0.8rem; align-items: end; }
+.identifier-field { min-width: 18rem; }
+.qualification-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.qualification-card { min-width: 0; }
+.lineage-item,
+.angle-card,
+.objection-card {
+  margin-top: 0.9rem;
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+}
+.lineage-item span,
+.lineage-item small,
+.angle-card span,
+.objection-card small { color: var(--muted); }
+.evidence-claim { margin: 0.9rem 0 0; padding: 0.8rem 1rem; background: var(--canvas); border-left: 0.22rem solid var(--electric); }
+.evidence-claim p { margin: 0; line-height: 1.5; }
+.evidence-claim footer { margin-top: 0.5rem; color: var(--muted); font-size: 0.75rem; }
+.lineage-note { color: var(--electric-deep); font-weight: 750; }
+.angle-selected { border-color: var(--electric); background: var(--electric-wash); }
+.angle-card p,
+.objection-card p { margin: 0; line-height: 1.5; }
+.artifact-json { max-height: 18rem; overflow: auto; padding: 1rem; color: #dceaff; background: var(--navy); border-radius: 0.7rem; white-space: pre-wrap; }
+.strategy-card,
+.run-card { margin-top: 1rem; }
+.strategy-card h3 { color: var(--navy); }
+.run-list { display: grid; gap: 0.75rem; }
+.run-list div { display: grid; grid-template-columns: minmax(12rem, 0.35fr) 1fr; gap: 0.3rem 1rem; padding-top: 0.75rem; border-top: 1px solid var(--line); }
+.run-list span,
+.run-list small { color: var(--muted); }
+.run-list small { grid-column: 2; }
+
 @media (max-width: 800px) {
   .sign-in-page { grid-template-columns: 1fr; }
   .sign-in-story { min-height: 42vh; padding: 1.5rem; }
@@ -109,4 +197,8 @@
   .trust-note { margin-top: 2rem; }
   .sign-in-panel { min-height: 58vh; padding: 2rem 1.25rem; }
   .profile-layout { grid-template-columns: 1fr; }
+  .opportunity-layout,
+  .qualification-grid,
+  .action-form { grid-template-columns: 1fr; }
+  .opportunity-form { position: static; }
 }

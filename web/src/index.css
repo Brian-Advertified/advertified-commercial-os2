@@ -40,7 +40,9 @@ body {
 
 button,
 a,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 

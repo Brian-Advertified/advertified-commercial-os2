@@ -4,7 +4,7 @@
 **Evidence date:** 2026-08-29  
 **Normative product source:** `docs/spec/README.md`  
 **Execution rules:** `AGENTS.md`  
-**Current permission:** Gate 3 complete; no Gate 4 implementation without an exact approved packet
+**Current permission:** Gate 4 delivered locally; Gate 5 requires an exact recorded packet under standing sequential-delivery authority
 
 This is the execution index, not a replacement for the full v1.1 specification. Every gate uses the applicable normative sections and the historical traceability/adversarial fixtures in Section 31.
 
@@ -16,7 +16,9 @@ This is the execution index, not a replacement for the full v1.1 specification. 
 | 1 | Implemented locally; owner decision pending | Guardrails have repeatable local evidence; remote CI and final owner review remain pending |
 | 2 | GO | Brian Rabuthu recorded local Gate 2 GO on 2026-08-29; publication and production reviews remain pending |
 | 3 | GO | Brian Rabuthu recorded local Gate 3 GO on 2026-08-29; non-local reviews remain separate |
-| 4–13 | Blocked | No implementation until prior gate evidence and an approved work packet exist |
+| 4 | Delivered locally | Repeatable evidence retained; Brian Rabuthu directed Gate 4 delivered on 2026-08-29 |
+| 5 | Next | Not started; exact Gate 5 work packet must be recorded before implementation |
+| 6–13 | Blocked | No implementation until the preceding gate is verified and an exact work packet exists |
 
 There are fourteen gates numbered 0 through 13.
 
@@ -131,6 +133,9 @@ The current Gate 0 page is not this gate.
 **Outcome:** An unbriefed prospect reaches reviewed evidence, interpretation, selected opportunity angle, and approved strategy.
 
 Required order is Business Interpretation → Opportunity Intelligence → Strategy plus Critic. Evidence approval, unknowns, citations, prompt-injection defenses, retries, checkpoints, and deterministic agent evaluations are mandatory.
+
+**Current status:** Delivered and verified locally. The retained report and manifest are in
+`docs/evidence/gate-4/`. Brief drafting and approval remain Gate 5.
 
 ## Gate 5 — canonical Brief
 

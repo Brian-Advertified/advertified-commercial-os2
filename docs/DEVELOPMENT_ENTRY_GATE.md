@@ -1,6 +1,6 @@
 # Development entry gate
 
-**Current decision:** GATE 3 GO — GATE 4 IMPLEMENTATION NO-GO
+**Current decision:** GATE 4 DELIVERED LOCALLY — GATE 5 PACKET NEXT
 **Evidence date:** 2026-08-29  
 **Remote merge/deploy decision:** NO-GO
 
@@ -73,7 +73,7 @@ Out of scope:
 | Agent runtime tests | PASS | 9 deterministic tests |
 | Architecture guardrails | PASS | 20 tests including evidence-schema integrity and controlled violations |
 | Python Ruff | PENDING | Enforced in CI; current local rerun still required |
-| Remote CI | DEFERRED | Local commit `6f75c7e`; owner deferred publication after no usable `origin` was found |
+| Remote CI | DEFERRED | Latest local commit `115d500`; owner has not authorised publication and no usable `origin` was found |
 | Named owner diff review | PENDING | Brian Rabuthu named; final review follows remote CI |
 
 Brian Rabuthu accepted ADR-0005 through ADR-0008 and the exact Gate 2 work packet for local non-production implementation on 2026-08-29. Pending Ruff and remote CI remain truthful blockers for publication; they do not authorise merge, release or deployment.
@@ -81,7 +81,7 @@ Brian Rabuthu accepted ADR-0005 through ADR-0008 and the exact Gate 2 work packe
 ## Deferred evidence and non-local blockers
 
 - Python Ruff and remote CI remain pending while branch publication is deferred;
-- no usable Git remote is configured for local commit `6f75c7e`;
+- no usable Git remote is configured for latest local commit `115d500`;
 - independent Engineering, Security/Privacy and Operations review is mandatory before publication, production or deployment;
 - legal/privacy and security documents remain drafts, not production approvals;
 - migration `202608290002_CanonicalCommercialFoundation` was explicitly authorised and applied only to the scoped os2 local database; future migrations require separate approval.
@@ -89,7 +89,7 @@ Brian Rabuthu accepted ADR-0005 through ADR-0008 and the exact Gate 2 work packe
 Gate 2 received local GO from Brian Rabuthu on 2026-08-29. Brian then approved the exact
 local-only scope in `docs/GATE3_WORK_PACKET.md` by directing implementation to continue.
 That packet is now implemented and locally verified. Brian recorded Gate 3 GO on
-2026-08-29. Do not begin Gate 4 until he separately approves an exact Gate 4 work packet.
+2026-08-29. The exact Gate 4 packet was subsequently recorded and delivered as documented below.
 
 ## Current Gate 2 implementation evidence
 
@@ -126,5 +126,39 @@ approved Gate 3 packet authorised only the local implementation recorded below.
 | Remote CI and independent review | PENDING | No commit, push, merge, release or deployment authorised or performed |
 
 The retained report and manifest are in `docs/evidence/gate-3/`. Brian Rabuthu recorded the
-dated local Gate 3 completion GO on 2026-08-29. This does not authorise Gate 4,
-publication, production or deployment.
+dated local Gate 3 completion GO on 2026-08-29. Publication, production and deployment remain
+separate unauthorised actions.
+
+## Gate 4 entry decision
+
+Brian Rabuthu directed the repository to commit the completed work and proceed to Gate 4 on
+2026-08-29. Gates 2–3 are committed locally as `115d500`. The required exact Gate 4 scope
+did not yet exist when that direction was given, so it could not be treated as retrospective
+approval.
+
+`docs/GATE4_WORK_PACKET.md` records the bounded Evidence/Opportunity workflow,
+canonical records, permission ceilings, deterministic four-agent sequence, durable execution,
+browser surfaces, migration boundary, acceptance evidence and zero-cost/no-network limits.
+Brian Rabuthu authorised its delivery and replaced repetitive gate approval pauses with
+standing sequential local-delivery authority on 2026-08-29. Applying its Gate 4 migration to
+the os2 main local database still requires a separate instruction naming the exact migration
+and target.
+
+## Current Gate 4 implementation evidence
+
+| Check | State | Observed result |
+|---|---|---|
+| Commercial API and migration runner Release builds | PASS | .NET 10/C# 14; 0 warnings/errors |
+| Complete C# suite | PASS | 33 tests, including disposable PostgreSQL and the multi-role Gate 4 lifecycle |
+| Agent runtime | PASS | 15 deterministic tests and Ruff with 0 findings |
+| Architecture guardrails | PASS | 21 tests, including governed codes, boundaries, limits and secret shapes |
+| Web lint, type-check, tests and build | PASS | 0 lint/type findings; 4 focused tests; Vite build |
+| Browser acceptance | PASS | 6 Playwright cases across desktop and compact reduced-motion viewports |
+| OpenAPI and Compose | PASS | Retained v1 matches runtime; Compose validates and all four local services are healthy |
+| Live provider, production resource, external network or AI cost | NOT USED | Deterministic local fixtures only; incremental cost 0 |
+| Main local database migration | NOT APPLIED | `202608290003_EvidenceOpportunity` was applied and rolled back only in disposable PostgreSQL |
+| Remote CI and independent review | PENDING | No push, merge, release or deployment was performed |
+
+The retained report and manifest are in `docs/evidence/gate-4/`. Brian Rabuthu directed Gate 4
+delivered on 2026-08-29. Gate 5 implementation has not started; its exact packet must be
+recorded before work begins under the standing sequential local-delivery direction.

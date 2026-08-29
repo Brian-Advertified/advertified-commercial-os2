@@ -27,3 +27,20 @@ public static class Gate2Permissions
     public static readonly PermissionCode ContactRead = new("contact_read");
     public static readonly PermissionCode ContactManage = new("contact_manage");
 }
+
+public static class Gate4Permissions
+{
+    public static readonly PermissionCode OpportunityView = new("opportunity_view");
+    public static readonly PermissionCode OpportunityCreate = new("opportunity_create");
+    public static readonly PermissionCode OpportunityEdit = new("opportunity_edit");
+    public static readonly PermissionCode EvidenceCreate = new("evidence_create");
+    public static readonly PermissionCode EvidenceReview = new("evidence_review");
+    public static readonly PermissionCode AgentRun = new("agent_run");
+    public static readonly PermissionCode AngleSelect = new("opportunity_angle_select");
+    public static readonly PermissionCode StrategyView = new("strategy_view");
+    public static readonly PermissionCode StrategyApprove = new("strategy_approve");
+    public static readonly PermissionCode RunView = new("run_view");
+    public static readonly PermissionCode RunManage = new("run_manage");
+    public static readonly PermissionCode TaskView = new("task_view");
+    public static readonly PermissionCode TaskAct = new("task_act");
+}

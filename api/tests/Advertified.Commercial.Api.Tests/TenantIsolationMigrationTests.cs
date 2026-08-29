@@ -46,7 +46,7 @@ public sealed class TenantIsolationMigrationTests
         await ExecuteAsync(connection, "SET ROLE advertified_app");
 
         Assert.False(await ApplicationRoleBypassesRlsAsync(connection));
-        Assert.Equal(9, await ProtectedTableCountAsync(connection));
+        Assert.Equal(23, await ProtectedTableCountAsync(connection));
         Assert.Equal(0, await CountClientsAsync(connection));
 
         await using (var transaction = await connection.BeginTransactionAsync())

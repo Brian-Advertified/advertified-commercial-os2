@@ -27,7 +27,7 @@ public sealed class OpenApiContractTests
     }
 
     [Fact]
-    public async Task V1ContractPublishesGate3SessionAndCommercialSemantics()
+    public async Task V1ContractPublishesSessionCommercialAndGate4Semantics()
     {
         var retainedPath = Path.Combine(
             AppContext.BaseDirectory,
@@ -60,6 +60,24 @@ public sealed class OpenApiContractTests
         var profileParameters = paths["/api/v1/tenants/{tenantId}/me"]!["put"]!
             ["parameters"]!.AsArray();
         AssertHeaderParameter(profileParameters, "X-CSRF-TOKEN", required: false);
+
+        var interpret = paths[
+            "/api/v1/tenants/{tenantId}/opportunities/{opportunityId}/interpret"]!["post"]!;
+        AssertHeaderParameter(interpret["parameters"]!.AsArray(), "Idempotency-Key", true);
+        Assert.DoesNotContain(
+            interpret["parameters"]!.AsArray(),
+            item => item?["name"]?.GetValue<string>() == "If-Match");
+        Assert.NotNull(interpret["responses"]!["202"]);
+
+        var selectAngle = paths[
+            "/api/v1/tenants/{tenantId}/opportunity-angles/{angleId}:select"]!["post"]!;
+        AssertHeaderParameter(selectAngle["parameters"]!.AsArray(), "If-Match", true);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/opportunities/{opportunityId}/strategies:generate"]);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/strategy-versions/{strategyId}:approve"]);
+        Assert.NotNull(paths["/api/v1/tenants/{tenantId}/agent-runs/{runId}"]!["get"]);
+        Assert.NotNull(paths["/api/v1/tenants/{tenantId}/human-tasks"]!["get"]);
     }
 
     private static void AssertHeaderParameter(

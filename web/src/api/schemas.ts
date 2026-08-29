@@ -97,6 +97,106 @@ export const clientAccountPageSchema = cursorPage(clientAccountSchema)
 export const agencyPageSchema = cursorPage(agencySchema)
 export const contactPageSchema = cursorPage(contactSchema)
 
+export const opportunitySchema = z.object({
+  id: z.guid(),
+  tenantId: z.guid(),
+  clientId: z.guid(),
+  title: requiredText,
+  sourceType: requiredText,
+  sourceRef: nullableText,
+  ownerUserId: z.guid(),
+  stage: requiredText,
+  expectedValueMinor: z.number().int().nonnegative().nullable(),
+  currency: nullableText,
+  deadline: z.iso.date().nullable(),
+  problemSummary: nullableText,
+  objectiveSummary: nullableText,
+  version: z.number().int().positive(),
+  updatedAtUtc: z.iso.datetime({ offset: true }),
+}).strict()
+
+export const evidenceSourceSchema = z.object({
+  id: z.guid(), opportunityId: z.guid(), type: requiredText, locator: requiredText,
+  title: requiredText, contentHash: requiredText, policyBasis: requiredText,
+  captureStatus: requiredText, version: z.number().int().positive(),
+  capturedAtUtc: z.iso.datetime({ offset: true }),
+}).strict()
+
+export const evidenceItemSchema = z.object({
+  id: z.guid(), sourceId: z.guid(), locator: requiredText, claimType: requiredText,
+  originalValueJson: requiredText, reviewedValueJson: nullableText, excerpt: requiredText,
+  confidence: z.number().min(0).max(1), reviewStatus: requiredText,
+  decision: nullableText, reviewReason: nullableText, createdBy: z.guid(),
+  reviewedBy: z.guid().nullable(), version: z.number().int().positive(),
+}).strict()
+
+export const evidenceSetSchema = z.object({
+  id: z.guid(), opportunityId: z.guid(), versionNumber: z.number().int().positive(),
+  evidenceItemIds: z.array(z.guid()), gaps: z.array(z.string()), status: requiredText,
+  createdBy: z.guid(), approvedBy: z.guid().nullable(), version: z.number().int().positive(),
+}).strict()
+
+export const interpretationSchema = z.object({
+  id: z.guid(), opportunityId: z.guid(), evidenceSetId: z.guid(),
+  versionNumber: z.number().int().positive(), artifactJson: requiredText,
+  evidenceBindingsJson: requiredText, unknownsJson: requiredText,
+  assumptionsJson: requiredText, status: requiredText, createdBy: z.guid(),
+  confirmedBy: z.guid().nullable(), version: z.number().int().positive(),
+}).strict()
+
+export const opportunityAngleSchema = z.object({
+  id: z.guid(), angleSetId: z.guid(), rank: z.number().int().positive(),
+  title: requiredText, rationale: requiredText, evidenceItemIdsJson: requiredText,
+  confidence: z.number().min(0).max(1), status: requiredText,
+  selectedBy: z.guid().nullable(), version: z.number().int().positive(),
+}).strict()
+
+export const criticObjectionSchema = z.object({
+  id: z.guid(), severity: requiredText, fieldPath: requiredText, evidenceGap: requiredText,
+  recommendedResolution: requiredText, resolution: nullableText,
+  resolutionReason: nullableText, resolvedBy: z.guid().nullable(),
+  version: z.number().int().positive(),
+}).strict()
+
+export const strategySchema = z.object({
+  id: z.guid(), opportunityId: z.guid(), versionNumber: z.number().int().positive(),
+  artifactJson: requiredText, evidenceBindingsJson: requiredText, unknownsJson: requiredText,
+  assumptionsJson: requiredText, status: requiredText, createdBy: z.guid(),
+  submittedBy: z.guid().nullable(), approvedBy: z.guid().nullable(),
+  rejectedBy: z.guid().nullable(), rejectionReason: nullableText,
+  version: z.number().int().positive(), objections: z.array(criticObjectionSchema),
+}).strict()
+
+export const agentRunSchema = z.object({
+  id: z.guid(), opportunityId: z.guid(), runKind: requiredText, status: requiredText,
+  currentStep: nullableText, attempts: z.number().int().nonnegative(), errorCode: nullableText,
+  recoveryAction: nullableText, incrementalCostMinor: z.number().int().nonnegative(),
+  version: z.number().int().positive(), updatedAtUtc: z.iso.datetime({ offset: true }),
+}).strict()
+
+export const humanTaskSchema = z.object({
+  id: z.guid(), opportunityId: z.guid(), taskType: requiredText, status: requiredText,
+  title: requiredText, whyItMatters: requiredText, resourceType: requiredText,
+  resourceId: z.guid(), resourceVersion: z.number().int().positive(),
+  assigneeUserId: z.guid(), version: z.number().int().positive(),
+  createdAtUtc: z.iso.datetime({ offset: true }),
+}).strict()
+
+export const opportunityDetailSchema = z.object({
+  opportunity: opportunitySchema,
+  sources: z.array(evidenceSourceSchema),
+  evidenceItems: z.array(evidenceItemSchema),
+  evidenceSet: evidenceSetSchema.nullable(),
+  interpretation: interpretationSchema.nullable(),
+  angles: z.array(opportunityAngleSchema),
+  strategy: strategySchema.nullable(),
+  runs: z.array(agentRunSchema),
+  nextAction: requiredText,
+}).strict()
+
+export const opportunityPageSchema = cursorPage(opportunitySchema)
+export const humanTaskPageSchema = cursorPage(humanTaskSchema)
+
 export const problemSchema = z.object({
   type: z.string().nullable().optional(),
   title: z.string().nullable().optional(),
@@ -122,3 +222,9 @@ export type CurrentUser = z.infer<typeof currentUserSchema>
 export type Workspace = z.infer<typeof workspaceSchema>
 export type Tenant = z.infer<typeof tenantSchema>
 export type ProfileUpdate = z.infer<typeof profileUpdateSchema>
+export type ClientAccount = z.infer<typeof clientAccountSchema>
+export type Opportunity = z.infer<typeof opportunitySchema>
+export type OpportunityDetail = z.infer<typeof opportunityDetailSchema>
+export type HumanTask = z.infer<typeof humanTaskSchema>
+export type Strategy = z.infer<typeof strategySchema>
+export type AgentRun = z.infer<typeof agentRunSchema>

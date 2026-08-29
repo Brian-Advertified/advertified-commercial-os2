@@ -7,9 +7,14 @@ import { AppShell } from './components/AppShell'
 import { LoadingState } from './components/PageState'
 import { DeferredPage, NotFoundPage } from './pages/DeferredPage'
 import { HomePage } from './pages/HomePage'
+import { OpportunitiesPage } from './pages/OpportunitiesPage'
+import { OpportunityDetailPage } from './pages/OpportunityDetailPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { SignInPage } from './pages/SignInPage'
 import { WorkspacesPage } from './pages/WorkspacesPage'
+import { TasksPage } from './pages/TasksPage'
+import { StrategyPage } from './pages/StrategyPage'
+import { RunPage } from './pages/RunPage'
 
 function AuthenticatedApplication() {
   const { session, loading } = useSession()
@@ -27,8 +32,12 @@ function App() {
           <Route index element={<Navigate to="/home" replace />} />
           <Route path="/workspaces" element={<WorkspacesPage />} />
           <Route path="/home" element={<HomePage />} />
+          <Route path="/opportunities" element={<OpportunitiesPage />} />
+          <Route path="/opportunities/:opportunityId" element={<OpportunityDetailPage />} />
+          <Route path="/strategies/:strategyId" element={<StrategyPage />} />
+          <Route path="/runs/:runId" element={<RunPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/tasks" element={<DeferredPage destination="Tasks" />} />
+          <Route path="/tasks" element={<TasksPage />} />
           <Route path="/notifications" element={<DeferredPage destination="Notifications" />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

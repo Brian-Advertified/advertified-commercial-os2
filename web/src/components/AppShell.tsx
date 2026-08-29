@@ -7,7 +7,8 @@ import { Icon } from './Icon'
 
 const destinations = [
   { to: '/home', label: 'Home', icon: 'home', enabled: true },
-  { to: '/tasks', label: 'Tasks', icon: 'tasks', enabled: false },
+  { to: '/opportunities', label: 'Opportunities', icon: 'tasks', enabled: true },
+  { to: '/tasks', label: 'Tasks', icon: 'tasks', enabled: true },
   { to: '/notifications', label: 'Notifications', icon: 'bell', enabled: false },
   { to: '/profile', label: 'Profile', icon: 'profile', enabled: true },
 ] as const

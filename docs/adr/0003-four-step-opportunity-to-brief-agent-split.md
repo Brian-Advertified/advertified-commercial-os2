@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — named Product, Strategy, AI, and Risk owners unassigned.
+Accepted for local non-production Gate 4 implementation — Brian Rabuthu, 2026-08-29.
+Independent Product, Strategy, AI and Risk review remains required before publication or
+production.
 
 ## Context
 
@@ -33,4 +35,12 @@ Each specialist has one typed contract and cannot approve its own output. Determ
 - explicit latency/operating-model acceptance;
 - proof the supplied-Brief path remains independent.
 
-Until accepted, no production agent workflow is authorised.
+This decision authorises only the deterministic, zero-cost local sequence bounded by
+`docs/GATE4_WORK_PACKET.md`. It authorises no production workflow or live provider.
+
+## Decision record
+
+- Accountable owner: Brian Rabuthu
+- Decision: accepted for local non-production Gate 4 implementation
+- Decision date: 2026-08-29
+- Production and publication review: pending

@@ -30,7 +30,10 @@ public sealed class HttpContractOperationFilter : IOperationFilter
                 "Unique key for safely retrying this command.");
         }
 
-        if (isCommercialCommand && (method is "PUT" or "PATCH"))
+        var requiresVersion = method is "PUT" or "PATCH" ||
+            context.ApiDescription.ActionDescriptor.EndpointMetadata
+                .OfType<RequiresEntityVersionMetadata>().Any();
+        if (isCommercialCommand && requiresVersion)
         {
             AddParameter(
                 operation,

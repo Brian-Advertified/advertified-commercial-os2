@@ -2,7 +2,7 @@
 
 **Evidence date:** 2026-08-29  
 **Clean parent recorded before remediation:** `0986f62ad0748289fdafe8f36f5f9a3dabaab4d8`  
-**Current change state:** local Gate 1 commit `6f75c7e` plus uncommitted Gate 2 and Gate 3 implementation diff
+**Current change state:** Gates 2–3 committed locally as `115d500`; Gate 4 delivered and verified locally
 **Status vocabulary:** ABSENT, SCAFFOLDED, IMPLEMENTED, VERIFIED, BLOCKED
 
 A capability is VERIFIED only when repeatable evidence was observed. Documentation does not make a capability implemented.
@@ -20,7 +20,7 @@ A capability is VERIFIED only when repeatable evidence was observed. Documentati
 | PostgreSQL 16 local foundation | VERIFIED | PostGIS and pgvector image plus health checks |
 | Redis, MinIO, and MailHog | VERIFIED | Four os2 services healthy |
 | CI definition | IMPLEMENTED | Real architecture, web, API, Python, and Compose jobs |
-| GitHub CI result | BLOCKED | Local commit `6f75c7e`; no usable `origin`; owner deferred publication |
+| GitHub CI result | BLOCKED | Latest local commit `115d500`; no usable `origin`; publication not authorised |
 | Product journeys | ABSENT | Correctly excluded from Gate 0 |
 
 **Local Gate 0 evidence:** PASS; Gate 1 work is authorised.  
@@ -100,15 +100,34 @@ migration and rollback pass. See `docs/evidence/gate-2/`.
 | Real tasks, notifications and unsupported KPIs | ABSENT | Destinations remain disabled/truthful because no owning persisted workflow exists |
 | Gate 3 completion decision | VERIFIED | Brian Rabuthu recorded local Gate 3 GO on 2026-08-29; publication and production reviews remain pending |
 
-## Gates 4–13
+## Gate 4 — evidence and opportunity
 
-Gates 4–13 remain ABSENT and gate-BLOCKED. A document, route label, container,
-contract, or scaffold is not a product implementation.
+| Capability | Status | Evidence / blocker |
+|---|---|---|
+| Canonical Opportunity and evidence records | VERIFIED | Expand-only migration, forced tenant RLS, immutable submitted artefacts and disposable PostgreSQL tests |
+| Human-separated evidence and strategy approvals | VERIFIED | Assigned reviewer/approver flow and creator self-review denial in the Gate 4 acceptance journey |
+| Deterministic four-agent sequence | VERIFIED | Strict Python contracts and 15 tests; C# validates and persists only evidence-bound zero-cost outputs |
+| Durable run execution | VERIFIED | Persisted runs/steps/usage, leases, checkpoints, duplicate active-run denial and safe retry/recovery states |
+| Opportunity lifecycle | VERIFIED | Multi-role journey reaches `BRIEF_READY` only after approved evidence, confirmed interpretation, selected angle, resolved objection and strategy approval |
+| Gate 4 API/OpenAPI | VERIFIED | Versioned retained contract covers Opportunity, evidence, artefact, run and human-task query/command surfaces |
+| Authenticated Gate 4 web journey | VERIFIED | Opportunity/list/detail, Strategy, Run and Task routes; desktop and compact Playwright flows pass |
+| Live provider/network/commercial action | ABSENT | Deterministic fixtures only; zero AI cost, no crawl, publication, spend or external communication |
+| Main local database migration | ABSENT | Migration `202608290003_EvidenceOpportunity` was verified only in disposable PostgreSQL and was not applied to the shared local database |
+| Gate 4 completion direction | VERIFIED | Brian Rabuthu directed Gate 4 delivered on 2026-08-29; production and publication reviews remain pending |
+
+See `docs/evidence/gate-4/` for commands and exact outcomes.
+
+## Gates 5–13
+
+Gate 5 is next under the standing sequential local-delivery direction, but implementation has
+not started and its exact work packet has not been recorded. Gates 6–13 remain ABSENT and
+sequence-blocked. A document, route label, container, contract, or scaffold is not a product
+implementation.
 
 | Gate | Status |
 |---|---|
-| 4 Evidence and Opportunity | BLOCKED |
-| 5 Canonical Brief | BLOCKED |
+| 4 Evidence and Opportunity | VERIFIED locally — owner directed delivered; non-local review pending |
+| 5 Canonical Brief | ABSENT — next packet not yet recorded |
 | 6 Inventory truth | BLOCKED |
 | 7 Planning | BLOCKED |
 | 8 Proposal and client decision | BLOCKED |

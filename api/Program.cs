@@ -1,15 +1,18 @@
 using Advertified.Commercial.Api;
 using Advertified.Commercial.Api.Authentication;
+using Advertified.Commercial.Api.Background;
 using Advertified.Commercial.Api.Endpoints;
 using Advertified.Commercial.Api.Errors;
 using Advertified.Commercial.Api.OpenApi;
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Foundation;
+using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Advertified.Commercial.Infrastructure.Identity;
 using Advertified.Commercial.Infrastructure.MasterData;
+using Advertified.Commercial.Infrastructure.Opportunity;
 using Advertified.Commercial.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +20,9 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 var authenticationMode = builder.Configuration["Authentication:Mode"];
+var agentRuntime = builder.Configuration
+    .GetSection(AgentRuntimeOptions.SectionName)
+    .Get<AgentRuntimeOptions>() ?? new AgentRuntimeOptions();
 
 if ((authenticationMode is LocalIdentityDefaults.DeterministicMode
         or LocalIdentityDefaults.DeterministicSessionMode)
@@ -25,6 +31,14 @@ if ((authenticationMode is LocalIdentityDefaults.DeterministicMode
 {
     throw new InvalidOperationException(
         "Deterministic authentication and sessions are restricted to development and test.");
+}
+
+if (agentRuntime.Mode != AgentRuntimeOptions.DisabledMode &&
+    !builder.Environment.IsDevelopment() &&
+    !builder.Environment.IsEnvironment("Test"))
+{
+    throw new InvalidOperationException(
+        "The Gate 4 deterministic agent runtime is restricted to development and test.");
 }
 
 var connectionString = builder.Configuration.GetConnectionString("CommercialDatabase");
@@ -45,6 +59,47 @@ builder.Services.AddScoped<IIdempotentCommandUnitOfWork, PersistedCommandUnitOfW
 builder.Services.AddScoped<ICommercialFoundationReader, CommercialFoundationReader>();
 builder.Services.AddScoped<IIdentityFoundationCommands, IdentityFoundationCommands>();
 builder.Services.AddScoped<IBusinessFoundationCommands, BusinessFoundationCommands>();
+builder.Services.AddScoped<OpportunityRecordStore>();
+builder.Services.AddScoped<OpportunityRunStore>();
+builder.Services.AddScoped<OpportunityRunProcessor>();
+builder.Services.AddScoped<IOpportunityReader, OpportunityReader>();
+builder.Services.AddScoped<IOpportunityCommands, OpportunityCommands>();
+builder.Services.AddScoped<IOpportunityWorkflowCommands, OpportunityWorkflowCommands>();
+builder.Services.AddOptions<AgentRuntimeOptions>()
+    .Bind(builder.Configuration.GetSection(AgentRuntimeOptions.SectionName))
+    .Validate(
+        options => options.Mode is AgentRuntimeOptions.DisabledMode
+            or AgentRuntimeOptions.InProcessMode
+            or AgentRuntimeOptions.HttpMode,
+        "The agent runtime mode is invalid.")
+    .Validate(
+        options => options.PollMilliseconds is >= 25 and <= 5_000,
+        "The agent runtime poll interval must be between 25 and 5000 milliseconds.")
+    .Validate(
+        options => options.Mode != AgentRuntimeOptions.HttpMode ||
+            (Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out _) &&
+             !string.IsNullOrWhiteSpace(options.ServiceKey)),
+        "The HTTP agent runtime requires an absolute URL and service key.")
+    .ValidateOnStart();
+builder.Services.AddHttpClient<HttpOpportunityAgentClient>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<
+        Microsoft.Extensions.Options.IOptions<AgentRuntimeOptions>>().Value;
+    client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
+});
+builder.Services.AddScoped<IOpportunityAgentClient>(serviceProvider =>
+    agentRuntime.Mode switch
+    {
+        AgentRuntimeOptions.InProcessMode =>
+            ActivatorUtilities.CreateInstance<InProcessOpportunityAgentClient>(serviceProvider),
+        AgentRuntimeOptions.HttpMode =>
+            serviceProvider.GetRequiredService<HttpOpportunityAgentClient>(),
+        _ => ActivatorUtilities.CreateInstance<InProcessOpportunityAgentClient>(serviceProvider),
+    });
+if (agentRuntime.Mode != AgentRuntimeOptions.DisabledMode)
+{
+    builder.Services.AddHostedService<OpportunityRunDispatcher>();
+}
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentIdentity, ClaimsCurrentIdentity>();
 builder.Services.AddScoped<BrowserRequestGuard>();
@@ -127,7 +182,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapGet("/", () => Results.Ok(new ServiceDescription(
     "Advertified Commercial API",
-    "gate-3-authenticated-shell",
+    "gate-4-evidence-opportunity",
     "Tenant-safe commercial operations with a local browser-session boundary.")))
     .WithTags("Service");
 
@@ -146,6 +201,7 @@ app.MapGet("/health/ready", () => Results.Ok(new HealthResponse(
 app.MapBrowserSessionEndpoints();
 app.MapIdentityEndpoints();
 app.MapFoundationEndpoints();
+app.MapOpportunityEndpoints();
 
 app.Run();
 

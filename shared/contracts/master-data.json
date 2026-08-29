@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "1.2.0",
+  "registryVersion": "1.3.0",
   "effectiveFrom": "2026-08-29",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
@@ -48,7 +48,71 @@
       {"code":"agency_read","displayLabel":"View agency profile","isActive":true,"sortOrder":100,"metadata":{"roles":["platform_admin","agency_admin","agency_campaign_user"]}},
       {"code":"agency_manage","displayLabel":"Manage agency profile","isActive":true,"sortOrder":110,"metadata":{"roles":["platform_admin","agency_admin"]}},
       {"code":"contact_read","displayLabel":"View client contacts","isActive":true,"sortOrder":120,"metadata":{"roles":["platform_admin","agency_admin"]}},
-      {"code":"contact_manage","displayLabel":"Manage client contacts","isActive":true,"sortOrder":130,"metadata":{"roles":["platform_admin","agency_admin"]}}
+      {"code":"contact_manage","displayLabel":"Manage client contacts","isActive":true,"sortOrder":130,"metadata":{"roles":["platform_admin","agency_admin"]}},
+      {"code":"opportunity_view","displayLabel":"View assigned opportunities","isActive":true,"sortOrder":140,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
+      {"code":"opportunity_create","displayLabel":"Create assigned opportunities","isActive":true,"sortOrder":150,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"opportunity_edit","displayLabel":"Edit assigned opportunities","isActive":true,"sortOrder":160,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"evidence_create","displayLabel":"Register opportunity evidence","isActive":true,"sortOrder":170,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"evidence_review","displayLabel":"Review opportunity evidence","isActive":true,"sortOrder":180,"metadata":{"roles":["platform_admin","inventory_ops"]}},
+      {"code":"agent_run","displayLabel":"Run assigned proposal agents","isActive":true,"sortOrder":190,"metadata":{"roles":["platform_admin","internal_planner"]}},
+      {"code":"opportunity_angle_select","displayLabel":"Select an opportunity angle","isActive":true,"sortOrder":200,"metadata":{"roles":["platform_admin","internal_planner"]}},
+      {"code":"strategy_view","displayLabel":"View assigned strategies","isActive":true,"sortOrder":210,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
+      {"code":"strategy_approve","displayLabel":"Approve assigned strategies","isActive":true,"sortOrder":220,"metadata":{"roles":["platform_admin","advertiser_approver"]}},
+      {"code":"run_view","displayLabel":"View assigned workflow runs","isActive":true,"sortOrder":230,"metadata":{"roles":["platform_admin","internal_planner"]}},
+      {"code":"run_manage","displayLabel":"Resume or cancel assigned workflow runs","isActive":true,"sortOrder":240,"metadata":{"roles":["platform_admin","internal_planner"]}},
+      {"code":"task_view","displayLabel":"View assigned human tasks","isActive":true,"sortOrder":250,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_admin","supplier_user","influencer_rep"]}},
+      {"code":"task_act","displayLabel":"Complete assigned human tasks","isActive":true,"sortOrder":260,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_admin","supplier_user","influencer_rep"]}}
+    ],
+    "opportunitySourceTypes": [
+      {"code":"DISCOVERY","displayLabel":"Advertified Discovery","isActive":true,"sortOrder":10},
+      {"code":"REFERRAL","displayLabel":"Referral","isActive":true,"sortOrder":20}
+    ],
+    "evidenceSourceTypes": [
+      {"code":"SUPPLIED_TEXT","displayLabel":"Supplied Text","isActive":true,"sortOrder":10},
+      {"code":"PERMITTED_URL","displayLabel":"Permitted URL","isActive":true,"sortOrder":20}
+    ],
+    "evidencePolicyBases": [
+      {"code":"OWNER_SUPPLIED","displayLabel":"Owner Supplied","isActive":true,"sortOrder":10},
+      {"code":"PUBLIC_SITE_REVIEWED","displayLabel":"Public Site Policy Reviewed","isActive":true,"sortOrder":20}
+    ],
+    "evidenceClaimTypes": [
+      {"code":"OFFERING","displayLabel":"Offering","isActive":true,"sortOrder":10},
+      {"code":"CUSTOMER_GROUP","displayLabel":"Customer Group","isActive":true,"sortOrder":20},
+      {"code":"BUYING_OCCASION","displayLabel":"Buying Occasion","isActive":true,"sortOrder":30},
+      {"code":"GEOGRAPHY","displayLabel":"Geography","isActive":true,"sortOrder":40},
+      {"code":"PRICE","displayLabel":"Price","isActive":true,"sortOrder":50},
+      {"code":"CONTACT_ROUTE","displayLabel":"Contact Route","isActive":true,"sortOrder":60},
+      {"code":"BUSINESS_CONTEXT","displayLabel":"Business Context","isActive":true,"sortOrder":70},
+      {"code":"OTHER","displayLabel":"Other Evidence","isActive":true,"sortOrder":80}
+    ],
+    "evidenceReviewDecisions": [
+      {"code":"APPROVE","displayLabel":"Approve","isActive":true,"sortOrder":10},
+      {"code":"REJECT","displayLabel":"Reject","isActive":true,"sortOrder":20},
+      {"code":"EDIT","displayLabel":"Edit and Approve","isActive":true,"sortOrder":30}
+    ],
+    "opportunityAngleStatuses": [
+      {"code":"PROPOSED","displayLabel":"Proposed","isActive":true,"sortOrder":10},
+      {"code":"SELECTED","displayLabel":"Selected","isActive":true,"sortOrder":20},
+      {"code":"REJECTED","displayLabel":"Rejected","isActive":true,"sortOrder":30}
+    ],
+    "criticSeverities": [
+      {"code":"CRITICAL","displayLabel":"Critical","isActive":true,"sortOrder":10},
+      {"code":"MATERIAL","displayLabel":"Material","isActive":true,"sortOrder":20},
+      {"code":"ADVISORY","displayLabel":"Advisory","isActive":true,"sortOrder":30}
+    ],
+    "objectionResolutions": [
+      {"code":"ADDRESSED","displayLabel":"Addressed","isActive":true,"sortOrder":10},
+      {"code":"ACCEPTED_WITH_REASON","displayLabel":"Accepted with Reason","isActive":true,"sortOrder":20},
+      {"code":"SUPERSEDED","displayLabel":"Superseded","isActive":true,"sortOrder":30}
+    ],
+    "humanTaskTypes": [
+      {"code":"EVIDENCE_ITEM_REVIEW","displayLabel":"Review Evidence Item","isActive":true,"sortOrder":10},
+      {"code":"EVIDENCE_SET_APPROVAL","displayLabel":"Approve Evidence Set","isActive":true,"sortOrder":20},
+      {"code":"INTERPRETATION_CONFIRMATION","displayLabel":"Confirm Business Interpretation","isActive":true,"sortOrder":30},
+      {"code":"ANGLE_SELECTION","displayLabel":"Select Opportunity Angle","isActive":true,"sortOrder":40},
+      {"code":"CRITIC_RESOLUTION","displayLabel":"Resolve Critic Objection","isActive":true,"sortOrder":50},
+      {"code":"STRATEGY_APPROVAL","displayLabel":"Approve Strategy","isActive":true,"sortOrder":60},
+      {"code":"RUN_RECOVERY","displayLabel":"Recover Workflow Run","isActive":true,"sortOrder":70}
     ],
     "tenantTypes": [
       {"code":"PLATFORM","displayLabel":"Advertified Platform","isActive":true,"sortOrder":10},
@@ -105,7 +169,8 @@
       {"code":"ACTIVE","displayLabel":"Active","isActive":true,"sortOrder":390},
       {"code":"INACTIVE","displayLabel":"Inactive","isActive":true,"sortOrder":400},
       {"code":"INVITED","displayLabel":"Invited","isActive":true,"sortOrder":410},
-      {"code":"SUSPENDED","displayLabel":"Suspended","isActive":true,"sortOrder":420}
+      {"code":"SUSPENDED","displayLabel":"Suspended","isActive":true,"sortOrder":420},
+      {"code":"CANCELLED","displayLabel":"Cancelled","isActive":true,"sortOrder":430}
     ],
     "rateTypes": [
       {"code":"CPM","displayLabel":"Cost per Thousand","isActive":true,"sortOrder":10},

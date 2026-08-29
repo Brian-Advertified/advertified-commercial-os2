@@ -20,10 +20,13 @@ Read documents according to their role. A lower row cannot override a higher row
 - `docs/evidence/manifest.schema.json`: machine-readable gate-evidence contract.
 - `docs/evidence/GATE_REPORT_TEMPLATE.md`: human-readable gate handoff template.
 - `docs/evidence/gate-1/`: current Gate 1 evidence; it records PENDING and cannot self-approve the gate.
-- `docs/evidence/gate-2/`: retained uncommitted Gate 2 evidence; Brian Rabuthu recorded local GO on 2026-08-29.
+- `docs/evidence/gate-2/`: retained Gate 2 evidence in local commit `115d500`; Brian Rabuthu recorded local GO on 2026-08-29.
 - `docs/evidence/gate-3/`: retained authenticated-shell evidence; Brian Rabuthu recorded local GO on 2026-08-29.
+- `docs/evidence/gate-4/`: retained Evidence/Opportunity workflow evidence; Brian Rabuthu directed local delivery on 2026-08-29.
 - `docs/GATE2_WORK_PACKET.md`: owner-approved bounded local non-production Gate 2 scope.
 - `docs/GATE3_WORK_PACKET.md`: owner-approved, locally implemented authenticated-shell scope.
+- `docs/GATE4_WORK_PACKET.md`: owner-directed, locally delivered Evidence/Opportunity scope.
+- `docs/adr/0003-four-step-opportunity-to-brief-agent-split.md`: accepted local Gate 4 agent sequence; production review pending.
 - `docs/adr/0009-dotnet-10-csharp-14-baseline.md`: accepted current Commercial API runtime baseline.
 - `docs/UX_DIRECTION.md`: owner-directed authenticated product experience and human-language boundary.
 - `docs/DOMAIN_MODEL_COMPLETE.md`: legacy draft name; not an implemented or approved complete model.

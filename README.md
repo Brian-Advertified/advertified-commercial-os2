@@ -8,9 +8,11 @@ Advertified is a marketing intelligence and campaign operating system. This repo
 - PostgreSQL 16 with PostGIS and pgvector
 - Redis, MinIO, and MailHog for local non-production infrastructure
 
-The foundation builds and tests locally. Brian Rabuthu recorded local Gate 2 GO on
-2026-08-29. Brian Rabuthu recorded local Gate 3 GO for the implemented authenticated shell;
-Gate 4 and later product journeys remain blocked pending exact approved work packets.
+The foundation and Gate 4 Evidence/Opportunity workflow build and test locally. Brian Rabuthu
+recorded local Gate 2 and Gate 3 GO on 2026-08-29; those gates are committed as `115d500`.
+He subsequently directed Gate 4 delivered under `docs/GATE4_WORK_PACKET.md`. Its repeatable
+local evidence is retained in `docs/evidence/gate-4/`; production and publication remain
+separate decisions.
 
 ## Start here
 
@@ -96,12 +98,14 @@ Local endpoints:
 | PostgreSQL | localhost:55432 |
 | Redis | localhost:56379 |
 
-The runtime description intentionally reports zero implemented agents and a disabled provider. Do not change those claims until agent contracts and evaluations actually exist.
+The runtime defaults to a disabled provider and reports no implemented agents unless its
+Development/Test-only deterministic Gate 4 mode is explicitly enabled. No live provider is
+configured or permitted.
 
-The Gate 3 web application starts at `/sign-in`, creates only the approved local opaque
-browser session and shows real database-backed workspaces. An identity with no active
-canonical membership receives the truthful empty-access state; the application never seeds
-or fabricates a workspace, task, notification or dashboard count.
+The web application starts at `/sign-in`, creates only the approved local opaque browser
+session and shows database-backed workspaces, opportunities and assigned human tasks. An
+identity with no active canonical membership receives the truthful empty-access state; the
+application never fabricates a workspace, task, notification or dashboard count.
 
 ## Database migrations
 

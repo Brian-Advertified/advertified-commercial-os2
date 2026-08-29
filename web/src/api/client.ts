@@ -17,12 +17,15 @@ import {
 
 const safeMessages: Readonly<Record<string, string>> = {
   AUTHENTICATION_REQUIRED: 'Your session has ended. Sign in again to continue.',
+  APPROVAL_REQUIRED: 'This action belongs to a different assigned reviewer or approver.',
+  EVIDENCE_REQUIRED: 'Complete and approve the required evidence first.',
   CSRF_VALIDATION_FAILED: 'Refresh the page and try that action again.',
   IDEMPOTENCY_CONFLICT: 'That request key was already used. Try the action again.',
   ORIGIN_NOT_ALLOWED: 'Open Advertified from its configured local address.',
   TENANT_FORBIDDEN: 'You do not have access to this workspace or action.',
   VALIDATION_FAILED: 'Review the information and try again.',
   VERSION_CONFLICT: 'This information changed. Refresh it before saving again.',
+  INVALID_LIFECYCLE_TRANSITION: 'Complete the current opportunity step first.',
 }
 
 export const sessionExpiredEvent = 'advertified:session-expired'
@@ -51,7 +54,7 @@ type RequestOptions = {
   idempotencyKey?: string
 }
 
-async function request<T>(
+export async function request<T>(
   path: string,
   schema: ZodType<T>,
   init: RequestInit = {},

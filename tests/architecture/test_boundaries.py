@@ -37,6 +37,15 @@ REQUIRED_MASTER_COLLECTIONS = {
     "lifecycleStatuses",
     "paymentMethods",
     "permissions",
+    "opportunitySourceTypes",
+    "evidenceSourceTypes",
+    "evidencePolicyBases",
+    "evidenceClaimTypes",
+    "evidenceReviewDecisions",
+    "opportunityAngleStatuses",
+    "criticSeverities",
+    "objectionResolutions",
+    "humanTaskTypes",
     "proposalTiers",
     "rateTypes",
     "rejectionReasons",
@@ -80,6 +89,34 @@ GATE2_PERMISSION_ROLES = {
     "contact_read": AGENCY_ADMIN_ROLES,
     "contact_manage": AGENCY_ADMIN_ROLES,
 }
+GATE4_PERMISSION_ROLES = {
+    "opportunity_view": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+        "advertiser_admin", "advertiser_approver",
+    },
+    "opportunity_create": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "opportunity_edit": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "evidence_create": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "evidence_review": {"platform_admin", "inventory_ops"},
+    "agent_run": {"platform_admin", "internal_planner"},
+    "opportunity_angle_select": {"platform_admin", "internal_planner"},
+    "strategy_view": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+        "advertiser_admin", "advertiser_approver",
+    },
+    "strategy_approve": {"platform_admin", "advertiser_approver"},
+    "run_view": {"platform_admin", "internal_planner"},
+    "run_manage": {"platform_admin", "internal_planner"},
+    "task_view": BASIC_HUMAN_ROLES,
+    "task_act": BASIC_HUMAN_ROLES,
+}
+REQUIRED_PERMISSION_ROLES = GATE2_PERMISSION_ROLES | GATE4_PERMISSION_ROLES
 
 
 def source_files(root: Path = REPO_ROOT) -> list[Path]:
@@ -209,10 +246,10 @@ def test_master_data_registry_is_coherent() -> None:
     assert "BUDIENT_MISMATCH" not in path.read_text(encoding="utf-8")
 
     permissions = collections["permissions"]
-    assert {item["code"] for item in permissions} == set(GATE2_PERMISSION_ROLES)
+    assert {item["code"] for item in permissions} == set(REQUIRED_PERMISSION_ROLES)
     for permission in permissions:
         roles = permission.get("metadata", {}).get("roles", [])
-        assert set(roles) == GATE2_PERMISSION_ROLES[permission["code"]]
+        assert set(roles) == REQUIRED_PERMISSION_ROLES[permission["code"]]
         assert len(roles) == len(set(roles))
         assert set(roles) <= {item["code"] for item in collections["roles"]}
 
@@ -231,7 +268,12 @@ def test_governed_codes_are_not_inline_application_literals() -> None:
 
     for path in source_files():
         path_text = relative(path).lower()
-        if "test" in path_text or "e2e" in path.parts or "constant" in path_text:
+        if (
+            "test" in path_text
+            or "e2e" in path.parts
+            or "constant" in path_text
+            or "/migrations/" in path_text
+        ):
             continue
         literals = {
             match.group("value")

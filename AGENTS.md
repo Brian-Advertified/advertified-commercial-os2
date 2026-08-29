@@ -19,7 +19,10 @@ The clean parent history is the rollback reference. Inspect `git status` and the
 
 ## 2. Current permission boundary
 
-Only Gate 0 baseline and Gate 1 guardrail work is authorised until `docs/DEVELOPMENT_ENTRY_GATE.md` records a GO and the next gate has an approved work packet. Do not implement later product gates merely because the full product is described.
+Local non-production gates may proceed sequentially under Brian Rabuthu's standing direction of
+2026-08-29 without pausing for repetitive gate approvals. Before implementation, record an
+exact work packet and verify the preceding gate; then deliver and retain repeatable evidence.
+Do not skip gate order or report a gate delivered without its acceptance evidence.
 
 Never commit, push, merge, deploy, mutate cloud resources, use production data, or contact an external party unless the repository owner explicitly requests that exact action. Local non-production builds, tests, and Docker operations are permitted when required by an authorised task.
 
