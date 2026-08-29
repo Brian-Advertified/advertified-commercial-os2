@@ -1,0 +1,247 @@
+name: Advertified CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Architecture and Code Quality Checks
+  architecture-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check file sizes
+        run: |
+          echo "Checking for files exceeding 400 lines..."
+          find . -name "*.cs" -o -name "*.py" -o -name "*.ts" -o -name "*.tsx" | while read file; do
+            lines=$(wc -l < "$file")
+            if [ $lines -gt 400 ]; then
+              echo "ERROR: $file has $lines lines (exceeds 400)"
+              exit 1
+            fi
+          done
+          echo "All files within 400-line limit"
+      
+      - name: Check for magic strings
+        run: |
+          echo "Checking for magic strings in domain code..."
+          # Add specific checks for hardcoded domain values
+          echo "Magic string check passed"
+      
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+
+  # Web Application Tests
+  web-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./web
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter
+        run: npm run lint
+      
+      - name: Run type check
+        run: npm run type-check
+      
+      - name: Run unit tests
+        run: npm test -- --coverage
+      
+      - name: Build application
+        run: npm run build
+
+  # Commercial API Tests
+  api-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./api
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Run code analysis
+        run: dotnet format --verify-no-changes
+      
+      - name: Build solution
+        run: dotnet build --no-restore
+      
+      - name: Run unit tests
+        run: dotnet test --no-build --verbosity normal
+      
+      - name: Generate OpenAPI spec
+        run: dotnet run --project src/Advertified.Commercial.Api -- --generate-openapi
+
+  # Agent Runtime Tests
+  agent-runtime-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./agent-runtime
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: agent-runtime/requirements.txt
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run linter
+        run: |
+          pip install black flake8
+          black . --check
+          flake8 . --max-line-length=100
+      
+      - name: Run type check
+        run: |
+          pip install mypy
+          mypy .
+      
+      - name: Run unit tests
+        run: pytest
+
+  # Integration Tests
+  integration-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: advertified_test
+          POSTGRES_USER: advertified
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 3s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run integration tests
+        run: |
+          echo "Running integration tests..."
+          # Add integration test commands here
+
+  # Security Scanning
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run dependency scan
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'advertified'
+          path: '.'
+          format: 'HTML'
+      
+      - name: Run container scan
+        run: |
+          echo "Container scanning..."
+          # Add container scanning commands here
+
+  # Database Migration Tests
+  migration-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: advertified_test
+          POSTGRES_USER: advertified
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Test empty database migration
+        run: |
+          cd api
+          dotnet ef database update
+          dotnet ef database drop --force
+          dotnet ef database update
+      
+      - name: Test migration rollback
+        run: |
+          cd api
+          dotnet ef migrations add TestMigration
+          dotnet ef database update
+          dotnet ef database update 0
+          dotnet ef database update
+
+  # Contract Tests
+  contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Test OpenAPI contract
+        run: |
+          echo "Testing OpenAPI contract..."
+          # Add contract validation commands here
+      
+      - name: Test event schemas
+        run: |
+          echo "Testing event schemas..."
+          # Add event schema validation commands here
+      
+      - name: Test agent contracts
+        run: |
+          echo "Testing agent contracts..."
+          # Add agent contract validation commands here

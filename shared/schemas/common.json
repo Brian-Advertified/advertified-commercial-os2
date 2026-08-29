@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Advertified Common Schemas",
+  "description": "Common data schemas used across Advertified services",
+  "definitions": {
+    "UUID": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Universally unique identifier"
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp in UTC"
+    },
+    "Money": {
+      "type": "object",
+      "description": "Monetary value with currency",
+      "properties": {
+        "amountMinor": {
+          "type": "integer",
+          "description": "Amount in minor units (cents for USD/ZAR)"
+        },
+        "currency": {
+          "type": "string",
+          "description": "ISO 4217 currency code",
+          "example": "ZAR"
+        }
+      },
+      "required": ["amountMinor", "currency"]
+    },
+    "TenantContext": {
+      "type": "object",
+      "description": "Tenant identification context",
+      "properties": {
+        "tenantId": {
+          "$ref": "#/definitions/UUID"
+        },
+        "actorId": {
+          "$ref": "#/definitions/UUID"
+        },
+        "effectiveRole": {
+          "type": "string",
+          "description": "Effective role for the current operation"
+        }
+      },
+      "required": ["tenantId", "actorId", "effectiveRole"]
+    },
+    "CorrelationId": {
+      "type": "string",
+      "description": "Correlation identifier for request tracing"
+    },
+    "Pagination": {
+      "type": "object",
+      "description": "Pagination parameters",
+      "properties": {
+        "cursor": {
+          "type": "string",
+          "description": "Pagination cursor"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 25,
+          "description": "Maximum items per page"
+        }
+      }
+    },
+    "Error": {
+      "type": "object",
+      "description": "Error response structure",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable error code"
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable error title"
+        },
+        "detail": {
+          "type": "string",
+          "description": "Detailed error description"
+        },
+        "correlationId": {
+          "$ref": "#/definitions/CorrelationId"
+        },
+        "fieldErrors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "required": ["code", "title"]
+    }
+  }
+}

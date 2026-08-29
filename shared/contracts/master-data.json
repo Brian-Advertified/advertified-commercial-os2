@@ -1,0 +1,314 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Advertified Master Data Registry",
+  "description": "Canonical master data and configuration values for Advertified Unified",
+  "definitions": {
+    "MasterDataRecord": {
+      "type": "object",
+      "description": "Base structure for master data records",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable machine code that is never repurposed"
+        },
+        "displayLabel": {
+          "type": "string",
+          "description": "User-facing label that may change"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Whether the record is currently active"
+        },
+        "sortOrder": {
+          "type": "integer",
+          "description": "Display order"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Additional metadata schema"
+        },
+        "effectiveFrom": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Effective start date"
+        },
+        "effectiveTo": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Effective end date (null if still active)"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["code", "displayLabel", "isActive", "sortOrder"]
+    },
+    "Channel": {
+      "allOf": [
+        { "$ref": "#/definitions/MasterDataRecord" },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": ["OOH", "DOOH", "RADIO", "TV", "PRINT", "DIGITAL", "SOCIAL", "INFLUENCER", "EXPERIENTIAL", "PODCAST", "RETAIL", "TRANSIT", "MALL", "EMAIL", "MOBILE"]
+            }
+          }
+        }
+      ]
+    },
+    "Role": {
+      "allOf": [
+        { "$ref": "#/definitions/MasterDataRecord" },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": ["platform_admin", "internal_planner", "inventory_ops", "agency_admin", "agency_campaign_user", "advertiser_admin", "advertiser_approver", "supplier_admin", "supplier_user", "influencer_rep", "agent_runtime_service", "worker_service"]
+            }
+          }
+        }
+      ]
+    },
+    "LifecycleStatus": {
+      "allOf": [
+        { "$ref": "#/definitions/MasterDataRecord" },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": ["CREATED", "QUALIFYING", "EVIDENCE_REVIEW", "STRATEGY_READY", "BRIEF_READY", "PLANNING", "PROPOSAL_READY", "WON", "LOST", "ARCHIVED", "DRAFT", "IN_REVIEW", "APPROVED", "REJECTED", "SENT", "SELECTED", "DECLINED", "EXPIRED", "UPLOADED", "CLASSIFYING", "EXTRACTING", "VALIDATING", "REVIEW_REQUIRED", "PUBLISHING", "COMPLETED", "FAILED", "PENDING", "CONFIRMED", "SUBMITTED", "ISSUED", "QUEUED", "RUNNING", "WAITING_FOR_HUMAN", "PLANNED", "BOOKED", "CREATIVE_PENDING", "READY", "LIVE"]
+            }
+          }
+        }
+      ]
+    },
+    "RateType": {
+      "allOf": [
+        { "$ref": "#/definitions/MasterDataRecord" },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": ["CPM", "CPC", "CPL", "CPA", "FLAT_RATE", "SPOT_RATE", "PACKAGE_RATE", "DAY_RATE", "WEEK_RATE", "MONTH_RATE"]
+            }
+          }
+        }
+      ]
+    },
+    "AssetType": {
+      "allOf": [
+        { "$ref": "#/definitions/MasterDataRecord" },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": ["LOGO", "PRODUCT_IMAGE", "OOH_PHOTO", "CREATIVE_FILE", "PROOF_IMAGE", "SPECIFICATION", "TERMS_DOCUMENT", "RATE_CARD"]
+            }
+          }
+        }
+      ]
+    },
+    "ProposalTier": {
+      "allOf": [
+        { "$ref": "#/definitions/MasterDataRecord" },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": ["ESSENTIAL", "GROWTH", "PREMIUM"]
+            }
+          }
+        }
+      ]
+    },
+    "PaymentMethod": {
+      "allOf": [
+        { "$ref": "#/definitions/MasterDataRecord" },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": ["VODAPAY", "MANUAL_EFT", "ADVERTISE_NOW_PAY_LATER"]
+            }
+          }
+        }
+      ]
+    },
+    "RejectionReason": {
+      "allOf": [
+        { "$ref": "#/definitions/MasterDataRecord" },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": ["INELIGIBLE_GEOGRAPHY", "INELIGIBLE_FORMAT", "STALE_RATE", "UNAVAILABLE", "MINIMUM_ORDER", "BUDIENT_MISMATCH", "QUALITY_ISSUE", "DUPLICATE", "MISSING_INFO", "SUPPLIER_DECLINED"]
+            }
+          }
+        }
+      ]
+    },
+    "TaskPriority": {
+      "allOf": [
+        { "$ref": "#/definitions/MasterDataRecord" },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": ["URGENT", "HIGH", "MEDIUM", "LOW"]
+            }
+          }
+        }
+      ]
+    },
+    "Currency": {
+      "allOf": [
+        { "$ref": "#/definitions/MasterDataRecord" },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": ["ZAR", "USD", "EUR", "GBP"]
+            }
+          }
+        }
+      ]
+    },
+    "VATStatus": {
+      "allOf": [
+        { "$ref": "#/definitions/MasterDataRecord" },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": ["REGISTERED", "EXEMPT", "NOT_APPLICABLE"]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "channels": [
+    {
+      "code": "OOH",
+      "displayLabel": "Out of Home",
+      "isActive": true,
+      "sortOrder": 1,
+      "metadata": {
+        "supportsGeography": true,
+        "supportsFormat": true,
+        "supportsDigital": false
+      }
+    },
+    {
+      "code": "DOOH",
+      "displayLabel": "Digital Out of Home",
+      "isActive": true,
+      "sortOrder": 2,
+      "metadata": {
+        "supportsGeography": true,
+        "supportsFormat": true,
+        "supportsDigital": true
+      }
+    },
+    {
+      "code": "RADIO",
+      "displayLabel": "Radio",
+      "isActive": true,
+      "sortOrder": 3,
+      "metadata": {
+        "supportsGeography": true,
+        "supportsStation": true,
+        "supportsDaypart": true
+      }
+    },
+    {
+      "code": "DIGITAL",
+      "displayLabel": "Digital",
+      "isActive": true,
+      "sortOrder": 4,
+      "metadata": {
+        "supportsTargeting": true,
+        "supportsTracking": true
+      }
+    },
+    {
+      "code": "SOCIAL",
+      "displayLabel": "Social Media",
+      "isActive": true,
+      "sortOrder": 5,
+      "metadata": {
+        "supportsTargeting": true,
+        "supportsInfluencer": true
+      }
+    }
+  ],
+  "roles": [
+    {
+      "code": "platform_admin",
+      "displayLabel": "Platform Administrator",
+      "isActive": true,
+      "sortOrder": 1,
+      "metadata": {
+        "scope": "cross_tenant",
+        "privileges": ["all"]
+      }
+    },
+    {
+      "code": "internal_planner",
+      "displayLabel": "Internal Planner",
+      "isActive": true,
+      "sortOrder": 2,
+      "metadata": {
+        "scope": "assigned_clients",
+        "privileges": ["opportunities", "briefs", "planning", "proposals"]
+      }
+    },
+    {
+      "code": "inventory_ops",
+      "displayLabel": "Inventory Operations",
+      "isActive": true,
+      "sortOrder": 3,
+      "metadata": {
+        "scope": "assigned_channels",
+        "privileges": ["inventory", "imports", "suppliers"]
+      }
+    }
+  ],
+  "proposalTiers": [
+    {
+      "code": "ESSENTIAL",
+      "displayLabel": "Essential",
+      "isActive": true,
+      "sortOrder": 1,
+      "metadata": {
+        "budgetMultiplier": 1.0,
+        "description": "Core campaign essentials"
+      }
+    },
+    {
+      "code": "GROWTH",
+      "displayLabel": "Growth",
+      "isActive": true,
+      "sortOrder": 2,
+      "metadata": {
+        "budgetMultiplier": 1.5,
+        "description": "Enhanced reach and frequency"
+      }
+    },
+    {
+      "code": "PREMIUM",
+      "displayLabel": "Premium",
+      "isActive": true,
+      "sortOrder": 3,
+      "metadata": {
+        "budgetMultiplier": 2.0,
+        "description": "Maximum impact and premium placements"
+      }
+    }
+  ]
+}
