@@ -27,7 +27,13 @@
       "name": "Complete Commercial API test suite",
       "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release --no-restore",
       "outcome": "PASS",
-      "summary": "34 passed, including disposable PostgreSQL, 38-table RLS, retained OpenAPI, and Gate 6 coverage."
+      "summary": "35 passed, including disposable PostgreSQL, 39-table RLS, retained OpenAPI, Docling adapter contract, and Gate 6 coverage."
+    },
+    {
+      "name": "Docling extraction boundary",
+      "command": "DoclingInventoryExtractionAdapterTests plus Gate 6 database lifecycle plus authenticated /v1/convert/file sandbox",
+      "outcome": "PASS",
+      "summary": "Pinned Docling request/response mapping, a real authenticated CSV conversion, coordinate lineage, source/output hashes, and immutable parser-version checkpoint passed."
     },
     {
       "name": "Gate 6 inventory lifecycle and scale",
@@ -69,7 +75,7 @@
       "name": "Local infrastructure validation",
       "command": "docker compose -f infrastructure/docker-compose.yml up -d --build --wait; docker compose -f infrastructure/docker-compose.yml ps",
       "outcome": "PASS",
-      "summary": "Compose validates and all five local non-production services report healthy; ClamAV effective stream/file limits are 100 MiB."
+      "summary": "Compose validates and all six local non-production dependencies report healthy, including pinned Docling Serve 1.30.0. ClamAV effective stream/file limits are 100 MiB."
     },
     {
       "name": "Remote CI and independent review",
@@ -80,7 +86,7 @@
   ],
   "unresolvedBlockers": [
     "Remote CI and independent Engineering, Security/Privacy, and Operations review remain pending.",
-    "Migration 202608290005_InventoryTruth is verified in disposable PostgreSQL but not authorised or applied to the shared local database."
+    "Migrations through 202608290006_DoclingExtraction are verified in disposable PostgreSQL but not authorised or applied to the shared local database."
   ],
   "ownerReview": {
     "status": "PENDING",

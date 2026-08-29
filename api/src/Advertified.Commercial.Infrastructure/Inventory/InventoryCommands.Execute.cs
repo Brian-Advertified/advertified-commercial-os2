@@ -36,7 +36,14 @@ public sealed partial class InventoryCommands
         var content = await store.ObjectStore.ReadAsync(
             source.ProtectedObjectKey, cancellationToken);
         VerifyHash(content, source.SourceHash);
-        var rows = InventorySourceExtractor.Extract(source.DocumentClass, content);
+        var extraction = await extractionAdapter.ExtractAsync(
+            new InventoryExtractionRequest(
+                source.FileName, source.DeclaredMediaType, source.DocumentClass,
+                source.SourceHash, content), cancellationToken);
+        VerifyExtraction(extraction, source.SourceHash);
+        await InsertExtractionAsync(
+            envelope.TenantId, source.Id, extraction, cancellationToken);
+        var rows = extraction.Rows;
         var codes = await InventoryCodeSets.LoadAsync(store.DbContext, cancellationToken);
         var now = timeProvider.GetUtcNow();
         foreach (var row in rows)
@@ -86,6 +93,35 @@ public sealed partial class InventoryCommands
             throw new InventoryProtectionUnavailableException();
         }
     }
+
+    private static void VerifyExtraction(
+        InventoryExtractionResult extraction,
+        string expectedSourceHash)
+    {
+        var actualOutputHash = Convert.ToHexStringLower(
+            SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(extraction.StructuredJson)));
+        if (!string.Equals(extraction.SourceHash, expectedSourceHash, StringComparison.Ordinal) ||
+            !string.Equals(extraction.OutputHash, actualOutputHash, StringComparison.Ordinal) ||
+            string.IsNullOrWhiteSpace(extraction.AdapterVersion))
+        {
+            throw new InventoryExtractionUnavailableException();
+        }
+    }
+
+    private Task<int> InsertExtractionAsync(
+        TenantId tenantId,
+        Guid importId,
+        InventoryExtractionResult extraction,
+        CancellationToken cancellationToken) =>
+        store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO commercial.inventory_extractions (
+                id, tenant_id, import_id, source_hash, adapter_code, adapter_version,
+                schema_version, structured_json, output_hash, completed_at_utc)
+            VALUES ({Guid.NewGuid()}, {tenantId.Value}, {importId}, {extraction.SourceHash},
+                {extraction.AdapterCode}, {extraction.AdapterVersion},
+                {extraction.SchemaVersion}, {extraction.StructuredJson}::jsonb,
+                {extraction.OutputHash}, {timeProvider.GetUtcNow()})
+            """, cancellationToken);
 
     private async Task InsertCandidateAsync(
         TenantId tenantId,

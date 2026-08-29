@@ -25,7 +25,10 @@ authenticated inventory response exposes its active value so the browser uses th
 PostgreSQL and ClamAV retain fixed 100 MiB guardrails and the API rejects a configured value above
 those ceilings.
 
-Deterministic extraction creates canonical candidates without supplier-specific code. Each
+The runtime extraction path uses Docling Serve 1.30.0 with Docling 2.118.0 behind an
+Advertified-owned versioned adapter. Each source creates an immutable checkpoint containing
+the source hash, adapter and schema versions, structured Docling JSON, and output hash before
+candidate construction. Deterministic local extraction is restricted to test fixtures. Each
 field retains its raw value, normalised value, transformation, source locator, and source hash.
 Missing or invalid identity, channel, geography, and rate facts block publication; image-only
 sources remain blocked for human correction instead of inventing products. Unsupported audience
@@ -52,10 +55,12 @@ cover upload, extraction, evidence review, publication preview, search, and prod
 | Browser acceptance | PASS — 12 cases across desktop and compact viewports |
 | Web runtime dependency audit | PASS — 0 vulnerabilities |
 | Retained OpenAPI v1 | PASS — Gate 6 routes present and contract checks pass |
-| Compose validation and health | PASS — PostgreSQL, Redis, MinIO, ClamAV, and MailHog healthy |
+| Compose validation and health | PASS — PostgreSQL, Redis, MinIO, ClamAV, MailHog, and pinned Docling healthy |
 | ClamAV effective limits | PASS — 100 MiB stream/file and 400 MiB aggregate scan limits |
 
-The database-backed acceptance also proves malware isolation, exact hash verification,
+The versioned Docling adapter contract, real authenticated CSV conversion sandbox and immutable
+extraction checkpoint also pass. The
+database-backed acceptance proves malware isolation, exact hash verification,
 creator/reviewer separation, immutable review decisions, versioned publication, cross-tenant
 denial, and human-verified product detail. No live OCR or AI is used.
 
@@ -75,6 +80,10 @@ denial, and human-verified product detail. No live OCR or AI is used.
    generic test-host protection configuration failures. Validation moved into cohesive option
    predicates, pagination now carries the server policy, and one deterministic test-host helper
    configures protection. The final builds and complete suites pass.
+6. A post-delivery audit found that the first Gate 6 implementation used only local parsers even
+   though the normative technology lock requires Docling. The correction adds the pinned Docling
+   service and provider-neutral adapter, retains raw structured output and parser identity, and
+   confines the prior parser to deterministic tests.
 
 ## Safety and remaining non-local work
 
@@ -83,7 +92,7 @@ denial, and human-verified product detail. No live OCR or AI is used.
 - Production resource or data used: No.
 - Main/shared local database migration applied: No.
 - Supplier contact, booking, spend, or external publication: No.
-- Local infrastructure mutation: the five development Compose services were built/started and
+- Local infrastructure mutation: the six development Compose services were built/started and
   health-checked; no data volume was deleted.
 - Commit: included in the owner-directed automatic Gate 6 commit; no push, merge, release, or deployment.
 - Pending: remote CI and independent Engineering, Security/Privacy, and Operations review.

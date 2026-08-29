@@ -32,6 +32,9 @@ var agentRuntime = builder.Configuration
 var inventoryProtection = builder.Configuration
     .GetSection(InventoryProtectionOptions.SectionName)
     .Get<InventoryProtectionOptions>() ?? new InventoryProtectionOptions();
+var inventoryExtraction = builder.Configuration
+    .GetSection(InventoryExtractionOptions.SectionName)
+    .Get<InventoryExtractionOptions>() ?? new InventoryExtractionOptions();
 
 if ((authenticationMode is LocalIdentityDefaults.DeterministicMode
         or LocalIdentityDefaults.DeterministicSessionMode)
@@ -88,6 +91,7 @@ builder.Services.AddScoped<IBriefCommands, BriefCommands>();
 builder.Services.AddScoped<InventoryRecordStore>();
 builder.Services.AddScoped<IInventoryReader, InventoryReader>();
 builder.Services.AddScoped<IInventoryCommands, InventoryCommands>();
+builder.AddInventoryExtraction(inventoryExtraction);
 builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = inventoryProtection.MaximumSourceBytes + 1_048_576);
 builder.Services.AddOptions<InventoryProtectionOptions>()

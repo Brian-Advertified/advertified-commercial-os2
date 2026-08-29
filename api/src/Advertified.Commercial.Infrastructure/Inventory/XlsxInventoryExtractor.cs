@@ -1,11 +1,12 @@
 using System.IO.Compression;
 using System.Xml.Linq;
+using Advertified.Commercial.Application.Inventory;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
 internal static class XlsxInventoryExtractor
 {
-    internal static IReadOnlyList<InventoryTableRow> Extract(byte[] content)
+    internal static IReadOnlyList<InventoryExtractedRow> Extract(byte[] content)
     {
         using var stream = new MemoryStream(content, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read);

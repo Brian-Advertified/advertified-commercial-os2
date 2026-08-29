@@ -1,19 +1,15 @@
 using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
+using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Constants;
 using UglyToad.PdfPig;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
-internal sealed record InventoryTableRow(
-    int Number,
-    string Locator,
-    IReadOnlyDictionary<string, string> Values);
-
 internal static class InventorySourceExtractor
 {
-    internal static IReadOnlyList<InventoryTableRow> Extract(
+    internal static IReadOnlyList<InventoryExtractedRow> Extract(
         string documentClass,
         byte[] content)
     {
@@ -25,12 +21,12 @@ internal static class InventorySourceExtractor
             Gate6DocumentClasses.Docx => DocxInventoryExtractor.Extract(content),
             Gate6DocumentClasses.Pdf => ExtractPdf(content),
             Gate6DocumentClasses.Png or Gate6DocumentClasses.Jpeg =>
-                [new InventoryTableRow(1, "image#1", new Dictionary<string, string>())],
+                [new InventoryExtractedRow(1, "image#1", new Dictionary<string, string>())],
             _ => throw new ArgumentException("The inventory document class is unsupported."),
         };
     }
 
-    internal static IReadOnlyList<InventoryTableRow> FromTable(
+    internal static IReadOnlyList<InventoryExtractedRow> FromTable(
         IReadOnlyList<IReadOnlyList<string>> table,
         string locatorPrefix)
     {
@@ -39,7 +35,7 @@ internal static class InventorySourceExtractor
             return [];
         }
         var headers = table[0].Select(NormalizeHeader).ToArray();
-        var rows = new List<InventoryTableRow>();
+        var rows = new List<InventoryExtractedRow>();
         for (var index = 1; index < table.Count; index++)
         {
             var values = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -53,7 +49,7 @@ internal static class InventorySourceExtractor
             }
             if (values.Count > 0)
             {
-                rows.Add(new InventoryTableRow(index, $"{locatorPrefix}#row={index + 1}", values));
+                rows.Add(new InventoryExtractedRow(index, $"{locatorPrefix}#row={index + 1}", values));
             }
         }
         return rows;
@@ -62,7 +58,7 @@ internal static class InventorySourceExtractor
     internal static string NormalizeHeader(string value) => new(
         value.Trim().ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray());
 
-    private static IReadOnlyList<InventoryTableRow> ExtractPdf(byte[] content)
+    private static IReadOnlyList<InventoryExtractedRow> ExtractPdf(byte[] content)
     {
         using var document = PdfDocument.Open(content);
         var lines = document.GetPages()
@@ -77,7 +73,7 @@ internal static class InventorySourceExtractor
         return FromKeyValueLines(lines, "pdf");
     }
 
-    internal static IReadOnlyList<InventoryTableRow> FromKeyValueLines(
+    internal static IReadOnlyList<InventoryExtractedRow> FromKeyValueLines(
         IReadOnlyList<string> lines,
         string locatorPrefix)
     {
@@ -90,13 +86,13 @@ internal static class InventorySourceExtractor
                 values[NormalizeHeader(line[..separator])] = line[(separator + 1)..].Trim();
             }
         }
-        return [new InventoryTableRow(1, $"{locatorPrefix}#record=1", values)];
+        return [new InventoryExtractedRow(1, $"{locatorPrefix}#record=1", values)];
     }
 }
 
 internal static class DocxInventoryExtractor
 {
-    internal static IReadOnlyList<InventoryTableRow> Extract(byte[] content)
+    internal static IReadOnlyList<InventoryExtractedRow> Extract(byte[] content)
     {
         using var stream = new MemoryStream(content, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read);

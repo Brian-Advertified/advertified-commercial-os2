@@ -4,7 +4,7 @@
 **Evidence date:** 2026-08-29  
 **Normative product source:** `docs/spec/README.md`  
 **Execution rules:** `AGENTS.md`  
-**Current permission:** Gate 6 delivered locally; Gate 7 packet preparation authorised by standing sequential-delivery direction
+**Current permission:** Gate 7 local delivery authorised by standing sequential-delivery direction; no live provider, shared-database, deployment, push or merge authority
 
 This is the execution index, not a replacement for the full v1.1 specification. Every gate uses the applicable normative sections and the historical traceability/adversarial fixtures in Section 31.
 

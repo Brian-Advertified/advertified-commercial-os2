@@ -29,6 +29,7 @@ public sealed partial class InventoryGate6AcceptanceTests
         await AssertDocumentCorpusAsync(importer);
         var imported = await CreateAndExecuteAsync(importer, CsvFixture());
         var importId = imported.GetProperty("id").GetGuid();
+        await AssertExtractionCheckpointAsync(connectionString, importId);
         var candidate = imported.GetProperty("candidates")[0];
         var candidateId = candidate.GetProperty("id").GetGuid();
 
@@ -241,6 +242,37 @@ public sealed partial class InventoryGate6AcceptanceTests
             "WHERE candidate_id = $1", connection);
         command.Parameters.AddWithValue(candidateId);
         var exception = await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync());
+        Assert.Equal(PostgresErrorCodes.RaiseException, exception.SqlState);
+    }
+
+    private static async Task AssertExtractionCheckpointAsync(
+        string connectionString,
+        Guid importId)
+    {
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var read = new NpgsqlCommand(
+            """
+            SELECT adapter_code, adapter_version, schema_version,
+                length(source_hash), length(output_hash)
+            FROM commercial.inventory_extractions
+            WHERE import_id = $1
+            """, connection);
+        read.Parameters.AddWithValue(importId);
+        await using var row = await read.ExecuteReaderAsync();
+        Assert.True(await row.ReadAsync());
+        Assert.Equal("advertified-deterministic-fixture", row.GetString(0));
+        Assert.Equal("1.0.0", row.GetString(1));
+        Assert.Equal(InventoryExtractionOptions.CurrentSchemaVersion, row.GetString(2));
+        Assert.Equal(64, row.GetInt32(3));
+        Assert.Equal(64, row.GetInt32(4));
+        await row.CloseAsync();
+        await using var mutate = new NpgsqlCommand(
+            "UPDATE commercial.inventory_extractions SET adapter_version = 'changed' " +
+            "WHERE import_id = $1", connection);
+        mutate.Parameters.AddWithValue(importId);
+        var exception = await Assert.ThrowsAsync<PostgresException>(
+            () => mutate.ExecuteNonQueryAsync());
         Assert.Equal(PostgresErrorCodes.RaiseException, exception.SqlState);
     }
 }

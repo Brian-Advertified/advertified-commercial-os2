@@ -36,7 +36,7 @@ internal static class InventoryCandidateNormalizer
         ["audience", "reach", "listeners", "impressions", "ratings"];
 
     internal static ExtractedInventoryCandidate Normalize(
-        InventoryTableRow row,
+        InventoryExtractedRow row,
         string sourceHash)
     {
         var canonical = new Dictionary<string, string>(StringComparer.Ordinal);

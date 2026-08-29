@@ -61,6 +61,24 @@ services:
       retries: 20
       start_period: 90s
 
+  docling:
+    image: ghcr.io/docling-project/docling-serve-cpu:v1.30.0@sha256:061d35c03611bc15b73d024c8e8387bcf0624279f8b57c16c1567326f214ba56
+    environment:
+      DOCLING_SERVE_API_KEY: ${DOCLING_API_KEY:-advertified-docling-local-only}
+      DOCLING_SERVE_ENABLE_UI: "false"
+    ports:
+      - "127.0.0.1:${DOCLING_PORT:-55001}:5001"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/health', timeout=5)
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+
   redis:
     image: redis:7.4.2-alpine
     command: ["redis-server", "--appendonly", "yes"]

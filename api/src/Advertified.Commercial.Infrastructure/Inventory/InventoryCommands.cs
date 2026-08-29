@@ -12,7 +12,8 @@ public sealed partial class InventoryCommands(
     InventoryRecordStore store,
     CommandDispatcher dispatcher,
     TimeProvider timeProvider,
-    IOptions<InventoryProtectionOptions> protectionOptions) : IInventoryCommands
+    IOptions<InventoryProtectionOptions> protectionOptions,
+    IInventoryDocumentExtractionAdapter extractionAdapter) : IInventoryCommands
 {
     private readonly int maximumSourceBytes = protectionOptions.Value.MaximumSourceBytes;
 

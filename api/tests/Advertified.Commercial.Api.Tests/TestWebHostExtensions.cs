@@ -9,6 +9,7 @@ internal static class TestWebHostExtensions
     {
         builder.UseSetting("InventoryProtection:ObjectStoreMode", "InMemory");
         builder.UseSetting("InventoryProtection:ScannerMode", "Deterministic");
+        builder.UseSetting("InventoryExtraction:Mode", "Deterministic");
         return builder;
     }
 }
