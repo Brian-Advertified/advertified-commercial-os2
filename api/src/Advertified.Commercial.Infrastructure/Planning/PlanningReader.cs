@@ -37,7 +37,7 @@ public sealed class PlanningReader(
         var plan = planRow is null ? null : await store.BuildPlanViewAsync(
             tenantId, planRow, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return new PlanningWorkspaceView(briefVersionId, audience, mix, shortlist, plan);
+        return new PlanningWorkspaceView(brief.BriefId, briefVersionId, audience, mix, shortlist, plan);
     }
 
     public async Task<MediaPlanVersionView> GetPlanAsync(

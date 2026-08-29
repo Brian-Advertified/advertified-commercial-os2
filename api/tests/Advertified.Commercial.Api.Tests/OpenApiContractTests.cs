@@ -106,6 +106,20 @@ public sealed class OpenApiContractTests
         Assert.NotNull(paths["/api/v1/tenants/{tenantId}/inventory-products"]!["get"]);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/inventory-products/{productId}"]!["get"]);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/briefs/{briefId}/approved-plans"]!["get"]);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/briefs/{briefId}/proposals:generate"]!["post"]);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/proposal-recipients"]!["get"]);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/proposals/{proposalVersionId}"]!["get"]);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/proposal-versions/{proposalVersionId}:render"]!["post"]);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/proposal-versions/{proposalVersionId}:share"]!["post"]);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/proposal-versions/{proposalVersionId}:select-option"]!["post"]);
     }
 
     private static void AssertHeaderParameter(

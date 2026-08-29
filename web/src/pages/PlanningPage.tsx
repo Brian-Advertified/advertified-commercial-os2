@@ -124,7 +124,8 @@ function ShortlistStage(props: PlanningContext & {
 }
 
 function PlanStage(props: PlanningContext & {
-  busy: boolean; act: ActionRunner; shortlist: Shortlist | null; plan: MediaPlan | null
+  workspace: PlanningWorkspace; busy: boolean; act: ActionRunner;
+  shortlist: Shortlist | null; plan: MediaPlan | null
 }) {
   if (props.shortlist?.status !== masterDataCodes.lifecycleStatuses.approved) return null
   if (!props.plan) return <StartCard title="Reconcile the media plan"
@@ -133,10 +134,19 @@ function PlanStage(props: PlanningContext & {
     onAction={() => props.act(() => planningApi.generatePlan(
       props.tenantId, props.briefVersionId, props.token))} />
   const plan = props.plan
-  return <MediaPlanPanel plan={plan} busy={props.busy}
+  return <><MediaPlanPanel plan={plan} busy={props.busy}
     onResolve={(code) => props.act(() => planningApi.resolveObjection(
       props.tenantId, plan, code, props.token))}
     onApprove={() => props.act(() => planningApi.approvePlan(props.tenantId, plan, props.token))} />
+    {plan.status === masterDataCodes.lifecycleStatuses.approved &&
+      <article className="planning-start-card proposal-next-step"><div>
+        <p className="eyebrow eyebrow-light">Client proposal</p>
+        <h2>Turn approved plans into client choices</h2>
+        <p>Select up to three genuinely different approved plans, refine the outcomes and prepare the branded proposal.</p>
+      </div><Link className="primary-button" to={`/briefs/${props.workspace.briefId}/proposals/new`}>
+        Prepare proposal
+      </Link></article>}
+  </>
 }
 
 function PlanningHero({ workspace, mix, shortlist, plan }: {

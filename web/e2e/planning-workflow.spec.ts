@@ -2,6 +2,7 @@ import { expect, test, type Route } from '@playwright/test'
 
 const tenantId = 'c1000000-0000-0000-0000-000000000001'
 const userId = 'c2000000-0000-0000-0000-000000000001'
+const briefId = 'c3000000-0000-0000-0000-000000000000'
 const briefVersionId = 'c3000000-0000-0000-0000-000000000001'
 const audienceId = 'c4000000-0000-0000-0000-000000000001'
 const mixId = 'c5000000-0000-0000-0000-000000000001'
@@ -118,6 +119,7 @@ async function read(route: Route, state: State, path: string) {
 
 function planning(state: State) {
   return {
+    briefId,
     briefVersionId,
     audience: state.audience ? audience() : null,
     mediaMix: state.mix ? mix(state) : null,

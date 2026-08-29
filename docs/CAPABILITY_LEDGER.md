@@ -163,9 +163,24 @@ See `docs/evidence/gate-5/` for commands and exact outcomes.
 
 See `docs/evidence/gate-7/` for retained commands and exact outcomes.
 
-## Gates 8–13
+## Gate 8 — proposal and client decision
 
-Gates 8–13 remain sequence-bound. A document, route label, container, contract, or scaffold is not a product implementation.
+| Capability | Status | Evidence / blocker |
+|---|---|---|
+| Distinct approved-plan choices | VERIFIED | One to three client options bind different approved MediaPlanVersions; duplicate plan choices fail closed and platform package codes remain separate |
+| Proposal wording and version approval | VERIFIED | Assigned agency operator edits client-safe title, summary, terms and outcomes, then approves the exact plan-bound version |
+| Branded deterministic PDF | VERIFIED | Approved structured facts render to retained PDF bytes with filename, media type, SHA-256 and size; no browser or model-generated commercial truth |
+| Controlled client sharing | VERIFIED | Agency explicitly chooses an active same-tenant advertiser recipient; deterministic adapter records zero-cost local delivery and exposes no external side effect |
+| Client decision | VERIFIED | Only the assigned recipient can read and decide; exactly one option may be selected or the proposal declined; expiry and repeat decisions fail closed |
+| Gate 8 API/OpenAPI and browser journey | VERIFIED | Complete C# contract plus desktop/compact agency-to-client proposal journey pass |
+| Booking/payment side effects | ABSENT | A selected proposal records only the immutable client decision; Gate 11 owns finance, booking and campaign creation |
+| Shared/local canonical database deployment | ABSENT | Migration verified in disposable PostgreSQL only; no production resource changed |
+
+See `docs/evidence/gate-8/` for retained commands and exact outcomes.
+
+## Gates 9–13
+
+Gates 9–13 remain sequence-bound. A document, route label, container, contract, or scaffold is not a product implementation.
 
 | Gate | Status |
 |---|---|
@@ -173,8 +188,8 @@ Gates 8–13 remain sequence-bound. A document, route label, container, contract
 | 5 Canonical Brief | VERIFIED locally — owner/independent review pending |
 | 6 Inventory truth | VERIFIED locally — implementation and evidence complete; non-local review pending |
 | 7 Planning | VERIFIED locally — implementation and evidence complete; non-local review pending |
-| 8 Proposal and client decision | NEXT |
-| 9 Rapid OOH | BLOCKED by Gate 8 |
+| 8 Proposal and client decision | VERIFIED locally — implementation and evidence complete; non-local review pending |
+| 9 Rapid OOH | NEXT |
 | 10 Supplier marketplace | BLOCKED by Gate 9 |
 | 11 Campaign delivery and learning | BLOCKED by Gate 10 |
 | 12 Hardening and certification | BLOCKED by Gate 11 |

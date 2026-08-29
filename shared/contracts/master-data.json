@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "1.8.0",
+  "registryVersion": "1.9.0",
   "effectiveFrom": "2026-08-29",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
@@ -74,7 +74,13 @@
       {"code":"plan_view","displayLabel":"View assigned planning","isActive":true,"sortOrder":360,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
       {"code":"plan_generate","displayLabel":"Generate assigned planning artefacts","isActive":true,"sortOrder":370,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"plan_edit","displayLabel":"Select and resolve assigned planning","isActive":true,"sortOrder":380,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
-      {"code":"plan_approve","displayLabel":"Approve assigned internal planning","isActive":true,"sortOrder":390,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}}
+      {"code":"plan_approve","displayLabel":"Approve assigned internal planning","isActive":true,"sortOrder":390,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"proposal_view","displayLabel":"View assigned proposals","isActive":true,"sortOrder":400,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
+      {"code":"proposal_generate","displayLabel":"Generate proposal choices","isActive":true,"sortOrder":410,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"proposal_edit","displayLabel":"Edit and render proposal drafts","isActive":true,"sortOrder":420,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"proposal_approve","displayLabel":"Approve client proposal wording and pricing","isActive":true,"sortOrder":430,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"proposal_share","displayLabel":"Share approved proposal for client review","isActive":true,"sortOrder":440,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"proposal_decide","displayLabel":"Select or decline a client proposal option","isActive":true,"sortOrder":450,"metadata":{"roles":["advertiser_admin","advertiser_approver"]}}
     ],
     "briefSourceTypes": [
       {"code":"SUPPLIED_TEXT","displayLabel":"Supplied Text","isActive":true,"sortOrder":10},
@@ -271,6 +277,9 @@
     "planningPolicies": [
       {"code":"OOH_LOCAL_PEER_V1","displayLabel":"Local OOH Peer Benchmark v1","isActive":true,"sortOrder":10,"metadata":{"radiiKilometres":[3,5,10,25],"minimumCohortSize":2,"mediumCohortSize":5,"highCohortSize":10,"lowConfidence":0.4,"mediumConfidence":0.7,"highConfidence":0.9,"scoreBase":100,"priceWeight":40,"availableSupplyBonus":10}}
     ],
+    "proposalPolicies": [
+      {"code":"CLIENT_OPTIONS_V1","displayLabel":"Client Proposal Options v1","isActive":true,"sortOrder":10,"metadata":{"minimumOptions":1,"maximumOptions":3,"defaultValidityDays":30,"maximumValidityDays":90}}
+    ],
     "supplySourceTypes": [
       {"code":"NOT_SUPPLIED","displayLabel":"Not Supplied","isActive":true,"sortOrder":10},
       {"code":"PUBLISHED_INVENTORY","displayLabel":"Published Inventory","isActive":true,"sortOrder":20},
@@ -313,7 +322,10 @@
       {"code":"audience_definition_set","displayLabel":"Audience Definition Set","isActive":true,"sortOrder":200},
       {"code":"media_mix_version","displayLabel":"Media Mix Version","isActive":true,"sortOrder":210},
       {"code":"inventory_shortlist_version","displayLabel":"Inventory Shortlist Version","isActive":true,"sortOrder":220},
-      {"code":"media_plan_version","displayLabel":"Media Plan Version","isActive":true,"sortOrder":230}
+      {"code":"media_plan_version","displayLabel":"Media Plan Version","isActive":true,"sortOrder":230},
+      {"code":"proposal_version","displayLabel":"Proposal Version","isActive":true,"sortOrder":240},
+      {"code":"proposal_document","displayLabel":"Proposal Document","isActive":true,"sortOrder":250},
+      {"code":"proposal_decision","displayLabel":"Proposal Decision","isActive":true,"sortOrder":260}
     ],
     "commercialActions": [
       {"code":"tenant.updated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -354,7 +366,14 @@
       {"code":"media_plan.generated","displayLabel":"Media Plan Generated","isActive":true,"sortOrder":360},
       {"code":"media_plan.objection_resolved","displayLabel":"Media Plan Objection Resolved","isActive":true,"sortOrder":370},
       {"code":"media_plan.approved","displayLabel":"Media Plan Approved","isActive":true,"sortOrder":380},
-      {"code":"media_mix.updated","displayLabel":"Media Mix Updated","isActive":true,"sortOrder":390}
+      {"code":"media_mix.updated","displayLabel":"Media Mix Updated","isActive":true,"sortOrder":390},
+      {"code":"proposal.generated","displayLabel":"Proposal Generated","isActive":true,"sortOrder":400},
+      {"code":"proposal.updated","displayLabel":"Proposal Updated","isActive":true,"sortOrder":410},
+      {"code":"proposal.approved","displayLabel":"Proposal Approved","isActive":true,"sortOrder":420},
+      {"code":"proposal.rendered","displayLabel":"Proposal Rendered","isActive":true,"sortOrder":430},
+      {"code":"proposal.shared","displayLabel":"Proposal Shared for Client Review","isActive":true,"sortOrder":440},
+      {"code":"proposal.selected","displayLabel":"Proposal Option Selected","isActive":true,"sortOrder":450},
+      {"code":"proposal.declined","displayLabel":"Proposal Declined","isActive":true,"sortOrder":460}
     ],
     "commercialEventTypes": [
       {"code":"TenantUpdated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -395,7 +414,14 @@
       {"code":"MediaPlanGenerated","displayLabel":"Media Plan Generated","isActive":true,"sortOrder":360},
       {"code":"MediaPlanObjectionResolved","displayLabel":"Media Plan Objection Resolved","isActive":true,"sortOrder":370},
       {"code":"MediaPlanApproved","displayLabel":"Media Plan Approved","isActive":true,"sortOrder":380},
-      {"code":"MediaMixUpdated","displayLabel":"Media Mix Updated","isActive":true,"sortOrder":390}
+      {"code":"MediaMixUpdated","displayLabel":"Media Mix Updated","isActive":true,"sortOrder":390},
+      {"code":"ProposalGenerated","displayLabel":"Proposal Generated","isActive":true,"sortOrder":400},
+      {"code":"ProposalUpdated","displayLabel":"Proposal Updated","isActive":true,"sortOrder":410},
+      {"code":"ProposalApproved","displayLabel":"Proposal Approved","isActive":true,"sortOrder":420},
+      {"code":"ProposalRendered","displayLabel":"Proposal Rendered","isActive":true,"sortOrder":430},
+      {"code":"ProposalShared","displayLabel":"Proposal Shared","isActive":true,"sortOrder":440},
+      {"code":"ProposalOptionSelected","displayLabel":"Proposal Option Selected","isActive":true,"sortOrder":450},
+      {"code":"ProposalDeclined","displayLabel":"Proposal Declined","isActive":true,"sortOrder":460}
     ],
     "creativeTextRoles": [
       {"code":"HEADLINE","displayLabel":"Headline","isActive":true,"sortOrder":10},

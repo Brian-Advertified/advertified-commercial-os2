@@ -219,6 +219,18 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
         return rows.SingleOrDefault();
     }
 
+    internal Task<List<MediaPlanRow>> ListApprovedPlansAsync(
+        TenantId tenantId,
+        Guid briefVersionId,
+        CancellationToken cancellationToken)
+    {
+        var statement = FormattableStringFactory.Create(
+            MediaPlanSelect + "\nWHERE tenant_id = {0} AND brief_version_id = {1} " +
+            "AND status_code = {2}\nORDER BY version_no DESC",
+            tenantId.Value, briefVersionId, MasterDataCodes.LifecycleStatuses.Approved);
+        return dbContext.Database.SqlQuery<MediaPlanRow>(statement).ToListAsync(cancellationToken);
+    }
+
     private const string PlanningInventorySelect = """
         SELECT product.id AS "ProductId", version.id AS "ProductVersionId",
             product.supplier_id AS "SupplierId", version.name AS "Name",

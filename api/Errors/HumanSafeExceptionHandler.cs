@@ -7,6 +7,7 @@ using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Planning;
+using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.MasterData;
 
 namespace Advertified.Commercial.Api.Errors;
@@ -134,6 +135,21 @@ public sealed class HumanSafeExceptionHandler(
                 "Market comparison is unavailable",
                 "This product does not have a current comparable OOH rate yet.",
                 "INVENTORY_BENCHMARK_UNAVAILABLE"),
+            ProposalStaleException => new(
+                StatusCodes.Status409Conflict,
+                "Proposal inputs changed",
+                "Create a new proposal from the current approved media plans.",
+                "PROPOSAL_STALE"),
+            ProposalDocumentRequiredException => new(
+                StatusCodes.Status409Conflict,
+                "Proposal document required",
+                "Approve and render the current proposal before sharing it with the client.",
+                "PROPOSAL_DOCUMENT_REQUIRED"),
+            ProposalExpiredException => new(
+                StatusCodes.Status409Conflict,
+                "Proposal expired",
+                "Ask the agency for a current proposal before making a decision.",
+                "PROPOSAL_EXPIRED"),
             ArgumentException or BadHttpRequestException => new(
                 StatusCodes.Status400BadRequest,
                 "Some information needs attention",

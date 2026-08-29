@@ -159,6 +159,7 @@ export const mediaPlanSchema = z.object({
 })
 
 export const planningWorkspaceSchema = z.object({
+  briefId: z.guid(),
   briefVersionId: z.guid(),
   audience: audienceSetSchema.nullable(),
   mediaMix: mediaMixSchema.nullable(),

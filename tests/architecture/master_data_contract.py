@@ -42,6 +42,7 @@ REQUIRED_MASTER_COLLECTIONS = {
     "benchmarkPositions",
     "evidenceClassifications",
     "planningPolicies",
+    "proposalPolicies",
     "rateFreshnessStatuses",
     "supplyConfidenceStatuses",
     "supplySourceTypes",
@@ -157,8 +158,27 @@ PLANNING_PERMISSION_ROLES = {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
     },
 }
+PROPOSAL_PERMISSION_ROLES = {
+    "proposal_view": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+        "advertiser_admin", "advertiser_approver",
+    },
+    "proposal_generate": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "proposal_edit": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "proposal_approve": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "proposal_share": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "proposal_decide": {"advertiser_admin", "advertiser_approver"},
+}
 REQUIRED_PERMISSION_ROLES = (
     FOUNDATION_PERMISSION_ROLES | OPPORTUNITY_PERMISSION_ROLES | BRIEF_PERMISSION_ROLES
-    | INVENTORY_PERMISSION_ROLES | PLANNING_PERMISSION_ROLES
+    | INVENTORY_PERMISSION_ROLES | PLANNING_PERMISSION_ROLES | PROPOSAL_PERMISSION_ROLES
 )
 

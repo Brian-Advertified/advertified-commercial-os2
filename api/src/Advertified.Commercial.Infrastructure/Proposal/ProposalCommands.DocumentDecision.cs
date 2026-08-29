@@ -1,0 +1,182 @@
+using Advertified.Commercial.Application.Commands;
+using Advertified.Commercial.Application.Opportunity;
+using Advertified.Commercial.Application.Proposal;
+using Advertified.Commercial.Domain.Commercial;
+using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Domain.MasterData;
+using Microsoft.EntityFrameworkCore;
+
+namespace Advertified.Commercial.Infrastructure.Proposal;
+
+public sealed partial class ProposalCommands
+{
+    private async Task<CommandOutcome> RenderOutcomeAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<RenderProposalCommand> envelope,
+        CancellationToken cancellationToken)
+    {
+        var proposal = await LoadOwnedProposalAsync(proposalVersionId, envelope, cancellationToken);
+        if (proposal.Status != MasterDataCodes.LifecycleStatuses.Approved ||
+            proposal.ExpiryAtUtc <= timeProvider.GetUtcNow() ||
+            await store.FindDocumentAsync(envelope.TenantId, proposalVersionId, cancellationToken) is not null)
+        {
+            throw new InvalidLifecycleTransitionException();
+        }
+        await EnsureProposalPlansCurrentAsync(envelope.TenantId, proposalVersionId, cancellationToken);
+        var view = await store.BuildViewAsync(envelope.TenantId, proposal, cancellationToken);
+        var rendered = ProposalPdfRenderer.Render(view);
+        var documentId = Guid.NewGuid();
+        var now = timeProvider.GetUtcNow();
+        await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO commercial.proposal_documents (
+                id, tenant_id, proposal_version_id, media_type, file_name,
+                content_hash, content, created_at_utc)
+            VALUES ({documentId}, {envelope.TenantId.Value}, {proposalVersionId},
+                {"application/pdf"}, {rendered.FileName}, {rendered.ContentHash},
+                {rendered.Content}, {now})
+            """, cancellationToken);
+        var changed = await IncrementVersionAsync(proposal, envelope, cancellationToken);
+        var updated = proposal with { Version = changed };
+        var result = await store.BuildViewAsync(envelope.TenantId, updated, cancellationToken);
+        return ProposalOutcome(envelope, result, proposalVersionId, changed,
+            MasterDataReferences.CommercialActions.ProposalRendered,
+            MasterDataReferences.CommercialEventTypes.ProposalRendered, now);
+    }
+
+    private async Task<CommandOutcome> ShareOutcomeAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<ShareProposalCommand> envelope,
+        CancellationToken cancellationToken)
+    {
+        var proposal = await LoadOwnedProposalAsync(proposalVersionId, envelope, cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        if (proposal.Status != MasterDataCodes.LifecycleStatuses.Approved || proposal.ExpiryAtUtc <= now ||
+            await store.FindDocumentAsync(envelope.TenantId, proposalVersionId, cancellationToken) is null)
+        {
+            throw new ProposalDocumentRequiredException();
+        }
+        await EnsureProposalPlansCurrentAsync(envelope.TenantId, proposalVersionId, cancellationToken);
+        var recipient = await store.FindRecipientAsync(
+            envelope.TenantId, envelope.Command.RecipientUserId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Client recipient is unavailable.");
+        if (recipient.Status != MasterDataCodes.LifecycleStatuses.Active ||
+            recipient.Role is not (MasterDataCodes.Roles.AdvertiserAdmin or MasterDataCodes.Roles.AdvertiserApprover))
+        {
+            throw new UnauthorizedAccessException("Client recipient is unavailable.");
+        }
+        var receipt = await deliveryClient.DeliverAsync(new ProposalDeliveryRequest(
+            envelope.TenantId.Value, proposalVersionId, envelope.Command.RecipientUserId,
+            recipient.Email, proposal.Title), cancellationToken);
+        if (receipt.IncrementalCostMinor != 0)
+        {
+            throw new InvalidOperationException("The local proposal delivery exceeded its zero-cost policy.");
+        }
+        var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE commercial.proposal_versions
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Sent},
+                recipient_user_id = {envelope.Command.RecipientUserId},
+                shared_at_utc = {receipt.DeliveredAtUtc}, version = version + 1
+            WHERE tenant_id = {envelope.TenantId.Value} AND id = {proposalVersionId}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.Approved}
+              AND version = {envelope.ExpectedVersion}
+            """, cancellationToken);
+        if (changed != 1) throw new VersionConflictException();
+        var updated = proposal with
+        {
+            Status = MasterDataCodes.LifecycleStatuses.Sent,
+            RecipientUserId = envelope.Command.RecipientUserId,
+            Version = proposal.Version + 1,
+        };
+        var view = await store.BuildViewAsync(envelope.TenantId, updated, cancellationToken);
+        return ProposalOutcome(envelope, view, proposalVersionId, updated.Version,
+            MasterDataReferences.CommercialActions.ProposalShared,
+            MasterDataReferences.CommercialEventTypes.ProposalShared, receipt.DeliveredAtUtc);
+    }
+
+    private Task<CommandOutcome> SelectOutcomeAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<SelectProposalOptionCommand> envelope,
+        CancellationToken cancellationToken) => DecideAsync(
+            proposalVersionId, envelope, MasterDataCodes.LifecycleStatuses.Selected,
+            envelope.Command.OptionId, envelope.Command.Reason,
+            MasterDataReferences.CommercialActions.ProposalSelected,
+            MasterDataReferences.CommercialEventTypes.ProposalOptionSelected,
+            cancellationToken);
+
+    private Task<CommandOutcome> DeclineOutcomeAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<DeclineProposalCommand> envelope,
+        CancellationToken cancellationToken) => DecideAsync(
+            proposalVersionId, envelope, MasterDataCodes.LifecycleStatuses.Declined,
+            null, envelope.Command.Reason,
+            MasterDataReferences.CommercialActions.ProposalDeclined,
+            MasterDataReferences.CommercialEventTypes.ProposalDeclined,
+            cancellationToken);
+
+    private async Task<CommandOutcome> DecideAsync<TCommand>(
+        Guid proposalVersionId,
+        CommandEnvelope<TCommand> envelope,
+        string decision,
+        Guid? optionId,
+        string? reason,
+        ActionCode action,
+        EventTypeCode eventType,
+        CancellationToken cancellationToken)
+        where TCommand : notnull
+    {
+        var proposal = await store.FindProposalAsync(
+            envelope.TenantId, proposalVersionId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Proposal access denied.");
+        var now = timeProvider.GetUtcNow();
+        if (proposal.Status != MasterDataCodes.LifecycleStatuses.Sent ||
+            proposal.RecipientUserId != envelope.ActorId.Value)
+        {
+            throw new UnauthorizedAccessException("This proposal decision is not assigned to you.");
+        }
+        if (proposal.ExpiryAtUtc <= now) throw new ProposalExpiredException();
+        if (await store.FindDecisionAsync(envelope.TenantId, proposalVersionId, cancellationToken) is not null)
+        {
+            throw new InvalidLifecycleTransitionException();
+        }
+        if (optionId.HasValue)
+        {
+            var options = await store.ListOptionsAsync(envelope.TenantId, proposalVersionId, cancellationToken);
+            if (options.All(item => item.Id != optionId.Value))
+            {
+                throw new ArgumentException("The selected proposal choice is unavailable.");
+            }
+        }
+        await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO commercial.proposal_decisions (
+                id, tenant_id, proposal_version_id, option_id, decision_code,
+                reason, decided_by, decided_at_utc)
+            VALUES ({Guid.NewGuid()}, {envelope.TenantId.Value}, {proposalVersionId}, {optionId},
+                {decision}, {reason}, {envelope.ActorId.Value}, {now})
+            """, cancellationToken);
+        var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE commercial.proposal_versions SET status_code = {decision}, version = version + 1
+            WHERE tenant_id = {envelope.TenantId.Value} AND id = {proposalVersionId}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.Sent}
+              AND version = {envelope.ExpectedVersion}
+            """, cancellationToken);
+        if (changed != 1) throw new VersionConflictException();
+        var updated = proposal with { Status = decision, Version = proposal.Version + 1 };
+        var view = await store.BuildViewAsync(envelope.TenantId, updated, cancellationToken);
+        return ProposalOutcome(envelope, view, proposalVersionId, updated.Version, action, eventType, now);
+    }
+
+    private async Task<long> IncrementVersionAsync<TCommand>(
+        ProposalRow proposal,
+        CommandEnvelope<TCommand> envelope,
+        CancellationToken cancellationToken)
+        where TCommand : notnull
+    {
+        var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE commercial.proposal_versions SET version = version + 1
+            WHERE tenant_id = {envelope.TenantId.Value} AND id = {proposal.Id}
+              AND version = {envelope.ExpectedVersion}
+            """, cancellationToken);
+        if (changed != 1) throw new VersionConflictException();
+        return proposal.Version + 1;
+    }
+}

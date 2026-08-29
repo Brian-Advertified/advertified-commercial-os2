@@ -148,6 +148,7 @@ public sealed record MediaPlanVersionView(
     DateTimeOffset CreatedAtUtc);
 
 public sealed record PlanningWorkspaceView(
+    Guid BriefId,
     Guid BriefVersionId,
     AudienceDefinitionSetView? Audience,
     MediaMixVersionView? MediaMix,

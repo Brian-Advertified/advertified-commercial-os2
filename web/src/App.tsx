@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
 import './pages.css'
 import './planning.css'
+import './proposal.css'
 import { useSession } from './auth/session-state'
 import { WorkspaceProvider } from './auth/WorkspaceContext'
 import { AppShell } from './components/AppShell'
@@ -25,6 +26,10 @@ import { InventoryProductPage } from './pages/InventoryProductPage'
 
 const PlanningPage = lazy(() => import('./pages/PlanningPage')
   .then(module => ({ default: module.PlanningPage })))
+const NewProposalPage = lazy(() => import('./pages/NewProposalPage')
+  .then(module => ({ default: module.NewProposalPage })))
+const ProposalPage = lazy(() => import('./pages/ProposalPage')
+  .then(module => ({ default: module.ProposalPage })))
 
 function AuthenticatedApplication() {
   const { session, loading } = useSession()
@@ -52,6 +57,8 @@ function App() {
           <Route path="/inventory/imports/:importId" element={<InventoryImportPage />} />
           <Route path="/inventory/products/:productId" element={<InventoryProductPage />} />
           <Route path="/planning/:briefVersionId" element={<Suspense fallback={<LoadingState label="Loading media planning" />}><PlanningPage /></Suspense>} />
+          <Route path="/briefs/:briefId/proposals/new" element={<Suspense fallback={<LoadingState label="Loading proposal builder" />}><NewProposalPage /></Suspense>} />
+          <Route path="/proposals/:proposalId" element={<Suspense fallback={<LoadingState label="Loading proposal" />}><ProposalPage /></Suspense>} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/notifications" element={<DeferredPage destination="Notifications" />} />

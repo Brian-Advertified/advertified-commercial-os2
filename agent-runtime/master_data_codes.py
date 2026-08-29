@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: 1bed5c5906d903eed8bc5d3918ab6605f049e6fa370b085b782a935b8c1e9849
+# source-sha256: bcde0252f5c12b64ed280d6accf94f43d369f943d9a872b16c0f5a58196f8e2c
 from enum import StrEnum
 
-REGISTRY_VERSION = "1.8.0"
+REGISTRY_VERSION = "1.9.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -75,6 +75,12 @@ class Permissions(StrEnum):
     PLAN_GENERATE = "plan_generate"
     PLAN_EDIT = "plan_edit"
     PLAN_APPROVE = "plan_approve"
+    PROPOSAL_VIEW = "proposal_view"
+    PROPOSAL_GENERATE = "proposal_generate"
+    PROPOSAL_EDIT = "proposal_edit"
+    PROPOSAL_APPROVE = "proposal_approve"
+    PROPOSAL_SHARE = "proposal_share"
+    PROPOSAL_DECIDE = "proposal_decide"
 
 class BriefSourceTypes(StrEnum):
     SUPPLIED_TEXT = "SUPPLIED_TEXT"
@@ -271,6 +277,9 @@ class BenchmarkExclusionReasons(StrEnum):
 class PlanningPolicies(StrEnum):
     OOH_LOCAL_PEER_V1 = "OOH_LOCAL_PEER_V1"
 
+class ProposalPolicies(StrEnum):
+    CLIENT_OPTIONS_V1 = "CLIENT_OPTIONS_V1"
+
 class SupplySourceTypes(StrEnum):
     NOT_SUPPLIED = "NOT_SUPPLIED"
     PUBLISHED_INVENTORY = "PUBLISHED_INVENTORY"
@@ -314,6 +323,9 @@ class CommercialResourceTypes(StrEnum):
     MEDIA_MIX_VERSION = "media_mix_version"
     INVENTORY_SHORTLIST_VERSION = "inventory_shortlist_version"
     MEDIA_PLAN_VERSION = "media_plan_version"
+    PROPOSAL_VERSION = "proposal_version"
+    PROPOSAL_DOCUMENT = "proposal_document"
+    PROPOSAL_DECISION = "proposal_decision"
 
 class CommercialActions(StrEnum):
     TENANT_UPDATED = "tenant.updated"
@@ -355,6 +367,13 @@ class CommercialActions(StrEnum):
     MEDIA_PLAN_OBJECTION_RESOLVED = "media_plan.objection_resolved"
     MEDIA_PLAN_APPROVED = "media_plan.approved"
     MEDIA_MIX_UPDATED = "media_mix.updated"
+    PROPOSAL_GENERATED = "proposal.generated"
+    PROPOSAL_UPDATED = "proposal.updated"
+    PROPOSAL_APPROVED = "proposal.approved"
+    PROPOSAL_RENDERED = "proposal.rendered"
+    PROPOSAL_SHARED = "proposal.shared"
+    PROPOSAL_SELECTED = "proposal.selected"
+    PROPOSAL_DECLINED = "proposal.declined"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -396,6 +415,13 @@ class CommercialEventTypes(StrEnum):
     MEDIA_PLAN_OBJECTION_RESOLVED = "MediaPlanObjectionResolved"
     MEDIA_PLAN_APPROVED = "MediaPlanApproved"
     MEDIA_MIX_UPDATED = "MediaMixUpdated"
+    PROPOSAL_GENERATED = "ProposalGenerated"
+    PROPOSAL_UPDATED = "ProposalUpdated"
+    PROPOSAL_APPROVED = "ProposalApproved"
+    PROPOSAL_RENDERED = "ProposalRendered"
+    PROPOSAL_SHARED = "ProposalShared"
+    PROPOSAL_OPTION_SELECTED = "ProposalOptionSelected"
+    PROPOSAL_DECLINED = "ProposalDeclined"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"

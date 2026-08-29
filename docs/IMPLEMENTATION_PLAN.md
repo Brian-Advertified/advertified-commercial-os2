@@ -4,7 +4,7 @@
 **Evidence date:** 2026-08-29  
 **Normative product source:** `docs/spec/README.md`  
 **Execution rules:** `AGENTS.md`  
-**Current permission:** Proposal/client-decision local delivery authorised by standing sequential-delivery direction after verified canonical planning; no live provider, shared-database, deployment, push or merge authority
+**Current permission:** Rapid OOH local delivery authorised by standing sequential-delivery direction after verified proposal/client decision; no live provider, shared-database, deployment, push or merge authority
 
 This is the execution index, not a replacement for the full v1.1 specification. Every gate uses the applicable normative sections and the historical traceability/adversarial fixtures in Section 31.
 
@@ -20,8 +20,9 @@ This is the execution index, not a replacement for the full v1.1 specification. 
 | 5 | Delivered locally | Canonical Brief implementation and repeatable evidence complete; owner/independent review remains pending |
 | 6 | Delivered locally | Inventory truth implementation and repeatable evidence complete; owner/independent review remains pending |
 | 7 | Delivered locally | Canonical planning, editable media mix, PostGIS OOH benchmarking and repeatable evidence complete |
-| 8 | Authorised next | Proposal/client-decision local delivery may begin under standing sequential direction |
-| 9–13 | Blocked | No implementation until the preceding gate is verified and its exact work packet exists |
+| 8 | Delivered locally | Proposal generation, approved-plan bindings, branded PDF and assigned client decision are verified locally |
+| 9 | Authorised next | Rapid OOH local delivery may begin under standing sequential direction |
+| 10–13 | Blocked | No implementation until the preceding gate is verified and its exact work packet exists |
 
 There are fourteen gates numbered 0 through 13.
 
@@ -188,10 +189,14 @@ multi-period flighting, schedule-aware pricing and PostGIS-backed OOH/DOOH compa
 **Normative areas:** Sections 7.2, 18.5, 19.2, 21.3, 24, 27–28  
 **Outcome:** An approved plan becomes immutable, commercially reconciled options, an approved branded document, and an audited client decision.
 
-Proposal tiers use governed codes LAUNCH, BOOST, SCALE, and DOMINANCE. Exact plan, rates, assumptions, wording, and pricing versions are bound before rendering. No changed plan may reuse approval.
+A full campaign may present one to three materially different proposal options, each bound to a distinct approved MediaPlanVersion. Platform packages LAUNCH, BOOST, SCALE and DOMINANCE remain separate master data and are never used as cosmetic proposal-option identities. Exact plan, rates, assumptions, wording and pricing versions are bound before rendering. No changed plan may reuse approval.
 
 The same assigned agency operator may prepare and internally confirm the proposal. The first
 required advertiser/client decision is the explicit Proposal / Client Decision boundary.
+
+**Current status:** Delivered and verified locally. Repeatable evidence is retained in
+`docs/evidence/gate-8/`. The deterministic local delivery adapter records sharing without
+contacting an external mail provider, and client selection creates no booking or invoice.
 
 ## Gate 9 — Rapid OOH
 

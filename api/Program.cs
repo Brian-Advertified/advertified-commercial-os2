@@ -12,6 +12,7 @@ using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Planning;
+using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Advertified.Commercial.Infrastructure.Brief;
 using Advertified.Commercial.Infrastructure.Identity;
@@ -20,6 +21,7 @@ using Advertified.Commercial.Infrastructure.Opportunity;
 using Advertified.Commercial.Infrastructure.Persistence;
 using Advertified.Commercial.Infrastructure.Inventory;
 using Advertified.Commercial.Infrastructure.Planning;
+using Advertified.Commercial.Infrastructure.Proposal;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
@@ -99,6 +101,12 @@ builder.Services.AddScoped<IInventoryBenchmarkReader, InventoryBenchmarkReader>(
 builder.Services.AddSingleton(PlanningPolicy.Load());
 builder.Services.AddScoped<IPlanningCommands, PlanningCommands>();
 builder.Services.AddScoped<IPlanningAgentClient, DeterministicPlanningAgentClient>();
+builder.Services.AddScoped<ProposalRecordStore>();
+builder.Services.AddSingleton(ProposalPolicy.Load());
+builder.Services.AddScoped<IProposalReader, ProposalReader>();
+builder.Services.AddScoped<IProposalCommands, ProposalCommands>();
+builder.Services.AddScoped<IProposalNarrativeClient, DeterministicProposalNarrativeClient>();
+builder.Services.AddScoped<IProposalDeliveryClient, DeterministicProposalDeliveryClient>();
 builder.AddInventoryExtraction(inventoryExtraction);
 builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = inventoryProtection.MaximumSourceBytes + 1_048_576);
@@ -271,6 +279,7 @@ app.MapOpportunityEndpoints();
 app.MapBriefEndpoints();
 app.MapInventoryEndpoints();
 app.MapPlanningEndpoints();
+app.MapProposalEndpoints();
 
 app.Run();
 
