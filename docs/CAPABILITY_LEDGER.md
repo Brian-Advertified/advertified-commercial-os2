@@ -16,15 +16,27 @@ This ledger tracks the implementation status of every capability specified in th
 |------------|--------|----------|-------|
 | Project structure created | IMPLEMENTED | Directory structure exists | web, api, agent-runtime, workers, shared, infrastructure, tests, docs |
 | Setup instructions documented | IMPLEMENTED | README.md created | Basic setup guide |
-| Capability ledger created | IMPLEMENTED | This file | Initial version |
-| Logical repository map defined | IMPLEMENTED | IMPLEMENTATION_PLAN.md | Full implementation plan |
+| Capability ledger created | IMPLEMENTED | This file | Initial version - PARTIAL |
+| Logical repository map defined | IMPLEMENTED | IMPLEMENTATION_PLAN.md v2.0 | Complete rewrite with executable detail |
 | Toolchain pins established | IMPLEMENTED | Projects created | .NET 8.0, React 19.2.0, Python 3.12 |
 | Legacy disposition recorded | IMPLEMENTED | Documentation pending | No legacy yet - clean build |
-| Docker environment | IMPLEMENTED | docker-compose.yml | PostgreSQL, MinIO, Redis, Mailhog |
+| Docker environment | IMPLEMENTED | docker-compose.yml | PostgreSQL, MinIO, Redis, Mailhog - NOT VERIFIED |
 | Environment configuration | IMPLEMENTED | env.example and .env | Full configuration template |
 | ADR template created | IMPLEMENTED | docs/adr/0000-adr-template.md | Architecture decision process |
 | Common schemas | IMPLEMENTED | shared/schemas/common.json | Base data contracts |
 | Setup guide | IMPLEMENTED | docs/SETUP_GUIDE.md | Developer onboarding |
+| Git repository | IMPLEMENTED | Commit ed3bc26d321140ab69b60e5c368017ade92a900e | Initial commit with scaffolding |
+| Docker services health | ABSENT | Not verified | Services not started/tested |
+| Build execution | ABSENT | Not verified | npm run build, dotnet build not executed |
+| Test execution | ABSENT | Not verified | No tests created/executed |
+| Current routes/screenshots | ABSENT | Not verified | No route documentation or screenshots |
+| Legacy disposition register | IMPLEMENTED | Documented | Clean build, no legacy systems |
+| Known failures/blockers | IMPLEMENTED | Documented | None currently |
+| Production resource confirmation | IMPLEMENTED | Documented | No production resources used (correct) |
+
+**Gate 0 Status**: PARTIAL - Scaffolding complete, verification pending
+**Commit SHA**: ed3bc26d321140ab69b60e5c368017ade92a900e
+**Missing Evidence**: Docker health verification, build results, test results, routes/screenshots
 
 ## Gate 1: Architecture Guardrails
 
@@ -217,12 +229,12 @@ This ledger tracks the implementation status of every capability specified in th
 
 ## Summary Statistics
 
-- **Total Capabilities**: 118
-- **Implemented**: 22 (19%)
+- **Total Capabilities**: 128
+- **Implemented**: 22 (17%)
 - **Verified**: 0 (0%)
 - **Blocked**: 0 (0%)
-- **Pending**: 96 (81%)
+- **Pending**: 106 (83%)
 
 ## Last Updated
 
-2026-08-29 - Gate 1 completed, architecture guardrails established
+2026-08-29 - Implementation plan rewritten to executable format with proper engineering detail. Added critical missing documents: Permission Matrix, POPIA Compliance, Risk Register, Gate 0 Verification Status, Timeline Capacity Planning, Gates 4-13 Placeholder, ADRs for no-autonomous-spend and four-step agent split. Gate 0 status corrected to NOTHING VERIFIED.
