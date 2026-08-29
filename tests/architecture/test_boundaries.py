@@ -46,6 +46,7 @@ REQUIRED_MASTER_COLLECTIONS = {
     "criticSeverities",
     "objectionResolutions",
     "humanTaskTypes",
+    "briefSourceTypes",
     "proposalTiers",
     "rateTypes",
     "rejectionReasons",
@@ -116,7 +117,25 @@ GATE4_PERMISSION_ROLES = {
     "task_view": BASIC_HUMAN_ROLES,
     "task_act": BASIC_HUMAN_ROLES,
 }
-REQUIRED_PERMISSION_ROLES = GATE2_PERMISSION_ROLES | GATE4_PERMISSION_ROLES
+GATE5_PERMISSION_ROLES = {
+    "brief_view": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+        "advertiser_admin", "advertiser_approver",
+    },
+    "brief_create": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "brief_edit": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "brief_submit": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "brief_approve": {"internal_planner", "agency_admin", "agency_campaign_user"},
+}
+REQUIRED_PERMISSION_ROLES = (
+    GATE2_PERMISSION_ROLES | GATE4_PERMISSION_ROLES | GATE5_PERMISSION_ROLES
+)
 
 
 def source_files(root: Path = REPO_ROOT) -> list[Path]:

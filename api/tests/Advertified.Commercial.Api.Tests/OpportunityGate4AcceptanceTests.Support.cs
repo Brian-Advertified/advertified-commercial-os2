@@ -26,6 +26,8 @@ public sealed partial class OpportunityGate4AcceptanceTests
         Guid.Parse("f2000000-0000-0000-0000-000000000002");
     private static readonly Guid ApproverId =
         Guid.Parse("f2000000-0000-0000-0000-000000000003");
+    private static readonly Guid SoloOperatorId =
+        Guid.Parse("f2000000-0000-0000-0000-000000000004");
     private static readonly DateTimeOffset Now =
         new(2026, 8, 29, 16, 0, 0, TimeSpan.Zero);
     private static readonly string[] EvidenceGaps = ["Conversion baseline not supplied."];
@@ -69,11 +71,13 @@ public sealed partial class OpportunityGate4AcceptanceTests
         db.Users.AddRange(
             CreateUser(OwnerId, "owner@gate4.example", "Opportunity Owner"),
             CreateUser(ReviewerId, "reviewer@gate4.example", "Evidence Reviewer"),
-            CreateUser(ApproverId, "approver@gate4.example", "Strategy Approver"));
+            CreateUser(ApproverId, "approver@gate4.example", "Strategy Approver"),
+            CreateUser(SoloOperatorId, "solo@gate5.example", "Solo Agency Operator"));
         db.Memberships.AddRange(
             CreateMembership(OwnerId, "platform_admin", 1),
             CreateMembership(ReviewerId, "inventory_ops", 2),
-            CreateMembership(ApproverId, "advertiser_approver", 3));
+            CreateMembership(ApproverId, "advertiser_approver", 3),
+            CreateMembership(SoloOperatorId, "agency_admin", 4));
         await db.SaveChangesAsync();
     }
 

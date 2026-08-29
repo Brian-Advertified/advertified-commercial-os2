@@ -73,3 +73,28 @@ class StrategyArtifact(ContractModel):
 class CriticReportArtifact(ContractModel):
     readiness: Annotated[str, Field(pattern=r"^(READY|REVIEW_REQUIRED)$")]
     summary: Annotated[str, Field(min_length=1, max_length=1_000)]
+
+
+class BriefConflict(ContractModel):
+    field_path: Annotated[str, Field(min_length=1, max_length=200)]
+    description: Annotated[str, Field(min_length=1, max_length=1_000)]
+    severity: Annotated[str, Field(pattern=r"^(CRITICAL|MATERIAL|ADVISORY)$")]
+    resolved: bool
+    resolution: Annotated[str, Field(max_length=1_000)] | None = None
+
+
+class BriefDraftArtifact(ContractModel):
+    business_problem: Annotated[str, Field(min_length=1, max_length=4_000)]
+    objective: Annotated[str, Field(min_length=1, max_length=4_000)]
+    audiences: tuple[str, ...]
+    geographies: tuple[str, ...]
+    timing: Annotated[str, Field(min_length=1, max_length=2_000)]
+    budget_minor: Annotated[int, Field(ge=0)] | None
+    budget_unknown: bool
+    currency: Annotated[str, Field(min_length=3, max_length=3)] | None
+    vat_status: Annotated[str, Field(min_length=1, max_length=100)] | None
+    fees_minor: Annotated[int, Field(ge=0)] | None
+    constraints: tuple[str, ...]
+    measurement: tuple[str, ...]
+    facts: tuple[str, ...]
+    conflicts: tuple[BriefConflict, ...]

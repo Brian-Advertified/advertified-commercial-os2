@@ -17,6 +17,7 @@ from contracts import (
     UnknownItem,
 )
 from opportunity_contracts import (
+    BriefDraftArtifact,
     BusinessInterpretationArtifact,
     CriticReportArtifact,
     OpportunityAgentRequest,
@@ -214,9 +215,71 @@ def critique(
     )
 
 
+def draft_brief(
+    request: OpportunityAgentRequest,
+) -> AgentOutputEnvelope[BriefDraftArtifact]:
+    evidence_ids = _evidence_ids(request)
+    strategy = next(
+        item for item in request.prior_artifacts if item.artifact_type == "STRATEGY"
+    )
+    objectives = tuple(str(item) for item in strategy.value.get("objectives", ()))
+    audiences = tuple(str(item) for item in strategy.value.get("audience_hypotheses", ()))
+    risks = tuple(str(item) for item in strategy.value.get("risks", ()))
+    artifact = BriefDraftArtifact(
+        business_problem=str(strategy.value["diagnosis"]),
+        objective=objectives[0] if objectives else "Objective requires confirmation",
+        audiences=audiences,
+        geographies=(),
+        timing="Timing not supplied",
+        budget_minor=None,
+        budget_unknown=True,
+        currency=None,
+        vat_status=None,
+        fees_minor=None,
+        constraints=risks,
+        measurement=(),
+        facts=tuple(item.excerpt for item in request.approved_evidence),
+        conflicts=(),
+    )
+    return AgentOutputEnvelope(
+        schema_version="1.0.0",
+        status=OutputStatus.COMPLETED,
+        artifact=artifact,
+        evidence_bindings=(EvidenceBinding(
+            field_path="artifact.business_problem",
+            evidence_item_ids=evidence_ids,
+        ),),
+        unknowns=(
+            UnknownItem(
+                field_path="budget",
+                question="What budget is available?",
+                is_blocking=False,
+            ),
+            UnknownItem(
+                field_path="timing",
+                question="When must the work run?",
+                is_blocking=False,
+            ),
+        ),
+        assumptions=(),
+        confidence=(ConfidenceAssessment(
+            field_path="artifact.business_problem",
+            confidence=Decimal("0.70"),
+        ),),
+        objections=(),
+        rationale="Unsupported commercial details remain explicit unknowns for human review.",
+        suggested_next_action=SuggestedNextAction(
+            command_code="ReviewBriefDraft",
+            requires_human=True,
+        ),
+        usage=_usage(),
+    )
+
+
 HANDLERS = {
     AgentCode.BUSINESS_INTERPRETATION: interpret,
     AgentCode.OPPORTUNITY_INTELLIGENCE: generate_angles,
     AgentCode.STRATEGY: generate_strategy,
     AgentCode.CRITIC_READINESS: critique,
+    AgentCode.BRIEF_DRAFTING: draft_brief,
 }

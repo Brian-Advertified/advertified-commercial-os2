@@ -39,6 +39,9 @@ public sealed partial class OpportunityRunProcessor(
                 case Gate4RunKinds.StrategyCritic:
                     await ProcessStrategyCriticAsync(context, cancellationToken);
                     break;
+                case Gate4RunKinds.Brief:
+                    await ProcessBriefAsync(context, cancellationToken);
+                    break;
                 default:
                     throw new InvalidOperationException("The claimed run kind is invalid.");
             }
@@ -131,6 +134,22 @@ public sealed partial class OpportunityRunProcessor(
             criticPriors,
             cancellationToken);
         await PersistCriticAsync(context, strategy, criticExecution, cancellationToken);
+    }
+
+    private async Task ProcessBriefAsync(
+        RunExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var strategy = context.Strategy
+            ?? throw new InvalidOperationException("An approved strategy is required.");
+        var priors = new[]
+        {
+            Prior(StrategyArtifact, strategy.Id, strategy.VersionNumber, strategy.ArtifactJson),
+        };
+        var execution = await ExecuteStepAsync(
+            context, Gate4StepCodes.Brief, Gate4AgentCodes.BriefDrafting,
+            priors, cancellationToken);
+        await PersistBriefAsync(context, strategy, execution, cancellationToken);
     }
 
     private async Task<AgentStepExecution> ExecuteStepAsync(

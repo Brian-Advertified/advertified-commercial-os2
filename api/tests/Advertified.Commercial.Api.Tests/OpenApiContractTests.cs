@@ -27,7 +27,7 @@ public sealed class OpenApiContractTests
     }
 
     [Fact]
-    public async Task V1ContractPublishesSessionCommercialAndGate4Semantics()
+    public async Task V1ContractPublishesSessionCommercialAndCanonicalBriefSemantics()
     {
         var retainedPath = Path.Combine(
             AppContext.BaseDirectory,
@@ -78,6 +78,18 @@ public sealed class OpenApiContractTests
             "/api/v1/tenants/{tenantId}/strategy-versions/{strategyId}:approve"]);
         Assert.NotNull(paths["/api/v1/tenants/{tenantId}/agent-runs/{runId}"]!["get"]);
         Assert.NotNull(paths["/api/v1/tenants/{tenantId}/human-tasks"]!["get"]);
+        Assert.NotNull(paths["/api/v1/tenants/{tenantId}/briefs"]!["post"]);
+        Assert.NotNull(paths["/api/v1/tenants/{tenantId}/briefs/{briefId}"]!["get"]);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/briefs/{briefId}/versions"]!["post"]);
+        var confirmBrief = paths[
+            "/api/v1/tenants/{tenantId}/brief-versions/{versionId}:approve"]!["post"]!;
+        AssertHeaderParameter(confirmBrief["parameters"]!.AsArray(), "If-Match", true);
+        var submitBrief = contract["components"]!["schemas"]!["SubmitBriefVersionCommand"]!;
+        Assert.NotNull(submitBrief["properties"]!["confirmerUserId"]);
+        Assert.Null(submitBrief["properties"]!["approverUserId"]);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/opportunities/{opportunityId}/briefs:draft"]);
     }
 
     private static void AssertHeaderParameter(

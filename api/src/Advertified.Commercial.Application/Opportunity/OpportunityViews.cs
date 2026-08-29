@@ -128,7 +128,8 @@ public sealed record AgentRunView(
 
 public sealed record HumanTaskView(
     Guid Id,
-    Guid OpportunityId,
+    Guid? OpportunityId,
+    Guid? BriefId,
     string TaskType,
     string Status,
     string Title,
@@ -155,6 +156,7 @@ public sealed record OpportunityDetailView(
     BusinessInterpretationView? Interpretation,
     IReadOnlyList<OpportunityAngleView> Angles,
     StrategyVersionView? Strategy,
+    Guid? BriefId,
     IReadOnlyList<AgentRunView> Runs,
     string NextAction);
 

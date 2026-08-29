@@ -17,7 +17,7 @@ import {
 
 const safeMessages: Readonly<Record<string, string>> = {
   AUTHENTICATION_REQUIRED: 'Your session has ended. Sign in again to continue.',
-  APPROVAL_REQUIRED: 'This action belongs to a different assigned reviewer or approver.',
+  APPROVAL_REQUIRED: 'This action belongs to the assigned operator or reviewer.',
   EVIDENCE_REQUIRED: 'Complete and approve the required evidence first.',
   CSRF_VALIDATION_FAILED: 'Refresh the page and try that action again.',
   IDEMPOTENCY_CONFLICT: 'That request key was already used. Try the action again.',

@@ -23,6 +23,12 @@ public sealed partial class OpportunityWorkflowCommands
         {
             throw new EvidenceRequiredException();
         }
+        if (runKind == Gate4RunKinds.Brief)
+        {
+            await EnsureApprovedStrategyWithoutBriefAsync(
+                tenantId, opportunityId, cancellationToken);
+            return;
+        }
         if (runKind == Gate4RunKinds.Interpretation)
         {
             return;
@@ -50,6 +56,28 @@ public sealed partial class OpportunityWorkflowCommands
                   AND angle.status_code = {Gate4AngleStatuses.Selected}) AS "Value"
             """).SingleAsync(cancellationToken);
         if (!selected)
+        {
+            throw new ApprovalRequiredException();
+        }
+    }
+
+    private async Task EnsureApprovedStrategyWithoutBriefAsync(
+        TenantId tenantId,
+        Guid opportunityId,
+        CancellationToken cancellationToken)
+    {
+        var eligible = await store.DbContext.Database.SqlQuery<bool>($"""
+            SELECT EXISTS (
+                SELECT 1 FROM commercial.strategy_versions strategy
+                WHERE strategy.tenant_id = {tenantId.Value}
+                  AND strategy.opportunity_id = {opportunityId}
+                  AND strategy.status_code = {Gate4Statuses.Approved})
+              AND NOT EXISTS (
+                SELECT 1 FROM commercial.campaign_briefs brief
+                WHERE brief.tenant_id = {tenantId.Value}
+                  AND brief.opportunity_id = {opportunityId}) AS "Value"
+            """).SingleAsync(cancellationToken);
+        if (!eligible)
         {
             throw new ApprovalRequiredException();
         }

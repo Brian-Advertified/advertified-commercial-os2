@@ -15,6 +15,8 @@ import { WorkspacesPage } from './pages/WorkspacesPage'
 import { TasksPage } from './pages/TasksPage'
 import { StrategyPage } from './pages/StrategyPage'
 import { RunPage } from './pages/RunPage'
+import { NewBriefPage } from './pages/NewBriefPage'
+import { BriefPage } from './pages/BriefPage'
 
 function AuthenticatedApplication() {
   const { session, loading } = useSession()
@@ -36,6 +38,8 @@ function App() {
           <Route path="/opportunities/:opportunityId" element={<OpportunityDetailPage />} />
           <Route path="/strategies/:strategyId" element={<StrategyPage />} />
           <Route path="/runs/:runId" element={<RunPage />} />
+          <Route path="/briefs/new" element={<NewBriefPage />} />
+          <Route path="/briefs/:briefId" element={<BriefPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/notifications" element={<DeferredPage destination="Notifications" />} />

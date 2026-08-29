@@ -146,7 +146,8 @@ internal sealed record AgentRunRow
 internal sealed record HumanTaskRow
 {
     public Guid Id { get; set; }
-    public Guid OpportunityId { get; set; }
+    public Guid? OpportunityId { get; set; }
+    public Guid? BriefId { get; set; }
     public string TaskType { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
@@ -231,7 +232,7 @@ internal static class OpportunityRowMapper
         row.ErrorCode, Recovery(row), row.IncrementalCostMinor, row.Version, row.UpdatedAtUtc);
 
     public static HumanTaskView ToView(this HumanTaskRow row) => new(
-        row.Id, row.OpportunityId, row.TaskType, row.Status, row.Title, row.WhyItMatters,
+        row.Id, row.OpportunityId, row.BriefId, row.TaskType, row.Status, row.Title, row.WhyItMatters,
         row.ResourceType, row.ResourceId, row.ResourceVersion, row.AssigneeUserId,
         row.Version, row.CreatedAtUtc);
 

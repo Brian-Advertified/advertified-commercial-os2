@@ -44,3 +44,12 @@ public static class Gate4Permissions
     public static readonly PermissionCode TaskView = new("task_view");
     public static readonly PermissionCode TaskAct = new("task_act");
 }
+
+public static class Gate5Permissions
+{
+    public static readonly PermissionCode BriefView = new("brief_view");
+    public static readonly PermissionCode BriefCreate = new("brief_create");
+    public static readonly PermissionCode BriefEdit = new("brief_edit");
+    public static readonly PermissionCode BriefSubmit = new("brief_submit");
+    public static readonly PermissionCode BriefApprove = new("brief_approve");
+}

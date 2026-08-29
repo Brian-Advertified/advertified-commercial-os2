@@ -18,7 +18,7 @@ DETERMINISTIC_MODE = "deterministic"
 
 class RuntimeDescription(BaseModel):
     service: str
-    status: Literal["baseline", "gate4"]
+    status: Literal["baseline", "gate5"]
     provider_mode: Literal["disabled", "deterministic"]
     implemented_agents: list[str]
 
@@ -42,7 +42,7 @@ def describe_runtime() -> RuntimeDescription:
     enabled = _deterministic_enabled()
     return RuntimeDescription(
         service="Advertified Agent Runtime",
-        status="gate4" if enabled else "baseline",
+        status="gate5" if enabled else "baseline",
         provider_mode="disabled" if not enabled else "deterministic",
         implemented_agents=[] if not enabled else [code.value for code in HANDLERS],
     )
@@ -75,7 +75,7 @@ async def invoke(
     http_request: Request,
     x_advertified_service_key: str | None = Header(default=None),
 ) -> dict[str, object]:
-    """Invoke one allow-listed, zero-cost Gate 4 proposal contract."""
+    """Invoke one allow-listed, zero-cost proposal contract."""
     _require_deterministic_service(x_advertified_service_key)
     try:
         request = OpportunityAgentRequest.model_validate_json(await http_request.body())

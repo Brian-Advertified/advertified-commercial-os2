@@ -4,7 +4,7 @@
 **Evidence date:** 2026-08-29  
 **Normative product source:** `docs/spec/README.md`  
 **Execution rules:** `AGENTS.md`  
-**Current permission:** Gate 4 delivered locally; Gate 5 requires an exact recorded packet under standing sequential-delivery authority
+**Current permission:** Gate 5 delivered locally; Gate 6 work-packet preparation authorised by standing sequential-delivery direction
 
 This is the execution index, not a replacement for the full v1.1 specification. Every gate uses the applicable normative sections and the historical traceability/adversarial fixtures in Section 31.
 
@@ -17,7 +17,7 @@ This is the execution index, not a replacement for the full v1.1 specification. 
 | 2 | GO | Brian Rabuthu recorded local Gate 2 GO on 2026-08-29; publication and production reviews remain pending |
 | 3 | GO | Brian Rabuthu recorded local Gate 3 GO on 2026-08-29; non-local reviews remain separate |
 | 4 | Delivered locally | Repeatable evidence retained; Brian Rabuthu directed Gate 4 delivered on 2026-08-29 |
-| 5 | Next | Not started; exact Gate 5 work packet must be recorded before implementation |
+| 5 | Delivered locally | Canonical Brief implementation and repeatable evidence complete; owner/independent review remains pending |
 | 6–13 | Blocked | No implementation until the preceding gate is verified and an exact work packet exists |
 
 There are fourteen gates numbered 0 through 13.
@@ -48,6 +48,9 @@ A gate exits only when:
 - Supplied Brief: preserve source → validate/extract → human review → approved BriefVersion.
 - Unbriefed Opportunity: evidence → Business Interpretation → Opportunity angles → Strategy plus Critic → human resolution → Brief drafting → approved BriefVersion.
 - Delivery: Brief → Plan → Proposal → Client Decision → Funding → Booking → Readiness → Live → Proof → Measurement → Learning.
+- Solo-agency continuity: one active agency administrator can own the operational path from
+  supplied Brief through Proposal preparation. Internal same-agency hand-offs are optional;
+  client decisions and consequential spend or booking controls remain explicit later boundaries.
 - Rapid OOH: approved Brief → OOH path → geography/routes/POIs → verified eligible inventory → supplier confirmation → recalculation → human selection → approved plan → proposal.
 - AI proposes. Deterministic services validate and calculate. Humans approve consequences. The C# API owns canonical state.
 
@@ -140,9 +143,15 @@ Required order is Business Interpretation → Opportunity Intelligence → Strat
 ## Gate 5 — canonical Brief
 
 **Normative areas:** Sections 5.1–5.2, 7.1, 18.3, 19.2, 21.2, 24  
-**Outcome:** Both supplied-Brief and Opportunity paths produce an immutable, comparable, human-approved BriefVersion without inventing missing facts.
+**Outcome:** Both supplied-Brief and Opportunity paths produce an immutable, comparable,
+agency-confirmed BriefVersion without inventing missing facts. Advertiser approval begins at
+Proposal / Client Decision, not at Brief interpretation.
 
 Source facts, interpretation, hypotheses, planning assumptions, confirmations, and unknowns remain distinct. Preliminary audience direction is not completed audience research.
+
+**Current status:** Delivered and verified locally. The retained report and manifest are in
+`docs/evidence/gate-5/`. One assigned agency operator can take a supplied or Opportunity-backed
+Brief through confirmation without an advertiser or second agency user.
 
 ## Gate 6 — inventory truth
 
@@ -160,12 +169,18 @@ No candidate becomes bookable without approved rates, availability, evidence, an
 
 Hard constraints run before scoring. Money/VAT/fees are deterministic. Every rejection is retained. Supply forecasts expose source and uncertainty. Critic objections must be resolved by a human.
 
+The assigned agency operator may carry the work through planning without a fabricated second
+agency user. Any required confirmation binds that exact operator and artefact version.
+
 ## Gate 8 — proposal and client decision
 
 **Normative areas:** Sections 7.2, 18.5, 19.2, 21.3, 24, 27–28  
 **Outcome:** An approved plan becomes immutable, commercially reconciled options, an approved branded document, and an audited client decision.
 
 Proposal tiers use governed codes LAUNCH, BOOST, SCALE, and DOMINANCE. Exact plan, rates, assumptions, wording, and pricing versions are bound before rendering. No changed plan may reuse approval.
+
+The same assigned agency operator may prepare and internally confirm the proposal. The first
+required advertiser/client decision is the explicit Proposal / Client Decision boundary.
 
 ## Gate 9 — Rapid OOH
 

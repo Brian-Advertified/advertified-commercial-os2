@@ -6,6 +6,15 @@ namespace Advertified.Commercial.Infrastructure.Opportunity;
 
 public sealed partial class OpportunityRecordStore
 {
+    internal Task<Guid?> FindBriefIdAsync(
+        TenantId tenantId,
+        Guid opportunityId,
+        CancellationToken cancellationToken) =>
+        DbContext.Database.SqlQuery<Guid?>($"""
+            SELECT id AS "Value" FROM commercial.campaign_briefs
+            WHERE tenant_id = {tenantId.Value} AND opportunity_id = {opportunityId}
+            """).SingleOrDefaultAsync(cancellationToken);
+
     internal Task<StrategyRow?> FindLatestStrategyAsync(
         TenantId tenantId,
         Guid opportunityId,
@@ -50,16 +59,21 @@ public sealed partial class OpportunityRecordStore
         int offset,
         CancellationToken cancellationToken) =>
         DbContext.Database.SqlQuery<HumanTaskRow>($"""
-            SELECT id AS "Id", opportunity_id AS "OpportunityId",
-                task_type_code AS "TaskType", status_code AS "Status", title AS "Title",
-                why_it_matters AS "WhyItMatters", resource_type_code AS "ResourceType",
-                resource_id AS "ResourceId", resource_version AS "ResourceVersion",
-                assignee_user_id AS "AssigneeUserId", version AS "Version",
-                created_at_utc AS "CreatedAtUtc"
-            FROM commercial.human_tasks
-            WHERE tenant_id = {tenantId.Value} AND assignee_user_id = {actorId}
-            ORDER BY CASE WHEN status_code = {Gate4Statuses.Pending} THEN 0 ELSE 1 END,
-                created_at_utc DESC, id
+            SELECT task.id AS "Id", task.opportunity_id AS "OpportunityId",
+                brief_version.brief_id AS "BriefId", task.task_type_code AS "TaskType",
+                task.status_code AS "Status", task.title AS "Title",
+                task.why_it_matters AS "WhyItMatters",
+                task.resource_type_code AS "ResourceType", task.resource_id AS "ResourceId",
+                task.resource_version AS "ResourceVersion",
+                task.assignee_user_id AS "AssigneeUserId", task.version AS "Version",
+                task.created_at_utc AS "CreatedAtUtc"
+            FROM commercial.human_tasks task
+            LEFT JOIN commercial.brief_versions brief_version
+              ON brief_version.tenant_id = task.tenant_id
+             AND brief_version.id = task.resource_id
+            WHERE task.tenant_id = {tenantId.Value} AND task.assignee_user_id = {actorId}
+            ORDER BY CASE WHEN task.status_code = {Gate4Statuses.Pending} THEN 0 ELSE 1 END,
+                task.created_at_utc DESC, task.id
             OFFSET {offset} LIMIT {limit}
             """).ToListAsync(cancellationToken);
 
@@ -69,14 +83,19 @@ public sealed partial class OpportunityRecordStore
         Guid taskId,
         CancellationToken cancellationToken) =>
         DbContext.Database.SqlQuery<HumanTaskRow>($"""
-            SELECT id AS "Id", opportunity_id AS "OpportunityId",
-                task_type_code AS "TaskType", status_code AS "Status", title AS "Title",
-                why_it_matters AS "WhyItMatters", resource_type_code AS "ResourceType",
-                resource_id AS "ResourceId", resource_version AS "ResourceVersion",
-                assignee_user_id AS "AssigneeUserId", version AS "Version",
-                created_at_utc AS "CreatedAtUtc"
-            FROM commercial.human_tasks
-            WHERE tenant_id = {tenantId.Value} AND assignee_user_id = {actorId}
-              AND id = {taskId}
+            SELECT task.id AS "Id", task.opportunity_id AS "OpportunityId",
+                brief_version.brief_id AS "BriefId", task.task_type_code AS "TaskType",
+                task.status_code AS "Status", task.title AS "Title",
+                task.why_it_matters AS "WhyItMatters",
+                task.resource_type_code AS "ResourceType", task.resource_id AS "ResourceId",
+                task.resource_version AS "ResourceVersion",
+                task.assignee_user_id AS "AssigneeUserId", task.version AS "Version",
+                task.created_at_utc AS "CreatedAtUtc"
+            FROM commercial.human_tasks task
+            LEFT JOIN commercial.brief_versions brief_version
+              ON brief_version.tenant_id = task.tenant_id
+             AND brief_version.id = task.resource_id
+            WHERE task.tenant_id = {tenantId.Value} AND task.assignee_user_id = {actorId}
+              AND task.id = {taskId}
             """).SingleOrDefaultAsync(cancellationToken);
 }

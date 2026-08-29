@@ -5,11 +5,13 @@ using Advertified.Commercial.Api.Endpoints;
 using Advertified.Commercial.Api.Errors;
 using Advertified.Commercial.Api.OpenApi;
 using Advertified.Commercial.Application.Commands;
+using Advertified.Commercial.Application.Brief;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Infrastructure.Foundation;
+using Advertified.Commercial.Infrastructure.Brief;
 using Advertified.Commercial.Infrastructure.Identity;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Opportunity;
@@ -65,6 +67,9 @@ builder.Services.AddScoped<OpportunityRunProcessor>();
 builder.Services.AddScoped<IOpportunityReader, OpportunityReader>();
 builder.Services.AddScoped<IOpportunityCommands, OpportunityCommands>();
 builder.Services.AddScoped<IOpportunityWorkflowCommands, OpportunityWorkflowCommands>();
+builder.Services.AddScoped<BriefRecordStore>();
+builder.Services.AddScoped<IBriefReader, BriefReader>();
+builder.Services.AddScoped<IBriefCommands, BriefCommands>();
 builder.Services.AddOptions<AgentRuntimeOptions>()
     .Bind(builder.Configuration.GetSection(AgentRuntimeOptions.SectionName))
     .Validate(
@@ -182,7 +187,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapGet("/", () => Results.Ok(new ServiceDescription(
     "Advertified Commercial API",
-    "gate-4-evidence-opportunity",
+    "gate-5-canonical-brief",
     "Tenant-safe commercial operations with a local browser-session boundary.")))
     .WithTags("Service");
 
@@ -202,6 +207,7 @@ app.MapBrowserSessionEndpoints();
 app.MapIdentityEndpoints();
 app.MapFoundationEndpoints();
 app.MapOpportunityEndpoints();
+app.MapBriefEndpoints();
 
 app.Run();
 

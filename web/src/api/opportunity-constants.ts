@@ -7,6 +7,8 @@ export const opportunityCodes = {
     inReview: 'IN_REVIEW',
     approved: 'APPROVED',
     strategyReady: 'STRATEGY_READY',
+    briefReady: 'BRIEF_READY',
+    planning: 'PLANNING',
   },
   sourceType: { suppliedText: 'SUPPLIED_TEXT' },
   policyBasis: { ownerSupplied: 'OWNER_SUPPLIED' },
@@ -14,4 +16,10 @@ export const opportunityCodes = {
   reviewDecision: { approve: 'APPROVE' },
   angleStatus: { selected: 'SELECTED' },
   objectionResolution: { addressed: 'ADDRESSED' },
+  currency: { zar: 'ZAR' },
+  briefConfirmerRole: {
+    internalPlanner: 'internal_planner',
+    agencyAdmin: 'agency_admin',
+    agencyCampaignUser: 'agency_campaign_user',
+  },
 } as const

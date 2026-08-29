@@ -171,7 +171,7 @@ export const opportunityApi = {
   queue(
     tenantId: string,
     opportunityId: string,
-    action: 'interpret' | 'angles:generate' | 'strategies:generate',
+    action: 'interpret' | 'angles:generate' | 'strategies:generate' | 'briefs:draft',
     token: string,
     approverUserId?: string,
   ) {

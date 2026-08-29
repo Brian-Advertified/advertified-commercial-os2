@@ -2,7 +2,7 @@
 
 **Evidence date:** 2026-08-29  
 **Clean parent recorded before remediation:** `0986f62ad0748289fdafe8f36f5f9a3dabaab4d8`  
-**Current change state:** Gates 2–3 committed locally as `115d500`; Gate 4 delivered and verified locally
+**Current change state:** Gates 2–4 committed locally; Gate 5 delivered and verified locally pending commit
 **Status vocabulary:** ABSENT, SCAFFOLDED, IMPLEMENTED, VERIFIED, BLOCKED
 
 A capability is VERIFIED only when repeatable evidence was observed. Documentation does not make a capability implemented.
@@ -117,17 +117,31 @@ migration and rollback pass. See `docs/evidence/gate-2/`.
 
 See `docs/evidence/gate-4/` for commands and exact outcomes.
 
-## Gates 5–13
+## Gate 5 — canonical Brief
 
-Gate 5 is next under the standing sequential local-delivery direction, but implementation has
-not started and its exact work packet has not been recorded. Gates 6–13 remain ABSENT and
-sequence-blocked. A document, route label, container, contract, or scaffold is not a product
-implementation.
+| Capability | Status | Evidence / blocker |
+|---|---|---|
+| Canonical Brief, source and immutable version records | VERIFIED | Expand-only migration, verbatim source plus SHA-256, version lineage, forced RLS and submitted-content immutability pass in disposable PostgreSQL |
+| Supplied-Brief entry | VERIFIED | Authenticated form and API retain the supplied wording, typed interpretation and explicit unknown budget without fabrication |
+| Opportunity-to-Brief entry | VERIFIED | Only `BRIEF_READY` with exact approved Strategy/evidence can run the deterministic zero-cost `brief_drafting` proposal and create canonical records |
+| One-person agency confirmation | VERIFIED | Assigned agency operator can create, submit and self-confirm; advertiser roles have no `brief_approve` permission and no advertiser ID is requested |
+| Brief lifecycle | VERIFIED | Exact current version/task, concurrency and conflict checks gate confirmation; Opportunity advances to `PLANNING` only afterward |
+| Gate 5 API/OpenAPI and browser journey | VERIFIED | Retained routes/contracts plus supplied-Brief desktop/compact Playwright journey pass |
+| Live provider/network/commercial action | ABSENT | Deterministic fixtures only; zero AI cost, no file processing, publication, spend or external communication |
+| Main local database migration | ABSENT | Migration `202608290004_CanonicalBrief` was verified only in disposable PostgreSQL and was not applied to the shared local database |
+| Gate 5 owner/independent review | PENDING | Local implementation and repeatable evidence are complete; the implementing AI does not approve the gate |
+
+See `docs/evidence/gate-5/` for commands and exact outcomes.
+
+## Gates 6–13
+
+Gates 6–13 remain ABSENT and sequence-blocked. A document, route label, container,
+contract, or scaffold is not a product implementation.
 
 | Gate | Status |
 |---|---|
 | 4 Evidence and Opportunity | VERIFIED locally — owner directed delivered; non-local review pending |
-| 5 Canonical Brief | ABSENT — next packet not yet recorded |
+| 5 Canonical Brief | VERIFIED locally — owner/independent review pending |
 | 6 Inventory truth | BLOCKED |
 | 7 Planning | BLOCKED |
 | 8 Proposal and client decision | BLOCKED |

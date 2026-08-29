@@ -27,6 +27,7 @@ public sealed class InProcessOpportunityAgentClient : IOpportunityAgentClient
             Gate4AgentCodes.OpportunityIntelligence => Angles(input),
             Gate4AgentCodes.Strategy => Strategy(input),
             Gate4AgentCodes.CriticReadiness => Critic(),
+            Gate4AgentCodes.BriefDrafting => Brief(input),
             _ => throw new ArgumentException("The agent code is not enabled.", nameof(input)),
         };
         return Task.FromResult(output);
@@ -125,6 +126,42 @@ public sealed class InProcessOpportunityAgentClient : IOpportunityAgentClient
             JsonSerializer.SerializeToElement(Array.Empty<object>()),
             JsonSerializer.SerializeToElement(Array.Empty<object>()), objections,
             "The critic retained the evidence gap.");
+    }
+
+    private static OpportunityAgentOutput Brief(OpportunityAgentInput input)
+    {
+        var strategy = input.PriorArtifacts.Single(item => item.ArtifactType == "STRATEGY").Value;
+        var objectives = strategy.GetProperty("objectives").EnumerateArray()
+            .Select(item => item.GetString()!).ToArray();
+        var audiences = strategy.GetProperty("audience_hypotheses").EnumerateArray()
+            .Select(item => item.GetString()!).ToArray();
+        var constraints = strategy.GetProperty("risks").EnumerateArray()
+            .Select(item => item.GetString()!).ToArray();
+        var artifact = JsonSerializer.SerializeToElement(new
+        {
+            business_problem = strategy.GetProperty("diagnosis").GetString(),
+            objective = objectives.FirstOrDefault() ?? "Objective requires confirmation",
+            audiences,
+            geographies = Array.Empty<string>(),
+            timing = "Timing not supplied",
+            budget_minor = (long?)null,
+            budget_unknown = true,
+            currency = (string?)null,
+            vat_status = (string?)null,
+            fees_minor = (long?)null,
+            constraints,
+            measurement = Array.Empty<string>(),
+            facts = input.ApprovedEvidence.Select(item => item.Excerpt).ToArray(),
+            conflicts = Array.Empty<object>(),
+        });
+        var unknowns = JsonSerializer.SerializeToElement(new[]
+        {
+            new { field_path = "budget", question = "What budget is available?", is_blocking = false },
+            new { field_path = "timing", question = "When must the work run?", is_blocking = false },
+        });
+        return Output(
+            Gate4Statuses.Completed, artifact, Bindings("artifact.business_problem", input),
+            unknowns, [], "The Brief draft preserves unsupported commercial details as unknown.");
     }
 
     private static JsonElement Bindings(string fieldPath, OpportunityAgentInput input)

@@ -62,6 +62,9 @@ function OpportunityRecord({ tenantId, opportunityId }: { tenantId: string; oppo
         <AgentSection detail={detail} />
       </div>
       <StrategySection detail={detail} />
+      {detail.briefId && <article className="detail-card"><p className="eyebrow">Campaign Brief</p>
+        <h2><Link to={`/briefs/${detail.briefId}`}>Review the canonical Brief</Link></h2>
+        <p>Facts, assumptions, unknowns and every version remain visible.</p></article>}
       <RunSection detail={detail} />
     </section>
   )

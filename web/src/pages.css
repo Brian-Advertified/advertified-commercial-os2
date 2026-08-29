@@ -189,6 +189,23 @@
 .run-list span,
 .run-list small { color: var(--muted); }
 .run-list small { grid-column: 2; }
+.brief-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.brief-form .field-wide,
+.brief-form .inline-alert { grid-column: 1 / -1; }
+.brief-form .primary-button { justify-self: start; }
+.button-link { display: inline-flex; align-items: center; text-decoration: none; }
+.brief-overview { margin-bottom: 1rem; }
+.brief-overview h3 { margin-bottom: 0.35rem; color: var(--white); }
+.brief-overview ul { margin-top: 0.35rem; }
+.source-copy { white-space: pre-wrap; line-height: 1.6; }
+.version-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; }
+.version-grid section { padding: 1rem; border: 1px solid var(--line); border-radius: 0.7rem; }
+.version-grid h3 { color: var(--navy); }
+.version-grid small { color: var(--muted); }
 
 @media (max-width: 800px) {
   .sign-in-page { grid-template-columns: 1fr; }
@@ -200,5 +217,8 @@
   .opportunity-layout,
   .qualification-grid,
   .action-form { grid-template-columns: 1fr; }
+  .brief-form,
+  .version-grid { grid-template-columns: 1fr; }
+  .brief-form .field-wide { grid-column: auto; }
   .opportunity-form { position: static; }
 }

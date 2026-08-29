@@ -175,7 +175,8 @@ export const agentRunSchema = z.object({
 }).strict()
 
 export const humanTaskSchema = z.object({
-  id: z.guid(), opportunityId: z.guid(), taskType: requiredText, status: requiredText,
+  id: z.guid(), opportunityId: z.guid().nullable(), briefId: z.guid().nullable(),
+  taskType: requiredText, status: requiredText,
   title: requiredText, whyItMatters: requiredText, resourceType: requiredText,
   resourceId: z.guid(), resourceVersion: z.number().int().positive(),
   assigneeUserId: z.guid(), version: z.number().int().positive(),
@@ -190,12 +191,62 @@ export const opportunityDetailSchema = z.object({
   interpretation: interpretationSchema.nullable(),
   angles: z.array(opportunityAngleSchema),
   strategy: strategySchema.nullable(),
+  briefId: z.guid().nullable(),
   runs: z.array(agentRunSchema),
   nextAction: requiredText,
 }).strict()
 
 export const opportunityPageSchema = cursorPage(opportunitySchema)
 export const humanTaskPageSchema = cursorPage(humanTaskSchema)
+
+export const campaignBriefSummarySchema = z.object({
+  id: z.guid(), tenantId: z.guid(), clientId: z.guid(), opportunityId: z.guid().nullable(),
+  title: requiredText, ownerUserId: z.guid(), status: requiredText,
+  currentDraftVersionId: z.guid().nullable(), approvedVersionId: z.guid().nullable(),
+  version: z.number().int().positive(), updatedAtUtc: z.iso.datetime({ offset: true }),
+}).strict()
+
+export const briefSourceSchema = z.object({
+  id: z.guid(), sourceType: requiredText, locator: requiredText, title: requiredText,
+  content: requiredText, contentHash: requiredText, createdBy: z.guid(),
+  createdAtUtc: z.iso.datetime({ offset: true }),
+}).strict()
+
+export const briefUnknownSchema = z.object({
+  fieldPath: requiredText, question: requiredText, isBlocking: z.boolean(),
+}).strict()
+
+export const briefAssumptionSchema = z.object({
+  fieldPath: requiredText, value: requiredText, impact: requiredText,
+  validationNeeded: requiredText,
+}).strict()
+
+export const briefConflictSchema = z.object({
+  fieldPath: requiredText, description: requiredText, severity: requiredText,
+  resolved: z.boolean(), resolution: nullableText,
+}).strict()
+
+export const briefVersionSchema = z.object({
+  id: z.guid(), briefId: z.guid(), baseVersionId: z.guid().nullable(), sourceId: z.guid(),
+  versionNumber: z.number().int().positive(), businessProblem: requiredText,
+  objective: requiredText, audiences: z.array(z.string()), geographies: z.array(z.string()),
+  timing: requiredText, budgetMinor: z.number().int().nonnegative().nullable(),
+  budgetUnknown: z.boolean(), currency: nullableText, vatStatus: nullableText,
+  feesMinor: z.number().int().nonnegative().nullable(), constraints: z.array(z.string()),
+  measurement: z.array(z.string()), facts: z.array(z.string()),
+  unknowns: z.array(briefUnknownSchema), assumptions: z.array(briefAssumptionSchema),
+  conflicts: z.array(briefConflictSchema), evidenceItemIds: z.array(z.guid()),
+  status: requiredText, createdBy: z.guid(), submittedBy: z.guid().nullable(),
+  approvedBy: z.guid().nullable(), rejectedBy: z.guid().nullable(),
+  rejectionReason: nullableText, requestedChanges: nullableText,
+  version: z.number().int().positive(), createdAtUtc: z.iso.datetime({ offset: true }),
+}).strict()
+
+export const campaignBriefSchema = z.object({
+  brief: campaignBriefSummarySchema,
+  sources: z.array(briefSourceSchema),
+  versions: z.array(briefVersionSchema),
+}).strict()
 
 export const problemSchema = z.object({
   type: z.string().nullable().optional(),
@@ -228,3 +279,5 @@ export type OpportunityDetail = z.infer<typeof opportunityDetailSchema>
 export type HumanTask = z.infer<typeof humanTaskSchema>
 export type Strategy = z.infer<typeof strategySchema>
 export type AgentRun = z.infer<typeof agentRunSchema>
+export type CampaignBrief = z.infer<typeof campaignBriefSchema>
+export type BriefVersion = z.infer<typeof briefVersionSchema>

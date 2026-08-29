@@ -36,6 +36,7 @@ export function OpportunityActions(props: Props) {
     <EvidenceControls {...controls} />
     <AgentControls {...controls} />
     <StrategyControls {...controls} />
+    <BriefControls {...controls} />
   </section>
 }
 
@@ -153,6 +154,18 @@ function StrategyControls({ detail, tenantId, token, runner }: ControlProps) {
           action={() => opportunityApi.rejectStrategy(
             tenantId, detail.strategy!.id, detail.strategy!.version, token)} /></>}
   </>
+}
+
+function BriefControls({ detail, tenantId, token, runner }: ControlProps) {
+  if (detail.opportunity.stage !== opportunityCodes.status.briefReady) return null
+  if (detail.briefId) return <LinkButton label="Review campaign Brief" to={`/briefs/${detail.briefId}`} />
+  return <ActionButton label="Draft campaign Brief" runner={runner}
+    action={() => opportunityApi.queue(
+      tenantId, detail.opportunity.id, 'briefs:draft', token)} />
+}
+
+function LinkButton({ label, to }: { label: string; to: string }) {
+  return <a className="primary-button button-link" href={to}>{label}</a>
 }
 
 function canSubmitEvidence(detail: OpportunityDetail): boolean {

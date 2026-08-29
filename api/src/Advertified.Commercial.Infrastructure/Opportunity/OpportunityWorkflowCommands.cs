@@ -81,7 +81,10 @@ public sealed partial class OpportunityWorkflowCommands(
             throw new ArgumentException("The run kind is invalid.", nameof(runKind));
         }
         var opportunity = await EnsureOwnerAsync(envelope, opportunityId, cancellationToken);
-        if (opportunity.Stage != Gate4Statuses.StrategyReady)
+        var expectedStage = kind == Gate4RunKinds.Brief
+            ? Gate4Statuses.BriefReady
+            : Gate4Statuses.StrategyReady;
+        if (opportunity.Stage != expectedStage)
         {
             throw new InvalidLifecycleTransitionException();
         }

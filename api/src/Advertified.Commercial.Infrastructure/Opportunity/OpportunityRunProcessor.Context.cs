@@ -31,7 +31,7 @@ public sealed partial class OpportunityRunProcessor
             tenantId, run.OpportunityId, cancellationToken);
         var angle = await LoadSelectedAngleAsync(
             tenantId, run.OpportunityId, cancellationToken);
-        var strategy = await LoadRunStrategyAsync(tenantId, run.Id, cancellationToken);
+        var strategy = await LoadRunStrategyAsync(tenantId, run, cancellationToken);
         var criticExists = strategy is not null && await CriticExistsAsync(
             tenantId, strategy.Id, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -78,14 +78,28 @@ public sealed partial class OpportunityRunProcessor
 
     private Task<RunStrategyRow?> LoadRunStrategyAsync(
         TenantId tenantId,
-        Guid runId,
-        CancellationToken cancellationToken) =>
-        store.DbContext.Database.SqlQuery<RunStrategyRow>($"""
-            SELECT id AS "Id", version_no AS "VersionNumber",
-                artifact_json::text AS "ArtifactJson", version AS "Version"
-            FROM commercial.strategy_versions
-            WHERE tenant_id = {tenantId.Value} AND agent_run_id = {runId}
-            """).SingleOrDefaultAsync(cancellationToken);
+        RunWorkRow run,
+        CancellationToken cancellationToken)
+    {
+        FormattableString query = run.RunKind == Gate4RunKinds.Brief
+            ? (FormattableString)$"""
+                SELECT id AS "Id", version_no AS "VersionNumber",
+                    artifact_json::text AS "ArtifactJson", version AS "Version"
+                FROM commercial.strategy_versions
+                WHERE tenant_id = {tenantId.Value}
+                  AND opportunity_id = {run.OpportunityId}
+                  AND status_code = {Gate4Statuses.Approved}
+                ORDER BY version_no DESC LIMIT 1
+                """
+            : (FormattableString)$"""
+                SELECT id AS "Id", version_no AS "VersionNumber",
+                    artifact_json::text AS "ArtifactJson", version AS "Version"
+                FROM commercial.strategy_versions
+                WHERE tenant_id = {tenantId.Value} AND agent_run_id = {run.Id}
+                """;
+        return store.DbContext.Database.SqlQuery<RunStrategyRow>(query)
+            .SingleOrDefaultAsync(cancellationToken);
+    }
 
     private Task<bool> CriticExistsAsync(
         TenantId tenantId,

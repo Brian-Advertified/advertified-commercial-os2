@@ -36,7 +36,8 @@ export function TasksPage() {
       <div className="record-stack">
         {tasks.length === 0 && <article className="detail-card"><h2>You are clear</h2><p>No pending actions are assigned to you.</p></article>}
         {tasks.map((task) => (
-          <Link className="record-card" to={`/opportunities/${task.opportunityId}`} key={task.id}>
+          <Link className="record-card" to={task.briefId
+            ? `/briefs/${task.briefId}` : `/opportunities/${task.opportunityId}`} key={task.id}>
             <div><span className="status-chip">{task.taskType.replaceAll('_', ' ')}</span><h2>{task.title}</h2></div>
             <p>{task.whyItMatters}</p><span className="record-arrow" aria-hidden="true">→</span>
           </Link>

@@ -42,10 +42,10 @@ test('three human roles carry evidence-bound strategy to Brief ready', async ({ 
   await page.getByRole('button', { name: 'Submit strategy' }).click()
 
   await page.getByRole('button', { name: 'Approve assigned strategy' }).click()
-  await expect(page.getByRole('alert')).toContainText('different assigned reviewer or approver')
+  await expect(page.getByRole('alert')).toContainText('assigned operator or reviewer')
   await page.evaluate(() => window.switchGate4Role('approver'))
   await page.getByRole('button', { name: 'Approve assigned strategy' }).click()
-  await expect(page.getByText('Gate 4 is complete; Brief drafting belongs to Gate 5.')).toBeVisible()
+  await expect(page.getByText('Draft the campaign brief.')).toBeVisible()
   await expect(page.getByText('brief ready', { exact: true })).toBeVisible()
 })
 
@@ -118,7 +118,7 @@ function detailFixture(phase: Phase) {
     angles: anglesVisible ? anglesFixture(phase) : [],
     strategy: strategyVisible
       ? strategyFixture(strategy.status, strategy.version, strategy.resolved) : null,
-    runs: [], nextAction: nextActionByPhase[phase],
+    briefId: null, runs: [], nextAction: nextActionByPhase[phase],
   }
 }
 
@@ -152,7 +152,7 @@ const nextActionByPhase: Record<Phase, string> = {
   angles: 'Complete the current governed action.',
   selected: 'Complete the current governed action.', critic: 'Complete the current governed action.',
   resolved: 'Complete the current governed action.', review: 'Complete the current governed action.',
-  complete: 'Gate 4 is complete; Brief drafting belongs to Gate 5.',
+  complete: 'Draft the campaign brief.',
 }
 
 function opportunityFixture(phase: Phase) {

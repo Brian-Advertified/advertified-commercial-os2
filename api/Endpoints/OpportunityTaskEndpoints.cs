@@ -1,4 +1,5 @@
 using Advertified.Commercial.Application.Foundation;
+using Advertified.Commercial.Application.Brief;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
@@ -26,6 +27,7 @@ public static class OpportunityTaskEndpoints
         IOpportunityReader reader,
         IOpportunityCommands opportunityCommands,
         IOpportunityWorkflowCommands workflowCommands,
+        IBriefCommands briefCommands,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
@@ -53,6 +55,9 @@ public static class OpportunityTaskEndpoints
                 timeProvider, cancellationToken),
             Gate4TaskTypes.StrategyApproval => await CompleteStrategyAsync(
                 task, request, action, context, tenant, identity, workflowCommands,
+                timeProvider, cancellationToken),
+            Gate4TaskTypes.BriefApproval => await CompleteBriefAsync(
+                task, request, action, context, tenant, identity, briefCommands,
                 timeProvider, cancellationToken),
             Gate4TaskTypes.RunRecovery => await CompleteRunAsync(
                 task, request, action, context, tenant, identity, workflowCommands,
@@ -152,6 +157,33 @@ public static class OpportunityTaskEndpoints
                 task.ResourceId, action == "CANCEL", envelope, cancellation), token);
     }
 
+    private static Task<IResult> CompleteBriefAsync(
+        HumanTaskView task, CompleteHumanTaskRequest request, string action, HttpContext context,
+        TenantId tenant, ICurrentIdentity identity, IBriefCommands commands,
+        TimeProvider clock, CancellationToken token)
+    {
+        if (action is not ("CONFIRM" or Gate4ReviewDecisions.Approve
+            or Gate4ReviewDecisions.Reject))
+        {
+            throw new ArgumentException("The Brief action must be CONFIRM or REJECT.");
+        }
+        return action == Gate4ReviewDecisions.Reject
+            ? ExecuteAsync(
+                task,
+                new RejectBriefVersionCommand(
+                    request.Reason ?? throw new ArgumentException("A rejection reason is required."),
+                    request.RequestedChanges ?? throw new ArgumentException(
+                        "Requested changes are required.")),
+                context, tenant, identity, clock,
+                (envelope, cancellation) => commands.RejectAsync(
+                    task.ResourceId, envelope, cancellation), token)
+            : ExecuteAsync(
+                task, new ApproveBriefVersionCommand(request.Reason),
+                context, tenant, identity, clock,
+                (envelope, cancellation) => commands.ApproveAsync(
+                    task.ResourceId, envelope, cancellation), token);
+    }
+
     private static async Task<IResult> ExecuteAsync<TCommand, TResult>(
         HumanTaskView task,
         TCommand command,
@@ -183,4 +215,5 @@ public sealed record CompleteHumanTaskRequest(
     string? Decision,
     string? StructuredValueJson,
     string? Resolution,
-    string? Reason);
+    string? Reason,
+    string? RequestedChanges = null);

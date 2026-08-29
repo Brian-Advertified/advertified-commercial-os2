@@ -10,7 +10,7 @@ SERVICE_SECRET = "gate4-test-service-key"
 
 
 def request_payload(agent_code: str) -> dict:
-    return {
+    payload = {
         "invocation": {
             "schema_version": "1.0.0",
             "tenant_id": "11111111-1111-1111-1111-111111111111",
@@ -66,8 +66,23 @@ def request_payload(agent_code: str) -> dict:
             },
             "excerpt": "Approved synthetic fixture evidence.",
         }],
-        "prior_artifacts": [],
+        "prior_artifacts": brief_prior() if agent_code == "brief_drafting" else [],
     }
+    return payload
+
+
+def brief_prior() -> list[dict]:
+    return [{
+        "artifact_type": "STRATEGY",
+        "artifact_id": "99999999-9999-9999-9999-999999999999",
+        "version": 1,
+        "value": {
+            "diagnosis": "The verified offer needs a clearer enquiry path.",
+            "objectives": ["Increase qualified enquiries"],
+            "audience_hypotheses": ["People with a demonstrated need"],
+            "risks": ["Conversion baseline remains unknown"],
+        },
+    }]
 
 
 async def post(agent_code: str, payload: dict, key: str | None) -> httpx.Response:
@@ -84,6 +99,7 @@ async def post(agent_code: str, payload: dict, key: str | None) -> httpx.Respons
         ("opportunity_intelligence", "COMPLETED"),
         ("strategy", "COMPLETED"),
         ("critic_readiness", "REVIEW_REQUIRED"),
+        ("brief_drafting", "COMPLETED"),
     ],
 )
 def test_gate4_agents_are_typed_evidence_bound_and_zero_cost(

@@ -8,7 +8,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
 {
     [Fact]
     [Trait("Category", "Migration")]
-    public async Task OpportunityJourneyIsEvidenceBoundDurableAndHumanApproved()
+    public async Task OpportunityAndSuppliedPathsProduceCanonicalHumanConfirmedBriefs()
     {
         await using var postgres = CreatePostgres();
         await postgres.StartAsync();
@@ -19,9 +19,11 @@ public sealed partial class OpportunityGate4AcceptanceTests
         await using var ownerFactory = CreateFactory(connectionString, OwnerId, enableRuntime: true);
         await using var reviewerFactory = CreateFactory(connectionString, ReviewerId);
         await using var approverFactory = CreateFactory(connectionString, ApproverId);
+        await using var soloFactory = CreateFactory(connectionString, SoloOperatorId);
         using var owner = ownerFactory.CreateClient();
         using var reviewer = reviewerFactory.CreateClient();
         using var approver = approverFactory.CreateClient();
+        using var solo = soloFactory.CreateClient();
 
         var clientId = await CreateClientAsync(owner);
         var opportunity = await CreateOpportunityAsync(owner, clientId);
@@ -89,8 +91,11 @@ public sealed partial class OpportunityGate4AcceptanceTests
         detail = await GetOpportunityAsync(owner, opportunityId);
         Assert.Equal("BRIEF_READY", detail.GetProperty("opportunity")
             .GetProperty("stage").GetString());
-        Assert.Equal("Gate 4 is complete; Brief drafting belongs to Gate 5.",
+        Assert.Equal("Draft the campaign brief.",
             detail.GetProperty("nextAction").GetString());
         await AssertDurableLineageAsync(connectionString, opportunityId);
+        await AssertSuppliedBriefPathAsync(solo, clientId);
+        await AssertOpportunityBriefPathAsync(
+            owner, solo, approver, opportunityId, connectionString);
     }
 }

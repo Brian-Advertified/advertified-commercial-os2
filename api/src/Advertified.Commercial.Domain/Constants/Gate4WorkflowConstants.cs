@@ -7,6 +7,7 @@ public static class Gate4Statuses
     public const string EvidenceReview = "EVIDENCE_REVIEW";
     public const string StrategyReady = "STRATEGY_READY";
     public const string BriefReady = "BRIEF_READY";
+    public const string Planning = "PLANNING";
     public const string Pending = "PENDING";
     public const string Draft = "DRAFT";
     public const string InReview = "IN_REVIEW";
@@ -27,9 +28,10 @@ public static class Gate4RunKinds
     public const string Interpretation = "INTERPRETATION";
     public const string Angles = "ANGLES";
     public const string StrategyCritic = "STRATEGY_CRITIC";
+    public const string Brief = "BRIEF";
 
     public static bool IsKnown(string value) =>
-        value is Interpretation or Angles or StrategyCritic;
+        value is Interpretation or Angles or StrategyCritic or Brief;
 }
 
 public static class Gate4TaskTypes
@@ -41,6 +43,7 @@ public static class Gate4TaskTypes
     public const string CriticResolution = "CRITIC_RESOLUTION";
     public const string StrategyApproval = "STRATEGY_APPROVAL";
     public const string RunRecovery = "RUN_RECOVERY";
+    public const string BriefApproval = "BRIEF_APPROVAL";
 }
 
 public static class Gate4SourceTypes
@@ -89,6 +92,7 @@ public static class Gate4AgentCodes
     public const string OpportunityIntelligence = "opportunity_intelligence";
     public const string Strategy = "strategy";
     public const string CriticReadiness = "critic_readiness";
+    public const string BriefDrafting = "brief_drafting";
 }
 
 public static class Gate4StepCodes
@@ -97,6 +101,7 @@ public static class Gate4StepCodes
     public const string Angles = "ANGLES";
     public const string Strategy = "STRATEGY";
     public const string Critic = "CRITIC";
+    public const string Brief = "BRIEF";
 }
 
 public static class Gate4ReviewerRoles
@@ -106,4 +111,12 @@ public static class Gate4ReviewerRoles
     public const string AgentRuntimeService = "agent_runtime_service";
     public static readonly string[] Evidence = ["platform_admin", "inventory_ops"];
     public static readonly string[] Strategy = ["platform_admin", "advertiser_approver"];
+    public static readonly string[] Brief =
+        ["internal_planner", "agency_admin", "agency_campaign_user"];
+}
+
+public static class Gate5BriefSourceTypes
+{
+    public const string SuppliedText = "SUPPLIED_TEXT";
+    public const string Opportunity = "OPPORTUNITY";
 }

@@ -50,6 +50,7 @@ public sealed class OpportunityReader(
             tenantId, opportunityId, cancellationToken);
         var angles = await store.ListLatestAnglesAsync(tenantId, opportunityId, cancellationToken);
         var strategy = await store.FindLatestStrategyAsync(tenantId, opportunityId, cancellationToken);
+        var briefId = await store.FindBriefIdAsync(tenantId, opportunityId, cancellationToken);
         var runs = await store.ListRunsAsync(tenantId, opportunityId, cancellationToken);
         var strategyView = strategy is null
             ? null
@@ -63,8 +64,9 @@ public sealed class OpportunityReader(
             interpretation?.ToView(),
             angles.Select(OpportunityRowMapper.ToView).ToArray(),
             strategyView,
+            briefId,
             runs.Select(OpportunityRowMapper.ToView).ToArray(),
-            NextAction(opportunity.Stage, interpretation, angles, strategy));
+            NextAction(opportunity.Stage, interpretation, angles, strategy, briefId));
     }
 
     public async Task<StrategyVersionView> GetStrategyAsync(
@@ -181,7 +183,8 @@ public sealed class OpportunityReader(
         string stage,
         InterpretationRow? interpretation,
         List<AngleRow> angles,
-        StrategyRow? strategy) => stage switch
+        StrategyRow? strategy,
+        Guid? briefId) => stage switch
         {
             Gate4Statuses.Created => "Register a source and start qualification.",
             Gate4Statuses.Qualifying => "Complete evidence review and submit the evidence set.",
@@ -195,7 +198,9 @@ public sealed class OpportunityReader(
                 "Select an opportunity angle.",
             Gate4Statuses.StrategyReady when strategy is null => "Generate strategy and critic review.",
             Gate4Statuses.StrategyReady => "Resolve objections and approve the strategy.",
-            Gate4Statuses.BriefReady => "Gate 4 is complete; Brief drafting belongs to Gate 5.",
+            Gate4Statuses.BriefReady when briefId is null => "Draft the campaign brief.",
+            Gate4Statuses.BriefReady => "Review and confirm the campaign brief.",
+            Gate4Statuses.Planning => "The Brief is confirmed and ready for planning.",
             _ => "Review the current opportunity state.",
         };
 }

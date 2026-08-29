@@ -30,6 +30,10 @@ public static class OpportunityWorkflowEndpoints
             .WithName("QueueOpportunityStrategy")
             .Produces<AgentRunView>(StatusCodes.Status202Accepted)
             .WithGate4CommandProblems(requiresVersion: false);
+        group.MapPost("/opportunities/{opportunityId:guid}/briefs:draft", QueueBriefAsync)
+            .WithName("QueueOpportunityBrief")
+            .Produces<AgentRunView>(StatusCodes.Status202Accepted)
+            .WithGate4CommandProblems(requiresVersion: false);
     }
 
     private static void MapHumanDecisions(RouteGroupBuilder group)
@@ -106,6 +110,18 @@ public static class OpportunityWorkflowEndpoints
         TimeProvider timeProvider,
         CancellationToken cancellationToken) => QueueAsync(
             tenantId, opportunityId, Gate4RunKinds.StrategyCritic, command, context,
+            identity, commands, timeProvider, cancellationToken);
+
+    private static Task<IResult> QueueBriefAsync(
+        Guid tenantId,
+        Guid opportunityId,
+        QueueAgentRunCommand command,
+        HttpContext context,
+        ICurrentIdentity identity,
+        IOpportunityWorkflowCommands commands,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken) => QueueAsync(
+            tenantId, opportunityId, Gate4RunKinds.Brief, command, context,
             identity, commands, timeProvider, cancellationToken);
 
     private static Task<IResult> QueueAsync(
