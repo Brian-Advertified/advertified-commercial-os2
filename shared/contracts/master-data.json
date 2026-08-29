@@ -281,33 +281,43 @@
   ],
   "proposalTiers": [
     {
-      "code": "ESSENTIAL",
-      "displayLabel": "Essential",
+      "code": "LAUNCH",
+      "displayLabel": "Launch",
       "isActive": true,
       "sortOrder": 1,
       "metadata": {
-        "budgetMultiplier": 1.0,
-        "description": "Core campaign essentials"
+        "budgetRange": "R10,000–R100,000",
+        "description": "Launch campaigns for new products or markets"
       }
     },
     {
-      "code": "GROWTH",
-      "displayLabel": "Growth",
+      "code": "BOOST",
+      "displayLabel": "Boost",
       "isActive": true,
       "sortOrder": 2,
       "metadata": {
-        "budgetMultiplier": 1.5,
-        "description": "Enhanced reach and frequency"
+        "budgetRange": "R100,000–R500,000",
+        "description": "Enhanced campaigns for established products"
       }
     },
     {
-      "code": "PREMIUM",
-      "displayLabel": "Premium",
+      "code": "SCALE",
+      "displayLabel": "Scale",
       "isActive": true,
       "sortOrder": 3,
       "metadata": {
-        "budgetMultiplier": 2.0,
-        "description": "Maximum impact and premium placements"
+        "budgetRange": "R500,000–R1 million",
+        "description": "Large-scale campaigns for market expansion"
+      }
+    },
+    {
+      "code": "DOMINANCE",
+      "displayLabel": "Dominance",
+      "isActive": true,
+      "sortOrder": 4,
+      "metadata": {
+        "budgetRange": "R1 million+",
+        "description": "Market leadership campaigns with maximum reach"
       }
     }
   ]
