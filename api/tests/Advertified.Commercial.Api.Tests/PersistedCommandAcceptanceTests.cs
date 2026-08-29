@@ -13,7 +13,6 @@ namespace Advertified.Commercial.Api.Tests;
 
 public sealed class PersistedCommandAcceptanceTests
 {
-    private const string PostgreSqlImage = "pgvector/pgvector:0.8.6-pg16-bookworm";
     private static readonly TenantId Tenant =
         new(Guid.Parse("d1000000-0000-0000-0000-000000000001"));
     private static readonly ActorId Actor =
@@ -27,12 +26,10 @@ public sealed class PersistedCommandAcceptanceTests
     [Trait("Category", "Migration")]
     public async Task DuplicateCommandCommitsOneStateAndOutboxWithReplayAudit()
     {
-        await using var postgres = new PostgreSqlBuilder(PostgreSqlImage)
-            .WithDatabase("advertified_gate2_command")
-            .WithUsername("advertified_gate2")
-            .WithPassword("advertified-gate2-local-only")
-            .Build();
+        await using var postgres = DisposablePostgres.Create(
+            "advertified_command", "advertified_command", "advertified-command-local-only");
         await postgres.StartAsync();
+        await DisposablePostgres.EnableRequiredExtensionsAsync(postgres.GetConnectionString());
 
         await DisposableDatabaseRoles.ProvisionAsync(postgres.GetConnectionString());
         await SeedTenantAsync(postgres.GetConnectionString());

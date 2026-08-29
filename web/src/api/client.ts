@@ -28,6 +28,7 @@ const safeMessages: Readonly<Record<string, string>> = {
   INVALID_LIFECYCLE_TRANSITION: 'Complete the current opportunity step first.',
   INVENTORY_PUBLISH_BLOCKED: 'Resolve the blocking inventory fields before publishing.',
   INVENTORY_PROTECTION_UNAVAILABLE: 'File protection is unavailable. Try again shortly.',
+  INVENTORY_BENCHMARK_UNAVAILABLE: 'There is not enough current comparable OOH data yet.',
 }
 
 export const sessionExpiredEvent = 'advertified:session-expired'

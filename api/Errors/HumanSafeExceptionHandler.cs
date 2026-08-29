@@ -6,6 +6,8 @@ using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Application.Inventory;
+using Advertified.Commercial.Application.Planning;
+using Advertified.Commercial.Domain.MasterData;
 
 namespace Advertified.Commercial.Api.Errors;
 
@@ -86,7 +88,7 @@ public sealed class HumanSafeExceptionHandler(
                 StatusCodes.Status409Conflict,
                 "Approved evidence required",
                 "Review and approve the required evidence before continuing.",
-                "EVIDENCE_REQUIRED"),
+                MasterDataCodes.AgentFailureReasons.EvidenceRequired),
             ApprovalRequiredException => new(
                 StatusCodes.Status403Forbidden,
                 "Assigned approval required",
@@ -117,6 +119,21 @@ public sealed class HumanSafeExceptionHandler(
                 "File protection is unavailable",
                 "Try again after the local file protection services are available.",
                 "INVENTORY_PROTECTION_UNAVAILABLE"),
+            PlanningInputStaleException => new(
+                StatusCodes.Status409Conflict,
+                "Planning inputs changed",
+                "Regenerate the affected shortlist or plan from current inventory truth.",
+                "PLANNING_INPUT_STALE"),
+            PlanningApprovalBlockedException => new(
+                StatusCodes.Status409Conflict,
+                "Planning approval is blocked",
+                "Resolve material objections and reconcile totals before approval.",
+                "PLANNING_APPROVAL_BLOCKED"),
+            InventoryBenchmarkUnavailableException => new(
+                StatusCodes.Status409Conflict,
+                "Market comparison is unavailable",
+                "This product does not have a current comparable OOH rate yet.",
+                "INVENTORY_BENCHMARK_UNAVAILABLE"),
             ArgumentException or BadHttpRequestException => new(
                 StatusCodes.Status400BadRequest,
                 "Some information needs attention",

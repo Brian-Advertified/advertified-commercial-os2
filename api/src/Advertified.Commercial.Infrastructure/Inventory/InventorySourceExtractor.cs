@@ -3,6 +3,7 @@ using System.Text;
 using System.Xml.Linq;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using UglyToad.PdfPig;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
@@ -15,12 +16,12 @@ internal static class InventorySourceExtractor
     {
         return documentClass switch
         {
-            Gate6DocumentClasses.Csv => FromTable(
+            MasterDataCodes.DocumentClasses.Csv => FromTable(
                 DelimitedTableParser.Parse(Encoding.UTF8.GetString(content)), "csv"),
-            Gate6DocumentClasses.Xlsx => XlsxInventoryExtractor.Extract(content),
-            Gate6DocumentClasses.Docx => DocxInventoryExtractor.Extract(content),
-            Gate6DocumentClasses.Pdf => ExtractPdf(content),
-            Gate6DocumentClasses.Png or Gate6DocumentClasses.Jpeg =>
+            MasterDataCodes.DocumentClasses.Xlsx => XlsxInventoryExtractor.Extract(content),
+            MasterDataCodes.DocumentClasses.Docx => DocxInventoryExtractor.Extract(content),
+            MasterDataCodes.DocumentClasses.Pdf => ExtractPdf(content),
+            MasterDataCodes.DocumentClasses.Png or MasterDataCodes.DocumentClasses.Jpeg =>
                 [new InventoryExtractedRow(1, "image#1", new Dictionary<string, string>())],
             _ => throw new ArgumentException("The inventory document class is unsupported."),
         };

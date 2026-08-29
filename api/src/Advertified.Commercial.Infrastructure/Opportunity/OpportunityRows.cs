@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 
 namespace Advertified.Commercial.Infrastructure.Opportunity;
 
@@ -238,9 +239,9 @@ internal static class OpportunityRowMapper
 
     private static string? Recovery(AgentRunRow row) => row.Status switch
     {
-        Gate4Statuses.ReviewRequired =>
+        MasterDataCodes.LifecycleStatuses.ReviewRequired =>
             "Review the recorded issue, then resume from the safe checkpoint.",
-        Gate4Statuses.Failed => "Inspect the business-safe error and create a corrected run.",
+        MasterDataCodes.LifecycleStatuses.Failed => "Inspect the business-safe error and create a corrected run.",
         _ => null,
     };
 }

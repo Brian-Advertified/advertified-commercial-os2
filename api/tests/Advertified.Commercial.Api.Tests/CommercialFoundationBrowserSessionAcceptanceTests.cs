@@ -41,7 +41,7 @@ public sealed partial class CommercialFoundationApiAcceptanceTests
         {
             Content = JsonContent.Create(new
             {
-                displayName = "Gate Three User",
+                displayName = "Browser Session Test User",
                 phone = "+27115550101",
             }),
         };
@@ -106,7 +106,7 @@ public sealed partial class CommercialFoundationApiAcceptanceTests
     {
         request.Headers.TryAddWithoutValidation("Origin", BrowserOrigin);
         request.Headers.Add("X-CSRF-TOKEN", token);
-        request.Headers.Add("Idempotency-Key", "gate-3-browser-profile");
+        request.Headers.Add("Idempotency-Key", "browser-profile-update");
         request.Headers.Add("X-Correlation-ID", Guid.NewGuid().ToString());
         request.Headers.TryAddWithoutValidation("If-Match", $"\"{expectedVersion}\"");
     }

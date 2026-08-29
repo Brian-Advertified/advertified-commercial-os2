@@ -2,6 +2,7 @@ using System.Text.Json;
 using Advertified.Commercial.Application.Brief;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Brief;
 using Microsoft.EntityFrameworkCore;
 
@@ -62,7 +63,7 @@ public sealed partial class OpportunityRunProcessor
             VALUES (
                 {briefId}, {context.TenantId.Value}, {context.Opportunity.ClientId},
                 {context.Opportunity.Id}, {context.Opportunity.Title + " campaign brief"},
-                {context.Opportunity.OwnerUserId}, {Gate4Statuses.Draft}, NULL,
+                {context.Opportunity.OwnerUserId}, {MasterDataCodes.LifecycleStatuses.Draft}, NULL,
                 1, {now}, {now})
             """, cancellationToken);
 
@@ -79,7 +80,7 @@ public sealed partial class OpportunityRunProcessor
                 content, content_hash, created_by, created_at_utc)
             VALUES (
                 {sourceId}, {context.TenantId.Value}, {briefId},
-                {Gate5BriefSourceTypes.Opportunity}, {"strategy:" + strategy.Id},
+                {MasterDataCodes.BriefSourceTypes.Opportunity}, {"strategy:" + strategy.Id},
                 {"Approved opportunity strategy"}, {strategy.ArtifactJson},
                 {OpportunityCommandSupport.Hash(strategy.ArtifactJson)},
                 {context.ActorId.Value}, {now})
@@ -117,7 +118,7 @@ public sealed partial class OpportunityRunProcessor
                 {BriefCommandSupport.Json(value.Assumptions)}::jsonb,
                 {BriefCommandSupport.Json(value.Conflicts)}::jsonb,
                 {execution.Output.EvidenceBindings.GetRawText()}::jsonb,
-                {Gate4Statuses.Draft}, {context.ActorId.Value}, 1, {now})
+                {MasterDataCodes.LifecycleStatuses.Draft}, {context.ActorId.Value}, 1, {now})
             """, cancellationToken);
 
     private static GeneratedBriefDraft ParseBrief(

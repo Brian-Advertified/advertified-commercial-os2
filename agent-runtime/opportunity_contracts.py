@@ -1,4 +1,4 @@
-"""Strict Gate 4 opportunity-agent request and artifact contracts."""
+"""Strict opportunity-agent request and artifact contracts."""
 
 from __future__ import annotations
 

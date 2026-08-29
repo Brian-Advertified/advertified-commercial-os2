@@ -24,7 +24,7 @@
       "additionalProperties": false,
       "required": ["code", "displayLabel", "isActive", "sortOrder"],
       "properties": {
-        "code": {"type": "string", "pattern": "^[A-Za-z0-9_]+$"},
+        "code": {"type": "string", "pattern": "^[A-Za-z0-9_.]+$"},
         "displayLabel": {"type": "string", "minLength": 1},
         "isActive": {"type": "boolean"},
         "sortOrder": {"type": "integer", "minimum": 0},

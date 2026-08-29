@@ -5,6 +5,7 @@ using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.EntityFrameworkCore;
@@ -21,8 +22,8 @@ public sealed partial class InventoryCommands
         var source = await store.FindImportAsync(
             envelope.TenantId, importId, true, cancellationToken)
             ?? throw new UnauthorizedAccessException("Inventory import access denied.");
-        if (source.Status != Gate6InventoryStatuses.Uploaded ||
-            source.ScanStatus != Gate6ScanStatuses.Clean ||
+        if (source.Status != MasterDataCodes.LifecycleStatuses.Uploaded ||
+            source.ScanStatus != MasterDataCodes.MalwareScanStatuses.Clean ||
             source.ProtectedObjectKey is null || source.DocumentClass is null)
         {
             throw new InvalidLifecycleTransitionException();
@@ -60,9 +61,9 @@ public sealed partial class InventoryCommands
         var view = await store.BuildImportViewAsync(updated, cancellationToken);
         return OpportunityCommandSupport.Outcome(
             envelope, view, importId, updated.Version,
-            CommercialResourceTypes.InventoryImport,
-            CommercialActions.InventoryImportExecuted,
-            CommercialEventTypes.InventoryImportExecuted, now);
+            MasterDataReferences.CommercialResourceTypes.InventoryImport,
+            MasterDataReferences.CommercialActions.InventoryImportExecuted,
+            MasterDataReferences.CommercialEventTypes.InventoryImportExecuted, now);
     }
 
     private async Task<Guid> FindReviewerAsync(
@@ -75,8 +76,8 @@ public sealed partial class InventoryCommands
             FROM commercial.memberships membership
             WHERE membership.tenant_id = {tenantId.Value}
               AND membership.user_id <> {creatorId}
-              AND membership.status_code = {Gate6InventoryStatuses.Active}
-              AND membership.role_code = ANY({Gate6ReviewerRoles.Inventory})
+              AND membership.status_code = {MasterDataCodes.LifecycleStatuses.Active}
+              AND membership.role_code = ANY({InventoryReviewerRoles.Inventory})
             ORDER BY membership.role_code, membership.user_id
             LIMIT 1
             """).ToListAsync(cancellationToken);
@@ -143,7 +144,7 @@ public sealed partial class InventoryCommands
                 proposed_values_json, canonical_values_json, validation_json,
                 source_locator, version, created_at_utc, updated_at_utc)
             VALUES ({id}, {tenantId.Value}, {source.Id}, {extracted.RowNumber},
-                {Gate6InventoryStatuses.ReviewRequired}, {valuesJson}::jsonb,
+                {MasterDataCodes.LifecycleStatuses.ReviewRequired}, {valuesJson}::jsonb,
                 {valuesJson}::jsonb, {validationJson}::jsonb, {extracted.Locator},
                 1, {now}, {now})
             """, cancellationToken);
@@ -182,9 +183,9 @@ public sealed partial class InventoryCommands
                 why_it_matters, resource_type_code, resource_id, resource_version,
                 assignee_user_id, action_schema_json, version, created_at_utc)
             VALUES ({Guid.NewGuid()}, {tenantId.Value}, NULL,
-                {Gate6TaskTypes.CandidateReview}, {"PENDING"}, {"Review inventory candidate"},
+                {MasterDataCodes.HumanTaskTypes.InventoryCandidateReview}, {MasterDataCodes.LifecycleStatuses.Pending}, {"Review inventory candidate"},
                 {"Verify source-linked fields before inventory publication."},
-                {CommercialResourceTypes.InventoryCandidate.Value}, {candidateId}, 1,
+                {MasterDataReferences.CommercialResourceTypes.InventoryCandidate.Value}, {candidateId}, 1,
                 {reviewer}, {"{}"}::jsonb, 1, {now})
             """, cancellationToken);
 
@@ -198,21 +199,21 @@ public sealed partial class InventoryCommands
     {
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.inventory_imports
-            SET status_code = {Gate6InventoryStatuses.ReviewRequired}, version = version + 1,
+            SET status_code = {MasterDataCodes.LifecycleStatuses.ReviewRequired}, version = version + 1,
                 updated_at_utc = {now}
             WHERE tenant_id = {tenantId.Value} AND id = {importId}
-              AND status_code = {Gate6InventoryStatuses.Uploaded}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.Uploaded}
               AND version = {expectedVersion}
             """, cancellationToken);
         if (changed != 1)
         {
             throw new VersionConflictException();
         }
-        await RecordStepAsync(tenantId, importId, Gate6InventorySteps.Extraction,
-            Gate6InventoryStatuses.Completed, now, cancellationToken);
-        await RecordStepAsync(tenantId, importId, Gate6InventorySteps.Normalization,
-            Gate6InventoryStatuses.Completed, now, cancellationToken);
-        await RecordStepAsync(tenantId, importId, Gate6InventorySteps.Validation,
-            Gate6InventoryStatuses.Completed, now, cancellationToken);
+        await RecordStepAsync(tenantId, importId, MasterDataCodes.InventoryImportStepTypes.Extraction,
+            MasterDataCodes.LifecycleStatuses.Completed, now, cancellationToken);
+        await RecordStepAsync(tenantId, importId, MasterDataCodes.InventoryImportStepTypes.Normalization,
+            MasterDataCodes.LifecycleStatuses.Completed, now, cancellationToken);
+        await RecordStepAsync(tenantId, importId, MasterDataCodes.InventoryImportStepTypes.Validation,
+            MasterDataCodes.LifecycleStatuses.Completed, now, cancellationToken);
     }
 }

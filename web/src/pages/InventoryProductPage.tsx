@@ -6,6 +6,7 @@ import { inventoryApi } from '../api/inventory-client'
 import { inventoryCodes } from '../api/inventory-constants'
 import type { InventoryProduct } from '../api/inventory-schemas'
 import { useWorkspace } from '../auth/workspace-state'
+import { InventoryBenchmarkSection } from '../components/InventoryBenchmarkSection'
 import { LoadingState, MessageState } from '../components/PageState'
 
 export function InventoryProductPage() {
@@ -42,6 +43,7 @@ function ProductRecord({ tenantId, productId }: { tenantId: string; productId: s
       {record.availability.status === inventoryCodes.availability.unknown &&
       <p className="inline-alert">Confirm availability before booking.</p>}
     </article></div>
+    <InventoryBenchmarkSection tenantId={tenantId} productId={productId} channel={item.channel} />
     <article className="detail-card source-lineage"><p className="eyebrow">Source lineage</p><h2>Why this product is trusted</h2>
       <p>Published {new Date(record.publishedAtUtc).toLocaleString()} from import {record.sourceImportId}.</p>
       {record.assets.map((asset) => <details key={asset.contentHash}><summary>{asset.assetType.replaceAll('_', ' ')}</summary>

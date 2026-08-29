@@ -1,5 +1,6 @@
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Identity;
 using Advertified.Commercial.Infrastructure.MasterData;
@@ -12,7 +13,6 @@ namespace Advertified.Commercial.Api.Tests;
 
 public sealed class TenantIsolationMigrationTests
 {
-    private const string PostgreSqlImage = "pgvector/pgvector:0.8.6-pg16-bookworm";
     private static readonly TenantId FirstTenant =
         new(Guid.Parse("a1000000-0000-0000-0000-000000000001"));
     private static readonly TenantId SecondTenant =
@@ -30,12 +30,11 @@ public sealed class TenantIsolationMigrationTests
     [Trait("Category", "Migration")]
     public async Task ApplicationRoleDefaultsClosedAndRejectsCrossTenantAssociation()
     {
-        await using var postgres = new PostgreSqlBuilder(PostgreSqlImage)
-            .WithDatabase("advertified_gate2_rls")
-            .WithUsername("advertified_gate2")
-            .WithPassword("advertified-gate2-local-only")
-            .Build();
+        await using var postgres = DisposablePostgres.Create(
+            "advertified_tenant_isolation", "advertified_tenant_isolation",
+            "advertified-tenant-isolation-local-only");
         await postgres.StartAsync();
+        await DisposablePostgres.EnableRequiredExtensionsAsync(postgres.GetConnectionString());
 
         await DisposableDatabaseRoles.ProvisionAsync(postgres.GetConnectionString());
         await SeedAsync(postgres.GetConnectionString());
@@ -46,7 +45,7 @@ public sealed class TenantIsolationMigrationTests
         await ExecuteAsync(connection, "SET ROLE advertified_app");
 
         Assert.False(await ApplicationRoleBypassesRlsAsync(connection));
-        Assert.Equal(39, await ProtectedTableCountAsync(connection));
+        Assert.Equal(51, await ProtectedTableCountAsync(connection));
         Assert.Equal(0, await CountClientsAsync(connection));
 
         await using (var transaction = await connection.BeginTransactionAsync())
@@ -89,7 +88,7 @@ public sealed class TenantIsolationMigrationTests
             FirstTenant,
             User,
             new RoleCode("agency_admin"),
-            MasterDataConstants.ActiveStatus,
+            MasterDataReferences.LifecycleStatuses.Active,
             null,
             now));
         dbContext.ClientAccounts.AddRange(
@@ -111,7 +110,7 @@ public sealed class TenantIsolationMigrationTests
         var crossTenant = await source.FindAsync(actor, SecondTenant, default);
 
         Assert.NotNull(allowed);
-        Assert.Contains(Gate2Permissions.ContactManage, allowed.Permissions);
+        Assert.Contains(MasterDataReferences.Permissions.ContactManage, allowed.Permissions);
         Assert.Null(crossTenant);
     }
 

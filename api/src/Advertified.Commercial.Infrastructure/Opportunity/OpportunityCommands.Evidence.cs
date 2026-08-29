@@ -4,6 +4,7 @@ using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,7 @@ public sealed partial class OpportunityCommands
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate4Permissions.EvidenceReview,
+            MasterDataReferences.Permissions.EvidenceReview,
             token => ReviewItemOutcomeAsync(itemId, envelope, token),
             cancellationToken);
         return CommandOutcomeFactory.ToResult<EvidenceItemView>(receipt);
@@ -32,7 +33,7 @@ public sealed partial class OpportunityCommands
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate4Permissions.OpportunityEdit,
+            MasterDataReferences.Permissions.OpportunityEdit,
             token => SubmitEvidenceOutcomeAsync(opportunityId, envelope, token),
             cancellationToken);
         return CommandOutcomeFactory.ToResult<EvidenceSetView>(receipt);
@@ -45,7 +46,7 @@ public sealed partial class OpportunityCommands
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate4Permissions.EvidenceReview,
+            MasterDataReferences.Permissions.EvidenceReview,
             token => ApproveEvidenceOutcomeAsync(evidenceSetId, envelope, token),
             cancellationToken);
         return CommandOutcomeFactory.ToResult<EvidenceSetView>(receipt);
@@ -61,11 +62,11 @@ public sealed partial class OpportunityCommands
         if (item.CreatedBy == envelope.ActorId.Value ||
             !await store.HasAssignedTaskAsync(
                 envelope.TenantId, envelope.ActorId.Value, itemId,
-                Gate4TaskTypes.EvidenceItemReview, cancellationToken))
+                MasterDataCodes.HumanTaskTypes.EvidenceItemReview, cancellationToken))
         {
             throw new ApprovalRequiredException();
         }
-        if (item.ReviewStatus != Gate4Statuses.Pending)
+        if (item.ReviewStatus != MasterDataCodes.LifecycleStatuses.Pending)
         {
             throw new InvalidLifecycleTransitionException();
         }
@@ -74,13 +75,13 @@ public sealed partial class OpportunityCommands
         var decision = OpportunityCommandSupport.Required(
             command.Decision, 100, nameof(command.Decision)).ToUpperInvariant();
         await OpportunityCommandSupport.EnsureCodeAsync(
-            store.DbContext, "evidenceReviewDecisions", decision, cancellationToken);
+            store.DbContext, MasterDataCodes.EvidenceReviewDecisions.Collection, decision, cancellationToken);
         var reviewed = ResolveReviewedValue(item, command, decision);
-        var status = decision == Gate4ReviewDecisions.Reject
-            ? Gate4Statuses.Rejected
-            : Gate4Statuses.Approved;
+        var status = decision == MasterDataCodes.EvidenceReviewDecisions.Reject
+            ? MasterDataCodes.LifecycleStatuses.Rejected
+            : MasterDataCodes.LifecycleStatuses.Approved;
         var reason = OpportunityCommandSupport.Optional(command.Reason, 1000, nameof(command.Reason));
-        if ((decision is Gate4ReviewDecisions.Reject or Gate4ReviewDecisions.Edit) && reason is null)
+        if ((decision is MasterDataCodes.EvidenceReviewDecisions.Reject or MasterDataCodes.EvidenceReviewDecisions.Edit) && reason is null)
         {
             throw new ArgumentException("A review reason is required.");
         }
@@ -89,7 +90,8 @@ public sealed partial class OpportunityCommands
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.evidence_items
             SET reviewed_value_json = {reviewed}::jsonb, review_status_code = {status},
-                decision_collection_code = 'evidenceReviewDecisions', decision_code = {decision},
+                decision_collection_code = {MasterDataCodes.EvidenceReviewDecisions.Collection},
+                decision_code = {decision},
                 review_reason = {reason}, reviewed_by = {envelope.ActorId.Value},
                 reviewed_at_utc = {now}, version = version + 1, updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {itemId}
@@ -100,7 +102,7 @@ public sealed partial class OpportunityCommands
             throw new VersionConflictException();
         }
         await OpportunityCommandSupport.CompleteTaskAsync(
-            store.DbContext, envelope.TenantId, itemId, Gate4TaskTypes.EvidenceItemReview,
+            store.DbContext, envelope.TenantId, itemId, MasterDataCodes.HumanTaskTypes.EvidenceItemReview,
             envelope.ActorId.Value, now, cancellationToken);
         var view = item with
         {
@@ -112,8 +114,8 @@ public sealed partial class OpportunityCommands
             Version = item.Version + 1,
         };
         return OpportunityCommandSupport.Outcome(
-            envelope, view.ToView(), itemId, view.Version, CommercialResourceTypes.EvidenceItem,
-            CommercialActions.EvidenceReviewed, CommercialEventTypes.EvidenceReviewed, now);
+            envelope, view.ToView(), itemId, view.Version, MasterDataReferences.CommercialResourceTypes.EvidenceItem,
+            MasterDataReferences.CommercialActions.EvidenceReviewed, MasterDataReferences.CommercialEventTypes.EvidenceReviewed, now);
     }
 
     private async Task<CommandOutcome> SubmitEvidenceOutcomeAsync(
@@ -122,12 +124,12 @@ public sealed partial class OpportunityCommands
         CancellationToken cancellationToken)
     {
         var opportunity = await EnsureOwnerAsync(envelope, opportunityId, cancellationToken);
-        if (opportunity.Stage != Gate4Statuses.Qualifying)
+        if (opportunity.Stage != MasterDataCodes.LifecycleStatuses.Qualifying)
         {
             throw new InvalidLifecycleTransitionException();
         }
         var pending = await CountEvidenceAsync(
-            envelope.TenantId, opportunityId, Gate4Statuses.Pending, cancellationToken);
+            envelope.TenantId, opportunityId, MasterDataCodes.LifecycleStatuses.Pending, cancellationToken);
         var approvedIds = await ApprovedEvidenceIdsAsync(
             envelope.TenantId, opportunityId, cancellationToken);
         if (pending > 0 || approvedIds.Length == 0)
@@ -136,7 +138,7 @@ public sealed partial class OpportunityCommands
         }
         await OpportunityCommandSupport.EnsureDifferentActiveReviewerAsync(
             store.DbContext, envelope.TenantId, envelope.ActorId.Value,
-            envelope.Command.ApproverUserId, Gate4ReviewerRoles.Evidence.ToArray(), cancellationToken);
+            envelope.Command.ApproverUserId, OpportunityReviewerRoles.Evidence.ToArray(), cancellationToken);
 
         var setId = Guid.NewGuid();
         var versionNumber = await NextEvidenceSetVersionAsync(
@@ -151,7 +153,7 @@ public sealed partial class OpportunityCommands
                 created_by, version, created_at_utc)
             VALUES (
                 {setId}, {envelope.TenantId.Value}, {opportunityId}, {versionNumber},
-                {gapsJson}::jsonb, {Gate4Statuses.InReview}, {envelope.ActorId.Value}, 1, {now})
+                {gapsJson}::jsonb, {MasterDataCodes.LifecycleStatuses.InReview}, {envelope.ActorId.Value}, 1, {now})
             """, cancellationToken);
         foreach (var itemId in approvedIds)
         {
@@ -161,22 +163,22 @@ public sealed partial class OpportunityCommands
                 """, cancellationToken);
         }
         await AdvanceOpportunityAsync(
-            envelope, opportunityId, Gate4Statuses.EvidenceReview, now, cancellationToken);
+            envelope, opportunityId, MasterDataCodes.LifecycleStatuses.EvidenceReview, now, cancellationToken);
         await OpportunityCommandSupport.CreateTaskAsync(
             store.DbContext, envelope.TenantId, opportunityId,
-            Gate4TaskTypes.EvidenceSetApproval, "Approve the evidence set",
+            MasterDataCodes.HumanTaskTypes.EvidenceSetApproval, "Approve the evidence set",
             "This exact evidence version controls every later interpretation and recommendation.",
-            CommercialResourceTypes.EvidenceSet, setId, 1, envelope.Command.ApproverUserId,
+            MasterDataReferences.CommercialResourceTypes.EvidenceSet, setId, 1, envelope.Command.ApproverUserId,
             now, cancellationToken);
         var view = new EvidenceSetView(
             setId, opportunityId, versionNumber, approvedIds,
-            JsonSerializer.Deserialize<string[]>(gapsJson) ?? [], Gate4Statuses.InReview,
+            JsonSerializer.Deserialize<string[]>(gapsJson) ?? [], MasterDataCodes.LifecycleStatuses.InReview,
             envelope.ActorId.Value, null, 1);
         var opportunityVersion = opportunity.Version + 1;
         return OpportunityCommandSupport.Outcome(
-            envelope, view, opportunityId, opportunityVersion, CommercialResourceTypes.Opportunity,
-            CommercialActions.EvidenceSubmitted,
-            CommercialEventTypes.OpportunityEvidenceSubmitted, now);
+            envelope, view, opportunityId, opportunityVersion, MasterDataReferences.CommercialResourceTypes.Opportunity,
+            MasterDataReferences.CommercialActions.EvidenceSubmitted,
+            MasterDataReferences.CommercialEventTypes.OpportunityEvidenceSubmitted, now);
     }
 
     private async Task<CommandOutcome> ApproveEvidenceOutcomeAsync(
@@ -187,10 +189,10 @@ public sealed partial class OpportunityCommands
         var set = await store.FindEvidenceSetAsync(
             envelope.TenantId, evidenceSetId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Evidence access denied.");
-        if (set.CreatedBy == envelope.ActorId.Value || set.Status != Gate4Statuses.InReview ||
+        if (set.CreatedBy == envelope.ActorId.Value || set.Status != MasterDataCodes.LifecycleStatuses.InReview ||
             !await store.HasAssignedTaskAsync(
                 envelope.TenantId, envelope.ActorId.Value, evidenceSetId,
-                Gate4TaskTypes.EvidenceSetApproval, cancellationToken))
+                MasterDataCodes.HumanTaskTypes.EvidenceSetApproval, cancellationToken))
         {
             throw new ApprovalRequiredException();
         }
@@ -198,7 +200,7 @@ public sealed partial class OpportunityCommands
         var now = timeProvider.GetUtcNow();
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.evidence_sets
-            SET status_code = {Gate4Statuses.Approved}, approved_by = {envelope.ActorId.Value},
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Approved}, approved_by = {envelope.ActorId.Value},
                 approved_at_utc = {now}, version = version + 1
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {evidenceSetId}
               AND version = {envelope.ExpectedVersion}
@@ -209,10 +211,10 @@ public sealed partial class OpportunityCommands
         }
         var opportunityChanged = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.opportunities
-            SET stage_code = {Gate4Statuses.StrategyReady}, version = version + 1,
+            SET stage_code = {MasterDataCodes.LifecycleStatuses.StrategyReady}, version = version + 1,
                 updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {set.OpportunityId}
-              AND stage_code = {Gate4Statuses.EvidenceReview}
+              AND stage_code = {MasterDataCodes.LifecycleStatuses.EvidenceReview}
             """, cancellationToken);
         if (opportunityChanged != 1)
         {
@@ -220,17 +222,17 @@ public sealed partial class OpportunityCommands
         }
         await OpportunityCommandSupport.CompleteTaskAsync(
             store.DbContext, envelope.TenantId, evidenceSetId,
-            Gate4TaskTypes.EvidenceSetApproval, envelope.ActorId.Value, now, cancellationToken);
+            MasterDataCodes.HumanTaskTypes.EvidenceSetApproval, envelope.ActorId.Value, now, cancellationToken);
         var view = set with
         {
-            Status = Gate4Statuses.Approved,
+            Status = MasterDataCodes.LifecycleStatuses.Approved,
             ApprovedBy = envelope.ActorId.Value,
             Version = set.Version + 1,
         };
         return OpportunityCommandSupport.Outcome(
             envelope, view.ToView(), evidenceSetId, view.Version,
-            CommercialResourceTypes.EvidenceSet, CommercialActions.EvidenceApproved,
-            CommercialEventTypes.OpportunityEvidenceApproved, now);
+            MasterDataReferences.CommercialResourceTypes.EvidenceSet, MasterDataReferences.CommercialActions.EvidenceApproved,
+            MasterDataReferences.CommercialEventTypes.OpportunityEvidenceApproved, now);
     }
 
     private static string ResolveReviewedValue(
@@ -238,7 +240,7 @@ public sealed partial class OpportunityCommands
         ReviewEvidenceItemCommand command,
         string decision)
     {
-        if (decision == Gate4ReviewDecisions.Edit)
+        if (decision == MasterDataCodes.EvidenceReviewDecisions.Edit)
         {
             return OpportunityCommandSupport.Json(
                 command.StructuredValueJson ?? string.Empty,
@@ -265,7 +267,7 @@ public sealed partial class OpportunityCommands
         store.DbContext.Database.SqlQuery<Guid>($"""
             SELECT id AS "Value" FROM commercial.evidence_items
             WHERE tenant_id = {tenantId.Value} AND opportunity_id = {opportunityId}
-              AND review_status_code = {Gate4Statuses.Approved}
+              AND review_status_code = {MasterDataCodes.LifecycleStatuses.Approved}
             ORDER BY id
             """).ToArrayAsync(cancellationToken);
 

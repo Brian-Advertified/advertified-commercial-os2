@@ -265,6 +265,26 @@
 .source-lineage h2 { margin-top: 0; color: var(--navy); }
 .product-fact { display: flex; justify-content: space-between; gap: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--line); }
 .source-lineage { margin-top: 1rem; }
+.inventory-benchmark,
+.inventory-benchmark-empty { margin-top: 1rem; }
+.benchmark-heading { display: flex; justify-content: space-between; gap: 1.5rem; align-items: start; }
+.benchmark-heading h2 { margin: 0.15rem 0 0.4rem; color: var(--navy); }
+.benchmark-heading p { margin: 0; color: var(--muted); }
+.benchmark-position { min-width: 12rem; padding: 1rem 1.1rem; display: grid; gap: 0.2rem; background: var(--electric-wash); border: 1px solid var(--electric-soft); border-radius: 0.8rem; }
+.benchmark-position span,
+.benchmark-position small,
+.benchmark-summary-grid span,
+.benchmark-comparable-row span { color: var(--muted); font-size: 0.8rem; }
+.benchmark-position strong { color: var(--navy); font-size: 1.15rem; }
+.benchmark-summary-grid { margin-top: 1rem; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+.benchmark-summary-grid > div { min-height: 5.6rem; padding: 0.9rem; display: grid; align-content: space-between; background: var(--canvas); border: 1px solid var(--line); border-radius: 0.75rem; }
+.benchmark-summary-grid strong { color: var(--navy); font-size: 1.15rem; }
+.benchmark-comparables { margin-top: 1rem; border-top: 1px solid var(--line); padding-top: 0.9rem; }
+.benchmark-comparables summary { cursor: pointer; color: var(--electric-deep); font-weight: 750; }
+.benchmark-comparable-list { margin-top: 0.75rem; display: grid; gap: 0.55rem; }
+.benchmark-comparable-row { padding: 0.75rem 0; display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--line); }
+.benchmark-comparable-row > div { display: grid; gap: 0.15rem; }
+.benchmark-comparable-row > div:last-child { text-align: right; }
 
 @media (max-width: 800px) {
   .sign-in-page { grid-template-columns: 1fr; }
@@ -290,4 +310,7 @@
   .evidence-table div { grid-template-columns: 1fr; }
   .reject-action { margin-left: 0; }
   .publish-panel { align-items: stretch; flex-direction: column; }
+  .benchmark-heading { flex-direction: column; }
+  .benchmark-position { width: 100%; min-width: 0; }
+  .benchmark-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

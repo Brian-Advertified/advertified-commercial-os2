@@ -105,6 +105,32 @@ const inventoryAssetSchema = z.object({
   contentHash: requiredText, sourceReference: requiredText,
 }).strict()
 
+export const inventoryBenchmarkSchema = z.object({
+  productId: z.guid(),
+  productVersionId: z.guid(),
+  rateId: z.guid(),
+  rateType: requiredText,
+  rateAmountMinor: z.number().int().nonnegative(),
+  currency: requiredText,
+  policyVersion: requiredText,
+  geographyBasis: requiredText,
+  cohortSize: z.number().int().nonnegative(),
+  medianMinor: z.number().int().nonnegative().nullable(),
+  lowerQuartileMinor: z.number().int().nonnegative().nullable(),
+  upperQuartileMinor: z.number().int().nonnegative().nullable(),
+  percentile: z.number().min(0).max(100).nullable(),
+  differenceFromMedianMinor: z.number().int().nullable(),
+  differenceFromMedianPercent: z.number().nullable(),
+  position: requiredText,
+  confidence: z.number().min(0).max(1),
+  comparables: z.array(z.object({
+    productId: z.guid(), productVersionId: z.guid(), name: requiredText,
+    geography: requiredText, rateAmountMinor: z.number().int().nonnegative(),
+    currency: requiredText, distanceKilometres: z.number().nonnegative().nullable(),
+  }).strict()),
+  exclusions: z.array(requiredText),
+}).strict()
+
 export const inventoryProductSchema = z.object({
   product: inventoryProductSummarySchema,
   address: nullableText,
@@ -125,3 +151,4 @@ export type InventoryImport = z.infer<typeof inventoryImportSchema>
 export type InventoryProductSummary = z.infer<typeof inventoryProductSummarySchema>
 export type InventoryProductPage = z.infer<typeof inventoryProductPageSchema>
 export type InventoryProduct = z.infer<typeof inventoryProductSchema>
+export type InventoryBenchmark = z.infer<typeof inventoryBenchmarkSchema>

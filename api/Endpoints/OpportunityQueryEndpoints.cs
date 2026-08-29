@@ -12,23 +12,23 @@ public static class OpportunityQueryEndpoints
         group.MapGet("/opportunities", ListOpportunitiesAsync)
             .WithName("ListOpportunities")
             .Produces<CursorPage<OpportunityView>>()
-            .WithGate4QueryProblems();
+            .WithQueryProblems();
         group.MapGet("/opportunities/{opportunityId:guid}", GetOpportunityAsync)
             .WithName("GetOpportunity")
             .Produces<OpportunityDetailView>()
-            .WithGate4QueryProblems();
+            .WithQueryProblems();
         group.MapGet("/strategies/{strategyId:guid}", GetStrategyAsync)
             .WithName("GetStrategy")
             .Produces<StrategyVersionView>()
-            .WithGate4QueryProblems();
+            .WithQueryProblems();
         group.MapGet("/agent-runs/{runId:guid}", GetRunAsync)
             .WithName("GetAgentRun")
             .Produces<AgentRunView>()
-            .WithGate4QueryProblems();
+            .WithQueryProblems();
         group.MapGet("/human-tasks", ListTasksAsync)
             .WithName("ListHumanTasks")
             .Produces<CursorPage<HumanTaskView>>()
-            .WithGate4QueryProblems();
+            .WithQueryProblems();
         return group;
     }
 

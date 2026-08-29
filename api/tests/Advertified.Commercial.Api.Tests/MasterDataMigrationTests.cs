@@ -16,18 +16,18 @@ namespace Advertified.Commercial.Api.Tests;
 
 public sealed class MasterDataMigrationTests
 {
-    private const string PostgreSqlImage = "pgvector/pgvector:0.8.6-pg16-bookworm";
+    private const string DatabaseName = "advertified_master_data";
+    private const string DatabaseUser = "advertified_master_data";
+    private const string DatabasePassword = "advertified-master-data-local-only";
 
     [Fact]
     [Trait("Category", "Migration")]
     public async Task MigrationBootstrapsRegistryIdempotentlyAndProtectsStableCodes()
     {
-        await using var postgres = new PostgreSqlBuilder(PostgreSqlImage)
-            .WithDatabase("advertified_gate1")
-            .WithUsername("advertified_gate1")
-            .WithPassword("advertified-gate1-local-only")
-            .Build();
+        await using var postgres = DisposablePostgres.Create(
+            DatabaseName, DatabaseUser, DatabasePassword);
         await postgres.StartAsync();
+        await DisposablePostgres.EnableRequiredExtensionsAsync(postgres.GetConnectionString());
 
         await AssertApiStartupDoesNotMigrateAsync(postgres.GetConnectionString());
         await PrepareMigrationRoleAsync(postgres.GetConnectionString());
@@ -102,13 +102,13 @@ public sealed class MasterDataMigrationTests
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync();
         await using var command = new NpgsqlCommand(
-            """
+            $"""
             CREATE ROLE advertified_migrator
                 NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
             CREATE ROLE advertified_app
                 NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
-            GRANT advertified_migrator TO advertified_gate1;
-            GRANT CREATE ON DATABASE advertified_gate1 TO advertified_migrator;
+            GRANT advertified_migrator TO {DatabaseUser};
+            GRANT CREATE ON DATABASE {DatabaseName} TO advertified_migrator;
             GRANT CREATE ON SCHEMA public TO advertified_migrator;
             """,
             connection);

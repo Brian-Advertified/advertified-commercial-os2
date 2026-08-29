@@ -2,6 +2,7 @@ using System.Text.Json;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -23,7 +24,7 @@ public sealed class InventoryReader(
         CancellationToken cancellationToken)
     {
         await EnsureAllowedAsync(
-            actorId, tenantId, Gate6Permissions.InventoryImport, cancellationToken);
+            actorId, tenantId, MasterDataReferences.Permissions.InventoryImport, cancellationToken);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
         var row = await store.FindImportAsync(tenantId, importId, false, cancellationToken)
@@ -40,7 +41,7 @@ public sealed class InventoryReader(
         CancellationToken cancellationToken)
     {
         await EnsureAllowedAsync(
-            actorId, tenantId, Gate6Permissions.InventoryView, cancellationToken);
+            actorId, tenantId, MasterDataReferences.Permissions.InventoryView, cancellationToken);
         var pageSize = query.PageSize is >= 1 and <= 100
             ? query.PageSize : throw new ArgumentOutOfRangeException(nameof(query));
         var cursor = InventoryCursor.Decode(query.Cursor);
@@ -63,7 +64,7 @@ public sealed class InventoryReader(
         CancellationToken cancellationToken)
     {
         await EnsureAllowedAsync(
-            actorId, tenantId, Gate6Permissions.InventoryView, cancellationToken);
+            actorId, tenantId, MasterDataReferences.Permissions.InventoryView, cancellationToken);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
         var summary = await FindSummaryAsync(tenantId, productId, cancellationToken)

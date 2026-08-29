@@ -134,14 +134,14 @@ function versionFixture(state: State) {
 }
 
 function stateVersion(status: string) { return status === 'APPROVED' ? 4 : 2 }
-function sessionFixture() { return { authenticated: true, antiforgeryToken: 'csrf-gate5', expiresAtUtc: '2026-08-29T20:00:00Z' } }
+function sessionFixture() { return { authenticated: true, antiforgeryToken: 'csrf-brief', expiresAtUtc: '2026-08-29T20:00:00Z' } }
 function workspaceFixture(role: string) { return { membershipId: 'b7000000-0000-0000-0000-000000000001', tenantId, name: 'Solo Agency', slug: 'solo-agency', roleCode: role, version: 1 } }
 function userFixture() { return { id: userId, email: 'solo@example.com', displayName: 'Solo Operator', phone: null, mfaEnabled: true, version: 1 } }
 function clientFixture() { return { id: clientId, tenantId, externalReference: 'solo-client', legalName: 'Client One', tradingName: 'Client One', website: null, industry: null, billingProfileJson: '{}', primaryContactId: null, statusCode: 'ACTIVE', version: 1, updatedAtUtc: now } }
 
 function assertMutation(route: Route, versioned: boolean) {
   const headers = route.request().headers()
-  expect(headers['x-csrf-token']).toBe('csrf-gate5')
+  expect(headers['x-csrf-token']).toBe('csrf-brief')
   expect(headers['idempotency-key']).toBeTruthy()
   if (versioned) expect(headers['if-match']).toBeTruthy()
 }

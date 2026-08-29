@@ -6,6 +6,7 @@ import type { ClientAccount, Opportunity } from '../api/schemas'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
 import { LoadingState, MessageState } from '../components/PageState'
+import { masterDataCodes } from '../generated/master-data-codes'
 
 export function OpportunitiesPage() {
   const { selected, loading } = useWorkspace()
@@ -48,7 +49,8 @@ function useOpportunityIndex(tenantId: string) {
       const created = await opportunityApi.create(tenantId, {
         clientId: String(values.get('clientId')),
         title: String(values.get('title')),
-        sourceType: 'DISCOVERY', sourceRef: 'workspace-entry', ownerUserId: ownerId,
+        sourceType: masterDataCodes.opportunitySourceTypes.discovery,
+        sourceRef: 'workspace-entry', ownerUserId: ownerId,
         problemSummary: optional(values.get('problemSummary')),
         objectiveSummary: optional(values.get('objectiveSummary')),
       }, session.antiforgeryToken)

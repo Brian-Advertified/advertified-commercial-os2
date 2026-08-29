@@ -1,5 +1,6 @@
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,8 +19,8 @@ internal sealed record InventoryCodeSets(
     {
         var required = new[]
         {
-            "channels", "inventoryProductTypes", "rateTypes", "currencies",
-            "availabilityStatuses",
+            MasterDataCodes.Channels.Collection, MasterDataCodes.InventoryProductTypes.Collection, MasterDataCodes.RateTypes.Collection, MasterDataCodes.Currencies.Collection,
+            MasterDataCodes.AvailabilityStatuses.Collection,
         };
         var items = await dbContext.MasterDataItems.AsNoTracking()
             .Where(item => required.Contains(item.CollectionCode) && item.IsActive)
@@ -28,8 +29,8 @@ internal sealed record InventoryCodeSets(
         IReadOnlySet<string> Codes(string collection) => items
             .Where(item => item.CollectionCode == collection)
             .Select(item => item.Code).ToHashSet(StringComparer.Ordinal);
-        return new(Codes("channels"), Codes("inventoryProductTypes"), Codes("rateTypes"),
-            Codes("currencies"), Codes("availabilityStatuses"));
+        return new(Codes(MasterDataCodes.Channels.Collection), Codes(MasterDataCodes.InventoryProductTypes.Collection), Codes(MasterDataCodes.RateTypes.Collection),
+            Codes(MasterDataCodes.Currencies.Collection), Codes(MasterDataCodes.AvailabilityStatuses.Collection));
     }
 }
 
@@ -49,13 +50,13 @@ internal static class InventoryCandidateValidator
         RequiredCode(issues, "currency", values.Currency, codes.Currencies);
         if (values.RateAmountMinor is null or < 0)
         {
-            issues.Add(Block("rateAmountMinor", "RATE_REQUIRED", "A valid non-negative rate is required."));
+            issues.Add(Block("rateAmountMinor", MasterDataCodes.ValidationIssueTypes.RateRequired, "A valid non-negative rate is required."));
         }
         RequiredCode(issues, "availability", values.Availability, codes.Availability);
         ValidateCoordinates(values, issues);
-        if (values.Availability == Gate6Availability.Unknown)
+        if (values.Availability == MasterDataCodes.AvailabilityStatuses.Unknown)
         {
-            issues.Add(new("availability", "AVAILABILITY_UNKNOWN",
+            issues.Add(new("availability", MasterDataCodes.ValidationIssueTypes.AvailabilityUnknown,
                 "Availability is not supplied and must be confirmed before booking.", false));
         }
         return issues;
@@ -70,13 +71,13 @@ internal static class InventoryCandidateValidator
             values.Longitude is null or >= -180 and <= 180;
         if (!paired || !range)
         {
-            issues.Add(Block("coordinates", "COORDINATES_INVALID",
+            issues.Add(Block("coordinates", MasterDataCodes.ValidationIssueTypes.CoordinatesInvalid,
                 "Latitude and longitude must be supplied together and within valid ranges."));
         }
-        if (values.Channel is Gate6Channels.Ooh or Gate6Channels.Dooh &&
+        if (values.Channel is MasterDataCodes.Channels.Ooh or MasterDataCodes.Channels.Dooh &&
             (!values.Latitude.HasValue || !values.Longitude.HasValue))
         {
-            issues.Add(Block("coordinates", "OOH_COORDINATES_REQUIRED",
+            issues.Add(Block("coordinates", MasterDataCodes.ValidationIssueTypes.OohCoordinatesRequired,
                 "Out of home inventory requires verified coordinates."));
         }
     }
@@ -88,7 +89,7 @@ internal static class InventoryCandidateValidator
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            issues.Add(Block(field, "FIELD_REQUIRED", $"{field} is required before publication."));
+            issues.Add(Block(field, MasterDataCodes.ValidationIssueTypes.FieldRequired, $"{field} is required before publication."));
         }
     }
 
@@ -100,7 +101,7 @@ internal static class InventoryCandidateValidator
     {
         if (string.IsNullOrWhiteSpace(value) || !allowed.Contains(value))
         {
-            issues.Add(Block(field, "GOVERNED_CODE_REQUIRED",
+            issues.Add(Block(field, MasterDataCodes.ValidationIssueTypes.GovernedCodeRequired,
                 $"Select a supported {field} before publication."));
         }
     }

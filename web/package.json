@@ -8,6 +8,9 @@
   },
   "scripts": {
     "bootstrap": "npm install",
+    "master-data:generate": "node ../tools/generate-master-data.mjs",
+    "master-data:check": "node ../tools/generate-master-data.mjs --check",
+    "openapi:generate": "node ../tools/generate-openapi.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint src e2e vite.config.ts playwright.config.ts",

@@ -1,4 +1,5 @@
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Persistence;
@@ -155,7 +156,7 @@ public sealed partial class OpportunityRecordStore(GovernanceDbContext dbContext
                   AND assignee_user_id = {actorId}
                   AND resource_id = {resourceId}
                   AND task_type_code = {taskType}
-                  AND status_code = {Gate4Statuses.Pending}) AS "Value"
+                  AND status_code = {MasterDataCodes.LifecycleStatuses.Pending}) AS "Value"
             """).SingleAsync(cancellationToken);
 
     internal Task<bool> IsOpportunityOwnerAsync(

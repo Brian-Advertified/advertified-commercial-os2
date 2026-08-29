@@ -14,7 +14,6 @@ namespace Advertified.Commercial.Api.Tests;
 
 public sealed partial class CommercialFoundationApiAcceptanceTests
 {
-    private const string PostgreSqlImage = "pgvector/pgvector:0.8.6-pg16-bookworm";
     private static readonly Guid TenantId =
         Guid.Parse("e1000000-0000-0000-0000-000000000001");
     private static readonly Guid OtherTenantId =
@@ -28,13 +27,12 @@ public sealed partial class CommercialFoundationApiAcceptanceTests
     [Trait("Category", "Migration")]
     public async Task FoundationRoutesEnforceCommandAndTenantContracts()
     {
-        await using var postgres = new PostgreSqlBuilder(PostgreSqlImage)
-            .WithDatabase("advertified_gate2_api")
-            .WithUsername("advertified_gate2")
-            .WithPassword("advertified-gate2-local-only")
-            .Build();
+        await using var postgres = DisposablePostgres.Create(
+            "advertified_foundation_api", "advertified_foundation",
+            "advertified-foundation-local-only");
         await postgres.StartAsync();
         var connectionString = postgres.GetConnectionString();
+        await DisposablePostgres.EnableRequiredExtensionsAsync(connectionString);
         await DisposableDatabaseRoles.ProvisionAsync(connectionString);
         await SeedAsync(connectionString);
 
@@ -240,7 +238,7 @@ public sealed partial class CommercialFoundationApiAcceptanceTests
             HttpMethod.Put,
             $"/api/v1/tenants/{TenantId}/me",
             "update-user-1",
-            new { displayName = "Gate Two User", phone = "+27112223333" },
+            new { displayName = "Foundation Test User", phone = "+27112223333" },
             1);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("\"2\"", response.Headers.ETag?.Tag);
@@ -288,11 +286,11 @@ public sealed partial class CommercialFoundationApiAcceptanceTests
         await using var db = new GovernanceDbContext(options);
         await db.Database.MigrateAsync();
         await new MasterDataBootstrapper(db, TimeProvider.System).ApplyAsync();
-        db.Tenants.AddRange(CreateTenant(TenantId, "gate-two"), CreateTenant(OtherTenantId, "other"));
+        db.Tenants.AddRange(CreateTenant(TenantId, "foundation"), CreateTenant(OtherTenantId, "other"));
         db.Users.Add(new User(
             new UserId(UserId),
             new EmailAddress("gate.two@example.com"),
-            "Gate Two User",
+            "Foundation Test User",
             null,
             new LifecycleStatusCode("ACTIVE"),
             true,

@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
 
-public sealed partial class InventoryGate6AcceptanceTests
+public sealed partial class InventoryAcceptanceTests
 {
     [Fact]
     [Trait("Category", "Migration")]
@@ -35,14 +35,14 @@ public sealed partial class InventoryGate6AcceptanceTests
 
         using var selfReview = await CommandAsync(
             importer, $"/api/v1/tenants/{TenantId}/inventory-candidates/{candidateId}:review",
-            "gate6-self-review", 1,
+            "inventory-self-review", 1,
             new { decision = "APPROVE", rejectionReason = (string?)null,
                 notes = "Source checked.", correctedValues = (object?)null });
         await AssertProblemAsync(selfReview, HttpStatusCode.Forbidden, "APPROVAL_REQUIRED");
 
         using var review = await CommandAsync(
             reviewer, $"/api/v1/tenants/{TenantId}/inventory-candidates/{candidateId}:review",
-            "gate6-review", 1,
+            "inventory-review", 1,
             new { decision = "APPROVE", rejectionReason = (string?)null,
                 notes = "Coordinates and rate match the source.", correctedValues = (object?)null });
         using var reviewed = await ReadJsonAsync(review);
@@ -50,7 +50,7 @@ public sealed partial class InventoryGate6AcceptanceTests
 
         using var publish = await CommandAsync(
             reviewer, $"/api/v1/tenants/{TenantId}/inventory-imports/{importId}:publish",
-            "gate6-publish", 2, new { });
+            "inventory-publish", 2, new { });
         using var published = await ReadJsonAsync(publish);
         Assert.Equal("COMPLETED", published.RootElement.GetProperty("status").GetString());
 
@@ -69,7 +69,7 @@ public sealed partial class InventoryGate6AcceptanceTests
         var oversized = new FileFixture(
             "CSV", "oversized.csv", "text/csv", oversizedBytes);
         using var oversizedResponse = await UploadAsync(
-            importer, "gate6-size-boundary", "Boundary Supplier", oversized);
+            importer, "inventory-size-boundary", "Boundary Supplier", oversized);
         await AssertProblemAsync(
             oversizedResponse, HttpStatusCode.BadRequest, "VALIDATION_FAILED");
 
@@ -77,14 +77,14 @@ public sealed partial class InventoryGate6AcceptanceTests
             "PNG", "not-an-image.csv", "text/csv",
             [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
         using var mismatchResponse = await UploadAsync(
-            importer, "gate6-type-mismatch", "Boundary Supplier", mismatch);
+            importer, "inventory-type-mismatch", "Boundary Supplier", mismatch);
         await AssertProblemAsync(mismatchResponse, HttpStatusCode.BadRequest, "VALIDATION_FAILED");
 
         var unsafeSource = new FileFixture(
             "CSV", "unsafe.csv", "text/csv", Encoding.ASCII.GetBytes(
                 "product_code,name\nEICAR-STANDARD-ANTIVIRUS-TEST-FILE,unsafe\n"));
         using var unsafeResponse = await UploadAsync(
-            importer, "gate6-malware", "Boundary Supplier", unsafeSource);
+            importer, "inventory-malware", "Boundary Supplier", unsafeSource);
         using var unsafeJson = await ReadJsonAsync(unsafeResponse);
         Assert.Equal("FAILED", unsafeJson.RootElement.GetProperty("status").GetString());
         Assert.Equal("INFECTED", unsafeJson.RootElement.GetProperty("scanStatus").GetString());
@@ -98,7 +98,7 @@ public sealed partial class InventoryGate6AcceptanceTests
         {
             ordinal++;
             using var upload = await UploadAsync(
-                importer, $"gate6-corpus-{ordinal}", "Held Out Supplier", fixture);
+                importer, $"inventory-corpus-{ordinal}", "Held Out Supplier", fixture);
             using var created = await ReadJsonAsync(upload);
             Assert.Equal(fixture.DocumentClass,
                 created.RootElement.GetProperty("documentClass").GetString());
@@ -106,7 +106,7 @@ public sealed partial class InventoryGate6AcceptanceTests
             var importId = created.RootElement.GetProperty("id").GetGuid();
             using var execute = await CommandAsync(
                 importer, $"/api/v1/tenants/{TenantId}/inventory-imports/{importId}:execute",
-                $"gate6-corpus-execute-{ordinal}", 1, new { });
+                $"inventory-corpus-execute-{ordinal}", 1, new { });
             using var executed = await ReadJsonAsync(execute);
             AssertCorpusExtraction(executed.RootElement, fixture);
         }
@@ -143,12 +143,12 @@ public sealed partial class InventoryGate6AcceptanceTests
         FileFixture fixture)
     {
         using var upload = await UploadAsync(
-            importer, "gate6-main-upload", "City Media", fixture);
+            importer, "inventory-main-upload", "City Media", fixture);
         using var created = await ReadJsonAsync(upload);
         var importId = created.RootElement.GetProperty("id").GetGuid();
         using var execute = await CommandAsync(
             importer, $"/api/v1/tenants/{TenantId}/inventory-imports/{importId}:execute",
-            "gate6-main-execute", 1, new { });
+            "inventory-main-execute", 1, new { });
         using var executed = await ReadJsonAsync(execute);
         return executed.RootElement.Clone();
     }
@@ -196,7 +196,7 @@ public sealed partial class InventoryGate6AcceptanceTests
                 INSERT INTO commercial.inventory_products (
                     id, tenant_id, supplier_id, supplier_product_code, status_code,
                     version, created_at_utc, updated_at_utc)
-                SELECT md5('gate6-product-' || n)::uuid, $1, $2, 'SCALE-' || lpad(n::text, 5, '0'),
+                SELECT md5('inventory-product-' || n)::uuid, $1, $2, 'SCALE-' || lpad(n::text, 5, '0'),
                     'ACTIVE', 1, $6, $6 FROM generate_series(1, 10001) n
                 RETURNING id, supplier_product_code
             ), versions AS (
@@ -204,7 +204,7 @@ public sealed partial class InventoryGate6AcceptanceTests
                     id, tenant_id, product_id, version_number, name, channel_code,
                     product_type_code, geography, verification_code, source_import_id,
                     source_candidate_id, published_by, published_at_utc)
-                SELECT md5('gate6-version-' || supplier_product_code)::uuid, $1, id, 1,
+                SELECT md5('inventory-version-' || supplier_product_code)::uuid, $1, id, 1,
                     'Scale Site ' || supplier_product_code, 'OOH', 'OOH_SITE', 'Gauteng',
                     'HUMAN_VERIFIED', $3, $4, $5, $6 FROM products
                 RETURNING id, product_id
@@ -224,7 +224,7 @@ public sealed partial class InventoryGate6AcceptanceTests
         await using var update = new NpgsqlCommand(
             """
             UPDATE commercial.inventory_products
-            SET current_version_id = md5('gate6-version-' || supplier_product_code)::uuid
+            SET current_version_id = md5('inventory-version-' || supplier_product_code)::uuid
             WHERE tenant_id = $1 AND supplier_product_code LIKE 'SCALE-%'
             """, connection);
         update.Parameters.AddWithValue(TenantId);

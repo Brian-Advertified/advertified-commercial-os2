@@ -1,6 +1,7 @@
 using Advertified.Commercial.Application.Brief;
 using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 
 namespace Advertified.Commercial.Infrastructure.Brief;
@@ -16,7 +17,7 @@ public sealed class BriefReader(
         CancellationToken cancellationToken)
     {
         var decision = await authorizer.AuthorizeAsync(
-            actorId, tenantId, Gate5Permissions.BriefView, cancellationToken);
+            actorId, tenantId, MasterDataReferences.Permissions.BriefView, cancellationToken);
         if (!decision.IsAllowed)
         {
             throw new UnauthorizedAccessException("Brief access denied.");

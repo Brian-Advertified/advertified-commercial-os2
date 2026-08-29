@@ -14,7 +14,7 @@ from contracts import (
 )
 from provider import DeterministicFixtureNotFoundError, DeterministicProvider
 
-FIXTURE_PATH = Path(__file__).parent / "fixtures" / "gate1_contract_v1.json"
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "provider_contract_v1.json"
 
 
 class ContractProbeArtifact(ContractModel):

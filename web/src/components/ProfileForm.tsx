@@ -39,7 +39,7 @@ export function ProfileForm(props: Props) {
         <div className="field-group">
           <label htmlFor="email">Email</label>
           <input id="email" value={props.user.email} disabled aria-describedby="email-note" />
-          <p className="field-note" id="email-note">Identity email changes are not available in this gate.</p>
+          <p className="field-note" id="email-note">Identity email changes are not available from this profile.</p>
         </div>
         <div className="field-group">
           <label htmlFor="phone">Phone</label>

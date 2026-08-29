@@ -4,6 +4,8 @@ using Advertified.Commercial.Domain.Constants;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Opportunity;
 
+using Advertified.Commercial.Domain.MasterData;
+
 namespace Advertified.Commercial.Infrastructure.Brief;
 
 internal static class BriefCommandSupport
@@ -84,12 +86,12 @@ internal static class BriefCommandSupport
         if (currency is not null)
         {
             await OpportunityCommandSupport.EnsureCodeAsync(
-                dbContext, "currencies", currency, cancellationToken);
+                dbContext, MasterDataCodes.Currencies.Collection, currency, cancellationToken);
         }
         if (vat is not null)
         {
             await OpportunityCommandSupport.EnsureCodeAsync(
-                dbContext, "vatStatuses", vat, cancellationToken);
+                dbContext, MasterDataCodes.VatStatuses.Collection, vat, cancellationToken);
         }
     }
 
@@ -119,7 +121,7 @@ internal static class BriefCommandSupport
             var severity = OpportunityCommandSupport.Required(
                 item.Severity, 100, nameof(values)).ToUpperInvariant();
             await OpportunityCommandSupport.EnsureCodeAsync(
-                dbContext, "criticSeverities", severity, cancellationToken);
+                dbContext, MasterDataCodes.CriticSeverities.Collection, severity, cancellationToken);
             if (item.Resolved && string.IsNullOrWhiteSpace(item.Resolution))
             {
                 throw new ArgumentException("A resolved conflict requires a resolution.");

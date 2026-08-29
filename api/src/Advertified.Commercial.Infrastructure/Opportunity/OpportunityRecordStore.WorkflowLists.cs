@@ -1,5 +1,6 @@
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Microsoft.EntityFrameworkCore;
 
 namespace Advertified.Commercial.Infrastructure.Opportunity;
@@ -72,7 +73,7 @@ public sealed partial class OpportunityRecordStore
               ON brief_version.tenant_id = task.tenant_id
              AND brief_version.id = task.resource_id
             WHERE task.tenant_id = {tenantId.Value} AND task.assignee_user_id = {actorId}
-            ORDER BY CASE WHEN task.status_code = {Gate4Statuses.Pending} THEN 0 ELSE 1 END,
+            ORDER BY CASE WHEN task.status_code = {MasterDataCodes.LifecycleStatuses.Pending} THEN 0 ELSE 1 END,
                 task.created_at_utc DESC, task.id
             OFFSET {offset} LIMIT {limit}
             """).ToListAsync(cancellationToken);

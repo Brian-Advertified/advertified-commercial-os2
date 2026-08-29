@@ -1,0 +1,538 @@
+# Generated from shared/contracts/master-data.json. Do not edit.
+# source-sha256: 1bed5c5906d903eed8bc5d3918ab6605f049e6fa370b085b782a935b8c1e9849
+from enum import StrEnum
+
+REGISTRY_VERSION = "1.8.0"
+
+class Channels(StrEnum):
+    OOH = "OOH"
+    DOOH = "DOOH"
+    RADIO = "RADIO"
+    TV = "TV"
+    PRINT = "PRINT"
+    DIGITAL = "DIGITAL"
+    SOCIAL = "SOCIAL"
+    INFLUENCER = "INFLUENCER"
+    EXPERIENTIAL = "EXPERIENTIAL"
+    PODCAST = "PODCAST"
+    RETAIL = "RETAIL"
+    TRANSIT = "TRANSIT"
+    MALL = "MALL"
+    EMAIL = "EMAIL"
+    MOBILE = "MOBILE"
+
+class Roles(StrEnum):
+    PLATFORM_ADMIN = "platform_admin"
+    INTERNAL_PLANNER = "internal_planner"
+    INVENTORY_OPS = "inventory_ops"
+    AGENCY_ADMIN = "agency_admin"
+    AGENCY_CAMPAIGN_USER = "agency_campaign_user"
+    ADVERTISER_ADMIN = "advertiser_admin"
+    ADVERTISER_APPROVER = "advertiser_approver"
+    SUPPLIER_ADMIN = "supplier_admin"
+    SUPPLIER_USER = "supplier_user"
+    INFLUENCER_REP = "influencer_rep"
+    AGENT_RUNTIME_SERVICE = "agent_runtime_service"
+    WORKER_SERVICE = "worker_service"
+
+class Permissions(StrEnum):
+    WORKSPACE_READ = "workspace_read"
+    TENANT_READ = "tenant_read"
+    TENANT_MANAGE = "tenant_manage"
+    USER_READ_SELF = "user_read_self"
+    USER_MANAGE_SELF = "user_manage_self"
+    MEMBERSHIP_READ = "membership_read"
+    MEMBERSHIP_MANAGE = "membership_manage"
+    CLIENT_ACCOUNT_READ = "client_account_read"
+    CLIENT_ACCOUNT_MANAGE = "client_account_manage"
+    AGENCY_READ = "agency_read"
+    AGENCY_MANAGE = "agency_manage"
+    CONTACT_READ = "contact_read"
+    CONTACT_MANAGE = "contact_manage"
+    OPPORTUNITY_VIEW = "opportunity_view"
+    OPPORTUNITY_CREATE = "opportunity_create"
+    OPPORTUNITY_EDIT = "opportunity_edit"
+    EVIDENCE_CREATE = "evidence_create"
+    EVIDENCE_REVIEW = "evidence_review"
+    AGENT_RUN = "agent_run"
+    OPPORTUNITY_ANGLE_SELECT = "opportunity_angle_select"
+    STRATEGY_VIEW = "strategy_view"
+    STRATEGY_APPROVE = "strategy_approve"
+    RUN_VIEW = "run_view"
+    RUN_MANAGE = "run_manage"
+    TASK_VIEW = "task_view"
+    TASK_ACT = "task_act"
+    BRIEF_VIEW = "brief_view"
+    BRIEF_CREATE = "brief_create"
+    BRIEF_EDIT = "brief_edit"
+    BRIEF_SUBMIT = "brief_submit"
+    BRIEF_APPROVE = "brief_approve"
+    INVENTORY_VIEW = "inventory_view"
+    INVENTORY_IMPORT = "inventory_import"
+    INVENTORY_REVIEW = "inventory_review"
+    INVENTORY_PUBLISH = "inventory_publish"
+    PLAN_VIEW = "plan_view"
+    PLAN_GENERATE = "plan_generate"
+    PLAN_EDIT = "plan_edit"
+    PLAN_APPROVE = "plan_approve"
+
+class BriefSourceTypes(StrEnum):
+    SUPPLIED_TEXT = "SUPPLIED_TEXT"
+    OPPORTUNITY = "OPPORTUNITY"
+
+class OpportunitySourceTypes(StrEnum):
+    DISCOVERY = "DISCOVERY"
+    REFERRAL = "REFERRAL"
+
+class EvidenceSourceTypes(StrEnum):
+    SUPPLIED_TEXT = "SUPPLIED_TEXT"
+    PERMITTED_URL = "PERMITTED_URL"
+
+class EvidencePolicyBases(StrEnum):
+    OWNER_SUPPLIED = "OWNER_SUPPLIED"
+    PUBLIC_SITE_REVIEWED = "PUBLIC_SITE_REVIEWED"
+
+class EvidenceClaimTypes(StrEnum):
+    OFFERING = "OFFERING"
+    CUSTOMER_GROUP = "CUSTOMER_GROUP"
+    BUYING_OCCASION = "BUYING_OCCASION"
+    GEOGRAPHY = "GEOGRAPHY"
+    PRICE = "PRICE"
+    CONTACT_ROUTE = "CONTACT_ROUTE"
+    BUSINESS_CONTEXT = "BUSINESS_CONTEXT"
+    OTHER = "OTHER"
+
+class EvidenceReviewDecisions(StrEnum):
+    APPROVE = "APPROVE"
+    REJECT = "REJECT"
+    EDIT = "EDIT"
+
+class OpportunityAngleStatuses(StrEnum):
+    PROPOSED = "PROPOSED"
+    SELECTED = "SELECTED"
+    REJECTED = "REJECTED"
+
+class CriticSeverities(StrEnum):
+    CRITICAL = "CRITICAL"
+    MATERIAL = "MATERIAL"
+    ADVISORY = "ADVISORY"
+
+class ObjectionResolutions(StrEnum):
+    ADDRESSED = "ADDRESSED"
+    ACCEPTED_WITH_REASON = "ACCEPTED_WITH_REASON"
+    SUPERSEDED = "SUPERSEDED"
+
+class HumanTaskTypes(StrEnum):
+    EVIDENCE_ITEM_REVIEW = "EVIDENCE_ITEM_REVIEW"
+    EVIDENCE_SET_APPROVAL = "EVIDENCE_SET_APPROVAL"
+    INTERPRETATION_CONFIRMATION = "INTERPRETATION_CONFIRMATION"
+    ANGLE_SELECTION = "ANGLE_SELECTION"
+    CRITIC_RESOLUTION = "CRITIC_RESOLUTION"
+    STRATEGY_APPROVAL = "STRATEGY_APPROVAL"
+    RUN_RECOVERY = "RUN_RECOVERY"
+    BRIEF_APPROVAL = "BRIEF_APPROVAL"
+    INVENTORY_CANDIDATE_REVIEW = "INVENTORY_CANDIDATE_REVIEW"
+    MEDIA_MIX_APPROVAL = "MEDIA_MIX_APPROVAL"
+    PLAN_CRITIC_RESOLUTION = "PLAN_CRITIC_RESOLUTION"
+    MEDIA_PLAN_APPROVAL = "MEDIA_PLAN_APPROVAL"
+
+class EvidenceClassifications(StrEnum):
+    FACT = "FACT"
+    INFERENCE = "INFERENCE"
+    HYPOTHESIS = "HYPOTHESIS"
+
+class BenchmarkPositions(StrEnum):
+    STRONG_VALUE = "STRONG_VALUE"
+    MARKET_ALIGNED = "MARKET_ALIGNED"
+    ABOVE_MARKET = "ABOVE_MARKET"
+    INSUFFICIENT = "INSUFFICIENT"
+
+class SupplyConfidenceStatuses(StrEnum):
+    CONFIRMED = "CONFIRMED"
+    INDICATIVE = "INDICATIVE"
+    UNKNOWN = "UNKNOWN"
+
+class RateFreshnessStatuses(StrEnum):
+    CURRENT = "CURRENT"
+    STALE = "STALE"
+    UNKNOWN = "UNKNOWN"
+
+class DocumentClasses(StrEnum):
+    CSV = "CSV"
+    XLSX = "XLSX"
+    PDF = "PDF"
+    DOCX = "DOCX"
+    PNG = "PNG"
+    JPEG = "JPEG"
+
+class InventoryReviewDecisions(StrEnum):
+    APPROVE = "APPROVE"
+    REJECT = "REJECT"
+    EDIT = "EDIT"
+
+class AvailabilityStatuses(StrEnum):
+    UNKNOWN = "UNKNOWN"
+    AVAILABLE = "AVAILABLE"
+    LIMITED = "LIMITED"
+    UNAVAILABLE = "UNAVAILABLE"
+
+class VerificationLevels(StrEnum):
+    UNVERIFIED = "UNVERIFIED"
+    SOURCE_VERIFIED = "SOURCE_VERIFIED"
+    HUMAN_VERIFIED = "HUMAN_VERIFIED"
+
+class InventoryProductTypes(StrEnum):
+    OOH_SITE = "OOH_SITE"
+    DOOH_SCREEN = "DOOH_SCREEN"
+    RADIO_SPOT = "RADIO_SPOT"
+    TV_SPOT = "TV_SPOT"
+    PRINT_PLACEMENT = "PRINT_PLACEMENT"
+    DIGITAL_PLACEMENT = "DIGITAL_PLACEMENT"
+    SOCIAL_PLACEMENT = "SOCIAL_PLACEMENT"
+    INFLUENCER_PACKAGE = "INFLUENCER_PACKAGE"
+    EXPERIENCE = "EXPERIENCE"
+    PODCAST_SPOT = "PODCAST_SPOT"
+    RETAIL_PLACEMENT = "RETAIL_PLACEMENT"
+    TRANSIT_PLACEMENT = "TRANSIT_PLACEMENT"
+    MALL_PLACEMENT = "MALL_PLACEMENT"
+    EMAIL_PLACEMENT = "EMAIL_PLACEMENT"
+    MOBILE_PLACEMENT = "MOBILE_PLACEMENT"
+
+class InventoryImportStepTypes(StrEnum):
+    UPLOAD_PROTECTION = "UPLOAD_PROTECTION"
+    CLASSIFICATION = "CLASSIFICATION"
+    EXTRACTION = "EXTRACTION"
+    NORMALIZATION = "NORMALIZATION"
+    VALIDATION = "VALIDATION"
+    REVIEW = "REVIEW"
+    PUBLICATION = "PUBLICATION"
+
+class MalwareScanStatuses(StrEnum):
+    PENDING = "PENDING"
+    CLEAN = "CLEAN"
+    INFECTED = "INFECTED"
+    ERROR = "ERROR"
+
+class AgentRunKinds(StrEnum):
+    INTERPRETATION = "INTERPRETATION"
+    ANGLES = "ANGLES"
+    STRATEGY_CRITIC = "STRATEGY_CRITIC"
+    BRIEF = "BRIEF"
+
+class AgentTypes(StrEnum):
+    BUSINESS_INTERPRETATION = "business_interpretation"
+    OPPORTUNITY_INTELLIGENCE = "opportunity_intelligence"
+    STRATEGY = "strategy"
+    CRITIC_READINESS = "critic_readiness"
+    BRIEF_DRAFTING = "brief_drafting"
+    AUDIENCE = "audience"
+    INVENTORY_INTELLIGENCE = "inventory_intelligence"
+    MEDIA_PLANNING = "media_planning"
+    PROPOSAL_NARRATIVE = "proposal_narrative"
+    CREATIVE = "creative"
+    MEASUREMENT = "measurement"
+
+class WorkflowStepTypes(StrEnum):
+    INTERPRETATION = "INTERPRETATION"
+    ANGLES = "ANGLES"
+    STRATEGY = "STRATEGY"
+    CRITIC = "CRITIC"
+    BRIEF = "BRIEF"
+
+class InventoryTransformationTypes(StrEnum):
+    TRIM = "TRIM"
+    UPPERCASE_CODE = "UPPERCASE_CODE"
+    MAJOR_TO_MINOR = "MAJOR_TO_MINOR"
+    PARSE_DECIMAL = "PARSE_DECIMAL"
+    DERIVED_FROM_CHANNEL = "DERIVED_FROM_CHANNEL"
+    EXPLICIT_UNKNOWN = "EXPLICIT_UNKNOWN"
+
+class InventoryUnsupportedClaimTerms(StrEnum):
+    AUDIENCE = "audience"
+    REACH = "reach"
+    LISTENERS = "listeners"
+    IMPRESSIONS = "impressions"
+    RATINGS = "ratings"
+
+class PlanningObjectionTypes(StrEnum):
+    SUPPLY_UNCONFIRMED = "SUPPLY_UNCONFIRMED"
+    BENCHMARK_INSUFFICIENT = "BENCHMARK_INSUFFICIENT"
+
+class BenchmarkExclusionReasons(StrEnum):
+    INCOMPATIBLE_CHANNEL = "INCOMPATIBLE_CHANNEL"
+    INCOMPATIBLE_PRODUCT_TYPE = "INCOMPATIBLE_PRODUCT_TYPE"
+    INCOMPATIBLE_RATE_BASIS = "INCOMPATIBLE_RATE_BASIS"
+    INCOMPATIBLE_CURRENCY = "INCOMPATIBLE_CURRENCY"
+    MISSING_RATE = "MISSING_RATE"
+    RATE_PERIOD_MISMATCH = "RATE_PERIOD_MISMATCH"
+    MISSING_COORDINATES = "MISSING_COORDINATES"
+    OUTSIDE_COMPARISON_AREA = "OUTSIDE_COMPARISON_AREA"
+
+class PlanningPolicies(StrEnum):
+    OOH_LOCAL_PEER_V1 = "OOH_LOCAL_PEER_V1"
+
+class SupplySourceTypes(StrEnum):
+    NOT_SUPPLIED = "NOT_SUPPLIED"
+    PUBLISHED_INVENTORY = "PUBLISHED_INVENTORY"
+    SUPPLIER_CONFIRMATION = "SUPPLIER_CONFIRMATION"
+
+class ValidationIssueTypes(StrEnum):
+    FIELD_REQUIRED = "FIELD_REQUIRED"
+    GOVERNED_CODE_REQUIRED = "GOVERNED_CODE_REQUIRED"
+    RATE_REQUIRED = "RATE_REQUIRED"
+    AVAILABILITY_UNKNOWN = "AVAILABILITY_UNKNOWN"
+    COORDINATES_INVALID = "COORDINATES_INVALID"
+    OOH_COORDINATES_REQUIRED = "OOH_COORDINATES_REQUIRED"
+
+class AgentFailureReasons(StrEnum):
+    AGENT_OUTPUT_INVALID = "AGENT_OUTPUT_INVALID"
+    AGENT_RUNTIME_UNAVAILABLE = "AGENT_RUNTIME_UNAVAILABLE"
+    EVIDENCE_REQUIRED = "EVIDENCE_REQUIRED"
+    INPUT_VERSION_DRIFT = "INPUT_VERSION_DRIFT"
+
+class CommercialResourceTypes(StrEnum):
+    TENANT = "tenant"
+    USER = "user"
+    CLIENT_ACCOUNT = "client_account"
+    AGENCY = "agency"
+    CONTACT = "contact"
+    OPPORTUNITY = "opportunity"
+    EVIDENCE_SOURCE = "evidence_source"
+    EVIDENCE_ITEM = "evidence_item"
+    EVIDENCE_SET = "evidence_set"
+    BUSINESS_INTERPRETATION = "business_interpretation"
+    OPPORTUNITY_ANGLE = "opportunity_angle"
+    STRATEGY = "strategy"
+    AGENT_RUN = "agent_run"
+    HUMAN_TASK = "human_task"
+    CAMPAIGN_BRIEF = "campaign_brief"
+    BRIEF_VERSION = "brief_version"
+    INVENTORY_IMPORT = "inventory_import"
+    INVENTORY_CANDIDATE = "inventory_candidate"
+    INVENTORY_PRODUCT = "inventory_product"
+    AUDIENCE_DEFINITION_SET = "audience_definition_set"
+    MEDIA_MIX_VERSION = "media_mix_version"
+    INVENTORY_SHORTLIST_VERSION = "inventory_shortlist_version"
+    MEDIA_PLAN_VERSION = "media_plan_version"
+
+class CommercialActions(StrEnum):
+    TENANT_UPDATED = "tenant.updated"
+    USER_UPDATED = "user.updated"
+    CLIENT_ACCOUNT_CREATED = "client_account.created"
+    AGENCY_CREATED = "agency.created"
+    CONTACT_CREATED = "contact.created"
+    OPPORTUNITY_CREATED = "opportunity.created"
+    OPPORTUNITY_UPDATED = "opportunity.updated"
+    OPPORTUNITY_QUALIFICATION_STARTED = "opportunity.qualification_started"
+    EVIDENCE_REGISTERED = "evidence.registered"
+    EVIDENCE_REVIEWED = "evidence.reviewed"
+    EVIDENCE_SUBMITTED = "evidence.submitted"
+    EVIDENCE_APPROVED = "evidence.approved"
+    AGENT_RUN_QUEUED = "agent_run.queued"
+    INTERPRETATION_CONFIRMED = "interpretation.confirmed"
+    OPPORTUNITY_ANGLE_SELECTED = "opportunity_angle.selected"
+    CRITIC_OBJECTION_RESOLVED = "critic_objection.resolved"
+    STRATEGY_SUBMITTED = "strategy.submitted"
+    STRATEGY_APPROVED = "strategy.approved"
+    STRATEGY_REJECTED = "strategy.rejected"
+    AGENT_RUN_RESUMED = "agent_run.resumed"
+    AGENT_RUN_CANCELLED = "agent_run.cancelled"
+    CAMPAIGN_BRIEF_CREATED = "campaign_brief.created"
+    BRIEF_VERSION_CREATED = "brief_version.created"
+    BRIEF_VERSION_SUBMITTED = "brief_version.submitted"
+    BRIEF_VERSION_APPROVED = "brief_version.approved"
+    BRIEF_VERSION_REJECTED = "brief_version.rejected"
+    INVENTORY_IMPORT_CREATED = "inventory_import.created"
+    INVENTORY_IMPORT_EXECUTED = "inventory_import.executed"
+    INVENTORY_CANDIDATE_REVIEWED = "inventory_candidate.reviewed"
+    INVENTORY_PUBLISHED = "inventory.published"
+    AUDIENCE_DEFINITIONS_GENERATED = "audience_definitions.generated"
+    MEDIA_MIX_GENERATED = "media_mix.generated"
+    MEDIA_MIX_APPROVED = "media_mix.approved"
+    INVENTORY_SHORTLIST_GENERATED = "inventory_shortlist.generated"
+    INVENTORY_SHORTLIST_SELECTED = "inventory_shortlist.selected"
+    MEDIA_PLAN_GENERATED = "media_plan.generated"
+    MEDIA_PLAN_OBJECTION_RESOLVED = "media_plan.objection_resolved"
+    MEDIA_PLAN_APPROVED = "media_plan.approved"
+    MEDIA_MIX_UPDATED = "media_mix.updated"
+
+class CommercialEventTypes(StrEnum):
+    TENANT_UPDATED = "TenantUpdated"
+    USER_UPDATED = "UserUpdated"
+    CLIENT_ACCOUNT_CREATED = "ClientAccountCreated"
+    AGENCY_CREATED = "AgencyCreated"
+    CONTACT_CREATED = "ContactCreated"
+    OPPORTUNITY_CREATED = "OpportunityCreated"
+    OPPORTUNITY_UPDATED = "OpportunityUpdated"
+    OPPORTUNITY_QUALIFICATION_STARTED = "OpportunityQualificationStarted"
+    EVIDENCE_REGISTERED = "EvidenceRegistered"
+    EVIDENCE_REVIEWED = "EvidenceReviewed"
+    OPPORTUNITY_EVIDENCE_SUBMITTED = "OpportunityEvidenceSubmitted"
+    OPPORTUNITY_EVIDENCE_APPROVED = "OpportunityEvidenceApproved"
+    AGENT_RUN_QUEUED = "AgentRunQueued"
+    INTERPRETATION_CONFIRMED = "InterpretationConfirmed"
+    OPPORTUNITY_ANGLE_SELECTED = "OpportunityAngleSelected"
+    CRITIC_OBJECTION_RESOLVED = "CriticObjectionResolved"
+    STRATEGY_SUBMITTED = "StrategySubmitted"
+    STRATEGY_APPROVED = "StrategyApproved"
+    STRATEGY_REJECTED = "StrategyRejected"
+    AGENT_RUN_RESUMED = "AgentRunResumed"
+    AGENT_RUN_CANCELLED = "AgentRunCancelled"
+    CAMPAIGN_BRIEF_CREATED = "CampaignBriefCreated"
+    BRIEF_VERSION_CREATED = "BriefVersionCreated"
+    BRIEF_SUBMITTED = "BriefSubmitted"
+    BRIEF_APPROVED = "BriefApproved"
+    BRIEF_REJECTED = "BriefRejected"
+    INVENTORY_IMPORT_CREATED = "InventoryImportCreated"
+    INVENTORY_IMPORT_EXECUTED = "InventoryImportExecuted"
+    INVENTORY_CANDIDATE_REVIEWED = "InventoryCandidateReviewed"
+    INVENTORY_PUBLISHED = "InventoryPublished"
+    AUDIENCE_DEFINITIONS_GENERATED = "AudienceDefinitionsGenerated"
+    MEDIA_MIX_GENERATED = "MediaMixGenerated"
+    MEDIA_MIX_APPROVED = "MediaMixApproved"
+    INVENTORY_SHORTLIST_GENERATED = "InventoryShortlistGenerated"
+    INVENTORY_SHORTLIST_SELECTED = "InventoryShortlistSelected"
+    MEDIA_PLAN_GENERATED = "MediaPlanGenerated"
+    MEDIA_PLAN_OBJECTION_RESOLVED = "MediaPlanObjectionResolved"
+    MEDIA_PLAN_APPROVED = "MediaPlanApproved"
+    MEDIA_MIX_UPDATED = "MediaMixUpdated"
+
+class CreativeTextRoles(StrEnum):
+    HEADLINE = "HEADLINE"
+    BODY = "BODY"
+    CTA = "CTA"
+    PRICE = "PRICE"
+    DISCLOSURE = "DISCLOSURE"
+
+class CreativeWarningTypes(StrEnum):
+    OFFER_OUTSIDE_CAMPAIGN = "OFFER_OUTSIDE_CAMPAIGN"
+    OFFER_VALIDITY_UNKNOWN = "OFFER_VALIDITY_UNKNOWN"
+    ASSET_RIGHTS_UNCONFIRMED = "ASSET_RIGHTS_UNCONFIRMED"
+    NO_APPROVED_PRODUCT_IMAGE = "NO_APPROVED_PRODUCT_IMAGE"
+
+class AssetRightsStatuses(StrEnum):
+    APPROVED = "APPROVED"
+    UNKNOWN = "UNKNOWN"
+    RESTRICTED = "RESTRICTED"
+
+class TenantTypes(StrEnum):
+    PLATFORM = "PLATFORM"
+    AGENCY = "AGENCY"
+    ADVERTISER = "ADVERTISER"
+    SUPPLIER = "SUPPLIER"
+
+class ContactPurposes(StrEnum):
+    BILLING = "BILLING"
+    CAMPAIGN = "CAMPAIGN"
+    COMMERCIAL = "COMMERCIAL"
+    DELIVERY = "DELIVERY"
+    LEGAL = "LEGAL"
+
+class LifecycleStatuses(StrEnum):
+    CREATED = "CREATED"
+    QUALIFYING = "QUALIFYING"
+    EVIDENCE_REVIEW = "EVIDENCE_REVIEW"
+    STRATEGY_READY = "STRATEGY_READY"
+    BRIEF_READY = "BRIEF_READY"
+    PLANNING = "PLANNING"
+    PROPOSAL_READY = "PROPOSAL_READY"
+    WON = "WON"
+    LOST = "LOST"
+    ARCHIVED = "ARCHIVED"
+    DRAFT = "DRAFT"
+    IN_REVIEW = "IN_REVIEW"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    SENT = "SENT"
+    SELECTED = "SELECTED"
+    DECLINED = "DECLINED"
+    EXPIRED = "EXPIRED"
+    UPLOADED = "UPLOADED"
+    CLASSIFYING = "CLASSIFYING"
+    EXTRACTING = "EXTRACTING"
+    VALIDATING = "VALIDATING"
+    REVIEW_REQUIRED = "REVIEW_REQUIRED"
+    PUBLISHING = "PUBLISHING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    SUBMITTED = "SUBMITTED"
+    ISSUED = "ISSUED"
+    QUEUED = "QUEUED"
+    RUNNING = "RUNNING"
+    WAITING_FOR_HUMAN = "WAITING_FOR_HUMAN"
+    PLANNED = "PLANNED"
+    BOOKED = "BOOKED"
+    CREATIVE_PENDING = "CREATIVE_PENDING"
+    READY = "READY"
+    LIVE = "LIVE"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    INVITED = "INVITED"
+    SUSPENDED = "SUSPENDED"
+    CANCELLED = "CANCELLED"
+
+class RateTypes(StrEnum):
+    CPM = "CPM"
+    CPC = "CPC"
+    CPL = "CPL"
+    CPA = "CPA"
+    FLAT_RATE = "FLAT_RATE"
+    SPOT_RATE = "SPOT_RATE"
+    PACKAGE_RATE = "PACKAGE_RATE"
+    DAY_RATE = "DAY_RATE"
+    WEEK_RATE = "WEEK_RATE"
+    MONTH_RATE = "MONTH_RATE"
+
+class AssetTypes(StrEnum):
+    LOGO = "LOGO"
+    PRODUCT_IMAGE = "PRODUCT_IMAGE"
+    OOH_PHOTO = "OOH_PHOTO"
+    CREATIVE_FILE = "CREATIVE_FILE"
+    PROOF_IMAGE = "PROOF_IMAGE"
+    SPECIFICATION = "SPECIFICATION"
+    TERMS_DOCUMENT = "TERMS_DOCUMENT"
+    RATE_CARD = "RATE_CARD"
+    BRAND_REFERENCE = "BRAND_REFERENCE"
+
+class ProposalTiers(StrEnum):
+    LAUNCH = "LAUNCH"
+    BOOST = "BOOST"
+    SCALE = "SCALE"
+    DOMINANCE = "DOMINANCE"
+
+class PaymentMethods(StrEnum):
+    VODAPAY = "VODAPAY"
+    MANUAL_EFT = "MANUAL_EFT"
+    ADVERTISE_NOW_PAY_LATER = "ADVERTISE_NOW_PAY_LATER"
+
+class RejectionReasons(StrEnum):
+    INELIGIBLE_GEOGRAPHY = "INELIGIBLE_GEOGRAPHY"
+    INELIGIBLE_FORMAT = "INELIGIBLE_FORMAT"
+    STALE_RATE = "STALE_RATE"
+    UNAVAILABLE = "UNAVAILABLE"
+    MINIMUM_ORDER = "MINIMUM_ORDER"
+    BUDGET_MISMATCH = "BUDGET_MISMATCH"
+    QUALITY_ISSUE = "QUALITY_ISSUE"
+    DUPLICATE = "DUPLICATE"
+    MISSING_INFO = "MISSING_INFO"
+    SUPPLIER_DECLINED = "SUPPLIER_DECLINED"
+
+class TaskPriorities(StrEnum):
+    URGENT = "URGENT"
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+class Currencies(StrEnum):
+    ZAR = "ZAR"
+    USD = "USD"
+    EUR = "EUR"
+    GBP = "GBP"
+
+class VatStatuses(StrEnum):
+    REGISTERED = "REGISTERED"
+    EXEMPT = "EXEMPT"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+

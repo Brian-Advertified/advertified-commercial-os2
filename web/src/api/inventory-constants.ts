@@ -1,20 +1,36 @@
+import { masterDataCodes } from '../generated/master-data-codes'
+
 export const inventoryCodes = {
   role: {
-    platformAdmin: 'platform_admin',
-    inventoryOperations: 'inventory_ops',
-    supplierAdmin: 'supplier_admin',
+    platformAdmin: masterDataCodes.roles.platformAdmin,
+    inventoryOperations: masterDataCodes.roles.inventoryOps,
+    supplierAdmin: masterDataCodes.roles.supplierAdmin,
   },
-  decision: { approve: 'APPROVE', reject: 'REJECT', edit: 'EDIT' },
+  decision: {
+    approve: masterDataCodes.inventoryReviewDecisions.approve,
+    reject: masterDataCodes.inventoryReviewDecisions.reject,
+    edit: masterDataCodes.inventoryReviewDecisions.edit,
+  },
   rejectionReason: {
-    missingInformation: 'MISSING_INFO',
-    duplicate: 'DUPLICATE',
-    qualityIssue: 'QUALITY_ISSUE',
-    staleRate: 'STALE_RATE',
+    missingInformation: masterDataCodes.rejectionReasons.missingInfo,
+    duplicate: masterDataCodes.rejectionReasons.duplicate,
+    qualityIssue: masterDataCodes.rejectionReasons.qualityIssue,
+    staleRate: masterDataCodes.rejectionReasons.staleRate,
   },
-  importStatus: { uploaded: 'UPLOADED', reviewRequired: 'REVIEW_REQUIRED' },
-  candidateStatus: { approved: 'APPROVED', reviewRequired: 'REVIEW_REQUIRED' },
-  availability: { unknown: 'UNKNOWN' },
-  channel: { ooh: 'OOH', dooh: 'DOOH', radio: 'RADIO' },
+  importStatus: {
+    uploaded: masterDataCodes.lifecycleStatuses.uploaded,
+    reviewRequired: masterDataCodes.lifecycleStatuses.reviewRequired,
+  },
+  candidateStatus: {
+    approved: masterDataCodes.lifecycleStatuses.approved,
+    reviewRequired: masterDataCodes.lifecycleStatuses.reviewRequired,
+  },
+  availability: { unknown: masterDataCodes.availabilityStatuses.unknown },
+  channel: {
+    ooh: masterDataCodes.channels.ooh,
+    dooh: masterDataCodes.channels.dooh,
+    radio: masterDataCodes.channels.radio,
+  },
 } as const
 
 export type InventoryDecision = typeof inventoryCodes.decision[keyof typeof inventoryCodes.decision]

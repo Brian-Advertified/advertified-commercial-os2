@@ -1,4 +1,3 @@
-using Advertified.Commercial.Api.Errors;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Domain.Governance;
@@ -102,18 +101,4 @@ public static class FoundationQueryEndpoints
             limit ?? 0,
             cursor,
             cancellationToken);
-
-    private static RouteHandlerBuilder WithQueryProblems(this RouteHandlerBuilder builder)
-    {
-        return builder
-            .Produces<HumanSafeProblemDetails>(
-                StatusCodes.Status400BadRequest,
-                "application/problem+json")
-            .Produces<HumanSafeProblemDetails>(
-                StatusCodes.Status401Unauthorized,
-                "application/problem+json")
-            .Produces<HumanSafeProblemDetails>(
-                StatusCodes.Status403Forbidden,
-                "application/problem+json");
-    }
 }

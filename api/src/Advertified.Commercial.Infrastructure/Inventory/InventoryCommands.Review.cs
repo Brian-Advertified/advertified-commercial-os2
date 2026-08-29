@@ -4,6 +4,7 @@ using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +27,7 @@ public sealed partial class InventoryCommands
         await EnsureAssignedReviewerAsync(
             envelope.TenantId, candidateId, source.CreatedBy,
             envelope.ActorId.Value, cancellationToken);
-        if (row.Status != Gate6InventoryStatuses.ReviewRequired)
+        if (row.Status != MasterDataCodes.LifecycleStatuses.ReviewRequired)
         {
             throw new InvalidLifecycleTransitionException();
         }
@@ -36,8 +37,8 @@ public sealed partial class InventoryCommands
         var validation = InventoryCandidateValidator.Validate(values, codes);
         ValidateDecision(decision, envelope.Command, validation);
         var now = timeProvider.GetUtcNow();
-        var status = decision == Gate6ReviewDecisions.Reject
-            ? Gate6InventoryStatuses.Rejected : Gate6InventoryStatuses.Approved;
+        var status = decision == MasterDataCodes.InventoryReviewDecisions.Reject
+            ? MasterDataCodes.LifecycleStatuses.Rejected : MasterDataCodes.LifecycleStatuses.Approved;
         await ChangeCandidateAsync(
             envelope, row, values, validation, status, now, cancellationToken);
         await InsertReviewDecisionAsync(
@@ -60,9 +61,9 @@ public sealed partial class InventoryCommands
         var view = changed.ToView(evidence);
         return OpportunityCommandSupport.Outcome(
             envelope, view, candidateId, changed.Version,
-            CommercialResourceTypes.InventoryCandidate,
-            CommercialActions.InventoryCandidateReviewed,
-            CommercialEventTypes.InventoryCandidateReviewed, now);
+            MasterDataReferences.CommercialResourceTypes.InventoryCandidate,
+            MasterDataReferences.CommercialActions.InventoryCandidateReviewed,
+            MasterDataReferences.CommercialEventTypes.InventoryCandidateReviewed, now);
     }
 
     private async Task EnsureAssignedReviewerAsync(
@@ -80,9 +81,9 @@ public sealed partial class InventoryCommands
             SELECT EXISTS (
                 SELECT 1 FROM commercial.human_tasks
                 WHERE tenant_id = {tenantId.Value} AND resource_id = {candidateId}
-                  AND task_type_code = {Gate6TaskTypes.CandidateReview}
+                  AND task_type_code = {MasterDataCodes.HumanTaskTypes.InventoryCandidateReview}
                   AND assignee_user_id = {reviewerId}
-                  AND status_code = {Gate6TaskStatuses.Pending}) AS "Value"
+                  AND status_code = {MasterDataCodes.LifecycleStatuses.Pending}) AS "Value"
             """).SingleAsync(cancellationToken);
         if (!assigned)
         {
@@ -95,7 +96,7 @@ public sealed partial class InventoryCommands
         ReviewInventoryCandidateCommand command,
         string decision)
     {
-        if (decision == Gate6ReviewDecisions.Edit)
+        if (decision == MasterDataCodes.InventoryReviewDecisions.Edit)
         {
             return InventoryReviewSupport.NormalizeCorrection(command.CorrectedValues
                 ?? throw new ArgumentException("Corrected values are required for an edit."));
@@ -112,8 +113,8 @@ public sealed partial class InventoryCommands
     private static string NormalizeDecision(string value)
     {
         var decision = value?.Trim().ToUpperInvariant();
-        return decision is Gate6ReviewDecisions.Approve or Gate6ReviewDecisions.Reject
-            or Gate6ReviewDecisions.Edit
+        return decision is MasterDataCodes.InventoryReviewDecisions.Approve or MasterDataCodes.InventoryReviewDecisions.Reject
+            or MasterDataCodes.InventoryReviewDecisions.Edit
             ? decision
             : throw new ArgumentException("Select a supported review decision.");
     }
@@ -123,7 +124,7 @@ public sealed partial class InventoryCommands
         ReviewInventoryCandidateCommand command,
         IReadOnlyList<InventoryValidationIssueView> validation)
     {
-        if (decision == Gate6ReviewDecisions.Reject)
+        if (decision == MasterDataCodes.InventoryReviewDecisions.Reject)
         {
             if (string.IsNullOrWhiteSpace(command.RejectionReason))
             {
@@ -155,7 +156,7 @@ public sealed partial class InventoryCommands
                 reviewed_by = {envelope.ActorId.Value}, version = version + 1,
                 updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {row.Id}
-              AND status_code = {Gate6InventoryStatuses.ReviewRequired}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.ReviewRequired}
               AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1)
@@ -176,9 +177,9 @@ public sealed partial class InventoryCommands
         if (reason is not null)
         {
             await OpportunityCommandSupport.EnsureCodeAsync(
-                store.DbContext, "rejectionReasons", reason, cancellationToken);
+                store.DbContext, MasterDataCodes.RejectionReasons.Collection, reason, cancellationToken);
         }
-        var correction = decision == Gate6ReviewDecisions.Edit
+        var correction = decision == MasterDataCodes.InventoryReviewDecisions.Edit
             ? JsonSerializer.Serialize(values, InventoryRowMapper.StoredJson) : null;
         var notes = OpportunityCommandSupport.Optional(
             envelope.Command.Notes, 2000, nameof(envelope.Command.Notes));
@@ -188,7 +189,7 @@ public sealed partial class InventoryCommands
                 rejection_reason_collection_code, rejection_reason_code, correction_json,
                 notes, decided_by, decided_at_utc)
             VALUES ({Guid.NewGuid()}, {envelope.TenantId.Value}, {row.Id}, {row.Version},
-                {decision}, {(reason is null ? null : "rejectionReasons")}, {reason},
+                {decision}, {(reason is null ? null : MasterDataCodes.RejectionReasons.Collection)}, {reason},
                 {correction}::jsonb, {notes}, {envelope.ActorId.Value}, {now})
             """, cancellationToken);
     }
@@ -198,13 +199,13 @@ public sealed partial class InventoryCommands
         CancellationToken cancellationToken) =>
         store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.human_tasks
-            SET status_code = {Gate6InventoryStatuses.Completed}, completed_by = {actorId},
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Completed}, completed_by = {actorId},
                 completed_at_utc = {now}, completion_json = {"{\"completed\":true}"}::jsonb,
                 version = version + 1
             WHERE tenant_id = {tenantId.Value} AND resource_id = {candidateId}
-              AND task_type_code = {Gate6TaskTypes.CandidateReview}
+              AND task_type_code = {MasterDataCodes.HumanTaskTypes.InventoryCandidateReview}
               AND assignee_user_id = {actorId}
-              AND status_code = {Gate6TaskStatuses.Pending}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.Pending}
             """, cancellationToken);
 
     private async Task CompleteReviewStepWhenReadyAsync(
@@ -214,12 +215,12 @@ public sealed partial class InventoryCommands
         var pending = await store.DbContext.Database.SqlQuery<bool>($"""
             SELECT EXISTS (SELECT 1 FROM commercial.inventory_candidates
                 WHERE tenant_id = {tenantId.Value} AND import_id = {importId}
-                  AND status_code = {Gate6InventoryStatuses.ReviewRequired}) AS "Value"
+                  AND status_code = {MasterDataCodes.LifecycleStatuses.ReviewRequired}) AS "Value"
             """).SingleAsync(cancellationToken);
         if (!pending)
         {
-            await RecordStepAsync(tenantId, importId, Gate6InventorySteps.Review,
-                Gate6InventoryStatuses.Completed, now, cancellationToken);
+            await RecordStepAsync(tenantId, importId, MasterDataCodes.InventoryImportStepTypes.Review,
+                MasterDataCodes.LifecycleStatuses.Completed, now, cancellationToken);
         }
     }
 }

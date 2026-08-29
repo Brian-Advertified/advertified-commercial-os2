@@ -2,6 +2,7 @@ using Advertified.Commercial.Application.Brief;
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Advertified.Commercial.Infrastructure.Opportunity;
@@ -15,14 +16,14 @@ public sealed partial class BriefCommands(
     TimeProvider timeProvider) : IBriefCommands
 {
     private static readonly string[] ClientAdminRoles =
-        [Gate4ReviewerRoles.PlatformAdmin, Gate4ReviewerRoles.AgencyAdmin];
+        [MasterDataCodes.Roles.PlatformAdmin, MasterDataCodes.Roles.AgencyAdmin];
 
     public async Task<CommandResult<CampaignBriefSummaryView>> CreateAsync(
         CommandEnvelope<CreateBriefCommand> envelope,
         CancellationToken cancellationToken)
     {
         var receipt = await dispatcher.DispatchAsync(
-            envelope, Gate5Permissions.BriefCreate,
+            envelope, MasterDataReferences.Permissions.BriefCreate,
             token => CreateOutcomeAsync(envelope, token), cancellationToken);
         return CommandOutcomeFactory.ToResult<CampaignBriefSummaryView>(receipt);
     }
@@ -33,7 +34,7 @@ public sealed partial class BriefCommands(
         CancellationToken cancellationToken)
     {
         var receipt = await dispatcher.DispatchAsync(
-            envelope, Gate5Permissions.BriefEdit,
+            envelope, MasterDataReferences.Permissions.BriefEdit,
             token => CreateVersionOutcomeAsync(briefId, envelope, token), cancellationToken);
         return CommandOutcomeFactory.ToResult<BriefVersionView>(receipt);
     }
@@ -44,7 +45,7 @@ public sealed partial class BriefCommands(
         CancellationToken cancellationToken)
     {
         var receipt = await dispatcher.DispatchAsync(
-            envelope, Gate5Permissions.BriefSubmit,
+            envelope, MasterDataReferences.Permissions.BriefSubmit,
             token => SubmitOutcomeAsync(versionId, envelope, token), cancellationToken);
         return CommandOutcomeFactory.ToResult<BriefVersionView>(receipt);
     }
@@ -55,7 +56,7 @@ public sealed partial class BriefCommands(
         CancellationToken cancellationToken)
     {
         var receipt = await dispatcher.DispatchAsync(
-            envelope, Gate5Permissions.BriefApprove,
+            envelope, MasterDataReferences.Permissions.BriefApprove,
             token => ApproveOutcomeAsync(versionId, envelope, token), cancellationToken);
         return CommandOutcomeFactory.ToResult<BriefVersionView>(receipt);
     }
@@ -66,7 +67,7 @@ public sealed partial class BriefCommands(
         CancellationToken cancellationToken)
     {
         var receipt = await dispatcher.DispatchAsync(
-            envelope, Gate5Permissions.BriefApprove,
+            envelope, MasterDataReferences.Permissions.BriefApprove,
             token => RejectOutcomeAsync(versionId, envelope, token), cancellationToken);
         return CommandOutcomeFactory.ToResult<BriefVersionView>(receipt);
     }
@@ -98,21 +99,21 @@ public sealed partial class BriefCommands(
                 version, created_at_utc, updated_at_utc)
             VALUES (
                 {id}, {envelope.TenantId.Value}, {command.ClientId}, {title},
-                {command.OwnerUserId}, {Gate4Statuses.Created}, 1, {now}, {now});
+                {command.OwnerUserId}, {MasterDataCodes.LifecycleStatuses.Created}, 1, {now}, {now});
             INSERT INTO commercial.brief_sources (
                 id, tenant_id, brief_id, source_type_code, locator, title, content,
                 content_hash, created_by, created_at_utc)
             VALUES (
-                {sourceId}, {envelope.TenantId.Value}, {id}, {Gate5BriefSourceTypes.SuppliedText},
+                {sourceId}, {envelope.TenantId.Value}, {id}, {MasterDataCodes.BriefSourceTypes.SuppliedText},
                 {locator}, {sourceTitle}, {content}, {OpportunityCommandSupport.Hash(content)},
                 {envelope.ActorId.Value}, {now});
             """, cancellationToken);
         var view = new CampaignBriefSummaryView(
             id, envelope.TenantId.Value, command.ClientId, null, title, command.OwnerUserId,
-            Gate4Statuses.Created, null, null, 1, now);
+            MasterDataCodes.LifecycleStatuses.Created, null, null, 1, now);
         return OpportunityCommandSupport.Outcome(
-            envelope, view, id, 1, CommercialResourceTypes.CampaignBrief,
-            CommercialActions.BriefCreated, CommercialEventTypes.CampaignBriefCreated, now);
+            envelope, view, id, 1, MasterDataReferences.CommercialResourceTypes.CampaignBrief,
+            MasterDataReferences.CommercialActions.CampaignBriefCreated, MasterDataReferences.CommercialEventTypes.CampaignBriefCreated, now);
     }
 
     private Task<bool> CanCreateForClientAsync(
@@ -128,7 +129,7 @@ public sealed partial class BriefCommands(
                         SELECT 1 FROM commercial.memberships membership
                         WHERE membership.tenant_id = client.tenant_id
                           AND membership.user_id = {actorId}
-                          AND membership.status_code = {Gate4Statuses.Active}
+                          AND membership.status_code = {MasterDataCodes.LifecycleStatuses.Active}
                           AND membership.role_code = ANY({ClientAdminRoles}))
                     OR EXISTS (
                         SELECT 1 FROM commercial.client_account_assignments assignment

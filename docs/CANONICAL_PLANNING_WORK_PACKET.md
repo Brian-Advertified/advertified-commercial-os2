@@ -1,8 +1,8 @@
-# Gate 7 work packet — canonical planning
+# Canonical planning work packet
 
 **Recorded:** 2026-08-29  
-**Authorised gate:** Gate 7 under Brian Rabuthu's standing sequential local-delivery direction  
-**Prerequisite:** Gate 6 inventory truth plus the versioned Docling extraction correction  
+**Authorised capability:** Canonical planning under Brian Rabuthu's standing sequential local-delivery direction  
+**Prerequisite:** Published inventory truth plus the versioned Docling extraction boundary  
 **Production/live-provider authority:** None
 
 ## Bounded requirement
@@ -19,9 +19,17 @@ is introduced before the Proposal / Client Decision boundary.
    labelled inferences, hypotheses, exclusions, unknowns, evidence bindings and confidence.
 2. Generate channel roles and allocations that exactly reconcile to the approved planning budget;
    reject briefs whose budget is unknown or whose currency is absent.
-3. Approve the exact media-mix version with tenant, assignment, version, idempotency and audit
+3. Present the media mix as an editable planning workspace before approval. The assigned operator
+   can change each channel allocation, channel role and one or more channel-specific running periods.
+   Allocations must continue to reconcile exactly to the approved planning budget; periods must be
+   valid, non-overlapping within a channel and remain inside any hard Brief timing constraint that is
+   structurally known. The UI uses a distinct accessible colour plus a recognisable media-type
+   icon/logo treatment for each channel and renders the independent running periods on a timeline.
+   Draft edits use optimistic concurrency. Once a mix is approved it is immutable; a later change
+   creates a new draft version and materially affected downstream shortlist/plan artefacts become stale.
+4. Approve the exact media-mix version with tenant, assignment, version, idempotency and audit
    enforcement. The creator may approve when they are the assigned agency operator.
-4. Evaluate every current published inventory/rate/availability tuple against hard geography,
+5. Evaluate every current published inventory/rate/availability tuple against hard geography,
    channel, currency, price-freshness and supply constraints before scoring. Persist both eligible
    candidates and every rejected product with governed reason codes and detail.
 5. For OOH/DOOH candidates, calculate an immutable benchmark snapshot from exact compatible
@@ -41,7 +49,7 @@ is introduced before the Proposal / Client Decision boundary.
 
 ## Explicitly excluded
 
-- Proposal generation, tiers, rendering, sending or client decision (Gate 8).
+- Proposal generation, tiers, rendering, sending or client decision.
 - RFQs, supplier communication, booking, spend, payment or publication.
 - Live/paid AI or audience-provider calls; deterministic local agent fixtures exercise the typed
   contracts with zero incremental provider cost.

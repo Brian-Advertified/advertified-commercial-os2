@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.EntityFrameworkCore;
@@ -39,23 +40,23 @@ public sealed partial class InventoryCommands
             await store.ObjectStore.PutAsync(
                 protectedKey, command.Source.Content, detected.MediaType, cancellationToken);
         }
-        var status = scan.IsClean ? Gate6InventoryStatuses.Uploaded : Gate6InventoryStatuses.Failed;
-        var scanStatus = scan.IsClean ? Gate6ScanStatuses.Clean : Gate6ScanStatuses.Infected;
+        var status = scan.IsClean ? MasterDataCodes.LifecycleStatuses.Uploaded : MasterDataCodes.LifecycleStatuses.Failed;
+        var scanStatus = scan.IsClean ? MasterDataCodes.MalwareScanStatuses.Clean : MasterDataCodes.MalwareScanStatuses.Infected;
         var failure = scan.IsClean ? null : "MALWARE_DETECTED";
         await InsertImportAsync(envelope, id, supplierId, fileName, declared, detected.Code,
             status, scanStatus, quarantineKey, protectedKey, hash, failure, now, cancellationToken);
-        await RecordStepAsync(envelope.TenantId, id, Gate6InventorySteps.Protection,
-            scan.IsClean ? Gate6InventoryStatuses.Completed : Gate6InventoryStatuses.Failed,
+        await RecordStepAsync(envelope.TenantId, id, MasterDataCodes.InventoryImportStepTypes.UploadProtection,
+            scan.IsClean ? MasterDataCodes.LifecycleStatuses.Completed : MasterDataCodes.LifecycleStatuses.Failed,
             now, cancellationToken);
-        await RecordStepAsync(envelope.TenantId, id, Gate6InventorySteps.Classification,
-            Gate6InventoryStatuses.Completed, now, cancellationToken);
+        await RecordStepAsync(envelope.TenantId, id, MasterDataCodes.InventoryImportStepTypes.Classification,
+            MasterDataCodes.LifecycleStatuses.Completed, now, cancellationToken);
         var row = await store.FindImportAsync(envelope.TenantId, id, false, cancellationToken)
             ?? throw new InvalidOperationException("The inventory import was not persisted.");
         var view = await store.BuildImportViewAsync(row, cancellationToken);
         return OpportunityCommandSupport.Outcome(
-            envelope, view, id, 1, CommercialResourceTypes.InventoryImport,
-            CommercialActions.InventoryImportCreated,
-            CommercialEventTypes.InventoryImportCreated, now);
+            envelope, view, id, 1, MasterDataReferences.CommercialResourceTypes.InventoryImport,
+            MasterDataReferences.CommercialActions.InventoryImportCreated,
+            MasterDataReferences.CommercialEventTypes.InventoryImportCreated, now);
     }
 
     private async Task<Guid> EnsureSupplierAsync(
@@ -91,7 +92,7 @@ public sealed partial class InventoryCommands
                 source_size, failure_code, created_by, version, created_at_utc, updated_at_utc)
             VALUES (
                 {id}, {envelope.TenantId.Value}, {supplierId}, {fileName}, {declared},
-                {"documentClasses"}, {documentClass}, {status}, {scanStatus}, {quarantineKey},
+                {MasterDataCodes.DocumentClasses.Collection}, {documentClass}, {status}, {scanStatus}, {quarantineKey},
                 {protectedKey}, {hash}, {envelope.Command.Source.Content.LongLength}, {failure},
                 {envelope.ActorId.Value}, 1, {now}, {now})
             """, cancellationToken);

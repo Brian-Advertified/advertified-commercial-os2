@@ -142,27 +142,42 @@ See `docs/evidence/gate-5/` for commands and exact outcomes.
 | Evidence-linked candidate review | VERIFIED | Raw/normalised values, transformations, source locators/hashes, blocking validation, exact assignment and creator separation pass |
 | Versioned publication and inventory search | VERIFIED | Immutable product/rate/availability/asset versions, detail and deterministic cursor paging over 10,001 products pass |
 | Gate 6 API/OpenAPI and browser journey | VERIFIED | Retained contracts and desktop/compact import-review-publish-search journeys pass |
-| OOH benchmark prerequisites | SCAFFOLDED | Published inventory has geography/lat/long/rate truth, but typed OOH comparable attributes (dimensions, digital/loop/share, structure/route context) and a PostGIS spatial benchmark index/query primitive are not yet implemented. Must be completed before Gate 7 may claim OOH comparative intelligence. |
+| OOH benchmark prerequisites | SCAFFOLDED | Published inventory has geography/lat/long/rate truth, but typed OOH comparable attributes (dimensions, digital/loop/share, structure/route context) and a PostGIS spatial benchmark index/query primitive are not yet implemented. Must be completed before canonical planning may claim OOH comparative intelligence. |
 | Main local database migration | ABSENT | Migration `202608290005_InventoryTruth` passed disposable PostgreSQL apply and RLS checks but was not applied to the shared local database |
 | Live provider/network/commercial action | ABSENT | Deterministic fixtures only; no OCR/AI, supplier contact, booking, spend, external publication or production resource |
 | Gate 6 owner/independent review | PENDING | Local implementation and repeatable evidence are complete; the implementing AI does not approve production readiness |
 
-## Gates 7–13
+## Gate 7 — canonical planning
 
-Gates 7–13 remain ABSENT and sequence-blocked. A document, route label, container,
-contract, or scaffold is not a product implementation.
+| Capability | Status | Evidence / blocker |
+|---|---|---|
+| Audience and editable media mix | VERIFIED | Approved Brief produces evidence-labelled audience definitions; planner edits channel budget, role and multiple running periods before approval |
+| Schedule-aware eligibility and pricing | VERIFIED | The same governed billing-unit policy drives shortlist affordability and final media-plan quantity/pricing; stale planned-period rates fail closed |
+| OOH/DOOH comparative intelligence | VERIFIED | PostGIS geography projection + GiST index + adaptive `ST_DWithin`/`ST_Distance` cohorts; exact comparable IDs/rates/distances/exclusions/statistics retained |
+| Inventory product market comparison | VERIFIED | OOH/DOOH detail page exposes local median, percentile, above/below-market position, confidence and expandable comparable sites |
+| Human selection, critic and plan approval | VERIFIED | Ineligible selection denied; exact selection retained; material objections require resolution; stale supply inputs block approval |
+| Gate 7 API/OpenAPI and browser journey | VERIFIED | Retained contract plus desktop/compact editable planning and market-comparison journeys pass |
+| Live provider/network/commercial action | ABSENT | Deterministic local planning only; zero provider cost and no supplier communication, booking, spend or external send |
+| Shared/local canonical database deployment | ABSENT | Planning migration and PostGIS path verified in disposable canonical database; no production resource changed |
+| Gate 7 owner direction | VERIFIED | Owner directed completion and commit of each sequential gate on 2026-08-29; non-local independent reviews remain pending |
+
+See `docs/evidence/gate-7/` for retained commands and exact outcomes.
+
+## Gates 8–13
+
+Gates 8–13 remain sequence-bound. A document, route label, container, contract, or scaffold is not a product implementation.
 
 | Gate | Status |
 |---|---|
 | 4 Evidence and Opportunity | VERIFIED locally — owner directed delivered; non-local review pending |
 | 5 Canonical Brief | VERIFIED locally — owner/independent review pending |
 | 6 Inventory truth | VERIFIED locally — implementation and evidence complete; non-local review pending |
-| 7 Planning | BLOCKED |
-| 8 Proposal and client decision | BLOCKED |
-| 9 Rapid OOH | BLOCKED |
-| 10 Supplier marketplace | BLOCKED |
-| 11 Campaign delivery and learning | BLOCKED |
-| 12 Hardening and certification | BLOCKED |
-| 13 Production launch | BLOCKED |
+| 7 Planning | VERIFIED locally — implementation and evidence complete; non-local review pending |
+| 8 Proposal and client decision | NEXT |
+| 9 Rapid OOH | BLOCKED by Gate 8 |
+| 10 Supplier marketplace | BLOCKED by Gate 9 |
+| 11 Campaign delivery and learning | BLOCKED by Gate 10 |
+| 12 Hardening and certification | BLOCKED by Gate 11 |
+| 13 Production launch | BLOCKED by Gate 12 and independent launch decisions |
 
 Local evidence is not remote CI evidence. No tests discovered is not a pass. A proposed ADR is not accepted. An AI cannot approve legal compliance, security, a gate, or production readiness.

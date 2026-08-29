@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Microsoft.EntityFrameworkCore;
 
@@ -49,7 +50,7 @@ public sealed partial class OpportunityRunProcessor
                 artifact_json::text AS "ArtifactJson", version AS "Version"
             FROM commercial.business_interpretations
             WHERE tenant_id = {tenantId.Value} AND opportunity_id = {opportunityId}
-              AND status_code = {Gate4Statuses.Approved}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.Approved}
             ORDER BY version_no DESC
             LIMIT 1
             """).SingleOrDefaultAsync(cancellationToken);
@@ -71,7 +72,7 @@ public sealed partial class OpportunityRunProcessor
               ON angle_set.tenant_id = angle.tenant_id AND angle_set.id = angle.angle_set_id
             WHERE angle.tenant_id = {tenantId.Value}
               AND angle_set.opportunity_id = {opportunityId}
-              AND angle.status_code = {Gate4AngleStatuses.Selected}
+              AND angle.status_code = {MasterDataCodes.OpportunityAngleStatuses.Selected}
             ORDER BY angle_set.version_no DESC
             LIMIT 1
             """).SingleOrDefaultAsync(cancellationToken);
@@ -81,14 +82,14 @@ public sealed partial class OpportunityRunProcessor
         RunWorkRow run,
         CancellationToken cancellationToken)
     {
-        FormattableString query = run.RunKind == Gate4RunKinds.Brief
+        FormattableString query = run.RunKind == MasterDataCodes.AgentRunKinds.Brief
             ? (FormattableString)$"""
                 SELECT id AS "Id", version_no AS "VersionNumber",
                     artifact_json::text AS "ArtifactJson", version AS "Version"
                 FROM commercial.strategy_versions
                 WHERE tenant_id = {tenantId.Value}
                   AND opportunity_id = {run.OpportunityId}
-                  AND status_code = {Gate4Statuses.Approved}
+                  AND status_code = {MasterDataCodes.LifecycleStatuses.Approved}
                 ORDER BY version_no DESC LIMIT 1
                 """
             : (FormattableString)$"""

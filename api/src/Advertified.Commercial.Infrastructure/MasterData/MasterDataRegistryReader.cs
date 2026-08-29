@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 
 namespace Advertified.Commercial.Infrastructure.MasterData;
 
@@ -45,12 +45,12 @@ internal static class MasterDataRegistryReader
     private static void ValidatePermissionMappings(
         IReadOnlyList<MasterDataRegistryCollection> collections)
     {
-        var roles = RequireCollection(collections, MasterDataConstants.RoleCollection)
+        var roles = RequireCollection(collections, MasterDataCodes.Roles.Collection)
             .Items.Select(item => item.Code)
             .ToHashSet(StringComparer.Ordinal);
         var permissions = RequireCollection(
             collections,
-            MasterDataConstants.PermissionCollection);
+            MasterDataCodes.Permissions.Collection);
 
         foreach (var permission in permissions.Items)
         {

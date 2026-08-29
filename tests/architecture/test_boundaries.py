@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import re
 import subprocess
 from pathlib import Path
@@ -19,6 +20,8 @@ GENERATED_PARTS = {
     "dist",
     "node_modules",
     "obj",
+    "Generated",
+    "generated",
 }
 SOURCE_SUFFIXES = {".cs", ".css", ".js", ".jsx", ".py", ".ts", ".tsx"}
 FORBIDDEN_AGENT_PACKAGES = {
@@ -29,130 +32,9 @@ FORBIDDEN_AGENT_PACKAGES = {
     "psycopg2-binary",
     "sqlalchemy",
 }
-REQUIRED_MASTER_COLLECTIONS = {
-    "assetTypes",
-    "channels",
-    "contactPurposes",
-    "currencies",
-    "lifecycleStatuses",
-    "paymentMethods",
-    "permissions",
-    "opportunitySourceTypes",
-    "evidenceSourceTypes",
-    "evidencePolicyBases",
-    "evidenceClaimTypes",
-    "evidenceReviewDecisions",
-    "opportunityAngleStatuses",
-    "criticSeverities",
-    "objectionResolutions",
-    "humanTaskTypes",
-    "briefSourceTypes",
-    "documentClasses",
-    "inventoryReviewDecisions",
-    "availabilityStatuses",
-    "verificationLevels",
-    "inventoryProductTypes",
-    "inventoryImportStepTypes",
-    "malwareScanStatuses",
-    "proposalTiers",
-    "rateTypes",
-    "rejectionReasons",
-    "roles",
-    "taskPriorities",
-    "tenantTypes",
-    "vatStatuses",
-}
-
-BASIC_HUMAN_ROLES = {
-    "platform_admin",
-    "internal_planner",
-    "inventory_ops",
-    "agency_admin",
-    "agency_campaign_user",
-    "advertiser_admin",
-    "advertiser_approver",
-    "supplier_admin",
-    "supplier_user",
-    "influencer_rep",
-}
-ADMIN_ROLES = {
-    "platform_admin",
-    "agency_admin",
-    "advertiser_admin",
-    "supplier_admin",
-}
-AGENCY_ADMIN_ROLES = {"platform_admin", "agency_admin"}
-GATE2_PERMISSION_ROLES = {
-    "workspace_read": BASIC_HUMAN_ROLES,
-    "tenant_read": BASIC_HUMAN_ROLES,
-    "tenant_manage": ADMIN_ROLES,
-    "user_read_self": BASIC_HUMAN_ROLES,
-    "user_manage_self": BASIC_HUMAN_ROLES,
-    "membership_read": ADMIN_ROLES,
-    "membership_manage": ADMIN_ROLES,
-    "client_account_read": AGENCY_ADMIN_ROLES,
-    "client_account_manage": AGENCY_ADMIN_ROLES,
-    "agency_read": AGENCY_ADMIN_ROLES | {"agency_campaign_user"},
-    "agency_manage": AGENCY_ADMIN_ROLES,
-    "contact_read": AGENCY_ADMIN_ROLES,
-    "contact_manage": AGENCY_ADMIN_ROLES,
-}
-GATE4_PERMISSION_ROLES = {
-    "opportunity_view": {
-        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
-        "advertiser_admin", "advertiser_approver",
-    },
-    "opportunity_create": {
-        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
-    },
-    "opportunity_edit": {
-        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
-    },
-    "evidence_create": {
-        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
-    },
-    "evidence_review": {"platform_admin", "inventory_ops"},
-    "agent_run": {"platform_admin", "internal_planner"},
-    "opportunity_angle_select": {"platform_admin", "internal_planner"},
-    "strategy_view": {
-        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
-        "advertiser_admin", "advertiser_approver",
-    },
-    "strategy_approve": {"platform_admin", "advertiser_approver"},
-    "run_view": {"platform_admin", "internal_planner"},
-    "run_manage": {"platform_admin", "internal_planner"},
-    "task_view": BASIC_HUMAN_ROLES,
-    "task_act": BASIC_HUMAN_ROLES,
-}
-GATE5_PERMISSION_ROLES = {
-    "brief_view": {
-        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
-        "advertiser_admin", "advertiser_approver",
-    },
-    "brief_create": {
-        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
-    },
-    "brief_edit": {
-        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
-    },
-    "brief_submit": {
-        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
-    },
-    "brief_approve": {"internal_planner", "agency_admin", "agency_campaign_user"},
-}
-GATE6_PERMISSION_ROLES = {
-    "inventory_view": {
-        "platform_admin", "internal_planner", "inventory_ops", "agency_admin",
-        "agency_campaign_user", "advertiser_admin", "advertiser_approver",
-        "supplier_admin", "supplier_user",
-    },
-    "inventory_import": {"platform_admin", "inventory_ops", "supplier_admin"},
-    "inventory_review": {"platform_admin", "inventory_ops"},
-    "inventory_publish": {"platform_admin", "inventory_ops"},
-}
-REQUIRED_PERMISSION_ROLES = (
-    GATE2_PERMISSION_ROLES | GATE4_PERMISSION_ROLES | GATE5_PERMISSION_ROLES
-    | GATE6_PERMISSION_ROLES
+from tests.architecture.master_data_contract import (
+    REQUIRED_MASTER_COLLECTIONS,
+    REQUIRED_PERMISSION_ROLES,
 )
 
 
@@ -163,7 +45,16 @@ def source_files(root: Path = REPO_ROOT) -> list[Path]:
         if path.is_file()
         and path.suffix in SOURCE_SUFFIXES
         and not GENERATED_PARTS.intersection(path.parts)
+        and not is_generated_source(path)
     ]
+
+
+def is_generated_source(path: Path) -> bool:
+    first_line = path.read_text(encoding="utf-8").splitlines()[:1]
+    return bool(first_line) and (
+        "auto-generated" in first_line[0].lower()
+        or "generated from shared/contracts/master-data.json" in first_line[0].lower()
+    )
 
 
 def relative(path: Path) -> str:
@@ -291,6 +182,19 @@ def test_master_data_registry_is_coherent() -> None:
         assert set(roles) <= {item["code"] for item in collections["roles"]}
 
 
+def test_generated_master_data_projections_match_the_canonical_registry() -> None:
+    source = (REPO_ROOT / "shared" / "contracts" / "master-data.json").read_bytes()
+    source_hash = hashlib.sha256(source).hexdigest()
+    projections = [
+        "api/src/Advertified.Commercial.Domain/Generated/MasterDataCodes.g.cs",
+        "web/src/generated/master-data-codes.ts",
+        "agent-runtime/master_data_codes.py",
+    ]
+    for projection in projections:
+        content = (REPO_ROOT / projection).read_text(encoding="utf-8")
+        assert f"source-sha256: {source_hash}" in content, projection
+
+
 def test_governed_codes_are_not_inline_application_literals() -> None:
     registry = json.loads(
         (REPO_ROOT / "shared" / "contracts" / "master-data.json").read_text(encoding="utf-8")
@@ -308,7 +212,6 @@ def test_governed_codes_are_not_inline_application_literals() -> None:
         if (
             "test" in path_text
             or "e2e" in path.parts
-            or "constant" in path_text
             or "/migrations/" in path_text
         ):
             continue

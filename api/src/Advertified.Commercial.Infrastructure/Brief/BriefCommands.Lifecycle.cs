@@ -3,6 +3,7 @@ using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +23,7 @@ public sealed partial class BriefCommands
             envelope.TenantId, row.BriefId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Brief access denied.");
         EnsureOwner(brief, envelope.ActorId.Value);
-        if (brief.CurrentDraftVersionId != versionId || row.Status != Gate4Statuses.Draft)
+        if (brief.CurrentDraftVersionId != versionId || row.Status != MasterDataCodes.LifecycleStatuses.Draft)
         {
             throw new InvalidLifecycleTransitionException();
         }
@@ -32,10 +33,10 @@ public sealed partial class BriefCommands
         var now = timeProvider.GetUtcNow();
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.brief_versions
-            SET status_code = {Gate4Statuses.InReview}, submitted_by = {envelope.ActorId.Value},
+            SET status_code = {MasterDataCodes.LifecycleStatuses.InReview}, submitted_by = {envelope.ActorId.Value},
                 submitted_at_utc = {now}, version = version + 1
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {versionId}
-              AND status_code = {Gate4Statuses.Draft} AND version = {envelope.ExpectedVersion}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.Draft} AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1)
         {
@@ -43,7 +44,7 @@ public sealed partial class BriefCommands
         }
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.campaign_briefs
-            SET status_code = {Gate4Statuses.InReview}, version = version + 1,
+            SET status_code = {MasterDataCodes.LifecycleStatuses.InReview}, version = version + 1,
                 updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {brief.Id}
             """, cancellationToken);
@@ -51,14 +52,14 @@ public sealed partial class BriefCommands
             brief, row, confirmerId, now, cancellationToken);
         var view = row with
         {
-            Status = Gate4Statuses.InReview,
+            Status = MasterDataCodes.LifecycleStatuses.InReview,
             SubmittedBy = envelope.ActorId.Value,
             Version = row.Version + 1,
         };
         return OpportunityCommandSupport.Outcome(
             envelope, view.ToView(), versionId, view.Version,
-            CommercialResourceTypes.BriefVersion, CommercialActions.BriefSubmitted,
-            CommercialEventTypes.BriefSubmitted, now);
+            MasterDataReferences.CommercialResourceTypes.BriefVersion, MasterDataReferences.CommercialActions.BriefVersionSubmitted,
+            MasterDataReferences.CommercialEventTypes.BriefSubmitted, now);
     }
 
     private async Task<CommandOutcome> ApproveOutcomeAsync(
@@ -71,34 +72,34 @@ public sealed partial class BriefCommands
         EnsureNoCriticalConflict(row);
         var now = timeProvider.GetUtcNow();
         await ChangeDecisionAsync(
-            row, envelope.ExpectedVersion, Gate4Statuses.Approved,
+            row, envelope.ExpectedVersion, MasterDataCodes.LifecycleStatuses.Approved,
             envelope.ActorId.Value, null, null, envelope.TenantId.Value, now,
             cancellationToken);
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.campaign_briefs
-            SET status_code = {Gate4Statuses.Approved}, approved_version_id = {versionId},
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Approved}, approved_version_id = {versionId},
                 current_draft_version_id = {versionId}, version = version + 1,
                 updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {brief.Id};
             UPDATE commercial.opportunities
-            SET stage_code = {Gate4Statuses.Planning}, version = version + 1,
+            SET stage_code = {MasterDataCodes.LifecycleStatuses.Planning}, version = version + 1,
                 updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value}
               AND id = {brief.OpportunityId}
-              AND stage_code = {Gate4Statuses.BriefReady};
+              AND stage_code = {MasterDataCodes.LifecycleStatuses.BriefReady};
             """, cancellationToken);
         await CompleteApprovalTaskAsync(
             versionId, envelope.ActorId.Value, envelope.TenantId.Value, now, cancellationToken);
         var view = row with
         {
-            Status = Gate4Statuses.Approved,
+            Status = MasterDataCodes.LifecycleStatuses.Approved,
             ApprovedBy = envelope.ActorId.Value,
             Version = row.Version + 1,
         };
         return OpportunityCommandSupport.Outcome(
             envelope, view.ToView(), versionId, view.Version,
-            CommercialResourceTypes.BriefVersion, CommercialActions.BriefApproved,
-            CommercialEventTypes.BriefApproved, now);
+            MasterDataReferences.CommercialResourceTypes.BriefVersion, MasterDataReferences.CommercialActions.BriefVersionApproved,
+            MasterDataReferences.CommercialEventTypes.BriefApproved, now);
     }
 
     private async Task<CommandOutcome> RejectOutcomeAsync(
@@ -115,12 +116,12 @@ public sealed partial class BriefCommands
             versionId, envelope.ActorId.Value, envelope.TenantId, cancellationToken);
         var now = timeProvider.GetUtcNow();
         await ChangeDecisionAsync(
-            row, envelope.ExpectedVersion, Gate4Statuses.Rejected, null,
+            row, envelope.ExpectedVersion, MasterDataCodes.LifecycleStatuses.Rejected, null,
             envelope.ActorId.Value, reason, envelope.TenantId.Value, now,
             cancellationToken, requested);
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.campaign_briefs
-            SET status_code = {Gate4Statuses.Rejected}, version = version + 1,
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Rejected}, version = version + 1,
                 updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {brief.Id}
             """, cancellationToken);
@@ -128,7 +129,7 @@ public sealed partial class BriefCommands
             versionId, envelope.ActorId.Value, envelope.TenantId.Value, now, cancellationToken);
         var view = row with
         {
-            Status = Gate4Statuses.Rejected,
+            Status = MasterDataCodes.LifecycleStatuses.Rejected,
             RejectedBy = envelope.ActorId.Value,
             RejectionReason = reason,
             RequestedChanges = requested,
@@ -136,8 +137,8 @@ public sealed partial class BriefCommands
         };
         return OpportunityCommandSupport.Outcome(
             envelope, view.ToView(), versionId, view.Version,
-            CommercialResourceTypes.BriefVersion, CommercialActions.BriefRejected,
-            CommercialEventTypes.BriefRejected, now);
+            MasterDataReferences.CommercialResourceTypes.BriefVersion, MasterDataReferences.CommercialActions.BriefVersionRejected,
+            MasterDataReferences.CommercialEventTypes.BriefRejected, now);
     }
 
     private async Task<(BriefVersionRow Version, CampaignBriefRow Brief)> LoadDecisionContextAsync(
@@ -155,11 +156,11 @@ public sealed partial class BriefCommands
             SELECT EXISTS (
                 SELECT 1 FROM commercial.human_tasks
                 WHERE tenant_id = {tenantId.Value} AND resource_id = {versionId}
-                  AND task_type_code = {Gate4TaskTypes.BriefApproval}
+                  AND task_type_code = {MasterDataCodes.HumanTaskTypes.BriefApproval}
                   AND assignee_user_id = {actorId}
-                  AND status_code = {Gate4Statuses.Pending}) AS "Value"
+                  AND status_code = {MasterDataCodes.LifecycleStatuses.Pending}) AS "Value"
             """).SingleAsync(cancellationToken);
-        if (!assigned || row.Status != Gate4Statuses.InReview ||
+        if (!assigned || row.Status != MasterDataCodes.LifecycleStatuses.InReview ||
             brief.CurrentDraftVersionId != versionId)
         {
             throw new ApprovalRequiredException();
@@ -175,8 +176,8 @@ public sealed partial class BriefCommands
         var roles = await store.DbContext.Database.SqlQuery<string>($"""
             SELECT role_code AS "Value" FROM commercial.memberships
             WHERE tenant_id = {envelope.TenantId.Value} AND user_id = {confirmerId}
-              AND status_code = {Gate4Statuses.Active}
-              AND role_code = ANY({Gate4ReviewerRoles.Brief})
+              AND status_code = {MasterDataCodes.LifecycleStatuses.Active}
+              AND role_code = ANY({OpportunityReviewerRoles.Brief})
             """).ToListAsync(cancellationToken);
         if (roles.Count == 0)
         {
@@ -187,7 +188,7 @@ public sealed partial class BriefCommands
     private static void EnsureNoCriticalConflict(BriefVersionRow row)
     {
         if (row.ToView().Conflicts.Any(item =>
-                item.Severity == Gate4CriticSeverities.Critical && !item.Resolved))
+                item.Severity == MasterDataCodes.CriticSeverities.Critical && !item.Resolved))
         {
             throw new ApprovalRequiredException();
         }
@@ -206,10 +207,10 @@ public sealed partial class BriefCommands
                 assignee_user_id, action_schema_json, version, created_at_utc)
             VALUES (
                 {Guid.NewGuid()}, {brief.TenantId}, {brief.OpportunityId},
-                {Gate4TaskTypes.BriefApproval}, {Gate4Statuses.Pending},
+                {MasterDataCodes.HumanTaskTypes.BriefApproval}, {MasterDataCodes.LifecycleStatuses.Pending},
                 {"Confirm the campaign brief"},
                 {"Confirm the exact version before planning begins."},
-                {CommercialResourceTypes.BriefVersion.Value}, {row.Id}, {row.Version + 1},
+                {MasterDataReferences.CommercialResourceTypes.BriefVersion.Value}, {row.Id}, {row.Version + 1},
                 {assignee}, {"{}"}::jsonb, 1, {now})
             """, cancellationToken);
 
@@ -221,12 +222,12 @@ public sealed partial class BriefCommands
         CancellationToken cancellationToken) =>
         store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.human_tasks
-            SET status_code = {Gate4Statuses.Completed}, completed_by = {actorId},
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Completed}, completed_by = {actorId},
                 completed_at_utc = {now}, completion_json = {"{\"completed\":true}"}::jsonb,
                 version = version + 1
             WHERE tenant_id = {tenantId} AND resource_id = {versionId}
-              AND task_type_code = {Gate4TaskTypes.BriefApproval}
-              AND assignee_user_id = {actorId} AND status_code = {Gate4Statuses.Pending}
+              AND task_type_code = {MasterDataCodes.HumanTaskTypes.BriefApproval}
+              AND assignee_user_id = {actorId} AND status_code = {MasterDataCodes.LifecycleStatuses.Pending}
             """, cancellationToken);
 
     private async Task ChangeDecisionAsync(
@@ -250,7 +251,7 @@ public sealed partial class BriefCommands
                 rejection_reason = {reason}, requested_changes = {requestedChanges},
                 version = version + 1
             WHERE tenant_id = {tenantId} AND id = {row.Id}
-              AND status_code = {Gate4Statuses.InReview} AND version = {expectedVersion}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.InReview} AND version = {expectedVersion}
             """, cancellationToken);
         if (changed != 1)
         {

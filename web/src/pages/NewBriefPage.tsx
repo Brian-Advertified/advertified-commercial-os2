@@ -94,7 +94,7 @@ function BriefForm({ clients, busy, error, submit }: {
     <label className="field-group">Timing<input name="timing" required /></label>
     <label className="field-group">Budget in rand<input name="budget" type="number" min="0" step="0.01" /></label>
     <label className="field-group">Constraints<input name="constraints" /></label>
-    <label className="field-group">How success will be measured<input name="measurement" /></label>
+    <label className="field-group">How success will be measured<input name="successMeasure" /></label>
     <button className="primary-button" type="submit" disabled={busy}>
       {busy ? 'Understanding Brief…' : 'Understand this Brief'}
     </button>
@@ -116,7 +116,7 @@ function draftPayload(briefId: string, values: FormData): CreateBriefVersion {
     timing: value(values, 'timing'), budgetMinor: budget ? Math.round(Number(budget) * 100) : null,
     budgetUnknown: !budget, currency: budget ? opportunityCodes.currency.zar : null,
     vatStatus: null, feesMinor: null,
-    constraints: list(values, 'constraints'), measurement: list(values, 'measurement'),
+    constraints: list(values, 'constraints'), measurement: list(values, 'successMeasure'),
     facts: [], unknowns, assumptions: [], conflicts: [], evidenceItemIds: [],
   }
 }

@@ -13,9 +13,8 @@ using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
 
-public sealed partial class OpportunityGate4AcceptanceTests
+public sealed partial class OpportunityAcceptanceTests
 {
-    private const string PostgreSqlImage = "pgvector/pgvector:0.8.6-pg16-bookworm";
     private static readonly Guid TenantId =
         Guid.Parse("f1000000-0000-0000-0000-000000000001");
     private static readonly Guid OtherTenantId =
@@ -32,12 +31,8 @@ public sealed partial class OpportunityGate4AcceptanceTests
         new(2026, 8, 29, 16, 0, 0, TimeSpan.Zero);
     private static readonly string[] EvidenceGaps = ["Conversion baseline not supplied."];
 
-    private static PostgreSqlContainer CreatePostgres() =>
-        new PostgreSqlBuilder(PostgreSqlImage)
-            .WithDatabase("advertified_gate4")
-            .WithUsername("advertified_gate4")
-            .WithPassword("advertified-gate4-local-only")
-            .Build();
+    private static PostgreSqlContainer CreatePostgres() => DisposablePostgres.Create(
+        "advertified_opportunity", "advertified_opportunity", "advertified-opportunity-local-only");
 
     private static WebApplicationFactory<Program> CreateFactory(
         string connectionString,
@@ -61,18 +56,19 @@ public sealed partial class OpportunityGate4AcceptanceTests
 
     private static async Task SeedAsync(string connectionString)
     {
+        await DisposablePostgres.EnableRequiredExtensionsAsync(connectionString);
         var options = new DbContextOptionsBuilder<GovernanceDbContext>()
             .UseNpgsql(connectionString).Options;
         await using var db = new GovernanceDbContext(options);
         await db.Database.MigrateAsync();
         await new MasterDataBootstrapper(db, TimeProvider.System).ApplyAsync();
-        db.Tenants.AddRange(CreateTenant(TenantId, "gate-four"),
-            CreateTenant(OtherTenantId, "gate-four-other"));
+        db.Tenants.AddRange(CreateTenant(TenantId, "opportunity"),
+            CreateTenant(OtherTenantId, "opportunity-other"));
         db.Users.AddRange(
-            CreateUser(OwnerId, "owner@gate4.example", "Opportunity Owner"),
-            CreateUser(ReviewerId, "reviewer@gate4.example", "Evidence Reviewer"),
-            CreateUser(ApproverId, "approver@gate4.example", "Strategy Approver"),
-            CreateUser(SoloOperatorId, "solo@gate5.example", "Solo Agency Operator"));
+            CreateUser(OwnerId, "owner@opportunity.example", "Opportunity Owner"),
+            CreateUser(ReviewerId, "reviewer@opportunity.example", "Evidence Reviewer"),
+            CreateUser(ApproverId, "approver@opportunity.example", "Strategy Approver"),
+            CreateUser(SoloOperatorId, "solo@brief.example", "Solo Agency Operator"));
         db.Memberships.AddRange(
             CreateMembership(OwnerId, "platform_admin", 1),
             CreateMembership(ReviewerId, "inventory_ops", 2),
@@ -139,7 +135,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
             await Task.Delay(25);
         }
         throw new TimeoutException(
-            $"The deterministic Gate 4 run did not reach its checkpoint: {last.GetRawText()}");
+            $"The deterministic opportunity run did not reach its checkpoint: {last.GetRawText()}");
     }
 
     private static async Task<HttpResponseMessage> SendCommandAsync<T>(

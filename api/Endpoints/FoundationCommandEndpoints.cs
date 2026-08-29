@@ -1,4 +1,3 @@
-using Advertified.Commercial.Api.Errors;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Domain.Governance;
@@ -154,29 +153,5 @@ public static class FoundationCommandEndpoints
     {
         CommandEnvelopeFactory.SetEntityHeaders(context, result.Version, result.Replayed);
         return Results.Ok(result.Data);
-    }
-
-    private static RouteHandlerBuilder WithCommandProblems(
-        this RouteHandlerBuilder builder,
-        bool requiresVersion)
-    {
-        builder
-            .Produces<HumanSafeProblemDetails>(
-                StatusCodes.Status400BadRequest,
-                "application/problem+json")
-            .Produces<HumanSafeProblemDetails>(
-                StatusCodes.Status401Unauthorized,
-                "application/problem+json")
-            .Produces<HumanSafeProblemDetails>(
-                StatusCodes.Status403Forbidden,
-                "application/problem+json")
-            .Produces<HumanSafeProblemDetails>(
-                StatusCodes.Status409Conflict,
-                "application/problem+json");
-        return requiresVersion
-            ? builder.Produces<HumanSafeProblemDetails>(
-                StatusCodes.Status428PreconditionRequired,
-                "application/problem+json")
-            : builder;
     }
 }

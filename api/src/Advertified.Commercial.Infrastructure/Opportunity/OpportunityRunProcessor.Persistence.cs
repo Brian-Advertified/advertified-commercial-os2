@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,9 +37,9 @@ public sealed partial class OpportunityRunProcessor
                 input_hash, attempt_count, created_at_utc, updated_at_utc)
             VALUES (
                 {proposedId}, {context.TenantId.Value}, {context.Run.Id}, {stepCode},
-                {agentCode}, {Gate4Statuses.Running}, {inputHash}, 1, {now}, {now})
+                {agentCode}, {MasterDataCodes.LifecycleStatuses.Running}, {inputHash}, 1, {now}, {now})
             ON CONFLICT (tenant_id, run_id, step_code) DO UPDATE
-            SET status_code = {Gate4Statuses.Running},
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Running},
                 input_hash = EXCLUDED.input_hash,
                 attempt_count = commercial.agent_run_steps.attempt_count + 1,
                 updated_at_utc = EXCLUDED.updated_at_utc
@@ -52,7 +53,7 @@ public sealed partial class OpportunityRunProcessor
             UPDATE commercial.agent_runs
             SET current_step_code = {stepCode}, updated_at_utc = {now}
             WHERE tenant_id = {context.TenantId.Value} AND id = {context.Run.Id}
-              AND status_code = {Gate4Statuses.Running}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.Running}
             """, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return stepId;
@@ -67,7 +68,7 @@ public sealed partial class OpportunityRunProcessor
         var outputJson = JsonSerializer.Serialize(execution.Output, StoredOutputJson);
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.agent_run_steps
-            SET status_code = {Gate4Statuses.Completed}, output_json = {outputJson}::jsonb,
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Completed}, output_json = {outputJson}::jsonb,
                 checkpointed_at_utc = {now}, updated_at_utc = {now}
             WHERE tenant_id = {context.TenantId.Value} AND id = {execution.StepId}
               AND run_id = {context.Run.Id}
@@ -108,7 +109,7 @@ public sealed partial class OpportunityRunProcessor
         var now = timeProvider.GetUtcNow();
         return store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.agent_runs
-            SET status_code = {Gate4Statuses.Completed}, current_step_code = {stepCode},
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Completed}, current_step_code = {stepCode},
                 lease_owner = NULL, lease_expires_at_utc = NULL,
                 error_code = NULL, error_detail = NULL,
                 completed_at_utc = {now}, updated_at_utc = {now}, version = version + 1
@@ -126,7 +127,7 @@ public sealed partial class OpportunityRunProcessor
         await using var transaction = await runStore.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
         var run = await runStore.FindWorkAsync(tenantId, claim.RunId, cancellationToken);
-        if (run is null || run.Status == Gate4Statuses.Cancelled)
+        if (run is null || run.Status == MasterDataCodes.LifecycleStatuses.Cancelled)
         {
             await transaction.CommitAsync(cancellationToken);
             return;
@@ -137,11 +138,11 @@ public sealed partial class OpportunityRunProcessor
         var retryDelay = RetryDelay(exception, run.Attempts);
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.agent_run_steps
-            SET status_code = {Gate4Statuses.Failed}, updated_at_utc = {now}
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Failed}, updated_at_utc = {now}
             WHERE tenant_id = {tenantId.Value} AND run_id = {claim.RunId}
-              AND status_code = {Gate4Statuses.Running}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.Running}
             """, cancellationToken);
-        var status = retryDelay.HasValue ? Gate4Statuses.Queued : Gate4Statuses.ReviewRequired;
+        var status = retryDelay.HasValue ? MasterDataCodes.LifecycleStatuses.Queued : MasterDataCodes.LifecycleStatuses.ReviewRequired;
         var nextAttempt = retryDelay.HasValue ? now.Add(retryDelay.Value) : (DateTimeOffset?)null;
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.agent_runs
@@ -168,8 +169,8 @@ public sealed partial class OpportunityRunProcessor
             SELECT EXISTS (
                 SELECT 1 FROM commercial.human_tasks
                 WHERE tenant_id = {tenantId.Value} AND resource_id = {run.Id}
-                  AND task_type_code = {Gate4TaskTypes.RunRecovery}
-                  AND status_code = {Gate4Statuses.Pending}) AS "Value"
+                  AND task_type_code = {MasterDataCodes.HumanTaskTypes.RunRecovery}
+                  AND status_code = {MasterDataCodes.LifecycleStatuses.Pending}) AS "Value"
             """).SingleAsync(cancellationToken);
         if (!exists)
         {
@@ -177,10 +178,10 @@ public sealed partial class OpportunityRunProcessor
                 store.DbContext,
                 tenantId,
                 run.OpportunityId,
-                Gate4TaskTypes.RunRecovery,
+                MasterDataCodes.HumanTaskTypes.RunRecovery,
                 "Review the paused agent run",
                 $"The run stopped safely with code {code}.",
-                CommercialResourceTypes.AgentRun,
+                MasterDataReferences.CommercialResourceTypes.AgentRun,
                 run.Id,
                 run.Version + 1,
                 run.RequestedBy,
@@ -192,16 +193,16 @@ public sealed partial class OpportunityRunProcessor
     private static (string Code, string Detail) SafeFailure(Exception exception) => exception switch
     {
         RunInputVersionDriftException => (
-            "INPUT_VERSION_DRIFT",
+            MasterDataCodes.AgentFailureReasons.InputVersionDrift,
             "The opportunity changed after this run was queued."),
         EvidenceRequiredException => (
-            "EVIDENCE_REQUIRED",
+            MasterDataCodes.AgentFailureReasons.EvidenceRequired,
             "Approved evidence is required before this run can continue."),
         HttpRequestException => (
-            "AGENT_RUNTIME_UNAVAILABLE",
+            MasterDataCodes.AgentFailureReasons.AgentRuntimeUnavailable,
             "The deterministic agent runtime was unavailable."),
         _ => (
-            "AGENT_OUTPUT_INVALID",
+            MasterDataCodes.AgentFailureReasons.AgentOutputInvalid,
             "The run stopped because its deterministic output did not pass validation."),
     };
 

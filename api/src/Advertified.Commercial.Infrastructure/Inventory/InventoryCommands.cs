@@ -2,6 +2,7 @@ using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Microsoft.Extensions.Options;
@@ -22,7 +23,7 @@ public sealed partial class InventoryCommands(
         CancellationToken cancellationToken)
     {
         var receipt = await dispatcher.DispatchAsync(
-            envelope, Gate6Permissions.InventoryImport,
+            envelope, MasterDataReferences.Permissions.InventoryImport,
             token => CreateOutcomeAsync(envelope, token), cancellationToken);
         return CommandOutcomeFactory.ToResult<InventoryImportView>(receipt);
     }
@@ -33,7 +34,7 @@ public sealed partial class InventoryCommands(
         CancellationToken cancellationToken)
     {
         var receipt = await dispatcher.DispatchAsync(
-            envelope, Gate6Permissions.InventoryImport,
+            envelope, MasterDataReferences.Permissions.InventoryImport,
             token => ExecuteOutcomeAsync(importId, envelope, token), cancellationToken);
         return CommandOutcomeFactory.ToResult<InventoryImportView>(receipt);
     }
@@ -44,7 +45,7 @@ public sealed partial class InventoryCommands(
         CancellationToken cancellationToken)
     {
         var receipt = await dispatcher.DispatchAsync(
-            envelope, Gate6Permissions.InventoryReview,
+            envelope, MasterDataReferences.Permissions.InventoryReview,
             token => ReviewOutcomeAsync(candidateId, envelope, token), cancellationToken);
         return CommandOutcomeFactory.ToResult<InventoryCandidateView>(receipt);
     }
@@ -55,7 +56,7 @@ public sealed partial class InventoryCommands(
         CancellationToken cancellationToken)
     {
         var receipt = await dispatcher.DispatchAsync(
-            envelope, Gate6Permissions.InventoryPublish,
+            envelope, MasterDataReferences.Permissions.InventoryPublish,
             token => PublishOutcomeAsync(importId, envelope, token), cancellationToken);
         return CommandOutcomeFactory.ToResult<InventoryImportView>(receipt);
     }

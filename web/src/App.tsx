@@ -1,6 +1,8 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
 import './pages.css'
+import './planning.css'
 import { useSession } from './auth/session-state'
 import { WorkspaceProvider } from './auth/WorkspaceContext'
 import { AppShell } from './components/AppShell'
@@ -20,6 +22,9 @@ import { BriefPage } from './pages/BriefPage'
 import { InventoryPage } from './pages/InventoryPage'
 import { InventoryImportPage } from './pages/InventoryImportPage'
 import { InventoryProductPage } from './pages/InventoryProductPage'
+
+const PlanningPage = lazy(() => import('./pages/PlanningPage')
+  .then(module => ({ default: module.PlanningPage })))
 
 function AuthenticatedApplication() {
   const { session, loading } = useSession()
@@ -46,6 +51,7 @@ function App() {
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/inventory/imports/:importId" element={<InventoryImportPage />} />
           <Route path="/inventory/products/:productId" element={<InventoryProductPage />} />
+          <Route path="/planning/:briefVersionId" element={<Suspense fallback={<LoadingState label="Loading media planning" />}><PlanningPage /></Suspense>} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/notifications" element={<DeferredPage destination="Notifications" />} />

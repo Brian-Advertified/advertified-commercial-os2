@@ -9,6 +9,12 @@ from uuid import UUID
 from pydantic import Field, model_validator
 
 from contracts import AgentInvocationEnvelope, ContractModel
+from master_data_codes import (
+    AssetRightsStatuses,
+    AssetTypes,
+    CreativeTextRoles,
+    CreativeWarningTypes,
+)
 
 
 class CreativeBriefContext(ContractModel):
@@ -23,11 +29,20 @@ class CreativeBriefContext(ContractModel):
 
 class CreativeAssetInput(ContractModel):
     id: UUID
-    asset_type: Literal["LOGO", "PRODUCT_IMAGE", "CREATIVE_FILE", "BRAND_REFERENCE"]
+    asset_type: Literal[
+        AssetTypes.LOGO.value,
+        AssetTypes.PRODUCT_IMAGE.value,
+        AssetTypes.CREATIVE_FILE.value,
+        AssetTypes.BRAND_REFERENCE.value,
+    ]
     object_key: Annotated[str, Field(min_length=1, max_length=1_000)]
     source_document_id: UUID
     source_locator: Annotated[str, Field(min_length=1, max_length=500)]
-    rights_status: Literal["APPROVED", "UNKNOWN", "RESTRICTED"]
+    rights_status: Literal[
+        AssetRightsStatuses.APPROVED.value,
+        AssetRightsStatuses.UNKNOWN.value,
+        AssetRightsStatuses.RESTRICTED.value,
+    ]
     product_name: Annotated[str, Field(min_length=1, max_length=300)] | None = None
     evidence_item_ids: tuple[UUID, ...] = ()
 
@@ -101,17 +116,23 @@ class CreativeAgentRequest(ContractModel):
 
 class CreativeWarning(ContractModel):
     code: Literal[
-        "OFFER_OUTSIDE_CAMPAIGN",
-        "OFFER_VALIDITY_UNKNOWN",
-        "ASSET_RIGHTS_UNCONFIRMED",
-        "NO_APPROVED_PRODUCT_IMAGE",
+        CreativeWarningTypes.OFFER_OUTSIDE_CAMPAIGN.value,
+        CreativeWarningTypes.OFFER_VALIDITY_UNKNOWN.value,
+        CreativeWarningTypes.ASSET_RIGHTS_UNCONFIRMED.value,
+        CreativeWarningTypes.NO_APPROVED_PRODUCT_IMAGE.value,
     ]
     message: Annotated[str, Field(min_length=1, max_length=500)]
     product_name: Annotated[str, Field(min_length=1, max_length=300)] | None = None
 
 
 class CreativeTextElement(ContractModel):
-    role: Literal["HEADLINE", "BODY", "CTA", "PRICE", "DISCLOSURE"]
+    role: Literal[
+        CreativeTextRoles.HEADLINE.value,
+        CreativeTextRoles.BODY.value,
+        CreativeTextRoles.CTA.value,
+        CreativeTextRoles.PRICE.value,
+        CreativeTextRoles.DISCLOSURE.value,
+    ]
     text: Annotated[str, Field(min_length=1, max_length=1_000)]
     verified: bool
 

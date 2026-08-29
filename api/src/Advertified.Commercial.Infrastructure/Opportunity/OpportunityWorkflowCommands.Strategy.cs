@@ -3,6 +3,7 @@ using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +19,7 @@ public sealed partial class OpportunityWorkflowCommands
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate4Permissions.OpportunityEdit,
+            MasterDataReferences.Permissions.OpportunityEdit,
             token => ResolveObjectionOutcomeAsync(objectionId, envelope, token),
             cancellationToken);
         return CommandOutcomeFactory.ToResult<CriticObjectionView>(receipt);
@@ -31,7 +32,7 @@ public sealed partial class OpportunityWorkflowCommands
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate4Permissions.OpportunityEdit,
+            MasterDataReferences.Permissions.OpportunityEdit,
             token => SubmitStrategyOutcomeAsync(strategyId, envelope, token),
             cancellationToken);
         return CommandOutcomeFactory.ToResult<StrategyVersionView>(receipt);
@@ -44,7 +45,7 @@ public sealed partial class OpportunityWorkflowCommands
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate4Permissions.StrategyApprove,
+            MasterDataReferences.Permissions.StrategyApprove,
             token => ApproveStrategyOutcomeAsync(strategyId, envelope, token),
             cancellationToken);
         return CommandOutcomeFactory.ToResult<StrategyVersionView>(receipt);
@@ -57,7 +58,7 @@ public sealed partial class OpportunityWorkflowCommands
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate4Permissions.StrategyApprove,
+            MasterDataReferences.Permissions.StrategyApprove,
             token => RejectStrategyOutcomeAsync(strategyId, envelope, token),
             cancellationToken);
         return CommandOutcomeFactory.ToResult<StrategyVersionView>(receipt);
@@ -77,7 +78,7 @@ public sealed partial class OpportunityWorkflowCommands
         if (objection.Resolution is not null ||
             !await store.HasAssignedTaskAsync(
                 envelope.TenantId, envelope.ActorId.Value, objectionId,
-                Gate4TaskTypes.CriticResolution, cancellationToken))
+                MasterDataCodes.HumanTaskTypes.CriticResolution, cancellationToken))
         {
             throw new ApprovalRequiredException();
         }
@@ -85,9 +86,9 @@ public sealed partial class OpportunityWorkflowCommands
             envelope.Command.Resolution, 100, nameof(envelope.Command.Resolution))
             .ToUpperInvariant();
         await OpportunityCommandSupport.EnsureCodeAsync(
-            store.DbContext, "objectionResolutions", resolution, cancellationToken);
-        if (objection.Severity == Gate4CriticSeverities.Critical &&
-            resolution == Gate4ObjectionResolutions.AcceptedWithReason)
+            store.DbContext, MasterDataCodes.ObjectionResolutions.Collection, resolution, cancellationToken);
+        if (objection.Severity == MasterDataCodes.CriticSeverities.Critical &&
+            resolution == MasterDataCodes.ObjectionResolutions.AcceptedWithReason)
         {
             throw new ApprovalRequiredException();
         }
@@ -96,7 +97,7 @@ public sealed partial class OpportunityWorkflowCommands
         var now = timeProvider.GetUtcNow();
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.critic_objections
-            SET resolution_collection_code = 'objectionResolutions',
+            SET resolution_collection_code = {MasterDataCodes.ObjectionResolutions.Collection},
                 resolution_code = {resolution}, resolution_reason = {reason},
                 resolved_by = {envelope.ActorId.Value}, resolved_at_utc = {now},
                 version = version + 1
@@ -108,7 +109,7 @@ public sealed partial class OpportunityWorkflowCommands
             throw new VersionConflictException();
         }
         await OpportunityCommandSupport.CompleteTaskAsync(
-            store.DbContext, envelope.TenantId, objectionId, Gate4TaskTypes.CriticResolution,
+            store.DbContext, envelope.TenantId, objectionId, MasterDataCodes.HumanTaskTypes.CriticResolution,
             envelope.ActorId.Value, now, cancellationToken);
         var view = objection with
         {
@@ -119,8 +120,8 @@ public sealed partial class OpportunityWorkflowCommands
         };
         return OpportunityCommandSupport.Outcome(
             envelope, view.ToView(), objectionId, view.Version,
-            CommercialResourceTypes.Strategy, CommercialActions.ObjectionResolved,
-            CommercialEventTypes.CriticObjectionResolved, now);
+            MasterDataReferences.CommercialResourceTypes.Strategy, MasterDataReferences.CommercialActions.CriticObjectionResolved,
+            MasterDataReferences.CommercialEventTypes.CriticObjectionResolved, now);
     }
 
     private async Task<CommandOutcome> SubmitStrategyOutcomeAsync(
@@ -132,7 +133,7 @@ public sealed partial class OpportunityWorkflowCommands
             envelope.TenantId, strategyId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Strategy access denied.");
         await EnsureOwnerAsync(envelope, strategy.OpportunityId, cancellationToken);
-        if (strategy.Status != Gate4Statuses.Draft ||
+        if (strategy.Status != MasterDataCodes.LifecycleStatuses.Draft ||
             await store.HasUnresolvedObjectionsAsync(
                 envelope.TenantId, strategyId, cancellationToken))
         {
@@ -148,7 +149,7 @@ public sealed partial class OpportunityWorkflowCommands
         var now = timeProvider.GetUtcNow();
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.strategy_versions
-            SET status_code = {Gate4Statuses.InReview}, submitted_by = {envelope.ActorId.Value},
+            SET status_code = {MasterDataCodes.LifecycleStatuses.InReview}, submitted_by = {envelope.ActorId.Value},
                 submitted_at_utc = {now}, version = version + 1
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {strategyId}
               AND version = {envelope.ExpectedVersion}
@@ -159,22 +160,22 @@ public sealed partial class OpportunityWorkflowCommands
         }
         await OpportunityCommandSupport.CreateTaskAsync(
             store.DbContext, envelope.TenantId, strategy.OpportunityId,
-            Gate4TaskTypes.StrategyApproval, "Approve the strategy",
+            MasterDataCodes.HumanTaskTypes.StrategyApproval, "Approve the strategy",
             "Approval binds the exact evidence, selected angle and resolved critic report.",
-            CommercialResourceTypes.Strategy, strategyId, strategy.Version + 1,
+            MasterDataReferences.CommercialResourceTypes.Strategy, strategyId, strategy.Version + 1,
             context.ApproverUserId.Value, now, cancellationToken);
         var view = await StrategyViewAsync(
             strategy with
             {
-                Status = Gate4Statuses.InReview,
+                Status = MasterDataCodes.LifecycleStatuses.InReview,
                 SubmittedBy = envelope.ActorId.Value,
                 Version = strategy.Version + 1,
             },
             envelope.TenantId,
             cancellationToken);
         return OpportunityCommandSupport.Outcome(
-            envelope, view, strategyId, view.Version, CommercialResourceTypes.Strategy,
-            CommercialActions.StrategySubmitted, CommercialEventTypes.StrategySubmitted, now);
+            envelope, view, strategyId, view.Version, MasterDataReferences.CommercialResourceTypes.Strategy,
+            MasterDataReferences.CommercialActions.StrategySubmitted, MasterDataReferences.CommercialEventTypes.StrategySubmitted, now);
     }
 
     private async Task<CommandOutcome> ApproveStrategyOutcomeAsync(
@@ -185,20 +186,20 @@ public sealed partial class OpportunityWorkflowCommands
         var strategy = await store.FindStrategyAsync(
             envelope.TenantId, strategyId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Strategy access denied.");
-        if (strategy.Status != Gate4Statuses.InReview ||
+        if (strategy.Status != MasterDataCodes.LifecycleStatuses.InReview ||
             strategy.CreatedBy == envelope.ActorId.Value ||
             await store.HasUnresolvedObjectionsAsync(
                 envelope.TenantId, strategyId, cancellationToken) ||
             !await store.HasAssignedTaskAsync(
                 envelope.TenantId, envelope.ActorId.Value, strategyId,
-                Gate4TaskTypes.StrategyApproval, cancellationToken))
+                MasterDataCodes.HumanTaskTypes.StrategyApproval, cancellationToken))
         {
             throw new ApprovalRequiredException();
         }
         var now = timeProvider.GetUtcNow();
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.strategy_versions
-            SET status_code = {Gate4Statuses.Approved}, approved_by = {envelope.ActorId.Value},
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Approved}, approved_by = {envelope.ActorId.Value},
                 approved_at_utc = {now}, version = version + 1
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {strategyId}
               AND version = {envelope.ExpectedVersion}
@@ -209,30 +210,30 @@ public sealed partial class OpportunityWorkflowCommands
         }
         var opportunityChanged = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.opportunities
-            SET stage_code = {Gate4Statuses.BriefReady}, version = version + 1,
+            SET stage_code = {MasterDataCodes.LifecycleStatuses.BriefReady}, version = version + 1,
                 updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {strategy.OpportunityId}
-              AND stage_code = {Gate4Statuses.StrategyReady}
+              AND stage_code = {MasterDataCodes.LifecycleStatuses.StrategyReady}
             """, cancellationToken);
         if (opportunityChanged != 1)
         {
             throw new InvalidLifecycleTransitionException();
         }
         await OpportunityCommandSupport.CompleteTaskAsync(
-            store.DbContext, envelope.TenantId, strategyId, Gate4TaskTypes.StrategyApproval,
+            store.DbContext, envelope.TenantId, strategyId, MasterDataCodes.HumanTaskTypes.StrategyApproval,
             envelope.ActorId.Value, now, cancellationToken);
         var view = await StrategyViewAsync(
             strategy with
             {
-                Status = Gate4Statuses.Approved,
+                Status = MasterDataCodes.LifecycleStatuses.Approved,
                 ApprovedBy = envelope.ActorId.Value,
                 Version = strategy.Version + 1,
             },
             envelope.TenantId,
             cancellationToken);
         return OpportunityCommandSupport.Outcome(
-            envelope, view, strategyId, view.Version, CommercialResourceTypes.Strategy,
-            CommercialActions.StrategyApproved, CommercialEventTypes.StrategyApproved, now);
+            envelope, view, strategyId, view.Version, MasterDataReferences.CommercialResourceTypes.Strategy,
+            MasterDataReferences.CommercialActions.StrategyApproved, MasterDataReferences.CommercialEventTypes.StrategyApproved, now);
     }
 
     private async Task<CommandOutcome> RejectStrategyOutcomeAsync(
@@ -243,11 +244,11 @@ public sealed partial class OpportunityWorkflowCommands
         var strategy = await store.FindStrategyAsync(
             envelope.TenantId, strategyId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Strategy access denied.");
-        if (strategy.Status != Gate4Statuses.InReview ||
+        if (strategy.Status != MasterDataCodes.LifecycleStatuses.InReview ||
             strategy.CreatedBy == envelope.ActorId.Value ||
             !await store.HasAssignedTaskAsync(
                 envelope.TenantId, envelope.ActorId.Value, strategyId,
-                Gate4TaskTypes.StrategyApproval, cancellationToken))
+                MasterDataCodes.HumanTaskTypes.StrategyApproval, cancellationToken))
         {
             throw new ApprovalRequiredException();
         }
@@ -256,7 +257,7 @@ public sealed partial class OpportunityWorkflowCommands
         var now = timeProvider.GetUtcNow();
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.strategy_versions
-            SET status_code = {Gate4Statuses.Rejected}, rejected_by = {envelope.ActorId.Value},
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Rejected}, rejected_by = {envelope.ActorId.Value},
                 rejected_at_utc = {now}, rejection_reason = {reason}, version = version + 1
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {strategyId}
               AND version = {envelope.ExpectedVersion}
@@ -266,12 +267,12 @@ public sealed partial class OpportunityWorkflowCommands
             throw new VersionConflictException();
         }
         await OpportunityCommandSupport.CompleteTaskAsync(
-            store.DbContext, envelope.TenantId, strategyId, Gate4TaskTypes.StrategyApproval,
+            store.DbContext, envelope.TenantId, strategyId, MasterDataCodes.HumanTaskTypes.StrategyApproval,
             envelope.ActorId.Value, now, cancellationToken);
         var view = await StrategyViewAsync(
             strategy with
             {
-                Status = Gate4Statuses.Rejected,
+                Status = MasterDataCodes.LifecycleStatuses.Rejected,
                 RejectedBy = envelope.ActorId.Value,
                 RejectionReason = reason,
                 Version = strategy.Version + 1,
@@ -279,8 +280,8 @@ public sealed partial class OpportunityWorkflowCommands
             envelope.TenantId,
             cancellationToken);
         return OpportunityCommandSupport.Outcome(
-            envelope, view, strategyId, view.Version, CommercialResourceTypes.Strategy,
-            CommercialActions.StrategyRejected, CommercialEventTypes.StrategyRejected, now);
+            envelope, view, strategyId, view.Version, MasterDataReferences.CommercialResourceTypes.Strategy,
+            MasterDataReferences.CommercialActions.StrategyRejected, MasterDataReferences.CommercialEventTypes.StrategyRejected, now);
     }
 
     private async Task<StrategyVersionView> StrategyViewAsync(

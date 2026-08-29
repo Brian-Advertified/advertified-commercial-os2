@@ -48,6 +48,9 @@ test('supplier intake reaches operator review and searchable inventory', async (
   await expect(page.getByRole('heading', { name: 'Bree Street Gantry' })).toBeVisible()
   await page.getByRole('heading', { name: 'Bree Street Gantry' }).click()
   await expect(page.getByText('Confirm availability before booking.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'How this placement compares' })).toBeVisible()
+  await expect(page.getByText('Strong Value')).toBeVisible()
+  await expect(page.getByText('25% below median')).toBeVisible()
   await page.getByText('RATE CARD', { exact: true }).click()
   await expect(page.getByText(/SHA-256 a{64}/)).toBeVisible()
 })
@@ -80,6 +83,7 @@ async function handleRead(route: Route, state: State, path: string) {
   if (path === '/api/v1/workspaces') return json(route, [workspaceFixture(state.role)])
   if (path === '/api/v1/me') return json(route, userFixture(), 200, { ETag: '"1"' })
   if (path.endsWith(`/inventory-imports/${importId}`)) return json(route, importFixture(state))
+  if (path.endsWith(`/inventory-products/${productId}/benchmark`)) return json(route, benchmarkFixture())
   if (path.endsWith(`/inventory-products/${productId}`)) return json(route, productFixture())
   if (path.endsWith('/inventory-products')) return json(route, {
     items: state.published ? [productSummary()] : [], nextCursor: null,
@@ -135,13 +139,30 @@ function productFixture() {
     sourceImportId: importId, sourceCandidateId: candidateId, versionNumber: 1, publishedAtUtc: now }
 }
 
+function benchmarkFixture() {
+  return {
+    productId,
+    productVersionId: 'd6100000-0000-0000-0000-000000000001',
+    rateId: 'd6200000-0000-0000-0000-000000000001',
+    rateType: 'MONTH_RATE', rateAmountMinor: 125000, currency: 'ZAR',
+    policyVersion: 'OOH_LOCAL_PEER_V1', geographyBasis: 'RADIUS_5_KM', cohortSize: 4,
+    medianMinor: 166667, lowerQuartileMinor: 145000, upperQuartileMinor: 185000,
+    percentile: 25, differenceFromMedianMinor: -41667, differenceFromMedianPercent: -25,
+    position: 'STRONG_VALUE', confidence: 0.7,
+    comparables: [{ productId: 'd6300000-0000-0000-0000-000000000001',
+      productVersionId: 'd6400000-0000-0000-0000-000000000001', name: 'Braamfontein Digital',
+      geography: 'Johannesburg', rateAmountMinor: 150000, currency: 'ZAR', distanceKilometres: 2.4 }],
+    exclusions: [],
+  }
+}
+
 function assertMutation(route: Route) {
   const headers = route.request().headers()
-  expect(headers['x-csrf-token']).toBe('csrf-gate6')
+  expect(headers['x-csrf-token']).toBe('csrf-inventory')
   expect(headers['idempotency-key']).toBeTruthy()
 }
 
-function sessionFixture() { return { authenticated: true, antiforgeryToken: 'csrf-gate6', expiresAtUtc: '2026-08-29T22:00:00Z' } }
+function sessionFixture() { return { authenticated: true, antiforgeryToken: 'csrf-inventory', expiresAtUtc: '2026-08-29T22:00:00Z' } }
 function workspaceFixture(role: State['role']) { return { membershipId: 'd7000000-0000-0000-0000-000000000001', tenantId, name: 'Media Workspace', slug: 'media-workspace', roleCode: role, version: 1 } }
 function userFixture() { return { id: userId, email: 'operator@example.com', displayName: 'Inventory Operator', phone: null, mfaEnabled: true, version: 1 } }
 

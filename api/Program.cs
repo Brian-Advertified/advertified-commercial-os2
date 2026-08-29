@@ -11,6 +11,7 @@ using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Application.Inventory;
+using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Advertified.Commercial.Infrastructure.Brief;
 using Advertified.Commercial.Infrastructure.Identity;
@@ -18,6 +19,7 @@ using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Advertified.Commercial.Infrastructure.Persistence;
 using Advertified.Commercial.Infrastructure.Inventory;
+using Advertified.Commercial.Infrastructure.Planning;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
@@ -50,7 +52,7 @@ if (agentRuntime.Mode != AgentRuntimeOptions.DisabledMode &&
     !builder.Environment.IsEnvironment("Test"))
 {
     throw new InvalidOperationException(
-        "The Gate 4 deterministic agent runtime is restricted to development and test.");
+        "The deterministic agent runtime is restricted to development and test.");
 }
 
 if ((inventoryProtection.ObjectStoreMode == InventoryProtectionOptions.InMemoryMode ||
@@ -91,6 +93,12 @@ builder.Services.AddScoped<IBriefCommands, BriefCommands>();
 builder.Services.AddScoped<InventoryRecordStore>();
 builder.Services.AddScoped<IInventoryReader, InventoryReader>();
 builder.Services.AddScoped<IInventoryCommands, InventoryCommands>();
+builder.Services.AddScoped<PlanningRecordStore>();
+builder.Services.AddScoped<IPlanningReader, PlanningReader>();
+builder.Services.AddScoped<IInventoryBenchmarkReader, InventoryBenchmarkReader>();
+builder.Services.AddSingleton(PlanningPolicy.Load());
+builder.Services.AddScoped<IPlanningCommands, PlanningCommands>();
+builder.Services.AddScoped<IPlanningAgentClient, DeterministicPlanningAgentClient>();
 builder.AddInventoryExtraction(inventoryExtraction);
 builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = inventoryProtection.MaximumSourceBytes + 1_048_576);
@@ -240,7 +248,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapGet("/", () => Results.Ok(new ServiceDescription(
     "Advertified Commercial API",
-    "gate-6-inventory-truth",
+    "inventory-and-planning",
     "Tenant-safe commercial operations with a local browser-session boundary.")))
     .WithTags("Service");
 
@@ -262,6 +270,7 @@ app.MapFoundationEndpoints();
 app.MapOpportunityEndpoints();
 app.MapBriefEndpoints();
 app.MapInventoryEndpoints();
+app.MapPlanningEndpoints();
 
 app.Run();
 

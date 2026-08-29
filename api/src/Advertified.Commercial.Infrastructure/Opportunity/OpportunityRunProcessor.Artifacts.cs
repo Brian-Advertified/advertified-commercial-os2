@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Microsoft.EntityFrameworkCore;
 
 namespace Advertified.Commercial.Infrastructure.Opportunity;
@@ -32,16 +33,16 @@ public sealed partial class OpportunityRunProcessor
                 {execution.Output.EvidenceBindings.GetRawText()}::jsonb,
                 {execution.Output.Unknowns.GetRawText()}::jsonb,
                 {execution.Output.Assumptions.GetRawText()}::jsonb,
-                {Gate4Statuses.Draft}, {context.ActorId.Value}, 1, {now})
+                {MasterDataCodes.LifecycleStatuses.Draft}, {context.ActorId.Value}, 1, {now})
             """, cancellationToken);
         await OpportunityCommandSupport.CreateTaskAsync(
             store.DbContext,
             context.TenantId,
             context.Run.OpportunityId,
-            Gate4TaskTypes.InterpretationConfirmation,
+            MasterDataCodes.HumanTaskTypes.InterpretationConfirmation,
             "Confirm the business interpretation",
             "Human confirmation is required before opportunity angles can be generated.",
-            CommercialResourceTypes.Interpretation,
+            MasterDataReferences.CommercialResourceTypes.BusinessInterpretation,
             interpretationId,
             1,
             context.ActorId.Value,
@@ -71,7 +72,7 @@ public sealed partial class OpportunityRunProcessor
                 version_no, status_code, created_by, version, created_at_utc)
             VALUES (
                 {angleSetId}, {context.TenantId.Value}, {context.Run.OpportunityId},
-                {context.Run.Id}, {interpretation.Id}, {version}, {Gate4Statuses.Draft},
+                {context.Run.Id}, {interpretation.Id}, {version}, {MasterDataCodes.LifecycleStatuses.Draft},
                 {context.ActorId.Value}, 1, {now})
             """, cancellationToken);
         foreach (var angle in angles)
@@ -82,10 +83,10 @@ public sealed partial class OpportunityRunProcessor
             store.DbContext,
             context.TenantId,
             context.Run.OpportunityId,
-            Gate4TaskTypes.AngleSelection,
+            MasterDataCodes.HumanTaskTypes.AngleSelection,
             "Select an opportunity angle",
             "One evidence-backed angle must be selected before strategy generation.",
-            CommercialResourceTypes.OpportunityAngle,
+            MasterDataReferences.CommercialResourceTypes.OpportunityAngle,
             angleSetId,
             1,
             context.ActorId.Value,
@@ -123,7 +124,7 @@ public sealed partial class OpportunityRunProcessor
                 {execution.Output.EvidenceBindings.GetRawText()}::jsonb,
                 {execution.Output.Unknowns.GetRawText()}::jsonb,
                 {execution.Output.Assumptions.GetRawText()}::jsonb,
-                {Gate4Statuses.Draft}, {context.ActorId.Value}, 1, {now})
+                {MasterDataCodes.LifecycleStatuses.Draft}, {context.ActorId.Value}, 1, {now})
             """, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new RunStrategyRow
@@ -177,7 +178,7 @@ public sealed partial class OpportunityRunProcessor
             VALUES (
                 {Guid.NewGuid()}, {context.TenantId.Value}, {angleSetId}, {angle.Rank},
                 {angle.Title}, {angle.Rationale}, {angle.EvidenceIdsJson}::jsonb,
-                {angle.Confidence}, {Gate4AngleStatuses.Proposed}, 1)
+                {angle.Confidence}, {MasterDataCodes.OpportunityAngleStatuses.Proposed}, 1)
             """, cancellationToken);
     }
 
@@ -190,7 +191,7 @@ public sealed partial class OpportunityRunProcessor
         CancellationToken cancellationToken)
     {
         await OpportunityCommandSupport.EnsureCodeAsync(
-            store.DbContext, "criticSeverities", objection.Severity, cancellationToken);
+            store.DbContext, MasterDataCodes.CriticSeverities.Collection, objection.Severity, cancellationToken);
         var objectionId = Guid.NewGuid();
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.critic_objections (
@@ -205,10 +206,10 @@ public sealed partial class OpportunityRunProcessor
             store.DbContext,
             context.TenantId,
             context.Run.OpportunityId,
-            Gate4TaskTypes.CriticResolution,
+            MasterDataCodes.HumanTaskTypes.CriticResolution,
             "Resolve a strategy objection",
             "Every critic objection must be explicitly resolved before submission.",
-            CommercialResourceTypes.Strategy,
+            MasterDataReferences.CommercialResourceTypes.Strategy,
             objectionId,
             1,
             context.ActorId.Value,

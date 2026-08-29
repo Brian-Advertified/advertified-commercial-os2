@@ -1,6 +1,7 @@
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,9 +21,9 @@ public sealed partial class OpportunityCommands
         var policy = OpportunityCommandSupport.Required(
             command.PolicyBasis, 100, nameof(command.PolicyBasis)).ToUpperInvariant();
         await OpportunityCommandSupport.EnsureCodeAsync(
-            store.DbContext, "evidenceSourceTypes", captured.Type, cancellationToken);
+            store.DbContext, MasterDataCodes.EvidenceSourceTypes.Collection, captured.Type, cancellationToken);
         await OpportunityCommandSupport.EnsureCodeAsync(
-            store.DbContext, "evidencePolicyBases", policy, cancellationToken);
+            store.DbContext, MasterDataCodes.EvidencePolicyBases.Collection, policy, cancellationToken);
         var objectKey = $"evidence/{hash[..2]}/{hash}";
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.evidence_sources (
@@ -33,7 +34,7 @@ public sealed partial class OpportunityCommands
                 {sourceId}, {envelope.TenantId.Value}, {captured.Type},
                 {OpportunityCommandSupport.Required(command.Locator, 2048, nameof(command.Locator))},
                 {OpportunityCommandSupport.Required(command.Title, 300, nameof(command.Title))},
-                {hash}, {objectKey}, {captured.Content}, {policy}, {Gate4Statuses.Completed},
+                {hash}, {objectKey}, {captured.Content}, {policy}, {MasterDataCodes.LifecycleStatuses.Completed},
                 {envelope.ActorId.Value}, {now}, 1)
             """, cancellationToken);
     }
@@ -74,7 +75,7 @@ public sealed partial class OpportunityCommands
             var claimType = OpportunityCommandSupport.Required(
                 claim.ClaimType, 100, nameof(claim.ClaimType)).ToUpperInvariant();
             await OpportunityCommandSupport.EnsureCodeAsync(
-                store.DbContext, "evidenceClaimTypes", claimType, cancellationToken);
+                store.DbContext, MasterDataCodes.EvidenceClaimTypes.Collection, claimType, cancellationToken);
             if (claim.Confidence is < 0 or > 1)
             {
                 throw new ArgumentOutOfRangeException(nameof(captured));
@@ -92,14 +93,14 @@ public sealed partial class OpportunityCommands
                     {OpportunityCommandSupport.Required(claim.Locator, 500, nameof(claim.Locator))},
                     {claimType}, {value}::jsonb,
                     {OpportunityCommandSupport.Required(claim.Excerpt, 2000, nameof(claim.Excerpt))},
-                    {claim.Confidence}, {Gate4Statuses.Pending}, {envelope.ActorId.Value},
+                    {claim.Confidence}, {MasterDataCodes.LifecycleStatuses.Pending}, {envelope.ActorId.Value},
                     1, {now}, {now})
                 """, cancellationToken);
             await OpportunityCommandSupport.CreateTaskAsync(
                 store.DbContext, envelope.TenantId, command.OpportunityId,
-                Gate4TaskTypes.EvidenceItemReview, "Review captured evidence",
+                MasterDataCodes.HumanTaskTypes.EvidenceItemReview, "Review captured evidence",
                 "Only reviewed source claims can support opportunity recommendations.",
-                CommercialResourceTypes.EvidenceItem, itemId, 1, command.ReviewerUserId,
+                MasterDataReferences.CommercialResourceTypes.EvidenceItem, itemId, 1, command.ReviewerUserId,
                 now, cancellationToken);
         }
     }

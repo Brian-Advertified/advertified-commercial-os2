@@ -2,6 +2,7 @@ using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 
 namespace Advertified.Commercial.Api.Endpoints;
@@ -21,19 +22,19 @@ public static class OpportunityWorkflowEndpoints
         group.MapPost("/opportunities/{opportunityId:guid}/interpret", QueueInterpretationAsync)
             .WithName("QueueBusinessInterpretation")
             .Produces<AgentRunView>(StatusCodes.Status202Accepted)
-            .WithGate4CommandProblems(requiresVersion: false);
+            .WithCommandProblems(requiresVersion: false);
         group.MapPost("/opportunities/{opportunityId:guid}/angles:generate", QueueAnglesAsync)
             .WithName("QueueOpportunityAngles")
             .Produces<AgentRunView>(StatusCodes.Status202Accepted)
-            .WithGate4CommandProblems(requiresVersion: false);
+            .WithCommandProblems(requiresVersion: false);
         group.MapPost("/opportunities/{opportunityId:guid}/strategies:generate", QueueStrategyAsync)
             .WithName("QueueOpportunityStrategy")
             .Produces<AgentRunView>(StatusCodes.Status202Accepted)
-            .WithGate4CommandProblems(requiresVersion: false);
+            .WithCommandProblems(requiresVersion: false);
         group.MapPost("/opportunities/{opportunityId:guid}/briefs:draft", QueueBriefAsync)
             .WithName("QueueOpportunityBrief")
             .Produces<AgentRunView>(StatusCodes.Status202Accepted)
-            .WithGate4CommandProblems(requiresVersion: false);
+            .WithCommandProblems(requiresVersion: false);
     }
 
     private static void MapHumanDecisions(RouteGroupBuilder group)
@@ -41,27 +42,27 @@ public static class OpportunityWorkflowEndpoints
         group.MapPost("/business-interpretations/{interpretationId:guid}:confirm", ConfirmAsync)
             .WithName("ConfirmBusinessInterpretation")
             .Produces<BusinessInterpretationView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/opportunity-angles/{angleId:guid}:select", SelectAngleAsync)
             .WithName("SelectOpportunityAngle")
             .Produces<OpportunityAngleView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/critic-objections/{objectionId:guid}:resolve", ResolveObjectionAsync)
             .WithName("ResolveCriticObjection")
             .Produces<CriticObjectionView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/strategy-versions/{strategyId:guid}:submit", SubmitStrategyAsync)
             .WithName("SubmitStrategyVersion")
             .Produces<StrategyVersionView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/strategy-versions/{strategyId:guid}:approve", ApproveStrategyAsync)
             .WithName("ApproveStrategyVersion")
             .Produces<StrategyVersionView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/strategy-versions/{strategyId:guid}:reject", RejectStrategyAsync)
             .WithName("RejectStrategyVersion")
             .Produces<StrategyVersionView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
     }
 
     private static void MapRunManagement(RouteGroupBuilder group)
@@ -69,11 +70,11 @@ public static class OpportunityWorkflowEndpoints
         group.MapPost("/agent-runs/{runId:guid}:resume", ResumeRunAsync)
             .WithName("ResumeAgentRun")
             .Produces<AgentRunView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/agent-runs/{runId:guid}:cancel", CancelRunAsync)
             .WithName("CancelAgentRun")
             .Produces<AgentRunView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
     }
 
     private static Task<IResult> QueueInterpretationAsync(
@@ -85,7 +86,7 @@ public static class OpportunityWorkflowEndpoints
         IOpportunityWorkflowCommands commands,
         TimeProvider timeProvider,
         CancellationToken cancellationToken) => QueueAsync(
-            tenantId, opportunityId, Gate4RunKinds.Interpretation, command, context,
+            tenantId, opportunityId, MasterDataCodes.AgentRunKinds.Interpretation, command, context,
             identity, commands, timeProvider, cancellationToken);
 
     private static Task<IResult> QueueAnglesAsync(
@@ -97,7 +98,7 @@ public static class OpportunityWorkflowEndpoints
         IOpportunityWorkflowCommands commands,
         TimeProvider timeProvider,
         CancellationToken cancellationToken) => QueueAsync(
-            tenantId, opportunityId, Gate4RunKinds.Angles, command, context,
+            tenantId, opportunityId, MasterDataCodes.AgentRunKinds.Angles, command, context,
             identity, commands, timeProvider, cancellationToken);
 
     private static Task<IResult> QueueStrategyAsync(
@@ -109,7 +110,7 @@ public static class OpportunityWorkflowEndpoints
         IOpportunityWorkflowCommands commands,
         TimeProvider timeProvider,
         CancellationToken cancellationToken) => QueueAsync(
-            tenantId, opportunityId, Gate4RunKinds.StrategyCritic, command, context,
+            tenantId, opportunityId, MasterDataCodes.AgentRunKinds.StrategyCritic, command, context,
             identity, commands, timeProvider, cancellationToken);
 
     private static Task<IResult> QueueBriefAsync(
@@ -121,7 +122,7 @@ public static class OpportunityWorkflowEndpoints
         IOpportunityWorkflowCommands commands,
         TimeProvider timeProvider,
         CancellationToken cancellationToken) => QueueAsync(
-            tenantId, opportunityId, Gate4RunKinds.Brief, command, context,
+            tenantId, opportunityId, MasterDataCodes.AgentRunKinds.Brief, command, context,
             identity, commands, timeProvider, cancellationToken);
 
     private static Task<IResult> QueueAsync(

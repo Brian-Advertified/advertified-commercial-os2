@@ -2,6 +2,7 @@ using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,7 @@ public sealed class IdentityFoundationCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate2Permissions.TenantManage,
+            MasterDataReferences.Permissions.TenantManage,
             async token =>
             {
                 var tenant = await dbContext.Tenants.SingleOrDefaultAsync(
@@ -38,9 +39,9 @@ public sealed class IdentityFoundationCommands(
                     view,
                     tenant.Id.Value,
                     tenant.Version,
-                    CommercialResourceTypes.Tenant,
-                    CommercialActions.TenantUpdated,
-                    CommercialEventTypes.TenantUpdated,
+                    MasterDataReferences.CommercialResourceTypes.Tenant,
+                    MasterDataReferences.CommercialActions.TenantUpdated,
+                    MasterDataReferences.CommercialEventTypes.TenantUpdated,
                     now);
             },
             cancellationToken);
@@ -53,7 +54,7 @@ public sealed class IdentityFoundationCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate2Permissions.UserManageSelf,
+            MasterDataReferences.Permissions.UserManageSelf,
             async token =>
             {
                 var userId = new UserId(envelope.ActorId.Value);
@@ -72,9 +73,9 @@ public sealed class IdentityFoundationCommands(
                     view,
                     user.Id.Value,
                     user.Version,
-                    CommercialResourceTypes.User,
-                    CommercialActions.UserUpdated,
-                    CommercialEventTypes.UserUpdated,
+                    MasterDataReferences.CommercialResourceTypes.User,
+                    MasterDataReferences.CommercialActions.UserUpdated,
+                    MasterDataReferences.CommercialEventTypes.UserUpdated,
                     now);
             },
             cancellationToken);

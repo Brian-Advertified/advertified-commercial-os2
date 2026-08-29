@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Advertified.Commercial.Application.Opportunity;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Constants;
 using Microsoft.Extensions.Options;
 
@@ -41,7 +42,7 @@ public sealed class HttpOpportunityAgentClient(
             schema_version = "1.0.0",
             tenant_id = input.TenantId,
             actor_id = input.ActorId,
-            effective_role = Gate4ReviewerRoles.AgentRuntimeService,
+            effective_role = MasterDataCodes.Roles.AgentRuntimeService,
             run_id = input.RunId,
             step_id = input.StepId,
             correlation_id = input.CorrelationId,
@@ -120,7 +121,7 @@ public sealed class HttpOpportunityAgentClient(
             usage.GetProperty("cache_status").GetString()!);
         if (usageOutput.IncrementalCostMinor != 0 || usageOutput.ToolCalls != 0)
         {
-            throw new InvalidOperationException("The Gate 4 provider exceeded its zero-cost policy.");
+            throw new InvalidOperationException("The configured opportunity provider exceeded its zero-cost policy.");
         }
         ValidateEvidenceBindings(root.GetProperty("evidence_bindings"), input);
         var objections = root.GetProperty("objections").EnumerateArray()

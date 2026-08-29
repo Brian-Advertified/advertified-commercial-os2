@@ -12,9 +12,8 @@ using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
 
-public sealed partial class InventoryGate6AcceptanceTests
+public sealed partial class InventoryAcceptanceTests
 {
-    private const string PostgreSqlImage = "pgvector/pgvector:0.8.6-pg16-bookworm";
     private static readonly Guid TenantId =
         Guid.Parse("61000000-0000-0000-0000-000000000001");
     private static readonly Guid OtherTenantId =
@@ -28,12 +27,8 @@ public sealed partial class InventoryGate6AcceptanceTests
     private static readonly DateTimeOffset Now =
         new(2026, 8, 29, 18, 0, 0, TimeSpan.Zero);
 
-    private static PostgreSqlContainer CreatePostgres() =>
-        new PostgreSqlBuilder(PostgreSqlImage)
-            .WithDatabase("advertified_gate6")
-            .WithUsername("advertified_gate6")
-            .WithPassword("advertified-gate6-local-only")
-            .Build();
+    private static PostgreSqlContainer CreatePostgres() => DisposablePostgres.Create(
+        "advertified_inventory", "advertified_inventory", "advertified-inventory-local-only");
 
     private static WebApplicationFactory<Program> CreateFactory(
         string connectionString,
@@ -54,6 +49,7 @@ public sealed partial class InventoryGate6AcceptanceTests
 
     private static async Task SeedAsync(string connectionString)
     {
+        await DisposablePostgres.EnableRequiredExtensionsAsync(connectionString);
         var options = new DbContextOptionsBuilder<GovernanceDbContext>()
             .UseNpgsql(connectionString).Options;
         await using var db = new GovernanceDbContext(options);

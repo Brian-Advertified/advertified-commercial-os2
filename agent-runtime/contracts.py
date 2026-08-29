@@ -10,6 +10,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, PositiveInt, model_validator
 
 from agent_registry import AgentCode
+from master_data_codes import CriticSeverities, LifecycleStatuses
 
 StableCode = Annotated[
     str,
@@ -75,9 +76,9 @@ class AgentInvocationEnvelope(ContractModel):
 
 
 class OutputStatus(StrEnum):
-    COMPLETED = "COMPLETED"
-    REVIEW_REQUIRED = "REVIEW_REQUIRED"
-    FAILED = "FAILED"
+    COMPLETED = LifecycleStatuses.COMPLETED.value
+    REVIEW_REQUIRED = LifecycleStatuses.REVIEW_REQUIRED.value
+    FAILED = LifecycleStatuses.FAILED.value
 
 
 class EvidenceBinding(ContractModel):
@@ -104,9 +105,9 @@ class ConfidenceAssessment(ContractModel):
 
 
 class ObjectionSeverity(StrEnum):
-    CRITICAL = "CRITICAL"
-    MATERIAL = "MATERIAL"
-    ADVISORY = "ADVISORY"
+    CRITICAL = CriticSeverities.CRITICAL.value
+    MATERIAL = CriticSeverities.MATERIAL.value
+    ADVISORY = CriticSeverities.ADVISORY.value
 
 
 class Objection(ContractModel):

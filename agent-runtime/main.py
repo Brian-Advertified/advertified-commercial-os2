@@ -20,7 +20,7 @@ DETERMINISTIC_MODE = "deterministic"
 
 class RuntimeDescription(BaseModel):
     service: str
-    status: Literal["baseline", "gate5"]
+    status: Literal["provider_disabled", "deterministic_ready"]
     provider_mode: Literal["disabled", "deterministic"]
     implemented_agents: list[str]
 
@@ -46,7 +46,7 @@ def describe_runtime() -> RuntimeDescription:
     implemented.append(AgentCode.CREATIVE.value)
     return RuntimeDescription(
         service="Advertified Agent Runtime",
-        status="gate5" if enabled else "baseline",
+        status="deterministic_ready" if enabled else "provider_disabled",
         provider_mode="disabled" if not enabled else "deterministic",
         implemented_agents=[] if not enabled else implemented,
     )

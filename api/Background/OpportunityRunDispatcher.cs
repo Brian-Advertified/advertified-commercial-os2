@@ -54,6 +54,6 @@ public sealed partial class OpportunityRunDispatcher(
     [LoggerMessage(
         EventId = 4001,
         Level = LogLevel.Error,
-        Message = "Gate 4 run dispatch failed before a run was claimed.")]
+        Message = "Opportunity run dispatch failed before a run was claimed.")]
     private static partial void LogDispatchFailure(ILogger logger, Exception exception);
 }

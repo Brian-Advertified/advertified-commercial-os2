@@ -4,6 +4,7 @@ using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +25,7 @@ public sealed partial class InventoryCommands
         {
             throw new ApprovalRequiredException();
         }
-        if (source.Status != Gate6InventoryStatuses.ReviewRequired ||
+        if (source.Status != MasterDataCodes.LifecycleStatuses.ReviewRequired ||
             source.ProtectedObjectKey is null)
         {
             throw new InvalidLifecycleTransitionException();
@@ -34,7 +35,7 @@ public sealed partial class InventoryCommands
         EnsurePublishable(candidates);
         var now = timeProvider.GetUtcNow();
         foreach (var candidate in candidates.Where(
-            item => item.Status == Gate6InventoryStatuses.Approved))
+            item => item.Status == MasterDataCodes.LifecycleStatuses.Approved))
         {
             await PublishCandidateAsync(
                 envelope, source, candidate, now, cancellationToken);
@@ -47,20 +48,20 @@ public sealed partial class InventoryCommands
         var view = await store.BuildImportViewAsync(updated, cancellationToken);
         return OpportunityCommandSupport.Outcome(
             envelope, view, importId, updated.Version,
-            CommercialResourceTypes.InventoryImport, CommercialActions.InventoryPublished,
-            CommercialEventTypes.InventoryPublished, now);
+            MasterDataReferences.CommercialResourceTypes.InventoryImport, MasterDataReferences.CommercialActions.InventoryPublished,
+            MasterDataReferences.CommercialEventTypes.InventoryPublished, now);
     }
 
     private static void EnsurePublishable(List<InventoryCandidateRow> candidates)
     {
         if (candidates.Count == 0 || candidates.Any(
-                item => item.Status == Gate6InventoryStatuses.ReviewRequired) ||
-            candidates.All(item => item.Status != Gate6InventoryStatuses.Approved))
+                item => item.Status == MasterDataCodes.LifecycleStatuses.ReviewRequired) ||
+            candidates.All(item => item.Status != MasterDataCodes.LifecycleStatuses.Approved))
         {
             throw new InventoryPublishBlockedException();
         }
         foreach (var candidate in candidates.Where(
-            item => item.Status == Gate6InventoryStatuses.Approved))
+            item => item.Status == MasterDataCodes.LifecycleStatuses.Approved))
         {
             var validation = JsonSerializer.Deserialize<InventoryValidationIssueView[]>(
                 candidate.ValidationJson, InventoryRowMapper.StoredJson) ?? [];
@@ -126,7 +127,7 @@ public sealed partial class InventoryCommands
                 id, tenant_id, supplier_id, supplier_product_code, status_code,
                 version, created_at_utc, updated_at_utc)
             VALUES ({productId}, {tenantId.Value}, {supplierId}, {productCode},
-                {Gate6InventoryStatuses.Active}, 1, {now}, {now})
+                {MasterDataCodes.LifecycleStatuses.Active}, 1, {now}, {now})
             """, cancellationToken);
 
     private Task<int> NextVersionNumberAsync(
@@ -159,7 +160,7 @@ public sealed partial class InventoryCommands
             VALUES ({versionId}, {envelope.TenantId.Value}, {productId}, {versionNumber},
                 {values.Name}, {values.Channel}, {values.ProductType}, {values.Geography},
                 {values.Address}, {values.Latitude}, {values.Longitude}, {extension}::jsonb,
-                {Gate6Verification.HumanVerified}, {source.Id}, {candidate.Id},
+                {MasterDataCodes.VerificationLevels.HumanVerified}, {source.Id}, {candidate.Id},
                 {envelope.ActorId.Value}, {now})
             """, cancellationToken);
     }
@@ -197,10 +198,10 @@ public sealed partial class InventoryCommands
         InventoryImportRow source,
         InventoryCandidateValues values) => source.DocumentClass switch
     {
-        Gate6DocumentClasses.Png or Gate6DocumentClasses.Jpeg when values.Channel == "OOH" =>
-            "OOH_PHOTO",
-        Gate6DocumentClasses.Png or Gate6DocumentClasses.Jpeg => "PRODUCT_IMAGE",
-        _ => "RATE_CARD",
+        MasterDataCodes.DocumentClasses.Png or MasterDataCodes.DocumentClasses.Jpeg when values.Channel == MasterDataCodes.Channels.Ooh =>
+            MasterDataCodes.AssetTypes.OohPhoto,
+        MasterDataCodes.DocumentClasses.Png or MasterDataCodes.DocumentClasses.Jpeg => MasterDataCodes.AssetTypes.ProductImage,
+        _ => MasterDataCodes.AssetTypes.RateCard,
     };
 
     private Task<int> SetCurrentVersionAsync(
@@ -221,17 +222,17 @@ public sealed partial class InventoryCommands
     {
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.inventory_imports
-            SET status_code = {Gate6InventoryStatuses.Completed}, version = version + 1,
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Completed}, version = version + 1,
                 updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {source.Id}
-              AND status_code = {Gate6InventoryStatuses.ReviewRequired}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.ReviewRequired}
               AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1)
         {
             throw new VersionConflictException();
         }
-        await RecordStepAsync(envelope.TenantId, source.Id, Gate6InventorySteps.Publication,
-            Gate6InventoryStatuses.Completed, now, cancellationToken);
+        await RecordStepAsync(envelope.TenantId, source.Id, MasterDataCodes.InventoryImportStepTypes.Publication,
+            MasterDataCodes.LifecycleStatuses.Completed, now, cancellationToken);
     }
 }

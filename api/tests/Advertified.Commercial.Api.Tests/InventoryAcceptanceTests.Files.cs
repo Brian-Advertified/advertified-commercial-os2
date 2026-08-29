@@ -4,7 +4,7 @@ using System.Globalization;
 
 namespace Advertified.Commercial.Api.Tests;
 
-public sealed partial class InventoryGate6AcceptanceTests
+public sealed partial class InventoryAcceptanceTests
 {
     private sealed record FileFixture(
         string DocumentClass,

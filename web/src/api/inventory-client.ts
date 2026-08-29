@@ -2,6 +2,7 @@ import type { ZodType } from 'zod'
 import { request } from './client'
 import { inventoryCodes, type InventoryDecision } from './inventory-constants'
 import {
+  inventoryBenchmarkSchema,
   inventoryCandidateSchema,
   inventoryImportSchema,
   inventoryProductPageSchema,
@@ -98,6 +99,13 @@ export const inventoryApi = {
     return (await request(
       `/api/v1/tenants/${tenantId}/inventory-products/${productId}`,
       inventoryProductSchema,
+    )).data
+  },
+
+  async getBenchmark(tenantId: string, productId: string) {
+    return (await request(
+      `/api/v1/tenants/${tenantId}/inventory-products/${productId}/benchmark`,
+      inventoryBenchmarkSchema,
     )).data
   },
 }

@@ -5,19 +5,19 @@ using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
 
-public sealed partial class OpportunityGate4AcceptanceTests
+public sealed partial class OpportunityAcceptanceTests
 {
     private static async Task<Guid> CreateClientAsync(HttpClient owner)
     {
         using var response = await SendCommandAsync(
             owner,
             $"/api/v1/tenants/{TenantId}/client-accounts",
-            "gate4-client",
+            "opportunity-client",
             new
             {
-                externalReference = "gate4-client",
-                legalName = "Gate Four Client (Pty) Ltd",
-                tradingName = "Gate Four Client",
+                externalReference = "opportunity-client",
+                legalName = "Opportunity Test Client (Pty) Ltd",
+                tradingName = "Opportunity Test Client",
                 website = "https://client.example",
                 industry = "Workspace furniture",
                 billingProfileJson = "{}",
@@ -34,7 +34,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
         using var response = await SendCommandAsync(
             owner,
             $"/api/v1/tenants/{TenantId}/opportunities",
-            "gate4-opportunity",
+            "opportunity-opportunity",
             new
             {
                 clientId,
@@ -58,7 +58,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
         using var response = await SendCommandAsync(
             owner,
             $"/api/v1/tenants/{TenantId}/opportunities/{opportunityId}/evidence-sources",
-            "gate4-source",
+            "opportunity-source",
             new
             {
                 opportunityId,
@@ -100,7 +100,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
         using var unsafeUrl = await SendCommandAsync(
             owner,
             $"/api/v1/tenants/{TenantId}/opportunities/{opportunityId}/evidence-sources",
-            "gate4-unsafe-url",
+            "opportunity-unsafe-url",
             new { body.opportunityId, body.type, locator = "https://user@fixture.local/source",
                 body.title, body.policyBasis, body.content, body.reviewerUserId, body.claims });
         await AssertProblemAsync(unsafeUrl, HttpStatusCode.BadRequest, "VALIDATION_FAILED");
@@ -108,7 +108,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
         using var disabledProvider = await SendCommandAsync(
             owner,
             $"/api/v1/tenants/{TenantId}/opportunities/{opportunityId}/evidence-sources",
-            "gate4-disabled-provider",
+            "opportunity-disabled-provider",
             new { body.opportunityId, body.type, locator = "https://example.invalid/source",
                 body.title, body.policyBasis, body.content, body.reviewerUserId, body.claims });
         await AssertProblemAsync(
@@ -121,7 +121,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
         long version) => SendSuccessfulCommandAsync(
             owner,
             $"/api/v1/tenants/{TenantId}/opportunities/{opportunityId}/qualification:start",
-            "gate4-start",
+            "opportunity-start",
             new { comment = "Begin evidence review." },
             version);
 
@@ -129,7 +129,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
         SendSuccessfulCommandAsync(
             reviewer,
             $"/api/v1/tenants/{TenantId}/evidence-items/{itemId}/review",
-            "gate4-review",
+            "opportunity-review",
             new { decision = "APPROVE", structuredValueJson = (string?)null, reason = (string?)null },
             1);
 
@@ -141,7 +141,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
         using var submitted = await SendCommandAsync(
             owner,
             $"/api/v1/tenants/{TenantId}/opportunities/{opportunityId}/evidence:submit",
-            "gate4-submit-evidence",
+            "opportunity-submit-evidence",
             new { gaps = EvidenceGaps, approverUserId = ReviewerId },
             2);
         submitted.EnsureSuccessStatusCode();
@@ -158,7 +158,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
             reviewer,
             $"/api/v1/tenants/{TenantId}/human-tasks/" +
                 $"{approvalTask.GetProperty("id").GetGuid()}:complete",
-            "gate4-approve-evidence",
+            "opportunity-approve-evidence",
             new
             {
                 action = "APPROVE",
@@ -200,14 +200,14 @@ public sealed partial class OpportunityGate4AcceptanceTests
             owner,
             $"/api/v1/tenants/{TenantId}/critic-objections/" +
                 $"{objection.GetProperty("id").GetGuid()}:resolve",
-            "gate4-resolve-objection",
+            "opportunity-resolve-objection",
             new { resolution = "ADDRESSED", reason = "Baseline remains unknown and is a task." },
             objection.GetProperty("version").GetInt64());
         var strategyId = strategy.GetProperty("id").GetGuid();
         using var submitted = await SendCommandAsync(
             owner,
             $"/api/v1/tenants/{TenantId}/strategy-versions/{strategyId}:submit",
-            "gate4-submit-strategy",
+            "opportunity-submit-strategy",
             new { comment = "Submit the evidence-bound strategy." },
             strategy.GetProperty("version").GetInt64());
         submitted.EnsureSuccessStatusCode();
@@ -215,7 +215,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
         await SendSuccessfulCommandAsync(
             approver,
             $"/api/v1/tenants/{TenantId}/strategy-versions/{strategyId}:approve",
-            "gate4-approve-strategy",
+            "opportunity-approve-strategy",
             new { reason = "Approved for Brief drafting." },
             submittedJson.RootElement.GetProperty("version").GetInt64());
 

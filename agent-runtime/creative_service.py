@@ -24,6 +24,13 @@ from creative_contracts import (
     CreativeTextElement,
     CreativeWarning,
 )
+from master_data_codes import (
+    AssetRightsStatuses,
+    AssetTypes,
+    CreativeTextRoles,
+    CreativeWarningTypes,
+    Currencies,
+)
 
 DISCLOSURE = (
     "Illustrative creative concept. Final offers, pricing, artwork and publication "
@@ -89,7 +96,11 @@ def generate_creative_concepts(
 def _approved_assets(
     assets: tuple[CreativeAssetInput, ...],
 ) -> dict[UUID, CreativeAssetInput]:
-    return {asset.id: asset for asset in assets if asset.rights_status == "APPROVED"}
+    return {
+        asset.id: asset
+        for asset in assets
+        if asset.rights_status == AssetRightsStatuses.APPROVED.value
+    }
 
 
 def _channel_concept(
@@ -103,25 +114,33 @@ def _channel_concept(
     )
     text = [
         CreativeTextElement(
-            role="HEADLINE",
+            role=CreativeTextRoles.HEADLINE.value,
             text=f"Discover {product.name}",
             verified=False,
         ),
         CreativeTextElement(
-            role="BODY",
+            role=CreativeTextRoles.BODY.value,
             text=f"Explore {product.category} from {request.brief.client_name}.",
             verified=True,
         ),
         CreativeTextElement(
-            role="CTA",
+            role=CreativeTextRoles.CTA.value,
             text=f"Enquire with {request.brief.client_name}",
             verified=False,
         ),
     ]
     price = _verified_price(request, product)
     if price is not None:
-        text.append(CreativeTextElement(role="PRICE", text=price, verified=True))
-    text.append(CreativeTextElement(role="DISCLOSURE", text=DISCLOSURE, verified=True))
+        text.append(CreativeTextElement(
+            role=CreativeTextRoles.PRICE.value,
+            text=price,
+            verified=True,
+        ))
+    text.append(CreativeTextElement(
+        role=CreativeTextRoles.DISCLOSURE.value,
+        text=DISCLOSURE,
+        verified=True,
+    ))
     return CreativeChannelConcept(
         channel=media_format.channel,
         format_code=media_format.format_code,
@@ -142,7 +161,8 @@ def _brand_only_concept(request: CreativeAgentRequest, media_format) -> Creative
     logo_ids = tuple(
         asset.id
         for asset in request.assets
-        if asset.asset_type == "LOGO" and asset.rights_status == "APPROVED"
+        if asset.asset_type == AssetTypes.LOGO.value
+        and asset.rights_status == AssetRightsStatuses.APPROVED.value
     )
     return CreativeChannelConcept(
         channel=media_format.channel,
@@ -155,11 +175,15 @@ def _brand_only_concept(request: CreativeAgentRequest, media_format) -> Creative
         preserve_supplied_products=True,
         text_elements=(
             CreativeTextElement(
-                role="HEADLINE",
+                role=CreativeTextRoles.HEADLINE.value,
                 text=request.brief.objective,
                 verified=True,
             ),
-            CreativeTextElement(role="DISCLOSURE", text=DISCLOSURE, verified=True),
+            CreativeTextElement(
+                role=CreativeTextRoles.DISCLOSURE.value,
+                text=DISCLOSURE,
+                verified=True,
+            ),
         ),
     )
 
@@ -177,7 +201,7 @@ def _verified_price(
         if product.offer_valid_from is not None and start < product.offer_valid_from:
             return None
     amount = product.current_price_minor / 100
-    if product.currency == "ZAR":
+    if product.currency == Currencies.ZAR.value:
         return f"R{amount:,.2f}".replace(",", " ")
     return f"{product.currency} {amount:,.2f}"
 
@@ -193,25 +217,28 @@ def _warnings(
         if product.current_price_minor is not None and start is not None:
             if product.offer_valid_until is None:
                 warnings.append(CreativeWarning(
-                    code="OFFER_VALIDITY_UNKNOWN",
+                    code=CreativeWarningTypes.OFFER_VALIDITY_UNKNOWN.value,
                     message="The supplied price has no confirmed validity for the campaign period.",
                     product_name=product.name,
                 ))
             elif start > product.offer_valid_until:
                 warnings.append(CreativeWarning(
-                    code="OFFER_OUTSIDE_CAMPAIGN",
+                    code=CreativeWarningTypes.OFFER_OUTSIDE_CAMPAIGN.value,
                     message="The supplied offer expires before the proposed campaign starts.",
                     product_name=product.name,
                 ))
         if not any(asset_id in approved_assets for asset_id in product.asset_ids):
             warnings.append(CreativeWarning(
-                code="NO_APPROVED_PRODUCT_IMAGE",
+                code=CreativeWarningTypes.NO_APPROVED_PRODUCT_IMAGE.value,
                 message="No approved supplied product image is available for this concept.",
                 product_name=product.name,
             ))
-    if any(asset.rights_status != "APPROVED" for asset in request.assets):
+    if any(
+        asset.rights_status != AssetRightsStatuses.APPROVED.value
+        for asset in request.assets
+    ):
         warnings.append(CreativeWarning(
-            code="ASSET_RIGHTS_UNCONFIRMED",
+            code=CreativeWarningTypes.ASSET_RIGHTS_UNCONFIRMED.value,
             message="Some supplied assets are excluded until their usage rights are confirmed.",
         ))
     return tuple(warnings)

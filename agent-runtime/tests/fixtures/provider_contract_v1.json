@@ -1,6 +1,6 @@
 {
   "fixture_version": "1.0.0",
-  "fixture_id": "gate1.business-interpretation.contract",
+  "fixture_id": "provider.business-interpretation.contract",
   "invocation": {
     "schema_version": "1.0.0",
     "tenant_id": "11111111-1111-1111-1111-111111111111",

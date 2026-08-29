@@ -1,5 +1,6 @@
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Persistence;
@@ -23,7 +24,7 @@ public sealed class IdentityWorkspaceReader(GovernanceDbContext dbContext)
             cancellationToken);
 
         var view = await dbContext.Users
-            .Where(item => item.Id == userId && item.Status == MasterDataConstants.ActiveStatus)
+            .Where(item => item.Id == userId && item.Status == MasterDataReferences.LifecycleStatuses.Active)
             .Select(item => new CurrentUserView(
                 item.Id.Value,
                 item.Email.Value,
@@ -51,8 +52,8 @@ public sealed class IdentityWorkspaceReader(GovernanceDbContext dbContext)
             cancellationToken);
 
         var permissionMetadata = await dbContext.MasterDataItems
-            .Where(item => item.CollectionCode == MasterDataConstants.PermissionCollection
-                && item.Code == Gate2Permissions.WorkspaceRead.Value
+            .Where(item => item.CollectionCode == MasterDataCodes.Permissions.Collection
+                && item.Code == MasterDataReferences.Permissions.WorkspaceRead.Value
                 && item.IsActive)
             .Select(item => item.MetadataJson)
             .SingleOrDefaultAsync(cancellationToken);
@@ -64,8 +65,8 @@ public sealed class IdentityWorkspaceReader(GovernanceDbContext dbContext)
                 from membership in dbContext.Memberships
                 join tenant in dbContext.Tenants on membership.TenantId equals tenant.Id
                 where membership.UserId == userId
-                    && membership.Status == MasterDataConstants.ActiveStatus
-                    && tenant.Status == MasterDataConstants.ActiveStatus
+                    && membership.Status == MasterDataReferences.LifecycleStatuses.Active
+                    && tenant.Status == MasterDataReferences.LifecycleStatuses.Active
                 orderby tenant.TradingName, tenant.Id
                 select new WorkspaceView(
                     membership.Id.Value,

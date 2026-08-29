@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 
 namespace Advertified.Commercial.Infrastructure.Opportunity;
 
@@ -23,11 +24,11 @@ public sealed class InProcessOpportunityAgentClient : IOpportunityAgentClient
 
         var output = input.AgentCode switch
         {
-            Gate4AgentCodes.BusinessInterpretation => Interpretation(input),
-            Gate4AgentCodes.OpportunityIntelligence => Angles(input),
-            Gate4AgentCodes.Strategy => Strategy(input),
-            Gate4AgentCodes.CriticReadiness => Critic(),
-            Gate4AgentCodes.BriefDrafting => Brief(input),
+            MasterDataCodes.AgentTypes.BusinessInterpretation => Interpretation(input),
+            MasterDataCodes.AgentTypes.OpportunityIntelligence => Angles(input),
+            MasterDataCodes.AgentTypes.Strategy => Strategy(input),
+            MasterDataCodes.AgentTypes.CriticReadiness => Critic(),
+            MasterDataCodes.AgentTypes.BriefDrafting => Brief(input),
             _ => throw new ArgumentException("The agent code is not enabled.", nameof(input)),
         };
         return Task.FromResult(output);
@@ -45,7 +46,7 @@ public sealed class InProcessOpportunityAgentClient : IOpportunityAgentClient
             commercial_context = "Interpretation is limited to approved source claims.",
         });
         return Output(
-            Gate4Statuses.Completed,
+            MasterDataCodes.LifecycleStatuses.Completed,
             artifact,
             Bindings("artifact.offering", input),
             JsonSerializer.SerializeToElement(new[]
@@ -82,7 +83,7 @@ public sealed class InProcessOpportunityAgentClient : IOpportunityAgentClient
             },
         });
         return Output(
-            Gate4Statuses.Completed, artifact, Bindings("artifact.angles", input),
+            MasterDataCodes.LifecycleStatuses.Completed, artifact, Bindings("artifact.angles", input),
             JsonSerializer.SerializeToElement(Array.Empty<object>()), [],
             "The alternatives are proposals linked to approved evidence.");
     }
@@ -101,7 +102,7 @@ public sealed class InProcessOpportunityAgentClient : IOpportunityAgentClient
             risks = StrategyRisks,
         });
         return Output(
-            Gate4Statuses.Completed, artifact, Bindings("artifact.diagnosis", input),
+            MasterDataCodes.LifecycleStatuses.Completed, artifact, Bindings("artifact.diagnosis", input),
             JsonSerializer.SerializeToElement(Array.Empty<object>()), [],
             "The strategy remains an evidence-bound proposal.");
     }
@@ -110,19 +111,19 @@ public sealed class InProcessOpportunityAgentClient : IOpportunityAgentClient
     {
         var artifact = JsonSerializer.SerializeToElement(new
         {
-            readiness = Gate4Statuses.ReviewRequired,
+            readiness = MasterDataCodes.LifecycleStatuses.ReviewRequired,
             summary = "Resolve the measurement gap before approval.",
         });
         var objections = new[]
         {
             new AgentObjectionOutput(
-                Gate4CriticSeverities.Material,
+                MasterDataCodes.CriticSeverities.Material,
                 "artifact.objectives",
                 "No approved conversion baseline is present.",
                 "Record the baseline as unknown and define a measurement task."),
         };
         return Output(
-            Gate4Statuses.ReviewRequired, artifact,
+            MasterDataCodes.LifecycleStatuses.ReviewRequired, artifact,
             JsonSerializer.SerializeToElement(Array.Empty<object>()),
             JsonSerializer.SerializeToElement(Array.Empty<object>()), objections,
             "The critic retained the evidence gap.");
@@ -130,7 +131,7 @@ public sealed class InProcessOpportunityAgentClient : IOpportunityAgentClient
 
     private static OpportunityAgentOutput Brief(OpportunityAgentInput input)
     {
-        var strategy = input.PriorArtifacts.Single(item => item.ArtifactType == "STRATEGY").Value;
+        var strategy = input.PriorArtifacts.Single(item => item.ArtifactType == MasterDataCodes.WorkflowStepTypes.Strategy).Value;
         var objectives = strategy.GetProperty("objectives").EnumerateArray()
             .Select(item => item.GetString()!).ToArray();
         var audiences = strategy.GetProperty("audience_hypotheses").EnumerateArray()
@@ -160,7 +161,7 @@ public sealed class InProcessOpportunityAgentClient : IOpportunityAgentClient
             new { field_path = "timing", question = "When must the work run?", is_blocking = false },
         });
         return Output(
-            Gate4Statuses.Completed, artifact, Bindings("artifact.business_problem", input),
+            MasterDataCodes.LifecycleStatuses.Completed, artifact, Bindings("artifact.business_problem", input),
             unknowns, [], "The Brief draft preserves unsupported commercial details as unknown.");
     }
 

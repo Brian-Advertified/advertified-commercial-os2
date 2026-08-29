@@ -22,13 +22,13 @@ test('three human roles carry evidence-bound strategy to Brief ready', async ({ 
   await page.addInitScript((id) => {
     sessionStorage.setItem('advertified.workspace', JSON.stringify({ tenantId: id }))
   }, tenantId)
-  await page.exposeFunction('switchGate4Role', (role: Role) => { state.role = role })
+  await page.exposeFunction('switchOpportunityRole', (role: Role) => { state.role = role })
   await page.route('**/api/v1/**', async (route) => handleApi(route, state))
 
   await page.goto(`/opportunities/${opportunityId}`)
   await expect(page.getByRole('heading', { name: 'Evidence-led workspace growth' })).toBeVisible()
   await page.getByRole('button', { name: 'Approve assigned evidence set' }).click()
-  await page.evaluate(() => window.switchGate4Role('owner'))
+  await page.evaluate(() => window.switchOpportunityRole('owner'))
   await page.getByRole('button', { name: 'Interpret approved evidence' }).click()
   await expect(page.getByRole('button', { name: 'Confirm interpretation' })).toBeVisible()
   await page.getByRole('button', { name: 'Confirm interpretation' }).click()
@@ -43,7 +43,7 @@ test('three human roles carry evidence-bound strategy to Brief ready', async ({ 
 
   await page.getByRole('button', { name: 'Approve assigned strategy' }).click()
   await expect(page.getByRole('alert')).toContainText('assigned operator or reviewer')
-  await page.evaluate(() => window.switchGate4Role('approver'))
+  await page.evaluate(() => window.switchOpportunityRole('approver'))
   await page.getByRole('button', { name: 'Approve assigned strategy' }).click()
   await expect(page.getByText('Draft the campaign brief.')).toBeVisible()
   await expect(page.getByText('brief ready', { exact: true })).toBeVisible()
@@ -218,15 +218,15 @@ function runFixture(kind: string) {
   return { id: crypto.randomUUID(), opportunityId, runKind: kind, status: 'QUEUED', currentStep: null,
     attempts: 0, errorCode: null, recoveryAction: null, incrementalCostMinor: 0, version: 1, updatedAtUtc: now }
 }
-function sessionFixture() { return { authenticated: true, antiforgeryToken: 'csrf-gate4', expiresAtUtc: '2026-08-29T20:00:00Z' } }
+function sessionFixture() { return { authenticated: true, antiforgeryToken: 'csrf-opportunity', expiresAtUtc: '2026-08-29T20:00:00Z' } }
 function workspaceFixture() { return { membershipId: '99300000-0000-0000-0000-000000000001', tenantId, name: 'Northstar Agency', slug: 'northstar', roleCode: 'platform_admin', version: 1 } }
 function safeProblem(code: string) { return { title: 'Denied', status: 403, code, correlationId: crypto.randomUUID() } }
 function assertCommandHeaders(route: Route) {
   const headers = route.request().headers()
-  expect(headers['x-csrf-token']).toBe('csrf-gate4'); expect(headers['idempotency-key']).toBeTruthy()
+  expect(headers['x-csrf-token']).toBe('csrf-opportunity'); expect(headers['idempotency-key']).toBeTruthy()
 }
 async function json(route: Route, status: number, body: unknown) {
   await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
 }
 
-declare global { interface Window { switchGate4Role: (role: Role) => Promise<void> } }
+declare global { interface Window { switchOpportunityRole: (role: Role) => Promise<void> } }

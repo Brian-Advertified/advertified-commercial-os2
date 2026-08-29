@@ -1,6 +1,7 @@
 using System.Globalization;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
@@ -16,24 +17,30 @@ internal static class InventoryCandidateNormalizer
     private static readonly Dictionary<string, string> ProductTypes =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            [Gate6Channels.Ooh] = Gate6ProductTypes.OohSite,
-            [Gate6Channels.Dooh] = Gate6ProductTypes.DoohScreen,
-            [Gate6Channels.Radio] = Gate6ProductTypes.RadioSpot,
-            [Gate6Channels.Television] = Gate6ProductTypes.TelevisionSpot,
-            [Gate6Channels.Print] = Gate6ProductTypes.PrintPlacement,
-            [Gate6Channels.Digital] = Gate6ProductTypes.DigitalPlacement,
-            [Gate6Channels.Social] = Gate6ProductTypes.SocialPlacement,
-            [Gate6Channels.Influencer] = Gate6ProductTypes.InfluencerPackage,
-            [Gate6Channels.Experiential] = Gate6ProductTypes.Experience,
-            [Gate6Channels.Podcast] = Gate6ProductTypes.PodcastSpot,
-            [Gate6Channels.Retail] = Gate6ProductTypes.RetailPlacement,
-            [Gate6Channels.Transit] = Gate6ProductTypes.TransitPlacement,
-            [Gate6Channels.Mall] = Gate6ProductTypes.MallPlacement,
-            [Gate6Channels.Email] = Gate6ProductTypes.EmailPlacement,
-            [Gate6Channels.Mobile] = Gate6ProductTypes.MobilePlacement,
+            [MasterDataCodes.Channels.Ooh] = MasterDataCodes.InventoryProductTypes.OohSite,
+            [MasterDataCodes.Channels.Dooh] = MasterDataCodes.InventoryProductTypes.DoohScreen,
+            [MasterDataCodes.Channels.Radio] = MasterDataCodes.InventoryProductTypes.RadioSpot,
+            [MasterDataCodes.Channels.Tv] = MasterDataCodes.InventoryProductTypes.TvSpot,
+            [MasterDataCodes.Channels.Print] = MasterDataCodes.InventoryProductTypes.PrintPlacement,
+            [MasterDataCodes.Channels.Digital] = MasterDataCodes.InventoryProductTypes.DigitalPlacement,
+            [MasterDataCodes.Channels.Social] = MasterDataCodes.InventoryProductTypes.SocialPlacement,
+            [MasterDataCodes.Channels.Influencer] = MasterDataCodes.InventoryProductTypes.InfluencerPackage,
+            [MasterDataCodes.Channels.Experiential] = MasterDataCodes.InventoryProductTypes.Experience,
+            [MasterDataCodes.Channels.Podcast] = MasterDataCodes.InventoryProductTypes.PodcastSpot,
+            [MasterDataCodes.Channels.Retail] = MasterDataCodes.InventoryProductTypes.RetailPlacement,
+            [MasterDataCodes.Channels.Transit] = MasterDataCodes.InventoryProductTypes.TransitPlacement,
+            [MasterDataCodes.Channels.Mall] = MasterDataCodes.InventoryProductTypes.MallPlacement,
+            [MasterDataCodes.Channels.Email] = MasterDataCodes.InventoryProductTypes.EmailPlacement,
+            [MasterDataCodes.Channels.Mobile] = MasterDataCodes.InventoryProductTypes.MobilePlacement,
         };
     private static readonly string[] ExcludedClaims =
-        ["audience", "reach", "listeners", "impressions", "ratings"];
+        [
+            MasterDataCodes.InventoryUnsupportedClaimTerms.Audience,
+            MasterDataCodes.InventoryUnsupportedClaimTerms.Reach,
+            MasterDataCodes.InventoryUnsupportedClaimTerms.Listeners,
+            MasterDataCodes.InventoryUnsupportedClaimTerms.Impressions,
+            MasterDataCodes.InventoryUnsupportedClaimTerms.Ratings,
+        ];
 
     internal static ExtractedInventoryCandidate Normalize(
         InventoryExtractedRow row,
@@ -76,13 +83,13 @@ internal static class InventoryCandidateNormalizer
         {
             productType = derived;
             evidence.Add(Evidence("product_type", channel, derived,
-                Gate6Transformations.DerivedFromChannel, locator, sourceHash));
+                MasterDataCodes.InventoryTransformationTypes.DerivedFromChannel, locator, sourceHash));
         }
-        var availability = Code(values, "availability") ?? Gate6Availability.Unknown;
+        var availability = Code(values, "availability") ?? MasterDataCodes.AvailabilityStatuses.Unknown;
         if (!values.ContainsKey("availability"))
         {
             evidence.Add(Evidence("availability", null, availability,
-                Gate6Transformations.ExplicitUnknown, locator, sourceHash));
+                MasterDataCodes.InventoryTransformationTypes.ExplicitUnknown, locator, sourceHash));
         }
         return new InventoryCandidateValues(
             Text(values, "product_code"), Text(values, "name"), channel, productType,
@@ -129,11 +136,11 @@ internal static class InventoryCandidateNormalizer
 
     private static string Transformation(string field, string header) => field switch
     {
-        "rate" => Gate6Transformations.MajorToMinor,
-        "latitude" or "longitude" => Gate6Transformations.ParseDecimal,
+        "rate" => MasterDataCodes.InventoryTransformationTypes.MajorToMinor,
+        "latitude" or "longitude" => MasterDataCodes.InventoryTransformationTypes.ParseDecimal,
         "channel" or "product_type" or "rate_type" or "currency" or "availability" =>
-            Gate6Transformations.UppercaseCode,
-        _ => Gate6Transformations.Trim,
+            MasterDataCodes.InventoryTransformationTypes.UppercaseCode,
+        _ => MasterDataCodes.InventoryTransformationTypes.Trim,
     };
 
     private static InventoryFieldEvidenceView Evidence(

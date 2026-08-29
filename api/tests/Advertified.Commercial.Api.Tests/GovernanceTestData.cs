@@ -22,7 +22,7 @@ internal static class GovernanceTestData
             Actor,
             new CommandId(Guid.Parse("55555555-5555-5555-5555-555555555555")),
             new CorrelationId(Guid.Parse("66666666-6666-6666-6666-666666666666")),
-            new IdempotencyKey("gate-1-command-fixture"),
+            new IdempotencyKey("governance-command-fixture"),
             payloadHash ?? new Sha256Digest(new string('a', 64)),
             4,
             new DateTimeOffset(2026, 8, 29, 12, 0, 0, TimeSpan.Zero),

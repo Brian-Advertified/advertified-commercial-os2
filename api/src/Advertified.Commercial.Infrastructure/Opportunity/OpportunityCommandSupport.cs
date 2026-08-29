@@ -4,6 +4,7 @@ using System.Text.Json;
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Advertified.Commercial.Infrastructure.MasterData;
@@ -52,18 +53,18 @@ internal static class OpportunityCommandSupport
     public static CapturedSource Capture(RegisterEvidenceSourceCommand command)
     {
         var type = Required(command.Type, 100, nameof(command.Type)).ToUpperInvariant();
-        if (type == Gate4SourceTypes.SuppliedText)
+        if (type == MasterDataCodes.EvidenceSourceTypes.SuppliedText)
         {
             var content = Required(command.Content ?? string.Empty, 262_144, nameof(command.Content));
             return new CapturedSource(type, content, command.Claims);
         }
 
-        if (type == Gate4SourceTypes.PermittedUrl)
+        if (type == MasterDataCodes.EvidenceSourceTypes.PermittedUrl)
         {
             var locator = ValidatePermittedUrl(command.Locator);
             if (!string.Equals(
                     locator,
-                    Gate4SourceTypes.DeterministicFixtureUrl,
+                    OpportunityFixtureUris.LocalBusiness,
                     StringComparison.Ordinal))
             {
                 throw new CaptureProviderDisabledException();
@@ -74,7 +75,7 @@ internal static class OpportunityCommandSupport
                 ? command.Claims
                 : [new CandidateEvidenceCommand(
                     "fixture:paragraph:1",
-                    Gate4EvidenceCodes.BusinessContext,
+                    MasterDataCodes.EvidenceClaimTypes.BusinessContext,
                     "{\"statement\":\"Modular workspace furniture for small Gauteng teams\"}",
                     fixture,
                     1m)];
@@ -138,7 +139,7 @@ internal static class OpportunityCommandSupport
                 why_it_matters, resource_type_code, resource_id, resource_version,
                 assignee_user_id, action_schema_json, version, created_at_utc)
             VALUES (
-                {taskId}, {tenantId.Value}, {opportunityId}, {taskType}, {Gate4Statuses.Pending},
+                {taskId}, {tenantId.Value}, {opportunityId}, {taskType}, {MasterDataCodes.LifecycleStatuses.Pending},
                 {title}, {whyItMatters}, {resourceType.Value}, {resourceId}, {resourceVersion},
                 {assigneeUserId}, {EmptyJson}::jsonb, 1, {now})
             """, cancellationToken);
@@ -154,12 +155,12 @@ internal static class OpportunityCommandSupport
         CancellationToken cancellationToken) =>
         dbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.human_tasks
-            SET status_code = {Gate4Statuses.Completed}, completed_by = {actorId},
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Completed}, completed_by = {actorId},
                 completed_at_utc = {now}, completion_json = {CompletedJson}::jsonb,
                 version = version + 1
             WHERE tenant_id = {tenantId.Value} AND resource_id = {resourceId}
               AND task_type_code = {taskType} AND assignee_user_id = {actorId}
-              AND status_code = {Gate4Statuses.Pending}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.Pending}
             """, cancellationToken);
 
     public static CommandOutcome Outcome<TCommand, TResult>(
@@ -193,7 +194,7 @@ internal static class OpportunityCommandSupport
             SELECT EXISTS (
                 SELECT 1 FROM commercial.memberships
                 WHERE tenant_id = {tenantId.Value} AND user_id = {reviewerId}
-                  AND status_code = {Gate4Statuses.Active}
+                  AND status_code = {MasterDataCodes.LifecycleStatuses.Active}
                   AND role_code = ANY({allowedRoles})) AS "Value"
             """).SingleAsync(cancellationToken);
         if (!active)

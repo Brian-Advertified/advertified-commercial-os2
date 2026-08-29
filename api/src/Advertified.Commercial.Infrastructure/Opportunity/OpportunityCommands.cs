@@ -3,6 +3,7 @@ using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +16,7 @@ public sealed partial class OpportunityCommands(
     TimeProvider timeProvider) : IOpportunityCommands
 {
     private static readonly string[] ClientAdminRoles =
-        [Gate4ReviewerRoles.PlatformAdmin, Gate4ReviewerRoles.AgencyAdmin];
+        [MasterDataCodes.Roles.PlatformAdmin, MasterDataCodes.Roles.AgencyAdmin];
 
     public async Task<CommandResult<OpportunityView>> CreateAsync(
         CommandEnvelope<CreateOpportunityCommand> envelope,
@@ -23,7 +24,7 @@ public sealed partial class OpportunityCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate4Permissions.OpportunityCreate,
+            MasterDataReferences.Permissions.OpportunityCreate,
             token => CreateOutcomeAsync(envelope, token),
             cancellationToken);
         return CommandOutcomeFactory.ToResult<OpportunityView>(receipt);
@@ -35,7 +36,7 @@ public sealed partial class OpportunityCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate4Permissions.EvidenceCreate,
+            MasterDataReferences.Permissions.EvidenceCreate,
             token => RegisterSourceOutcomeAsync(envelope, token),
             cancellationToken);
         return CommandOutcomeFactory.ToResult<EvidenceSourceView>(receipt);
@@ -48,7 +49,7 @@ public sealed partial class OpportunityCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate4Permissions.OpportunityEdit,
+            MasterDataReferences.Permissions.OpportunityEdit,
             token => StartQualificationOutcomeAsync(opportunityId, envelope, token),
             cancellationToken);
         return CommandOutcomeFactory.ToResult<OpportunityView>(receipt);
@@ -81,7 +82,7 @@ public sealed partial class OpportunityCommands(
             nameof(command.SourceType)).ToUpperInvariant();
         await OpportunityCommandSupport.EnsureCodeAsync(
             store.DbContext,
-            "opportunitySourceTypes",
+            MasterDataCodes.OpportunitySourceTypes.Collection,
             sourceType,
             cancellationToken);
         var currency = command.Currency?.Trim().ToUpperInvariant();
@@ -94,7 +95,7 @@ public sealed partial class OpportunityCommands(
         {
             await OpportunityCommandSupport.EnsureCodeAsync(
                 store.DbContext,
-                "currencies",
+                MasterDataCodes.Currencies.Collection,
                 currency,
                 cancellationToken);
         }
@@ -109,7 +110,7 @@ public sealed partial class OpportunityCommands(
             VALUES (
                 {id}, {envelope.TenantId.Value}, {command.ClientId}, {title}, {sourceType},
                 {OpportunityCommandSupport.Optional(command.SourceRef, 2048, nameof(command.SourceRef))},
-                {command.OwnerUserId}, {Gate4Statuses.Created}, {command.ExpectedValueMinor},
+                {command.OwnerUserId}, {MasterDataCodes.LifecycleStatuses.Created}, {command.ExpectedValueMinor},
                 {currency}, {command.Deadline},
                 {OpportunityCommandSupport.Optional(command.ProblemSummary, 2000, nameof(command.ProblemSummary))},
                 {OpportunityCommandSupport.Optional(command.ObjectiveSummary, 2000, nameof(command.ObjectiveSummary))},
@@ -117,12 +118,12 @@ public sealed partial class OpportunityCommands(
             """, cancellationToken);
         var view = new OpportunityView(
             id, envelope.TenantId.Value, command.ClientId, title, sourceType,
-            command.SourceRef, command.OwnerUserId, Gate4Statuses.Created,
+            command.SourceRef, command.OwnerUserId, MasterDataCodes.LifecycleStatuses.Created,
             command.ExpectedValueMinor, currency, command.Deadline, command.ProblemSummary,
             command.ObjectiveSummary, 1, now);
         return OpportunityCommandSupport.Outcome(
-            envelope, view, id, 1, CommercialResourceTypes.Opportunity,
-            CommercialActions.OpportunityCreated, CommercialEventTypes.OpportunityCreated, now);
+            envelope, view, id, 1, MasterDataReferences.CommercialResourceTypes.Opportunity,
+            MasterDataReferences.CommercialActions.OpportunityCreated, MasterDataReferences.CommercialEventTypes.OpportunityCreated, now);
     }
 
     private async Task<CommandOutcome> RegisterSourceOutcomeAsync(
@@ -136,7 +137,7 @@ public sealed partial class OpportunityCommands(
             envelope.TenantId,
             envelope.ActorId.Value,
             command.ReviewerUserId,
-            Gate4ReviewerRoles.Evidence.ToArray(),
+            OpportunityReviewerRoles.Evidence.ToArray(),
             cancellationToken);
         var captured = OpportunityCommandSupport.Capture(command);
         var hash = OpportunityCommandSupport.Hash(captured.Content);
@@ -162,8 +163,8 @@ public sealed partial class OpportunityCommands(
             envelope.TenantId, captured.Type, hash, command.OpportunityId, cancellationToken)
             ?? throw new InvalidOperationException("The evidence source was not retained.");
         return OpportunityCommandSupport.Outcome(
-            envelope, view.ToView(), sourceId, 1, CommercialResourceTypes.EvidenceSource,
-            CommercialActions.EvidenceRegistered, CommercialEventTypes.EvidenceRegistered, now);
+            envelope, view.ToView(), sourceId, 1, MasterDataReferences.CommercialResourceTypes.EvidenceSource,
+            MasterDataReferences.CommercialActions.EvidenceRegistered, MasterDataReferences.CommercialEventTypes.EvidenceRegistered, now);
     }
 
     private async Task<CommandOutcome> StartQualificationOutcomeAsync(
@@ -172,7 +173,7 @@ public sealed partial class OpportunityCommands(
         CancellationToken cancellationToken)
     {
         var opportunity = await EnsureOwnerAsync(envelope, opportunityId, cancellationToken);
-        if (opportunity.Stage != Gate4Statuses.Created)
+        if (opportunity.Stage != MasterDataCodes.LifecycleStatuses.Created)
         {
             throw new InvalidLifecycleTransitionException();
         }
@@ -190,7 +191,7 @@ public sealed partial class OpportunityCommands(
         var now = timeProvider.GetUtcNow();
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.opportunities
-            SET stage_code = {Gate4Statuses.Qualifying}, version = version + 1,
+            SET stage_code = {MasterDataCodes.LifecycleStatuses.Qualifying}, version = version + 1,
                 updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {opportunityId}
               AND version = {envelope.ExpectedVersion}
@@ -201,14 +202,14 @@ public sealed partial class OpportunityCommands(
         }
         var view = opportunity with
         {
-            Stage = Gate4Statuses.Qualifying,
+            Stage = MasterDataCodes.LifecycleStatuses.Qualifying,
             Version = opportunity.Version + 1,
             UpdatedAtUtc = now,
         };
         return OpportunityCommandSupport.Outcome(
-            envelope, view, opportunityId, view.Version, CommercialResourceTypes.Opportunity,
-            CommercialActions.OpportunityQualificationStarted,
-            CommercialEventTypes.OpportunityQualificationStarted, now);
+            envelope, view, opportunityId, view.Version, MasterDataReferences.CommercialResourceTypes.Opportunity,
+            MasterDataReferences.CommercialActions.OpportunityQualificationStarted,
+            MasterDataReferences.CommercialEventTypes.OpportunityQualificationStarted, now);
     }
 
     private async Task<OpportunityRow> EnsureOwnerAsync<TCommand>(
@@ -241,7 +242,7 @@ public sealed partial class OpportunityCommands(
                         SELECT 1 FROM commercial.memberships membership
                         WHERE membership.tenant_id = client.tenant_id
                           AND membership.user_id = {actorId}
-                          AND membership.status_code = {Gate4Statuses.Active}
+                          AND membership.status_code = {MasterDataCodes.LifecycleStatuses.Active}
                           AND membership.role_code = ANY({ClientAdminRoles}))
                     OR EXISTS (
                         SELECT 1 FROM commercial.client_account_assignments assignment

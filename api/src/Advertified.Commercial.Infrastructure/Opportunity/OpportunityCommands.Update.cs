@@ -3,6 +3,7 @@ using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +19,7 @@ public sealed partial class OpportunityCommands
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate4Permissions.OpportunityEdit,
+            MasterDataReferences.Permissions.OpportunityEdit,
             token => UpdateOutcomeAsync(opportunityId, envelope, token),
             cancellationToken);
         return CommandOutcomeFactory.ToResult<OpportunityView>(receipt);
@@ -30,7 +31,7 @@ public sealed partial class OpportunityCommands
         CancellationToken cancellationToken)
     {
         var current = await EnsureOwnerAsync(envelope, opportunityId, cancellationToken);
-        if (current.Stage == Gate4Statuses.BriefReady)
+        if (current.Stage == MasterDataCodes.LifecycleStatuses.BriefReady)
         {
             throw new InvalidLifecycleTransitionException();
         }
@@ -69,8 +70,8 @@ public sealed partial class OpportunityCommands
         };
         return OpportunityCommandSupport.Outcome(
             envelope, view.ToView(), opportunityId, view.Version,
-            CommercialResourceTypes.Opportunity, CommercialActions.OpportunityUpdated,
-            CommercialEventTypes.OpportunityUpdated, now);
+            MasterDataReferences.CommercialResourceTypes.Opportunity, MasterDataReferences.CommercialActions.OpportunityUpdated,
+            MasterDataReferences.CommercialEventTypes.OpportunityUpdated, now);
     }
 
     private async Task<string?> ValidateMoneyAsync(
@@ -86,7 +87,7 @@ public sealed partial class OpportunityCommands
         if (currency is not null)
         {
             await OpportunityCommandSupport.EnsureCodeAsync(
-                store.DbContext, "currencies", currency, cancellationToken);
+                store.DbContext, MasterDataCodes.Currencies.Collection, currency, cancellationToken);
         }
         return currency;
     }

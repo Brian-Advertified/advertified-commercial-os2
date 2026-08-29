@@ -1,5 +1,6 @@
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -62,12 +63,12 @@ public sealed class OpportunityRunStore(
               ON item.tenant_id = link.tenant_id AND item.id = link.evidence_item_id
             WHERE evidence_set.tenant_id = {tenantId.Value}
               AND evidence_set.opportunity_id = {opportunityId}
-              AND evidence_set.status_code = {Gate4Statuses.Approved}
+              AND evidence_set.status_code = {MasterDataCodes.LifecycleStatuses.Approved}
               AND evidence_set.version_no = (
                 SELECT max(candidate.version_no) FROM commercial.evidence_sets candidate
                 WHERE candidate.tenant_id = evidence_set.tenant_id
                   AND candidate.opportunity_id = evidence_set.opportunity_id
-                  AND candidate.status_code = {Gate4Statuses.Approved})
+                  AND candidate.status_code = {MasterDataCodes.LifecycleStatuses.Approved})
             ORDER BY item.id
             """).ToListAsync(cancellationToken);
 

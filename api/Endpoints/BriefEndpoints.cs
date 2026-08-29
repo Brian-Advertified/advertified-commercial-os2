@@ -15,27 +15,27 @@ public static class BriefEndpoints
         group.MapPost("/briefs", CreateBriefAsync)
             .WithName("CreateCampaignBrief")
             .Produces<CampaignBriefSummaryView>(StatusCodes.Status201Created)
-            .WithGate4CommandProblems(requiresVersion: false);
+            .WithCommandProblems(requiresVersion: false);
         group.MapPost("/briefs/{briefId:guid}/versions", CreateVersionAsync)
             .WithName("CreateBriefVersion")
             .Produces<BriefVersionView>(StatusCodes.Status201Created)
-            .WithGate4CommandProblems(requiresVersion: false);
+            .WithCommandProblems(requiresVersion: false);
         group.MapGet("/briefs/{briefId:guid}", GetBriefAsync)
             .WithName("GetCampaignBrief")
             .Produces<CampaignBriefView>()
-            .WithGate4QueryProblems();
+            .WithQueryProblems();
         group.MapPost("/brief-versions/{versionId:guid}:submit", SubmitAsync)
             .WithName("SubmitBriefVersion")
             .Produces<BriefVersionView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/brief-versions/{versionId:guid}:approve", ApproveAsync)
             .WithName("ApproveBriefVersion")
             .Produces<BriefVersionView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/brief-versions/{versionId:guid}:reject", RejectAsync)
             .WithName("RejectBriefVersion")
             .Produces<BriefVersionView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         return endpoints;
     }
 

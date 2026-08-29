@@ -3,6 +3,7 @@ using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.EntityFrameworkCore;
@@ -53,7 +54,7 @@ public sealed partial class BriefCommands
         }
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.campaign_briefs
-            SET status_code = {Gate4Statuses.Draft}, current_draft_version_id = {versionId},
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Draft}, current_draft_version_id = {versionId},
                 version = version + 1, updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {brief.Id}
               AND version = {brief.Version}
@@ -66,8 +67,8 @@ public sealed partial class BriefCommands
             envelope.TenantId, versionId, cancellationToken)
             ?? throw new InvalidOperationException("The Brief version was not retained.");
         return OpportunityCommandSupport.Outcome(
-            envelope, row.ToView(), versionId, 1, CommercialResourceTypes.BriefVersion,
-            CommercialActions.BriefVersionCreated, CommercialEventTypes.BriefVersionCreated, now);
+            envelope, row.ToView(), versionId, 1, MasterDataReferences.CommercialResourceTypes.BriefVersion,
+            MasterDataReferences.CommercialActions.BriefVersionCreated, MasterDataReferences.CommercialEventTypes.BriefVersionCreated, now);
     }
 
     private async Task<Guid> ResolveVersionSourceAsync(
@@ -124,7 +125,7 @@ public sealed partial class BriefCommands
             WHERE item.tenant_id = {envelope.TenantId.Value}
               AND item.id = ANY({evidenceIds})
               AND evidence_set.opportunity_id = {brief.OpportunityId.Value}
-              AND evidence_set.status_code = {Gate4Statuses.Approved}
+              AND evidence_set.status_code = {MasterDataCodes.LifecycleStatuses.Approved}
             """).SingleAsync(cancellationToken);
         if (count != evidenceIds.Length)
         {
@@ -175,7 +176,7 @@ public sealed partial class BriefCommands
                 {BriefCommandSupport.Json(value.Unknowns)}::jsonb,
                 {BriefCommandSupport.Json(value.Assumptions)}::jsonb,
                 {BriefCommandSupport.Json(value.Conflicts)}::jsonb,
-                {evidenceBindings}::jsonb, {Gate4Statuses.Draft},
+                {evidenceBindings}::jsonb, {MasterDataCodes.LifecycleStatuses.Draft},
                 {envelope.ActorId.Value}, 1, {now})
             """, cancellationToken);
     }

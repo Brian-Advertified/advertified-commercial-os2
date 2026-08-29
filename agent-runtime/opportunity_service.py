@@ -1,4 +1,4 @@
-"""Zero-cost deterministic implementations for the four Gate 4 proposal agents."""
+"""Zero-cost deterministic implementations for the opportunity proposal agents."""
 
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ from opportunity_contracts import (
     OpportunityAngleSetArtifact,
     StrategyArtifact,
 )
+from master_data_codes import LifecycleStatuses, WorkflowStepTypes
 
 
 def _usage() -> ProviderUsage:
@@ -189,7 +190,7 @@ def critique(
     request: OpportunityAgentRequest,
 ) -> AgentOutputEnvelope[CriticReportArtifact]:
     artifact = CriticReportArtifact(
-        readiness="REVIEW_REQUIRED",
+        readiness=LifecycleStatuses.REVIEW_REQUIRED.value,
         summary="The direction is usable after the measurement gap is explicitly resolved.",
     )
     return AgentOutputEnvelope(
@@ -220,7 +221,8 @@ def draft_brief(
 ) -> AgentOutputEnvelope[BriefDraftArtifact]:
     evidence_ids = _evidence_ids(request)
     strategy = next(
-        item for item in request.prior_artifacts if item.artifact_type == "STRATEGY"
+        item for item in request.prior_artifacts
+        if item.artifact_type == WorkflowStepTypes.STRATEGY.value
     )
     objectives = tuple(str(item) for item in strategy.value.get("objectives", ()))
     audiences = tuple(str(item) for item in strategy.value.get("audience_hypotheses", ()))

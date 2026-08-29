@@ -4,7 +4,7 @@
 **Evidence date:** 2026-08-29  
 **Normative product source:** `docs/spec/README.md`  
 **Execution rules:** `AGENTS.md`  
-**Current permission:** Gate 7 local delivery authorised by standing sequential-delivery direction; no live provider, shared-database, deployment, push or merge authority
+**Current permission:** Proposal/client-decision local delivery authorised by standing sequential-delivery direction after verified canonical planning; no live provider, shared-database, deployment, push or merge authority
 
 This is the execution index, not a replacement for the full v1.1 specification. Every gate uses the applicable normative sections and the historical traceability/adversarial fixtures in Section 31.
 
@@ -19,7 +19,9 @@ This is the execution index, not a replacement for the full v1.1 specification. 
 | 4 | Delivered locally | Repeatable evidence retained; Brian Rabuthu directed Gate 4 delivered on 2026-08-29 |
 | 5 | Delivered locally | Canonical Brief implementation and repeatable evidence complete; owner/independent review remains pending |
 | 6 | Delivered locally | Inventory truth implementation and repeatable evidence complete; owner/independent review remains pending |
-| 7–13 | Blocked | No implementation until the preceding gate is verified and an exact work packet exists |
+| 7 | Delivered locally | Canonical planning, editable media mix, PostGIS OOH benchmarking and repeatable evidence complete |
+| 8 | Authorised next | Proposal/client-decision local delivery may begin under standing sequential direction |
+| 9–13 | Blocked | No implementation until the preceding gate is verified and its exact work packet exists |
 
 There are fourteen gates numbered 0 through 13.
 
@@ -167,7 +169,7 @@ Pipeline: upload → quarantine → malware/type validation → classify → pre
 
 No candidate becomes bookable without approved rates, availability, evidence, and freshness. Gate 6 must preserve the typed OOH/DOOH attributes and coordinates needed by later benchmarking, but it does **not** calculate market position or widen its bounded implementation into Inventory Intelligence.
 
-## Gate 7 — planning
+## Canonical planning
 
 **Normative areas:** Sections 7.2, 18.5, 21.3, 22  
 **Outcome:** An approved Brief becomes approved audience, media mix, eligible shortlist, and MediaPlanVersion.
@@ -176,6 +178,10 @@ Hard constraints run before scoring. Money/VAT/fees are deterministic. Every rej
 
 The assigned agency operator may carry the work through planning without a fabricated second
 agency user. Any required confirmation binds that exact operator and artefact version.
+
+**Current status:** Delivered and verified locally. Repeatable evidence is retained in
+`docs/evidence/gate-7/`. The planning workspace supports editable allocations, media-specific
+multi-period flighting, schedule-aware pricing and PostGIS-backed OOH/DOOH comparative intelligence.
 
 ## Gate 8 — proposal and client decision
 

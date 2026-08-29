@@ -1,5 +1,6 @@
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,30 +18,30 @@ public sealed partial class OpportunityWorkflowCommands
             SELECT count(*)::integer AS "Value"
             FROM commercial.evidence_sets
             WHERE tenant_id = {tenantId.Value} AND opportunity_id = {opportunityId}
-              AND status_code = {Gate4Statuses.Approved}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.Approved}
             """).SingleAsync(cancellationToken);
         if (evidenceCount == 0)
         {
             throw new EvidenceRequiredException();
         }
-        if (runKind == Gate4RunKinds.Brief)
+        if (runKind == MasterDataCodes.AgentRunKinds.Brief)
         {
             await EnsureApprovedStrategyWithoutBriefAsync(
                 tenantId, opportunityId, cancellationToken);
             return;
         }
-        if (runKind == Gate4RunKinds.Interpretation)
+        if (runKind == MasterDataCodes.AgentRunKinds.Interpretation)
         {
             return;
         }
 
         var interpretation = await store.FindLatestInterpretationAsync(
             tenantId, opportunityId, cancellationToken);
-        if (interpretation?.Status != Gate4Statuses.Approved)
+        if (interpretation?.Status != MasterDataCodes.LifecycleStatuses.Approved)
         {
             throw new ApprovalRequiredException();
         }
-        if (runKind == Gate4RunKinds.Angles)
+        if (runKind == MasterDataCodes.AgentRunKinds.Angles)
         {
             return;
         }
@@ -53,7 +54,7 @@ public sealed partial class OpportunityWorkflowCommands
                   ON angle_set.tenant_id = angle.tenant_id AND angle_set.id = angle.angle_set_id
                 WHERE angle.tenant_id = {tenantId.Value}
                   AND angle_set.opportunity_id = {opportunityId}
-                  AND angle.status_code = {Gate4AngleStatuses.Selected}) AS "Value"
+                  AND angle.status_code = {MasterDataCodes.OpportunityAngleStatuses.Selected}) AS "Value"
             """).SingleAsync(cancellationToken);
         if (!selected)
         {
@@ -71,7 +72,7 @@ public sealed partial class OpportunityWorkflowCommands
                 SELECT 1 FROM commercial.strategy_versions strategy
                 WHERE strategy.tenant_id = {tenantId.Value}
                   AND strategy.opportunity_id = {opportunityId}
-                  AND strategy.status_code = {Gate4Statuses.Approved})
+                  AND strategy.status_code = {MasterDataCodes.LifecycleStatuses.Approved})
               AND NOT EXISTS (
                 SELECT 1 FROM commercial.campaign_briefs brief
                 WHERE brief.tenant_id = {tenantId.Value}

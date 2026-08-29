@@ -2,6 +2,7 @@ using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Foundation;
 
@@ -18,7 +19,7 @@ public sealed class OpportunityReader(
         string? cursor,
         CancellationToken cancellationToken)
     {
-        await EnsureAllowedAsync(actorId, tenantId, Gate4Permissions.OpportunityView, cancellationToken);
+        await EnsureAllowedAsync(actorId, tenantId, MasterDataReferences.Permissions.OpportunityView, cancellationToken);
         var page = CursorPageFactory.Parse(limit, cursor);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
@@ -35,7 +36,7 @@ public sealed class OpportunityReader(
         Guid opportunityId,
         CancellationToken cancellationToken)
     {
-        await EnsureAllowedAsync(actorId, tenantId, Gate4Permissions.OpportunityView, cancellationToken);
+        await EnsureAllowedAsync(actorId, tenantId, MasterDataReferences.Permissions.OpportunityView, cancellationToken);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
         await EnsureResourceAccessAsync(actorId, tenantId, opportunityId, cancellationToken);
@@ -75,7 +76,7 @@ public sealed class OpportunityReader(
         Guid strategyId,
         CancellationToken cancellationToken)
     {
-        await EnsureAllowedAsync(actorId, tenantId, Gate4Permissions.StrategyView, cancellationToken);
+        await EnsureAllowedAsync(actorId, tenantId, MasterDataReferences.Permissions.StrategyView, cancellationToken);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
         var strategy = await store.FindStrategyAsync(tenantId, strategyId, cancellationToken)
@@ -93,7 +94,7 @@ public sealed class OpportunityReader(
         Guid runId,
         CancellationToken cancellationToken)
     {
-        await EnsureAllowedAsync(actorId, tenantId, Gate4Permissions.RunView, cancellationToken);
+        await EnsureAllowedAsync(actorId, tenantId, MasterDataReferences.Permissions.RunView, cancellationToken);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
         var run = await store.FindRunAsync(tenantId, runId, cancellationToken)
@@ -110,7 +111,7 @@ public sealed class OpportunityReader(
         string? cursor,
         CancellationToken cancellationToken)
     {
-        await EnsureAllowedAsync(actorId, tenantId, Gate4Permissions.TaskView, cancellationToken);
+        await EnsureAllowedAsync(actorId, tenantId, MasterDataReferences.Permissions.TaskView, cancellationToken);
         var page = CursorPageFactory.Parse(limit, cursor);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
@@ -127,7 +128,7 @@ public sealed class OpportunityReader(
         Guid taskId,
         CancellationToken cancellationToken)
     {
-        await EnsureAllowedAsync(actorId, tenantId, Gate4Permissions.TaskAct, cancellationToken);
+        await EnsureAllowedAsync(actorId, tenantId, MasterDataReferences.Permissions.TaskAct, cancellationToken);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
         var task = await store.FindTaskAsync(
@@ -186,21 +187,21 @@ public sealed class OpportunityReader(
         StrategyRow? strategy,
         Guid? briefId) => stage switch
         {
-            Gate4Statuses.Created => "Register a source and start qualification.",
-            Gate4Statuses.Qualifying => "Complete evidence review and submit the evidence set.",
-            Gate4Statuses.EvidenceReview => "An assigned reviewer must approve the evidence set.",
-            Gate4Statuses.StrategyReady when interpretation is null => "Run business interpretation.",
-            Gate4Statuses.StrategyReady when interpretation.Status != Gate4Statuses.Approved =>
+            MasterDataCodes.LifecycleStatuses.Created => "Register a source and start qualification.",
+            MasterDataCodes.LifecycleStatuses.Qualifying => "Complete evidence review and submit the evidence set.",
+            MasterDataCodes.LifecycleStatuses.EvidenceReview => "An assigned reviewer must approve the evidence set.",
+            MasterDataCodes.LifecycleStatuses.StrategyReady when interpretation is null => "Run business interpretation.",
+            MasterDataCodes.LifecycleStatuses.StrategyReady when interpretation.Status != MasterDataCodes.LifecycleStatuses.Approved =>
                 "Confirm the business interpretation.",
-            Gate4Statuses.StrategyReady when angles.Count == 0 => "Generate opportunity angles.",
-            Gate4Statuses.StrategyReady when angles.All(
-                item => item.Status != Gate4AngleStatuses.Selected) =>
+            MasterDataCodes.LifecycleStatuses.StrategyReady when angles.Count == 0 => "Generate opportunity angles.",
+            MasterDataCodes.LifecycleStatuses.StrategyReady when angles.All(
+                item => item.Status != MasterDataCodes.OpportunityAngleStatuses.Selected) =>
                 "Select an opportunity angle.",
-            Gate4Statuses.StrategyReady when strategy is null => "Generate strategy and critic review.",
-            Gate4Statuses.StrategyReady => "Resolve objections and approve the strategy.",
-            Gate4Statuses.BriefReady when briefId is null => "Draft the campaign brief.",
-            Gate4Statuses.BriefReady => "Review and confirm the campaign brief.",
-            Gate4Statuses.Planning => "The Brief is confirmed and ready for planning.",
+            MasterDataCodes.LifecycleStatuses.StrategyReady when strategy is null => "Generate strategy and critic review.",
+            MasterDataCodes.LifecycleStatuses.StrategyReady => "Resolve objections and approve the strategy.",
+            MasterDataCodes.LifecycleStatuses.BriefReady when briefId is null => "Draft the campaign brief.",
+            MasterDataCodes.LifecycleStatuses.BriefReady => "Review and confirm the campaign brief.",
+            MasterDataCodes.LifecycleStatuses.Planning => "The Brief is confirmed and ready for planning.",
             _ => "Review the current opportunity state.",
         };
 }

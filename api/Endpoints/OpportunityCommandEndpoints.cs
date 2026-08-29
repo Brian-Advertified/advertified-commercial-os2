@@ -13,31 +13,31 @@ public static class OpportunityCommandEndpoints
         group.MapPost("/opportunities", CreateOpportunityAsync)
             .WithName("CreateOpportunity")
             .Produces<OpportunityView>(StatusCodes.Status201Created)
-            .WithGate4CommandProblems(requiresVersion: false);
+            .WithCommandProblems(requiresVersion: false);
         group.MapPatch("/opportunities/{opportunityId:guid}", UpdateOpportunityAsync)
             .WithName("UpdateOpportunity")
             .Produces<OpportunityView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/opportunities/{opportunityId:guid}/evidence-sources", RegisterSourceAsync)
             .WithName("RegisterOpportunityEvidenceSource")
             .Produces<EvidenceSourceView>(StatusCodes.Status201Created)
-            .WithGate4CommandProblems(requiresVersion: false);
+            .WithCommandProblems(requiresVersion: false);
         group.MapPost("/opportunities/{opportunityId:guid}/qualification:start", StartQualificationAsync)
             .WithName("StartOpportunityQualification")
             .Produces<OpportunityView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/evidence-items/{itemId:guid}/review", ReviewEvidenceAsync)
             .WithName("ReviewEvidenceItem")
             .Produces<EvidenceItemView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/opportunities/{opportunityId:guid}/evidence:submit", SubmitEvidenceAsync)
             .WithName("SubmitOpportunityEvidence")
             .Produces<EvidenceSetView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/evidence-sets/{evidenceSetId:guid}:approve", ApproveEvidenceAsync)
             .WithName("ApproveOpportunityEvidence")
             .Produces<EvidenceSetView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         return group;
     }
 

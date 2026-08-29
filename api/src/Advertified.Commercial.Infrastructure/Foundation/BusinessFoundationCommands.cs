@@ -2,6 +2,7 @@ using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,7 @@ public sealed class BusinessFoundationCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate2Permissions.ClientAccountManage,
+            MasterDataReferences.Permissions.ClientAccountManage,
             token => CreateClientAccountOutcomeAsync(envelope, token),
             cancellationToken);
         return CommandOutcomeFactory.ToResult<ClientAccountView>(receipt);
@@ -31,7 +32,7 @@ public sealed class BusinessFoundationCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate2Permissions.AgencyManage,
+            MasterDataReferences.Permissions.AgencyManage,
             token => CreateAgencyOutcomeAsync(envelope, token),
             cancellationToken);
         return CommandOutcomeFactory.ToResult<AgencyView>(receipt);
@@ -43,7 +44,7 @@ public sealed class BusinessFoundationCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            Gate2Permissions.ContactManage,
+            MasterDataReferences.Permissions.ContactManage,
             token => CreateContactOutcomeAsync(envelope, token),
             cancellationToken);
         return CommandOutcomeFactory.ToResult<ContactView>(receipt);
@@ -65,16 +66,16 @@ public sealed class BusinessFoundationCommands(
             command.Website,
             command.Industry,
             command.BillingProfileJson,
-            MasterDataConstants.ActiveStatus,
+            MasterDataReferences.LifecycleStatuses.Active,
             now);
         dbContext.ClientAccounts.Add(entity);
         return Task.FromResult(CreateOutcome(
             envelope,
             FoundationViewMapper.ToView(entity),
             entity.Id.Value,
-            CommercialResourceTypes.ClientAccount,
-            CommercialActions.ClientAccountCreated,
-            CommercialEventTypes.ClientAccountCreated,
+            MasterDataReferences.CommercialResourceTypes.ClientAccount,
+            MasterDataReferences.CommercialActions.ClientAccountCreated,
+            MasterDataReferences.CommercialEventTypes.ClientAccountCreated,
             now));
     }
 
@@ -92,16 +93,16 @@ public sealed class BusinessFoundationCommands(
             command.LegalName,
             command.TradingName,
             command.Website,
-            MasterDataConstants.ActiveStatus,
+            MasterDataReferences.LifecycleStatuses.Active,
             now);
         dbContext.Agencies.Add(entity);
         return Task.FromResult(CreateOutcome(
             envelope,
             FoundationViewMapper.ToView(entity),
             entity.Id.Value,
-            CommercialResourceTypes.Agency,
-            CommercialActions.AgencyCreated,
-            CommercialEventTypes.AgencyCreated,
+            MasterDataReferences.CommercialResourceTypes.Agency,
+            MasterDataReferences.CommercialActions.AgencyCreated,
+            MasterDataReferences.CommercialEventTypes.AgencyCreated,
             now));
     }
 
@@ -129,16 +130,16 @@ public sealed class BusinessFoundationCommands(
             purpose,
             command.ConsentBasis,
             command.RetainUntil,
-            MasterDataConstants.ActiveStatus,
+            MasterDataReferences.LifecycleStatuses.Active,
             now);
         dbContext.Contacts.Add(entity);
         return CreateOutcome(
             envelope,
             FoundationViewMapper.ToView(entity),
             entity.Id.Value,
-            CommercialResourceTypes.Contact,
-            CommercialActions.ContactCreated,
-            CommercialEventTypes.ContactCreated,
+            MasterDataReferences.CommercialResourceTypes.Contact,
+            MasterDataReferences.CommercialActions.ContactCreated,
+            MasterDataReferences.CommercialEventTypes.ContactCreated,
             now);
     }
 
@@ -157,7 +158,7 @@ public sealed class BusinessFoundationCommands(
         }
 
         var purposeExists = await dbContext.MasterDataItems.AnyAsync(
-            item => item.CollectionCode == MasterDataConstants.ContactPurposeCollection
+            item => item.CollectionCode == MasterDataCodes.ContactPurposes.Collection
                 && item.Code == purpose.Value
                 && item.IsActive,
             cancellationToken);

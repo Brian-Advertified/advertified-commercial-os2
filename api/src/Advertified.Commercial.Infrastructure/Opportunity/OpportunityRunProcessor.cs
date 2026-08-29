@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Microsoft.Extensions.Logging;
 
 namespace Advertified.Commercial.Infrastructure.Opportunity;
@@ -14,7 +15,7 @@ public sealed partial class OpportunityRunProcessor(
 {
     private const string InterpretationArtifact = "BUSINESS_INTERPRETATION";
     private const string AngleArtifact = "SELECTED_OPPORTUNITY_ANGLE";
-    private const string StrategyArtifact = "STRATEGY";
+    private const string StrategyArtifact = MasterDataCodes.WorkflowStepTypes.Strategy;
 
     public async Task ProcessClaimAsync(
         RunClaim claim,
@@ -30,16 +31,16 @@ public sealed partial class OpportunityRunProcessor(
 
             switch (context.Run.RunKind)
             {
-                case Gate4RunKinds.Interpretation:
+                case MasterDataCodes.AgentRunKinds.Interpretation:
                     await ProcessInterpretationAsync(context, cancellationToken);
                     break;
-                case Gate4RunKinds.Angles:
+                case MasterDataCodes.AgentRunKinds.Angles:
                     await ProcessAnglesAsync(context, cancellationToken);
                     break;
-                case Gate4RunKinds.StrategyCritic:
+                case MasterDataCodes.AgentRunKinds.StrategyCritic:
                     await ProcessStrategyCriticAsync(context, cancellationToken);
                     break;
-                case Gate4RunKinds.Brief:
+                case MasterDataCodes.AgentRunKinds.Brief:
                     await ProcessBriefAsync(context, cancellationToken);
                     break;
                 default:
@@ -63,8 +64,8 @@ public sealed partial class OpportunityRunProcessor(
     {
         var execution = await ExecuteStepAsync(
             context,
-            Gate4StepCodes.Interpretation,
-            Gate4AgentCodes.BusinessInterpretation,
+            MasterDataCodes.WorkflowStepTypes.Interpretation,
+            MasterDataCodes.AgentTypes.BusinessInterpretation,
             [],
             cancellationToken);
         await PersistInterpretationAsync(context, execution, cancellationToken);
@@ -83,8 +84,8 @@ public sealed partial class OpportunityRunProcessor(
         };
         var execution = await ExecuteStepAsync(
             context,
-            Gate4StepCodes.Angles,
-            Gate4AgentCodes.OpportunityIntelligence,
+            MasterDataCodes.WorkflowStepTypes.Angles,
+            MasterDataCodes.AgentTypes.OpportunityIntelligence,
             priors,
             cancellationToken);
         await PersistAnglesAsync(context, interpretation, execution, cancellationToken);
@@ -96,7 +97,7 @@ public sealed partial class OpportunityRunProcessor(
     {
         if (context.CriticExists)
         {
-            await CompleteRunAsync(context, Gate4StepCodes.Critic, cancellationToken);
+            await CompleteRunAsync(context, MasterDataCodes.WorkflowStepTypes.Critic, cancellationToken);
             return;
         }
 
@@ -115,8 +116,8 @@ public sealed partial class OpportunityRunProcessor(
             };
             var strategyExecution = await ExecuteStepAsync(
                 context,
-                Gate4StepCodes.Strategy,
-                Gate4AgentCodes.Strategy,
+                MasterDataCodes.WorkflowStepTypes.Strategy,
+                MasterDataCodes.AgentTypes.Strategy,
                 strategyPriors,
                 cancellationToken);
             strategy = await PersistStrategyAsync(
@@ -129,8 +130,8 @@ public sealed partial class OpportunityRunProcessor(
         };
         var criticExecution = await ExecuteStepAsync(
             context,
-            Gate4StepCodes.Critic,
-            Gate4AgentCodes.CriticReadiness,
+            MasterDataCodes.WorkflowStepTypes.Critic,
+            MasterDataCodes.AgentTypes.CriticReadiness,
             criticPriors,
             cancellationToken);
         await PersistCriticAsync(context, strategy, criticExecution, cancellationToken);
@@ -147,7 +148,7 @@ public sealed partial class OpportunityRunProcessor(
             Prior(StrategyArtifact, strategy.Id, strategy.VersionNumber, strategy.ArtifactJson),
         };
         var execution = await ExecuteStepAsync(
-            context, Gate4StepCodes.Brief, Gate4AgentCodes.BriefDrafting,
+            context, MasterDataCodes.WorkflowStepTypes.Brief, MasterDataCodes.AgentTypes.BriefDrafting,
             priors, cancellationToken);
         await PersistBriefAsync(context, strategy, execution, cancellationToken);
     }
@@ -191,10 +192,10 @@ public sealed partial class OpportunityRunProcessor(
         OpportunityAgentOutput output)
     {
         if (output.SchemaVersion != "1.0.0" ||
-            output.Status is not (Gate4Statuses.Completed or Gate4Statuses.ReviewRequired) ||
+            output.Status is not (MasterDataCodes.LifecycleStatuses.Completed or MasterDataCodes.LifecycleStatuses.ReviewRequired) ||
             output.Usage.IncrementalCostMinor != 0 || output.Usage.ToolCalls != 0)
         {
-            throw new InvalidOperationException("The agent output violated the Gate 4 contract.");
+            throw new InvalidOperationException("The agent output violated the opportunity workflow contract.");
         }
 
         var approved = input.ApprovedEvidence.Select(item => item.Id).ToHashSet();
@@ -215,7 +216,7 @@ public sealed partial class OpportunityRunProcessor(
         LoggerMessage.Define<Guid>(
             LogLevel.Error,
             new EventId(4002, nameof(OpportunityRunProcessor)),
-            "Gate 4 run {RunId} stopped at a safe recovery boundary.");
+            "Opportunity run {RunId} stopped at a safe recovery boundary.");
 }
 
 internal sealed record AgentStepExecution(

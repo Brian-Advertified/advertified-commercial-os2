@@ -83,7 +83,9 @@ function BriefOverview({ version, busy, confirm, allowed }: {
     <div className="page-heading-split"><div><p className="eyebrow eyebrow-light">Current version</p>
       <h2>Version {version.versionNumber}: {version.objective}</h2></div>
       {canConfirm && <button className="primary-button" type="button" disabled={busy}
-        onClick={() => void confirm()}>{busy ? 'Confirming…' : 'Confirm this Brief'}</button>}</div>
+        onClick={() => void confirm()}>{busy ? 'Confirming…' : 'Confirm this Brief'}</button>}
+      {version.status === opportunityCodes.status.approved &&
+        <Link className="primary-button" to={`/planning/${version.id}`}>Start planning</Link>}</div>
     <p><strong>Business problem:</strong> {version.businessProblem}</p>
     <p><strong>Timing:</strong> {version.timing}</p>
     <p><strong>Budget:</strong> {version.budgetUnknown ? 'Not supplied' : money(version)}</p>

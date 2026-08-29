@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
 
-public sealed partial class OpportunityGate4AcceptanceTests
+public sealed partial class OpportunityAcceptanceTests
 {
     private static async Task AssertSuppliedBriefPathAsync(
         HttpClient solo,
@@ -18,7 +18,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
         using var created = await SendCommandAsync(
             solo,
             $"/api/v1/tenants/{TenantId}/briefs",
-            "gate5-supplied-brief",
+            "brief-supplied-brief",
             new
             {
                 clientId,
@@ -34,18 +34,18 @@ public sealed partial class OpportunityGate4AcceptanceTests
         using var draftResponse = await SendCommandAsync(
             solo,
             $"/api/v1/tenants/{TenantId}/briefs/{briefId}/versions",
-            "gate5-supplied-version-1",
+            "brief-supplied-version-1",
             SuppliedVersion(briefId, null, "Generate qualified enquiries."));
         Assert.Equal(HttpStatusCode.Created, draftResponse.StatusCode);
         using var draftJson = await ReadJsonAsync(draftResponse);
         var draft = draftJson.RootElement.Clone();
         var approved = await ConfirmBriefAsync(
-            solo, solo, draft, null, "gate5-solo");
+            solo, solo, draft, null, "brief-solo");
 
         using var revisionResponse = await SendCommandAsync(
             solo,
             $"/api/v1/tenants/{TenantId}/briefs/{briefId}/versions",
-            "gate5-supplied-version-2",
+            "brief-supplied-version-2",
             SuppliedVersion(briefId, approved.GetProperty("id").GetGuid(),
                 "Generate qualified enquiries and record their source."));
         Assert.Equal(HttpStatusCode.Created, revisionResponse.StatusCode);
@@ -72,7 +72,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
         Guid opportunityId,
         string connectionString)
     {
-        await QueueAsync(owner, opportunityId, "briefs:draft", "gate5-opportunity-brief", new { });
+        await QueueAsync(owner, opportunityId, "briefs:draft", "brief-opportunity-brief", new { });
         var opportunity = await WaitForAsync(
             owner, opportunityId,
             value => value.GetProperty("briefId").ValueKind == JsonValueKind.String);
@@ -86,13 +86,13 @@ public sealed partial class OpportunityGate4AcceptanceTests
             draft.GetProperty("unknowns").EnumerateArray(),
             item => item.GetProperty("fieldPath").GetString() == "budget");
         await ConfirmBriefAsync(
-            owner, agencyOperator, draft, SoloOperatorId, "gate5-opportunity", advertiser);
+            owner, agencyOperator, draft, SoloOperatorId, "brief-opportunity", advertiser);
 
         var final = await GetOpportunityAsync(owner, opportunityId);
         Assert.Equal("PLANNING", final.GetProperty("opportunity").GetProperty("stage").GetString());
         Assert.Equal("The Brief is confirmed and ready for planning.",
             final.GetProperty("nextAction").GetString());
-        await AssertGate5LineageAsync(connectionString, opportunityId);
+        await AssertBriefLineageAsync(connectionString, opportunityId);
     }
 
     private static async Task<JsonElement> ConfirmBriefAsync(
@@ -160,7 +160,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
         evidenceItemIds = Array.Empty<Guid>(),
     };
 
-    private static async Task AssertGate5LineageAsync(
+    private static async Task AssertBriefLineageAsync(
         string connectionString,
         Guid opportunityId)
     {

@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
 
-public sealed partial class OpportunityGate4AcceptanceTests
+public sealed partial class OpportunityAcceptanceTests
 {
     [Fact]
     [Trait("Category", "Migration")]
@@ -38,14 +38,14 @@ public sealed partial class OpportunityGate4AcceptanceTests
         using var selfReview = await SendCommandAsync(
             owner,
             $"/api/v1/tenants/{TenantId}/evidence-items/{itemId}/review",
-            "gate4-self-review",
+            "opportunity-self-review",
             new { decision = "APPROVE", structuredValueJson = (string?)null, reason = (string?)null },
             1);
         await AssertProblemAsync(selfReview, HttpStatusCode.Forbidden, "APPROVAL_REQUIRED");
 
         await ReviewEvidenceAsync(reviewer, itemId);
         await SubmitAndApproveEvidenceAsync(owner, reviewer, opportunityId);
-        await QueueAsync(owner, opportunityId, "interpret", "gate4-interpret", new { });
+        await QueueAsync(owner, opportunityId, "interpret", "opportunity-interpret", new { });
         detail = await WaitForAsync(
             owner,
             opportunityId,
@@ -55,11 +55,11 @@ public sealed partial class OpportunityGate4AcceptanceTests
             owner,
             $"/api/v1/tenants/{TenantId}/business-interpretations/" +
                 $"{interpretation.GetProperty("id").GetGuid()}:confirm",
-            "gate4-confirm-interpretation",
+            "opportunity-confirm-interpretation",
             new { comment = "Confirmed against the approved evidence." },
             interpretation.GetProperty("version").GetInt64());
 
-        await QueueAsync(owner, opportunityId, "angles:generate", "gate4-angles", new { });
+        await QueueAsync(owner, opportunityId, "angles:generate", "opportunity-angles", new { });
         detail = await WaitForAsync(
             owner,
             opportunityId,
@@ -69,7 +69,7 @@ public sealed partial class OpportunityGate4AcceptanceTests
             owner,
             $"/api/v1/tenants/{TenantId}/opportunity-angles/" +
                 $"{angle.GetProperty("id").GetGuid()}:select",
-            "gate4-select-angle",
+            "opportunity-select-angle",
             new { reason = "Best supported route to measurable demand." },
             angle.GetProperty("version").GetInt64());
 
@@ -77,12 +77,13 @@ public sealed partial class OpportunityGate4AcceptanceTests
             owner,
             opportunityId,
             "strategies:generate",
-            "gate4-strategy",
+            "opportunity-strategy",
             new { approverUserId = ApproverId });
         detail = await WaitForAsync(
             owner,
             opportunityId,
-            value => value.GetProperty("strategy").ValueKind == JsonValueKind.Object);
+            value => value.GetProperty("strategy").ValueKind == JsonValueKind.Object &&
+                value.GetProperty("strategy").GetProperty("objections").GetArrayLength() > 0);
         var strategy = detail.GetProperty("strategy");
         var objection = strategy.GetProperty("objections")[0];
         await ResolveSubmitAndApproveStrategyAsync(

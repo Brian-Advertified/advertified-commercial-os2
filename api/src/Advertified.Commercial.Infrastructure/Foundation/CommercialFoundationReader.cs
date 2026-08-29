@@ -1,6 +1,7 @@
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Persistence;
@@ -17,7 +18,7 @@ public sealed class CommercialFoundationReader(
         TenantId tenantId,
         CancellationToken cancellationToken)
     {
-        await EnsureAllowedAsync(actorId, tenantId, Gate2Permissions.TenantRead, cancellationToken);
+        await EnsureAllowedAsync(actorId, tenantId, MasterDataReferences.Permissions.TenantRead, cancellationToken);
         await using var transaction = await BeginSessionAsync(actorId, tenantId, cancellationToken);
         var entity = await dbContext.Tenants.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == tenantId, cancellationToken)
@@ -34,7 +35,7 @@ public sealed class CommercialFoundationReader(
         CancellationToken cancellationToken)
     {
         var page = CursorPageFactory.Parse(limit, cursor);
-        await EnsureAllowedAsync(actorId, tenantId, Gate2Permissions.ClientAccountRead, cancellationToken);
+        await EnsureAllowedAsync(actorId, tenantId, MasterDataReferences.Permissions.ClientAccountRead, cancellationToken);
         await using var transaction = await BeginSessionAsync(actorId, tenantId, cancellationToken);
         var rows = await dbContext.ClientAccounts.AsNoTracking()
             .Where(item => item.TenantId == tenantId)
@@ -56,7 +57,7 @@ public sealed class CommercialFoundationReader(
         CancellationToken cancellationToken)
     {
         var page = CursorPageFactory.Parse(limit, cursor);
-        await EnsureAllowedAsync(actorId, tenantId, Gate2Permissions.MembershipRead, cancellationToken);
+        await EnsureAllowedAsync(actorId, tenantId, MasterDataReferences.Permissions.MembershipRead, cancellationToken);
         await using var transaction = await BeginSessionAsync(actorId, tenantId, cancellationToken);
         var rows = await dbContext.Memberships.AsNoTracking()
             .Where(item => item.TenantId == tenantId)
@@ -78,7 +79,7 @@ public sealed class CommercialFoundationReader(
         CancellationToken cancellationToken)
     {
         var page = CursorPageFactory.Parse(limit, cursor);
-        await EnsureAllowedAsync(actorId, tenantId, Gate2Permissions.AgencyRead, cancellationToken);
+        await EnsureAllowedAsync(actorId, tenantId, MasterDataReferences.Permissions.AgencyRead, cancellationToken);
         await using var transaction = await BeginSessionAsync(actorId, tenantId, cancellationToken);
         var rows = await dbContext.Agencies.AsNoTracking()
             .Where(item => item.TenantId == tenantId)
@@ -100,7 +101,7 @@ public sealed class CommercialFoundationReader(
         CancellationToken cancellationToken)
     {
         var page = CursorPageFactory.Parse(limit, cursor);
-        await EnsureAllowedAsync(actorId, tenantId, Gate2Permissions.ContactRead, cancellationToken);
+        await EnsureAllowedAsync(actorId, tenantId, MasterDataReferences.Permissions.ContactRead, cancellationToken);
         await using var transaction = await BeginSessionAsync(actorId, tenantId, cancellationToken);
         var rows = await dbContext.Contacts.AsNoTracking()
             .Where(item => item.TenantId == tenantId)

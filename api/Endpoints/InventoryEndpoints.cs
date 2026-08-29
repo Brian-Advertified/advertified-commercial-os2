@@ -1,5 +1,6 @@
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Identity;
+using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Domain.Governance;
 
 namespace Advertified.Commercial.Api.Endpoints;
@@ -14,25 +15,28 @@ public static class InventoryEndpoints
             .WithName("CreateInventoryImport")
             .Accepts<IFormFile>("multipart/form-data")
             .Produces<InventoryImportView>(StatusCodes.Status201Created)
-            .WithGate4CommandProblems(requiresVersion: false);
+            .WithCommandProblems(requiresVersion: false);
         group.MapPost("/inventory-imports/{importId:guid}:execute", ExecuteImportAsync)
             .WithName("ExecuteInventoryImport").Produces<InventoryImportView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapGet("/inventory-imports/{importId:guid}", GetImportAsync)
             .WithName("GetInventoryImport").Produces<InventoryImportView>()
-            .WithGate4QueryProblems();
+            .WithQueryProblems();
         group.MapPost("/inventory-candidates/{candidateId:guid}:review", ReviewCandidateAsync)
             .WithName("ReviewInventoryCandidate").Produces<InventoryCandidateView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/inventory-imports/{importId:guid}:publish", PublishImportAsync)
             .WithName("PublishInventoryImport").Produces<InventoryImportView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         group.MapGet("/inventory-products", SearchProductsAsync)
             .WithName("SearchInventoryProducts").Produces<InventoryProductPage>()
-            .WithGate4QueryProblems();
+            .WithQueryProblems();
         group.MapGet("/inventory-products/{productId:guid}", GetProductAsync)
             .WithName("GetInventoryProduct").Produces<InventoryProductView>()
-            .WithGate4QueryProblems();
+            .WithQueryProblems();
+        group.MapGet("/inventory-products/{productId:guid}/benchmark", GetBenchmarkAsync)
+            .WithName("GetInventoryProductBenchmark").Produces<InventoryProductBenchmarkView>()
+            .WithQueryProblems();
         return endpoints;
     }
 
@@ -100,6 +104,12 @@ public static class InventoryEndpoints
     private static async Task<IResult> GetProductAsync(
         Guid tenantId, Guid productId, ICurrentIdentity identity, IInventoryReader reader,
         CancellationToken cancellationToken) => Results.Ok(await reader.GetProductAsync(
+            identity.ActorId, new TenantId(tenantId), productId, cancellationToken));
+
+    private static async Task<IResult> GetBenchmarkAsync(
+        Guid tenantId, Guid productId, ICurrentIdentity identity,
+        IInventoryBenchmarkReader reader, CancellationToken cancellationToken) =>
+        Results.Ok(await reader.GetBenchmarkAsync(
             identity.ActorId, new TenantId(tenantId), productId, cancellationToken));
 
     private static async Task<IResult> ExecuteAsync<TCommand, TResult>(

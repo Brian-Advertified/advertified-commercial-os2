@@ -3,6 +3,7 @@ using Advertified.Commercial.Application.Brief;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 
 namespace Advertified.Commercial.Api.Endpoints;
@@ -14,7 +15,7 @@ public static class OpportunityTaskEndpoints
         group.MapPost("/human-tasks/{taskId:guid}:complete", CompleteTaskAsync)
             .WithName("CompleteHumanTask")
             .Produces<HumanTaskCompletionView>()
-            .WithGate4CommandProblems(requiresVersion: true);
+            .WithCommandProblems(requiresVersion: true);
         return group;
     }
 
@@ -38,28 +39,28 @@ public static class OpportunityTaskEndpoints
         var action = request.Action.Trim().ToUpperInvariant();
         return task.TaskType switch
         {
-            Gate4TaskTypes.EvidenceItemReview => await CompleteEvidenceItemAsync(
+            MasterDataCodes.HumanTaskTypes.EvidenceItemReview => await CompleteEvidenceItemAsync(
                 task, request, context, tenant, identity, opportunityCommands,
                 timeProvider, cancellationToken),
-            Gate4TaskTypes.EvidenceSetApproval => await CompleteEvidenceSetAsync(
+            MasterDataCodes.HumanTaskTypes.EvidenceSetApproval => await CompleteEvidenceSetAsync(
                 task, request, context, tenant, identity, opportunityCommands,
                 timeProvider, cancellationToken),
-            Gate4TaskTypes.InterpretationConfirmation => await CompleteInterpretationAsync(
+            MasterDataCodes.HumanTaskTypes.InterpretationConfirmation => await CompleteInterpretationAsync(
                 task, request, context, tenant, identity, workflowCommands,
                 timeProvider, cancellationToken),
-            Gate4TaskTypes.AngleSelection => await CompleteAngleAsync(
+            MasterDataCodes.HumanTaskTypes.AngleSelection => await CompleteAngleAsync(
                 task, request, context, tenant, identity, workflowCommands,
                 timeProvider, cancellationToken),
-            Gate4TaskTypes.CriticResolution => await CompleteObjectionAsync(
+            MasterDataCodes.HumanTaskTypes.CriticResolution => await CompleteObjectionAsync(
                 task, request, context, tenant, identity, workflowCommands,
                 timeProvider, cancellationToken),
-            Gate4TaskTypes.StrategyApproval => await CompleteStrategyAsync(
+            MasterDataCodes.HumanTaskTypes.StrategyApproval => await CompleteStrategyAsync(
                 task, request, action, context, tenant, identity, workflowCommands,
                 timeProvider, cancellationToken),
-            Gate4TaskTypes.BriefApproval => await CompleteBriefAsync(
+            MasterDataCodes.HumanTaskTypes.BriefApproval => await CompleteBriefAsync(
                 task, request, action, context, tenant, identity, briefCommands,
                 timeProvider, cancellationToken),
-            Gate4TaskTypes.RunRecovery => await CompleteRunAsync(
+            MasterDataCodes.HumanTaskTypes.RunRecovery => await CompleteRunAsync(
                 task, request, action, context, tenant, identity, workflowCommands,
                 timeProvider, cancellationToken),
             _ => throw new InvalidLifecycleTransitionException(),
@@ -71,7 +72,7 @@ public static class OpportunityTaskEndpoints
         TenantId tenant, ICurrentIdentity identity, IOpportunityCommands commands,
         TimeProvider clock, CancellationToken token) => ExecuteAsync(
             task, new ReviewEvidenceItemCommand(
-                request.Decision ?? Gate4ReviewDecisions.Approve,
+                request.Decision ?? MasterDataCodes.EvidenceReviewDecisions.Approve,
                 request.StructuredValueJson,
                 request.Reason),
             context, tenant, identity, clock,
@@ -124,11 +125,11 @@ public static class OpportunityTaskEndpoints
         TenantId tenant, ICurrentIdentity identity, IOpportunityWorkflowCommands commands,
         TimeProvider clock, CancellationToken token)
     {
-        if (action is not (Gate4ReviewDecisions.Approve or Gate4ReviewDecisions.Reject))
+        if (action is not (MasterDataCodes.EvidenceReviewDecisions.Approve or MasterDataCodes.EvidenceReviewDecisions.Reject))
         {
             throw new ArgumentException("The strategy action must be APPROVE or REJECT.");
         }
-        return action == Gate4ReviewDecisions.Reject
+        return action == MasterDataCodes.EvidenceReviewDecisions.Reject
         ? ExecuteAsync(
             task,
             new RejectStrategyCommand(
@@ -162,12 +163,12 @@ public static class OpportunityTaskEndpoints
         TenantId tenant, ICurrentIdentity identity, IBriefCommands commands,
         TimeProvider clock, CancellationToken token)
     {
-        if (action is not ("CONFIRM" or Gate4ReviewDecisions.Approve
-            or Gate4ReviewDecisions.Reject))
+        if (action is not ("CONFIRM" or MasterDataCodes.EvidenceReviewDecisions.Approve
+            or MasterDataCodes.EvidenceReviewDecisions.Reject))
         {
             throw new ArgumentException("The Brief action must be CONFIRM or REJECT.");
         }
-        return action == Gate4ReviewDecisions.Reject
+        return action == MasterDataCodes.EvidenceReviewDecisions.Reject
             ? ExecuteAsync(
                 task,
                 new RejectBriefVersionCommand(
@@ -205,7 +206,7 @@ public static class OpportunityTaskEndpoints
         var result = await execute(envelope, cancellationToken);
         CommandEnvelopeFactory.SetEntityHeaders(context, result.Version, result.Replayed);
         return Results.Ok(new HumanTaskCompletionView(
-            task.Id, task.TaskType, Gate4Statuses.Completed, task.ResourceId, result.Version));
+            task.Id, task.TaskType, MasterDataCodes.LifecycleStatuses.Completed, task.ResourceId, result.Version));
     }
 }
 

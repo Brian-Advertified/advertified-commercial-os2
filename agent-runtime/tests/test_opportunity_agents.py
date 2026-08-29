@@ -6,7 +6,7 @@ import pytest
 
 from main import DETERMINISTIC_MODE, RUNTIME_MODE_KEY, SERVICE_KEY, app
 
-SERVICE_SECRET = "gate4-test-service-key"
+SERVICE_SECRET = "opportunity-test-service-key"
 
 
 def request_payload(agent_code: str) -> dict:
@@ -102,7 +102,7 @@ async def post(agent_code: str, payload: dict, key: str | None) -> httpx.Respons
         ("brief_drafting", "COMPLETED"),
     ],
 )
-def test_gate4_agents_are_typed_evidence_bound_and_zero_cost(
+def test_opportunity_agents_are_typed_evidence_bound_and_zero_cost(
     monkeypatch: pytest.MonkeyPatch,
     agent_code: str,
     expected_status: str,

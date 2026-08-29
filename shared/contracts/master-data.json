@@ -1,25 +1,25 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "1.5.0",
+  "registryVersion": "1.8.0",
   "effectiveFrom": "2026-08-29",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
     "channels": [
-      {"code":"OOH","displayLabel":"Out of Home","isActive":true,"sortOrder":10,"metadata":{"supportsGeography":true,"isDigital":false}},
-      {"code":"DOOH","displayLabel":"Digital Out of Home","isActive":true,"sortOrder":20,"metadata":{"supportsGeography":true,"isDigital":true}},
-      {"code":"RADIO","displayLabel":"Radio","isActive":true,"sortOrder":30},
-      {"code":"TV","displayLabel":"Television","isActive":true,"sortOrder":40},
-      {"code":"PRINT","displayLabel":"Print","isActive":true,"sortOrder":50},
-      {"code":"DIGITAL","displayLabel":"Digital","isActive":true,"sortOrder":60},
-      {"code":"SOCIAL","displayLabel":"Social Media","isActive":true,"sortOrder":70},
-      {"code":"INFLUENCER","displayLabel":"Influencer","isActive":true,"sortOrder":80},
-      {"code":"EXPERIENTIAL","displayLabel":"Experiential","isActive":true,"sortOrder":90},
-      {"code":"PODCAST","displayLabel":"Podcast","isActive":true,"sortOrder":100},
-      {"code":"RETAIL","displayLabel":"Retail Media","isActive":true,"sortOrder":110},
-      {"code":"TRANSIT","displayLabel":"Transit","isActive":true,"sortOrder":120},
-      {"code":"MALL","displayLabel":"Mall Media","isActive":true,"sortOrder":130},
-      {"code":"EMAIL","displayLabel":"Email","isActive":true,"sortOrder":140},
-      {"code":"MOBILE","displayLabel":"Mobile","isActive":true,"sortOrder":150}
+      {"code":"OOH","displayLabel":"Out of Home","isActive":true,"sortOrder":10,"metadata":{"supportsGeography":true,"isDigital":false,"requiresCoordinates":true,"defaultInventoryProductType":"OOH_SITE","benchmarkFamily":"OOH_LOCAL"}},
+      {"code":"DOOH","displayLabel":"Digital Out of Home","isActive":true,"sortOrder":20,"metadata":{"supportsGeography":true,"isDigital":true,"requiresCoordinates":true,"defaultInventoryProductType":"DOOH_SCREEN","benchmarkFamily":"OOH_LOCAL"}},
+      {"code":"RADIO","displayLabel":"Radio","isActive":true,"sortOrder":30,"metadata":{"defaultInventoryProductType":"RADIO_SPOT"}},
+      {"code":"TV","displayLabel":"Television","isActive":true,"sortOrder":40,"metadata":{"defaultInventoryProductType":"TV_SPOT"}},
+      {"code":"PRINT","displayLabel":"Print","isActive":true,"sortOrder":50,"metadata":{"defaultInventoryProductType":"PRINT_PLACEMENT"}},
+      {"code":"DIGITAL","displayLabel":"Digital","isActive":true,"sortOrder":60,"metadata":{"defaultInventoryProductType":"DIGITAL_PLACEMENT"}},
+      {"code":"SOCIAL","displayLabel":"Social Media","isActive":true,"sortOrder":70,"metadata":{"defaultInventoryProductType":"SOCIAL_PLACEMENT"}},
+      {"code":"INFLUENCER","displayLabel":"Influencer","isActive":true,"sortOrder":80,"metadata":{"defaultInventoryProductType":"INFLUENCER_PACKAGE"}},
+      {"code":"EXPERIENTIAL","displayLabel":"Experiential","isActive":true,"sortOrder":90,"metadata":{"defaultInventoryProductType":"EXPERIENCE"}},
+      {"code":"PODCAST","displayLabel":"Podcast","isActive":true,"sortOrder":100,"metadata":{"defaultInventoryProductType":"PODCAST_SPOT"}},
+      {"code":"RETAIL","displayLabel":"Retail Media","isActive":true,"sortOrder":110,"metadata":{"defaultInventoryProductType":"RETAIL_PLACEMENT"}},
+      {"code":"TRANSIT","displayLabel":"Transit","isActive":true,"sortOrder":120,"metadata":{"defaultInventoryProductType":"TRANSIT_PLACEMENT"}},
+      {"code":"MALL","displayLabel":"Mall Media","isActive":true,"sortOrder":130,"metadata":{"defaultInventoryProductType":"MALL_PLACEMENT"}},
+      {"code":"EMAIL","displayLabel":"Email","isActive":true,"sortOrder":140,"metadata":{"defaultInventoryProductType":"EMAIL_PLACEMENT"}},
+      {"code":"MOBILE","displayLabel":"Mobile","isActive":true,"sortOrder":150,"metadata":{"defaultInventoryProductType":"MOBILE_PLACEMENT"}}
     ],
     "roles": [
       {"code":"platform_admin","displayLabel":"Platform Administrator","isActive":true,"sortOrder":10},
@@ -70,7 +70,11 @@
       {"code":"inventory_view","displayLabel":"View published inventory","isActive":true,"sortOrder":320,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_admin","supplier_user"]}},
       {"code":"inventory_import","displayLabel":"Import inventory sources","isActive":true,"sortOrder":330,"metadata":{"roles":["platform_admin","inventory_ops","supplier_admin"]}},
       {"code":"inventory_review","displayLabel":"Review inventory candidates","isActive":true,"sortOrder":340,"metadata":{"roles":["platform_admin","inventory_ops"]}},
-      {"code":"inventory_publish","displayLabel":"Publish reviewed inventory","isActive":true,"sortOrder":350,"metadata":{"roles":["platform_admin","inventory_ops"]}}
+      {"code":"inventory_publish","displayLabel":"Publish reviewed inventory","isActive":true,"sortOrder":350,"metadata":{"roles":["platform_admin","inventory_ops"]}},
+      {"code":"plan_view","displayLabel":"View assigned planning","isActive":true,"sortOrder":360,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
+      {"code":"plan_generate","displayLabel":"Generate assigned planning artefacts","isActive":true,"sortOrder":370,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"plan_edit","displayLabel":"Select and resolve assigned planning","isActive":true,"sortOrder":380,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"plan_approve","displayLabel":"Approve assigned internal planning","isActive":true,"sortOrder":390,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}}
     ],
     "briefSourceTypes": [
       {"code":"SUPPLIED_TEXT","displayLabel":"Supplied Text","isActive":true,"sortOrder":10},
@@ -127,7 +131,31 @@
       {"code":"STRATEGY_APPROVAL","displayLabel":"Approve Strategy","isActive":true,"sortOrder":60},
       {"code":"RUN_RECOVERY","displayLabel":"Recover Workflow Run","isActive":true,"sortOrder":70},
       {"code":"BRIEF_APPROVAL","displayLabel":"Confirm Campaign Brief","isActive":true,"sortOrder":80},
-      {"code":"INVENTORY_CANDIDATE_REVIEW","displayLabel":"Review Inventory Candidate","isActive":true,"sortOrder":90}
+      {"code":"INVENTORY_CANDIDATE_REVIEW","displayLabel":"Review Inventory Candidate","isActive":true,"sortOrder":90},
+      {"code":"MEDIA_MIX_APPROVAL","displayLabel":"Approve Media Mix","isActive":true,"sortOrder":100},
+      {"code":"PLAN_CRITIC_RESOLUTION","displayLabel":"Resolve Plan Critic Objection","isActive":true,"sortOrder":110},
+      {"code":"MEDIA_PLAN_APPROVAL","displayLabel":"Approve Media Plan","isActive":true,"sortOrder":120}
+    ],
+    "evidenceClassifications": [
+      {"code":"FACT","displayLabel":"Confirmed Fact","isActive":true,"sortOrder":10},
+      {"code":"INFERENCE","displayLabel":"Evidence-backed Inference","isActive":true,"sortOrder":20},
+      {"code":"HYPOTHESIS","displayLabel":"Planning Hypothesis","isActive":true,"sortOrder":30}
+    ],
+    "benchmarkPositions": [
+      {"code":"STRONG_VALUE","displayLabel":"Strong Value","isActive":true,"sortOrder":10},
+      {"code":"MARKET_ALIGNED","displayLabel":"Market Aligned","isActive":true,"sortOrder":20},
+      {"code":"ABOVE_MARKET","displayLabel":"Above Market","isActive":true,"sortOrder":30},
+      {"code":"INSUFFICIENT","displayLabel":"Insufficient Evidence","isActive":true,"sortOrder":40}
+    ],
+    "supplyConfidenceStatuses": [
+      {"code":"CONFIRMED","displayLabel":"Confirmed","isActive":true,"sortOrder":10},
+      {"code":"INDICATIVE","displayLabel":"Indicative","isActive":true,"sortOrder":20},
+      {"code":"UNKNOWN","displayLabel":"Unknown","isActive":true,"sortOrder":30}
+    ],
+    "rateFreshnessStatuses": [
+      {"code":"CURRENT","displayLabel":"Current","isActive":true,"sortOrder":10},
+      {"code":"STALE","displayLabel":"Stale","isActive":true,"sortOrder":20},
+      {"code":"UNKNOWN","displayLabel":"Unknown","isActive":true,"sortOrder":30}
     ],
     "documentClasses": [
       {"code":"CSV","displayLabel":"Comma-Separated Values","isActive":true,"sortOrder":10,"metadata":{"mediaType":"text/csv"}},
@@ -143,10 +171,10 @@
       {"code":"EDIT","displayLabel":"Edit and Approve","isActive":true,"sortOrder":30}
     ],
     "availabilityStatuses": [
-      {"code":"UNKNOWN","displayLabel":"Availability Unknown","isActive":true,"sortOrder":10},
-      {"code":"AVAILABLE","displayLabel":"Available","isActive":true,"sortOrder":20},
-      {"code":"LIMITED","displayLabel":"Limited Availability","isActive":true,"sortOrder":30},
-      {"code":"UNAVAILABLE","displayLabel":"Unavailable","isActive":true,"sortOrder":40}
+      {"code":"UNKNOWN","displayLabel":"Availability Unknown","isActive":true,"sortOrder":10,"metadata":{"planningEligible":true,"supplyConfidence":"UNKNOWN"}},
+      {"code":"AVAILABLE","displayLabel":"Available","isActive":true,"sortOrder":20,"metadata":{"planningEligible":true,"supplyConfidence":"CONFIRMED"}},
+      {"code":"LIMITED","displayLabel":"Limited Availability","isActive":true,"sortOrder":30,"metadata":{"planningEligible":true,"supplyConfidence":"INDICATIVE"}},
+      {"code":"UNAVAILABLE","displayLabel":"Unavailable","isActive":true,"sortOrder":40,"metadata":{"planningEligible":false,"supplyConfidence":"UNKNOWN"}}
     ],
     "verificationLevels": [
       {"code":"UNVERIFIED","displayLabel":"Unverified","isActive":true,"sortOrder":10},
@@ -184,6 +212,208 @@
       {"code":"CLEAN","displayLabel":"Clean","isActive":true,"sortOrder":20},
       {"code":"INFECTED","displayLabel":"Unsafe File","isActive":true,"sortOrder":30},
       {"code":"ERROR","displayLabel":"Scan Failed","isActive":true,"sortOrder":40}
+    ],
+    "agentRunKinds": [
+      {"code":"INTERPRETATION","displayLabel":"Business Interpretation","isActive":true,"sortOrder":10},
+      {"code":"ANGLES","displayLabel":"Opportunity Angles","isActive":true,"sortOrder":20},
+      {"code":"STRATEGY_CRITIC","displayLabel":"Strategy and Critic","isActive":true,"sortOrder":30},
+      {"code":"BRIEF","displayLabel":"Brief Drafting","isActive":true,"sortOrder":40}
+    ],
+    "agentTypes": [
+      {"code":"business_interpretation","displayLabel":"Business Interpretation Agent","isActive":true,"sortOrder":10},
+      {"code":"opportunity_intelligence","displayLabel":"Opportunity Intelligence Agent","isActive":true,"sortOrder":20},
+      {"code":"strategy","displayLabel":"Strategy Agent","isActive":true,"sortOrder":30},
+      {"code":"critic_readiness","displayLabel":"Critic and Readiness Agent","isActive":true,"sortOrder":40},
+      {"code":"brief_drafting","displayLabel":"Brief Drafting Agent","isActive":true,"sortOrder":50},
+      {"code":"audience","displayLabel":"Audience Agent","isActive":true,"sortOrder":60},
+      {"code":"inventory_intelligence","displayLabel":"Inventory Intelligence Agent","isActive":true,"sortOrder":70},
+      {"code":"media_planning","displayLabel":"Media Planning Agent","isActive":true,"sortOrder":80},
+      {"code":"proposal_narrative","displayLabel":"Proposal Narrative Agent","isActive":true,"sortOrder":90},
+      {"code":"creative","displayLabel":"Creative Intelligence Agent","isActive":true,"sortOrder":100},
+      {"code":"measurement","displayLabel":"Measurement Agent","isActive":true,"sortOrder":110}
+    ],
+    "workflowStepTypes": [
+      {"code":"INTERPRETATION","displayLabel":"Interpretation","isActive":true,"sortOrder":10},
+      {"code":"ANGLES","displayLabel":"Angles","isActive":true,"sortOrder":20},
+      {"code":"STRATEGY","displayLabel":"Strategy","isActive":true,"sortOrder":30},
+      {"code":"CRITIC","displayLabel":"Critic","isActive":true,"sortOrder":40},
+      {"code":"BRIEF","displayLabel":"Brief","isActive":true,"sortOrder":50}
+    ],
+    "inventoryTransformationTypes": [
+      {"code":"TRIM","displayLabel":"Trim Whitespace","isActive":true,"sortOrder":10},
+      {"code":"UPPERCASE_CODE","displayLabel":"Normalise Governed Code","isActive":true,"sortOrder":20},
+      {"code":"MAJOR_TO_MINOR","displayLabel":"Convert Major to Minor Currency Units","isActive":true,"sortOrder":30},
+      {"code":"PARSE_DECIMAL","displayLabel":"Parse Decimal","isActive":true,"sortOrder":40},
+      {"code":"DERIVED_FROM_CHANNEL","displayLabel":"Derive Product Type from Channel","isActive":true,"sortOrder":50},
+      {"code":"EXPLICIT_UNKNOWN","displayLabel":"Record Explicit Unknown","isActive":true,"sortOrder":60}
+    ],
+    "inventoryUnsupportedClaimTerms": [
+      {"code":"audience","displayLabel":"Audience claim","isActive":true,"sortOrder":10},
+      {"code":"reach","displayLabel":"Reach claim","isActive":true,"sortOrder":20},
+      {"code":"listeners","displayLabel":"Listener claim","isActive":true,"sortOrder":30},
+      {"code":"impressions","displayLabel":"Impression claim","isActive":true,"sortOrder":40},
+      {"code":"ratings","displayLabel":"Ratings claim","isActive":true,"sortOrder":50}
+    ],
+    "planningObjectionTypes": [
+      {"code":"SUPPLY_UNCONFIRMED","displayLabel":"Supply Unconfirmed","isActive":true,"sortOrder":10},
+      {"code":"BENCHMARK_INSUFFICIENT","displayLabel":"Benchmark Evidence Insufficient","isActive":true,"sortOrder":20}
+    ],
+    "benchmarkExclusionReasons": [
+      {"code":"INCOMPATIBLE_CHANNEL","displayLabel":"Different Media Channel","isActive":true,"sortOrder":10},
+      {"code":"INCOMPATIBLE_PRODUCT_TYPE","displayLabel":"Different Product Type","isActive":true,"sortOrder":20},
+      {"code":"INCOMPATIBLE_RATE_BASIS","displayLabel":"Different Rate Basis","isActive":true,"sortOrder":30},
+      {"code":"INCOMPATIBLE_CURRENCY","displayLabel":"Different Currency","isActive":true,"sortOrder":40},
+      {"code":"MISSING_RATE","displayLabel":"Missing Comparable Rate","isActive":true,"sortOrder":50},
+      {"code":"RATE_PERIOD_MISMATCH","displayLabel":"Rate Does Not Cover Planned Period","isActive":true,"sortOrder":60},
+      {"code":"MISSING_COORDINATES","displayLabel":"Comparable Site Coordinates Missing","isActive":true,"sortOrder":70},
+      {"code":"OUTSIDE_COMPARISON_AREA","displayLabel":"Outside Comparison Area","isActive":true,"sortOrder":80}
+    ],
+    "planningPolicies": [
+      {"code":"OOH_LOCAL_PEER_V1","displayLabel":"Local OOH Peer Benchmark v1","isActive":true,"sortOrder":10,"metadata":{"radiiKilometres":[3,5,10,25],"minimumCohortSize":2,"mediumCohortSize":5,"highCohortSize":10,"lowConfidence":0.4,"mediumConfidence":0.7,"highConfidence":0.9,"scoreBase":100,"priceWeight":40,"availableSupplyBonus":10}}
+    ],
+    "supplySourceTypes": [
+      {"code":"NOT_SUPPLIED","displayLabel":"Not Supplied","isActive":true,"sortOrder":10},
+      {"code":"PUBLISHED_INVENTORY","displayLabel":"Published Inventory","isActive":true,"sortOrder":20},
+      {"code":"SUPPLIER_CONFIRMATION","displayLabel":"Supplier Confirmation","isActive":true,"sortOrder":30}
+    ],
+    "validationIssueTypes": [
+      {"code":"FIELD_REQUIRED","displayLabel":"Required Field Missing","isActive":true,"sortOrder":10},
+      {"code":"GOVERNED_CODE_REQUIRED","displayLabel":"Governed Value Required","isActive":true,"sortOrder":20},
+      {"code":"RATE_REQUIRED","displayLabel":"Valid Rate Required","isActive":true,"sortOrder":30},
+      {"code":"AVAILABILITY_UNKNOWN","displayLabel":"Availability Unknown","isActive":true,"sortOrder":40},
+      {"code":"COORDINATES_INVALID","displayLabel":"Coordinates Invalid","isActive":true,"sortOrder":50},
+      {"code":"OOH_COORDINATES_REQUIRED","displayLabel":"OOH Coordinates Required","isActive":true,"sortOrder":60}
+    ],
+    "agentFailureReasons": [
+      {"code":"AGENT_OUTPUT_INVALID","displayLabel":"Agent Output Invalid","isActive":true,"sortOrder":10},
+      {"code":"AGENT_RUNTIME_UNAVAILABLE","displayLabel":"Agent Runtime Unavailable","isActive":true,"sortOrder":20},
+      {"code":"EVIDENCE_REQUIRED","displayLabel":"Evidence Required","isActive":true,"sortOrder":30},
+      {"code":"INPUT_VERSION_DRIFT","displayLabel":"Input Version Changed","isActive":true,"sortOrder":40}
+    ],
+    "commercialResourceTypes": [
+      {"code":"tenant","displayLabel":"Tenant","isActive":true,"sortOrder":10},
+      {"code":"user","displayLabel":"User","isActive":true,"sortOrder":20},
+      {"code":"client_account","displayLabel":"Client Account","isActive":true,"sortOrder":30},
+      {"code":"agency","displayLabel":"Agency","isActive":true,"sortOrder":40},
+      {"code":"contact","displayLabel":"Contact","isActive":true,"sortOrder":50},
+      {"code":"opportunity","displayLabel":"Opportunity","isActive":true,"sortOrder":60},
+      {"code":"evidence_source","displayLabel":"Evidence Source","isActive":true,"sortOrder":70},
+      {"code":"evidence_item","displayLabel":"Evidence Item","isActive":true,"sortOrder":80},
+      {"code":"evidence_set","displayLabel":"Evidence Set","isActive":true,"sortOrder":90},
+      {"code":"business_interpretation","displayLabel":"Business Interpretation","isActive":true,"sortOrder":100},
+      {"code":"opportunity_angle","displayLabel":"Opportunity Angle","isActive":true,"sortOrder":110},
+      {"code":"strategy","displayLabel":"Strategy","isActive":true,"sortOrder":120},
+      {"code":"agent_run","displayLabel":"Agent Run","isActive":true,"sortOrder":130},
+      {"code":"human_task","displayLabel":"Human Task","isActive":true,"sortOrder":140},
+      {"code":"campaign_brief","displayLabel":"Campaign Brief","isActive":true,"sortOrder":150},
+      {"code":"brief_version","displayLabel":"Brief Version","isActive":true,"sortOrder":160},
+      {"code":"inventory_import","displayLabel":"Inventory Import","isActive":true,"sortOrder":170},
+      {"code":"inventory_candidate","displayLabel":"Inventory Candidate","isActive":true,"sortOrder":180},
+      {"code":"inventory_product","displayLabel":"Inventory Product","isActive":true,"sortOrder":190},
+      {"code":"audience_definition_set","displayLabel":"Audience Definition Set","isActive":true,"sortOrder":200},
+      {"code":"media_mix_version","displayLabel":"Media Mix Version","isActive":true,"sortOrder":210},
+      {"code":"inventory_shortlist_version","displayLabel":"Inventory Shortlist Version","isActive":true,"sortOrder":220},
+      {"code":"media_plan_version","displayLabel":"Media Plan Version","isActive":true,"sortOrder":230}
+    ],
+    "commercialActions": [
+      {"code":"tenant.updated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
+      {"code":"user.updated","displayLabel":"User Updated","isActive":true,"sortOrder":20},
+      {"code":"client_account.created","displayLabel":"Client Account Created","isActive":true,"sortOrder":30},
+      {"code":"agency.created","displayLabel":"Agency Created","isActive":true,"sortOrder":40},
+      {"code":"contact.created","displayLabel":"Contact Created","isActive":true,"sortOrder":50},
+      {"code":"opportunity.created","displayLabel":"Opportunity Created","isActive":true,"sortOrder":60},
+      {"code":"opportunity.updated","displayLabel":"Opportunity Updated","isActive":true,"sortOrder":70},
+      {"code":"opportunity.qualification_started","displayLabel":"Opportunity Qualification Started","isActive":true,"sortOrder":80},
+      {"code":"evidence.registered","displayLabel":"Evidence Registered","isActive":true,"sortOrder":90},
+      {"code":"evidence.reviewed","displayLabel":"Evidence Reviewed","isActive":true,"sortOrder":100},
+      {"code":"evidence.submitted","displayLabel":"Evidence Submitted","isActive":true,"sortOrder":110},
+      {"code":"evidence.approved","displayLabel":"Evidence Approved","isActive":true,"sortOrder":120},
+      {"code":"agent_run.queued","displayLabel":"Agent Run Queued","isActive":true,"sortOrder":130},
+      {"code":"interpretation.confirmed","displayLabel":"Interpretation Confirmed","isActive":true,"sortOrder":140},
+      {"code":"opportunity_angle.selected","displayLabel":"Opportunity Angle Selected","isActive":true,"sortOrder":150},
+      {"code":"critic_objection.resolved","displayLabel":"Critic Objection Resolved","isActive":true,"sortOrder":160},
+      {"code":"strategy.submitted","displayLabel":"Strategy Submitted","isActive":true,"sortOrder":170},
+      {"code":"strategy.approved","displayLabel":"Strategy Approved","isActive":true,"sortOrder":180},
+      {"code":"strategy.rejected","displayLabel":"Strategy Rejected","isActive":true,"sortOrder":190},
+      {"code":"agent_run.resumed","displayLabel":"Agent Run Resumed","isActive":true,"sortOrder":200},
+      {"code":"agent_run.cancelled","displayLabel":"Agent Run Cancelled","isActive":true,"sortOrder":210},
+      {"code":"campaign_brief.created","displayLabel":"Campaign Brief Created","isActive":true,"sortOrder":220},
+      {"code":"brief_version.created","displayLabel":"Brief Version Created","isActive":true,"sortOrder":230},
+      {"code":"brief_version.submitted","displayLabel":"Brief Version Submitted","isActive":true,"sortOrder":240},
+      {"code":"brief_version.approved","displayLabel":"Brief Version Approved","isActive":true,"sortOrder":250},
+      {"code":"brief_version.rejected","displayLabel":"Brief Version Rejected","isActive":true,"sortOrder":260},
+      {"code":"inventory_import.created","displayLabel":"Inventory Import Created","isActive":true,"sortOrder":270},
+      {"code":"inventory_import.executed","displayLabel":"Inventory Import Executed","isActive":true,"sortOrder":280},
+      {"code":"inventory_candidate.reviewed","displayLabel":"Inventory Candidate Reviewed","isActive":true,"sortOrder":290},
+      {"code":"inventory.published","displayLabel":"Inventory Published","isActive":true,"sortOrder":300},
+      {"code":"audience_definitions.generated","displayLabel":"Audience Definitions Generated","isActive":true,"sortOrder":310},
+      {"code":"media_mix.generated","displayLabel":"Media Mix Generated","isActive":true,"sortOrder":320},
+      {"code":"media_mix.approved","displayLabel":"Media Mix Approved","isActive":true,"sortOrder":330},
+      {"code":"inventory_shortlist.generated","displayLabel":"Inventory Shortlist Generated","isActive":true,"sortOrder":340},
+      {"code":"inventory_shortlist.selected","displayLabel":"Inventory Shortlist Selected","isActive":true,"sortOrder":350},
+      {"code":"media_plan.generated","displayLabel":"Media Plan Generated","isActive":true,"sortOrder":360},
+      {"code":"media_plan.objection_resolved","displayLabel":"Media Plan Objection Resolved","isActive":true,"sortOrder":370},
+      {"code":"media_plan.approved","displayLabel":"Media Plan Approved","isActive":true,"sortOrder":380},
+      {"code":"media_mix.updated","displayLabel":"Media Mix Updated","isActive":true,"sortOrder":390}
+    ],
+    "commercialEventTypes": [
+      {"code":"TenantUpdated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
+      {"code":"UserUpdated","displayLabel":"User Updated","isActive":true,"sortOrder":20},
+      {"code":"ClientAccountCreated","displayLabel":"Client Account Created","isActive":true,"sortOrder":30},
+      {"code":"AgencyCreated","displayLabel":"Agency Created","isActive":true,"sortOrder":40},
+      {"code":"ContactCreated","displayLabel":"Contact Created","isActive":true,"sortOrder":50},
+      {"code":"OpportunityCreated","displayLabel":"Opportunity Created","isActive":true,"sortOrder":60},
+      {"code":"OpportunityUpdated","displayLabel":"Opportunity Updated","isActive":true,"sortOrder":70},
+      {"code":"OpportunityQualificationStarted","displayLabel":"Opportunity Qualification Started","isActive":true,"sortOrder":80},
+      {"code":"EvidenceRegistered","displayLabel":"Evidence Registered","isActive":true,"sortOrder":90},
+      {"code":"EvidenceReviewed","displayLabel":"Evidence Reviewed","isActive":true,"sortOrder":100},
+      {"code":"OpportunityEvidenceSubmitted","displayLabel":"Opportunity Evidence Submitted","isActive":true,"sortOrder":110},
+      {"code":"OpportunityEvidenceApproved","displayLabel":"Opportunity Evidence Approved","isActive":true,"sortOrder":120},
+      {"code":"AgentRunQueued","displayLabel":"Agent Run Queued","isActive":true,"sortOrder":130},
+      {"code":"InterpretationConfirmed","displayLabel":"Interpretation Confirmed","isActive":true,"sortOrder":140},
+      {"code":"OpportunityAngleSelected","displayLabel":"Opportunity Angle Selected","isActive":true,"sortOrder":150},
+      {"code":"CriticObjectionResolved","displayLabel":"Critic Objection Resolved","isActive":true,"sortOrder":160},
+      {"code":"StrategySubmitted","displayLabel":"Strategy Submitted","isActive":true,"sortOrder":170},
+      {"code":"StrategyApproved","displayLabel":"Strategy Approved","isActive":true,"sortOrder":180},
+      {"code":"StrategyRejected","displayLabel":"Strategy Rejected","isActive":true,"sortOrder":190},
+      {"code":"AgentRunResumed","displayLabel":"Agent Run Resumed","isActive":true,"sortOrder":200},
+      {"code":"AgentRunCancelled","displayLabel":"Agent Run Cancelled","isActive":true,"sortOrder":210},
+      {"code":"CampaignBriefCreated","displayLabel":"Campaign Brief Created","isActive":true,"sortOrder":220},
+      {"code":"BriefVersionCreated","displayLabel":"Brief Version Created","isActive":true,"sortOrder":230},
+      {"code":"BriefSubmitted","displayLabel":"Brief Submitted","isActive":true,"sortOrder":240},
+      {"code":"BriefApproved","displayLabel":"Brief Approved","isActive":true,"sortOrder":250},
+      {"code":"BriefRejected","displayLabel":"Brief Rejected","isActive":true,"sortOrder":260},
+      {"code":"InventoryImportCreated","displayLabel":"Inventory Import Created","isActive":true,"sortOrder":270},
+      {"code":"InventoryImportExecuted","displayLabel":"Inventory Import Executed","isActive":true,"sortOrder":280},
+      {"code":"InventoryCandidateReviewed","displayLabel":"Inventory Candidate Reviewed","isActive":true,"sortOrder":290},
+      {"code":"InventoryPublished","displayLabel":"Inventory Published","isActive":true,"sortOrder":300},
+      {"code":"AudienceDefinitionsGenerated","displayLabel":"Audience Definitions Generated","isActive":true,"sortOrder":310},
+      {"code":"MediaMixGenerated","displayLabel":"Media Mix Generated","isActive":true,"sortOrder":320},
+      {"code":"MediaMixApproved","displayLabel":"Media Mix Approved","isActive":true,"sortOrder":330},
+      {"code":"InventoryShortlistGenerated","displayLabel":"Inventory Shortlist Generated","isActive":true,"sortOrder":340},
+      {"code":"InventoryShortlistSelected","displayLabel":"Inventory Shortlist Selected","isActive":true,"sortOrder":350},
+      {"code":"MediaPlanGenerated","displayLabel":"Media Plan Generated","isActive":true,"sortOrder":360},
+      {"code":"MediaPlanObjectionResolved","displayLabel":"Media Plan Objection Resolved","isActive":true,"sortOrder":370},
+      {"code":"MediaPlanApproved","displayLabel":"Media Plan Approved","isActive":true,"sortOrder":380},
+      {"code":"MediaMixUpdated","displayLabel":"Media Mix Updated","isActive":true,"sortOrder":390}
+    ],
+    "creativeTextRoles": [
+      {"code":"HEADLINE","displayLabel":"Headline","isActive":true,"sortOrder":10},
+      {"code":"BODY","displayLabel":"Body Copy","isActive":true,"sortOrder":20},
+      {"code":"CTA","displayLabel":"Call to Action","isActive":true,"sortOrder":30},
+      {"code":"PRICE","displayLabel":"Price","isActive":true,"sortOrder":40},
+      {"code":"DISCLOSURE","displayLabel":"Disclosure","isActive":true,"sortOrder":50}
+    ],
+    "creativeWarningTypes": [
+      {"code":"OFFER_OUTSIDE_CAMPAIGN","displayLabel":"Offer Outside Campaign","isActive":true,"sortOrder":10},
+      {"code":"OFFER_VALIDITY_UNKNOWN","displayLabel":"Offer Validity Unknown","isActive":true,"sortOrder":20},
+      {"code":"ASSET_RIGHTS_UNCONFIRMED","displayLabel":"Asset Rights Unconfirmed","isActive":true,"sortOrder":30},
+      {"code":"NO_APPROVED_PRODUCT_IMAGE","displayLabel":"No Approved Product Image","isActive":true,"sortOrder":40}
+    ],
+    "assetRightsStatuses": [
+      {"code":"APPROVED","displayLabel":"Rights Approved","isActive":true,"sortOrder":10},
+      {"code":"UNKNOWN","displayLabel":"Rights Unknown","isActive":true,"sortOrder":20},
+      {"code":"RESTRICTED","displayLabel":"Rights Restricted","isActive":true,"sortOrder":30}
     ],
     "tenantTypes": [
       {"code":"PLATFORM","displayLabel":"Advertified Platform","isActive":true,"sortOrder":10},
@@ -251,9 +481,9 @@
       {"code":"FLAT_RATE","displayLabel":"Flat Rate","isActive":true,"sortOrder":50},
       {"code":"SPOT_RATE","displayLabel":"Spot Rate","isActive":true,"sortOrder":60},
       {"code":"PACKAGE_RATE","displayLabel":"Package Rate","isActive":true,"sortOrder":70},
-      {"code":"DAY_RATE","displayLabel":"Day Rate","isActive":true,"sortOrder":80},
-      {"code":"WEEK_RATE","displayLabel":"Week Rate","isActive":true,"sortOrder":90},
-      {"code":"MONTH_RATE","displayLabel":"Month Rate","isActive":true,"sortOrder":100}
+      {"code":"DAY_RATE","displayLabel":"Day Rate","isActive":true,"sortOrder":80,"metadata":{"billingDays":1}},
+      {"code":"WEEK_RATE","displayLabel":"Week Rate","isActive":true,"sortOrder":90,"metadata":{"billingDays":7}},
+      {"code":"MONTH_RATE","displayLabel":"Month Rate","isActive":true,"sortOrder":100,"metadata":{"billingDays":30}}
     ],
     "assetTypes": [
       {"code":"LOGO","displayLabel":"Logo","isActive":true,"sortOrder":10},
@@ -263,7 +493,8 @@
       {"code":"PROOF_IMAGE","displayLabel":"Proof Image","isActive":true,"sortOrder":50},
       {"code":"SPECIFICATION","displayLabel":"Specification","isActive":true,"sortOrder":60},
       {"code":"TERMS_DOCUMENT","displayLabel":"Terms Document","isActive":true,"sortOrder":70},
-      {"code":"RATE_CARD","displayLabel":"Rate Card","isActive":true,"sortOrder":80}
+      {"code":"RATE_CARD","displayLabel":"Rate Card","isActive":true,"sortOrder":80},
+      {"code":"BRAND_REFERENCE","displayLabel":"Brand Reference","isActive":true,"sortOrder":90}
     ],
     "proposalTiers": [
       {"code":"LAUNCH","displayLabel":"Launch","isActive":true,"sortOrder":10,"metadata":{"currency":"ZAR","minBudgetMinor":1000000,"maxBudgetMinor":10000000}},
@@ -301,9 +532,9 @@
       {"code":"GBP","displayLabel":"Pound Sterling","isActive":true,"sortOrder":40}
     ],
     "vatStatuses": [
-      {"code":"REGISTERED","displayLabel":"VAT Registered","isActive":true,"sortOrder":10},
-      {"code":"EXEMPT","displayLabel":"VAT Exempt","isActive":true,"sortOrder":20},
-      {"code":"NOT_APPLICABLE","displayLabel":"Not Applicable","isActive":true,"sortOrder":30}
+      {"code":"REGISTERED","displayLabel":"VAT Registered","isActive":true,"sortOrder":10,"metadata":{"rate":0.15}},
+      {"code":"EXEMPT","displayLabel":"VAT Exempt","isActive":true,"sortOrder":20,"metadata":{"rate":0}},
+      {"code":"NOT_APPLICABLE","displayLabel":"Not Applicable","isActive":true,"sortOrder":30,"metadata":{"rate":0}}
     ]
   }
 }

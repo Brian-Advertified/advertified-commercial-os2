@@ -1,5 +1,6 @@
 using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Domain.Constants;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Persistence;
@@ -47,7 +48,7 @@ public sealed class DatabaseTenantMembershipSource(GovernanceDbContext dbContext
         var membershipRole = await dbContext.Memberships
             .Where(item => item.UserId == userId
                 && item.TenantId == tenantId
-                && item.Status == MasterDataConstants.ActiveStatus)
+                && item.Status == MasterDataReferences.LifecycleStatuses.Active)
             .Select(item => (string?)item.Role.Value)
             .SingleOrDefaultAsync(cancellationToken);
         if (membershipRole is null ||
@@ -65,10 +66,10 @@ public sealed class DatabaseTenantMembershipSource(GovernanceDbContext dbContext
         CancellationToken cancellationToken)
     {
         var userActive = await dbContext.Users.AnyAsync(
-            item => item.Id == userId && item.Status == MasterDataConstants.ActiveStatus,
+            item => item.Id == userId && item.Status == MasterDataReferences.LifecycleStatuses.Active,
             cancellationToken);
         var tenantActive = await dbContext.Tenants.AnyAsync(
-            item => item.Id == tenantId && item.Status == MasterDataConstants.ActiveStatus,
+            item => item.Id == tenantId && item.Status == MasterDataReferences.LifecycleStatuses.Active,
             cancellationToken);
         return userActive && tenantActive;
     }
@@ -79,7 +80,7 @@ public sealed class DatabaseTenantMembershipSource(GovernanceDbContext dbContext
     {
         var registered = await dbContext.MasterDataItems
             .AsNoTracking()
-            .Where(item => item.CollectionCode == MasterDataConstants.PermissionCollection
+            .Where(item => item.CollectionCode == MasterDataCodes.Permissions.Collection
                 && item.IsActive)
             .Select(item => new { item.Code, item.MetadataJson })
             .ToListAsync(cancellationToken);
