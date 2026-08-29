@@ -39,7 +39,9 @@ public sealed class HumanSafeApiBoundaryTests
     [Fact]
     public async Task AuthenticationAndUnexpectedFailuresReturnOnlyHumanSafeProblems()
     {
-        await using var factory = new WebApplicationFactory<Program>();
+        await using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(
+                builder => builder.UseDeterministicInventoryProtection());
         using var unauthenticated = factory.WithWebHostBuilder(builder =>
             builder.ConfigureAppConfiguration((_, configuration) =>
                 configuration.AddInMemoryCollection(new Dictionary<string, string?>

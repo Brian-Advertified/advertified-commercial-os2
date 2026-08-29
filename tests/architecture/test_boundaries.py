@@ -47,6 +47,13 @@ REQUIRED_MASTER_COLLECTIONS = {
     "objectionResolutions",
     "humanTaskTypes",
     "briefSourceTypes",
+    "documentClasses",
+    "inventoryReviewDecisions",
+    "availabilityStatuses",
+    "verificationLevels",
+    "inventoryProductTypes",
+    "inventoryImportStepTypes",
+    "malwareScanStatuses",
     "proposalTiers",
     "rateTypes",
     "rejectionReasons",
@@ -133,8 +140,19 @@ GATE5_PERMISSION_ROLES = {
     },
     "brief_approve": {"internal_planner", "agency_admin", "agency_campaign_user"},
 }
+GATE6_PERMISSION_ROLES = {
+    "inventory_view": {
+        "platform_admin", "internal_planner", "inventory_ops", "agency_admin",
+        "agency_campaign_user", "advertiser_admin", "advertiser_approver",
+        "supplier_admin", "supplier_user",
+    },
+    "inventory_import": {"platform_admin", "inventory_ops", "supplier_admin"},
+    "inventory_review": {"platform_admin", "inventory_ops"},
+    "inventory_publish": {"platform_admin", "inventory_ops"},
+}
 REQUIRED_PERMISSION_ROLES = (
     GATE2_PERMISSION_ROLES | GATE4_PERMISSION_ROLES | GATE5_PERMISSION_ROLES
+    | GATE6_PERMISSION_ROLES
 )
 
 

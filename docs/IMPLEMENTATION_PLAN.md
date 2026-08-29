@@ -4,7 +4,7 @@
 **Evidence date:** 2026-08-29  
 **Normative product source:** `docs/spec/README.md`  
 **Execution rules:** `AGENTS.md`  
-**Current permission:** Gate 5 delivered locally; Gate 6 work-packet preparation authorised by standing sequential-delivery direction
+**Current permission:** Gate 6 delivered locally; Gate 7 packet preparation authorised by standing sequential-delivery direction
 
 This is the execution index, not a replacement for the full v1.1 specification. Every gate uses the applicable normative sections and the historical traceability/adversarial fixtures in Section 31.
 
@@ -18,7 +18,8 @@ This is the execution index, not a replacement for the full v1.1 specification. 
 | 3 | GO | Brian Rabuthu recorded local Gate 3 GO on 2026-08-29; non-local reviews remain separate |
 | 4 | Delivered locally | Repeatable evidence retained; Brian Rabuthu directed Gate 4 delivered on 2026-08-29 |
 | 5 | Delivered locally | Canonical Brief implementation and repeatable evidence complete; owner/independent review remains pending |
-| 6–13 | Blocked | No implementation until the preceding gate is verified and an exact work packet exists |
+| 6 | Delivered locally | Inventory truth implementation and repeatable evidence complete; owner/independent review remains pending |
+| 7–13 | Blocked | No implementation until the preceding gate is verified and an exact work packet exists |
 
 There are fourteen gates numbered 0 through 13.
 
@@ -158,16 +159,20 @@ Brief through confirmation without an advertiser or second agency user.
 **Normative areas:** Sections 7.4, 10, 18.4, 21.4, 23  
 **Outcome:** Supplier-agnostic files become reviewed, versioned, searchable inventory with source lineage.
 
+**Current status:** Delivered and verified locally under `docs/GATE6_WORK_PACKET.md`.
+Repeatable evidence is retained in `docs/evidence/gate-6/`. No live provider, production
+resource, shared-database migration, external publication, or commercial commitment was used.
+
 Pipeline: upload → quarantine → malware/type validation → classify → preserve → render → extract structure/assets/coordinates → normalise → validate → deduplicate/supersede → review → publish → evaluate.
 
-No candidate becomes bookable without approved rates, availability, evidence, and freshness.
+No candidate becomes bookable without approved rates, availability, evidence, and freshness. Gate 6 must preserve the typed OOH/DOOH attributes and coordinates needed by later benchmarking, but it does **not** calculate market position or widen its bounded implementation into Inventory Intelligence.
 
 ## Gate 7 — planning
 
 **Normative areas:** Sections 7.2, 18.5, 21.3, 22  
 **Outcome:** An approved Brief becomes approved audience, media mix, eligible shortlist, and MediaPlanVersion.
 
-Hard constraints run before scoring. Money/VAT/fees are deterministic. Every rejection is retained. Supply forecasts expose source and uncertainty. Critic objections must be resolved by a human.
+Hard constraints run before scoring. Money/VAT/fees are deterministic. Every rejection is retained. OOH/DOOH Inventory Intelligence must calculate transparent local peer benchmarks from exact published product/rate versions using governed spatial and commercial compatibility rules before an agent interprets value. It exposes cohort size, geography/radius, median/quartiles/percentile, above/below-market position, freshness, confidence and exclusions; any benchmark bound into a shortlist or plan is immutable and reproducible. Supply forecasts expose source and uncertainty. Critic objections must be resolved by a human.
 
 The assigned agency operator may carry the work through planning without a fabricated second
 agency user. Any required confirmation binds that exact operator and artefact version.

@@ -153,6 +153,21 @@ The canonical inventory model supports OOH/DOOH, radio, TV, print, digital/socia
 
 - Benchmarking separates verified facts, calculated comparables and AI interpretation so users can challenge each layer.
 
+## 10.3 OOH comparative intelligence
+
+OOH/DOOH product detail and Inventory Intelligence must answer a commercial question that raw inventory search cannot: **how does this placement fare against genuinely comparable supply in the same market?** The comparison is a deterministic decision-support capability, not an AI-generated score.
+
+- Gate 6 captures and publishes benchmark-ready inventory truth. Comparative calculations start only from published product/rate versions and belong to Gate 7 planning / Inventory Intelligence; they must not expand the bounded Gate 6 ingestion implementation.
+- The target placement and every member of its peer cohort retain exact product version, rate version, evidence, freshness and distance/proximity basis so a benchmark used in a shortlist, plan or proposal is reproducible later.
+- OOH proximity uses PostGIS spatial data when verified coordinates exist. Default cohort expansion is configurable and progressively widens from a close radius to wider radius, locality and municipality only until enough compatible peers exist. The UI always states the actual comparison area used.
+- A product is comparable only when channel, digital/static state, compatible format/structure class, rate basis, currency/VAT treatment and effective period can be compared without misleading normalization. Dimensions/display area, illumination, digital loop/share, road/route context and measurement basis further constrain or qualify the cohort where present.
+- Rate normalization is deterministic and labelled. Never compare raw weekly, four-week, monthly, per-play, per-loop or package prices as if they were the same buying unit. Production, installation and other one-off costs remain separate unless both sides use the same evidenced basis.
+- Verified traffic, reach, impressions, footfall or audience measurements may produce efficiency metrics such as cost per thousand only when source, period, unit and methodology are compatible. Missing or incompatible measurements produce `not comparable`; they are never inferred.
+- Required benchmark facts include peer count, median, quartiles, min/max, target percentile, percentage above/below median, rate freshness distribution, actual distance/range and the exact filters/normalizations applied. Small or weak cohorts are labelled low-confidence or insufficient rather than padded with incompatible inventory.
+- A simple human-facing position such as `strong value`, `market-aligned` or `above market` may be derived from governed thresholds, but the underlying facts must remain visible. Do not make an opaque composite score the only explanation.
+- AI may summarise the deterministic facts in plain commercial language after calculation. It cannot select hidden peers, alter calculated values, invent measurement data or convert weak evidence into a confident claim.
+- Product detail must show a `Market comparison` section and a `View comparable sites` action. The expanded experience shows the target and peers on a map/list, the cohort criteria, included peer facts, exclusions/reasons, freshness and source confidence.
+
 # 11. Security, POPIA and non-functional requirements
 
 | **Area**            | **Requirement**                                                                                    | **Initial gate**                                               |
@@ -176,8 +191,8 @@ The roadmap follows commercial value and production risk. It does not defer brie
 | **Phase**                  | **Scope**                                                                                                  | **Exit criterion**                                                                         | **Horizon**         |
 |----------------------------|------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|---------------------|
 | A. Clean foundation        | Commercial API aggregates, RBAC, immutable versions, audit, deterministic test provider, dispatch health   | Opportunity and Brief lifecycle works with no paid model dependency                        | Current             |
-| B. Inventory truth         | Repeatable ingestion, review, assets, large catalogue, eligibility, benchmarks and detail pages            | Unseen supplier file reaches publishable inventory through review                          | Current / near-term |
-| C. Opportunity to proposal | Evidence, interpretation, Strategy, Critic, Brief, Media Mix, supply/forecast, three-tier proposal and PDF | One real opportunity completes end to end with approvals, evidence reuse and recorded cost | Near-term           |
+| B. Inventory truth         | Repeatable ingestion, review, assets, large catalogue, benchmark-ready OOH/DOOH facts and detail pages      | Unseen supplier file reaches publishable inventory through review                          | Current / near-term |
+| C. Opportunity to proposal | Evidence, interpretation, Strategy, Critic, Brief, Media Mix, eligibility, comparative inventory intelligence, supply/forecast, three-tier proposal and PDF | One real opportunity completes end to end with approvals, evidence reuse and recorded cost | Near-term           |
 | D. Supplier marketplace    | Self-service listings, availability, RFQs, quotes, booking and commercial settings                         | A supplier manages listings and completes a buyer request without internal data re-entry   | Next                |
 | E. Campaign delivery       | Creative workflow, proof, delivery, performance and client reporting                                       | Booked campaign closes the loop to verified outcomes                                       | Next                |
 | F. Advanced intelligence   | Licensed audience data, predictive models, activation integrations and controlled optimisation             | Capability is evidence-defensible and client-authorised                                    | Future              |

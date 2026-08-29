@@ -53,3 +53,11 @@ public static class Gate5Permissions
     public static readonly PermissionCode BriefSubmit = new("brief_submit");
     public static readonly PermissionCode BriefApprove = new("brief_approve");
 }
+
+public static class Gate6Permissions
+{
+    public static readonly PermissionCode InventoryView = new("inventory_view");
+    public static readonly PermissionCode InventoryImport = new("inventory_import");
+    public static readonly PermissionCode InventoryReview = new("inventory_review");
+    public static readonly PermissionCode InventoryPublish = new("inventory_publish");
+}

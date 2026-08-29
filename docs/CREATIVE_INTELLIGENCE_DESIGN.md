@@ -2,7 +2,7 @@
 
 **Design date:** 2026-08-29  
 **Status:** DESIGN ONLY — future-gate preparation; not authorised implementation  
-**Current gate:** Gate 6 inventory truth is in progress  
+**Current gate:** Gate 6 inventory truth is delivered locally  
 **Purpose:** Define the smallest coherent PDF/catalogue → verified brand/product assets → illustrative creative concepts → proposal flow without touching active Gate 6 work.
 
 ## 1. Required distinction

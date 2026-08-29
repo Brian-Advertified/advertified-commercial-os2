@@ -230,6 +230,8 @@
 | InventoryImport           | id, tenant_id, supplier_id, source_object_key, hash, document_class, pipeline_status, schema_version, counts, error_summary | same hash is idempotent unless explicit reprocess                          |
 | InventoryCandidate        | id, import_id, source_locator, proposed_product, proposed_rates, assets, confidence, validation_errors, review_status       | never public before review/publish command                                 |
 | InventoryReviewDecision   | id, candidate_id, decision, field_changes, reasons, reviewer_id, decided_at                                                 | append-only review history                                                 |
+| InventorySpatialLocation  | product_version_id, point_geometry, coordinate_source, coordinate_confidence, resolved_geography_version                    | OOH/DOOH point uses PostGIS geography/geometry with spatial index; derived geography never overwrites supplier evidence |
+| InventoryBenchmarkSnapshot | id, target_product_version_id, target_rate_id, policy_version, comparison_basis, geography_basis, cohort_product_version_ids, cohort_rate_ids, statistics, confidence, created_at | immutable when bound to a shortlist/plan/proposal; every statistic reproducible from exact inputs |
 
 ## 18.5 Plan, proposal, delivery and governance records
 
@@ -263,7 +265,7 @@
 
 - Every foreign key used in a protected query is tenant-safe; composite constraints or verified parent joins prevent cross-tenant association.
 
-- Index tenant_id plus lifecycle/status and common sort keys. Add spatial indexes for geometry, vector indexes only for measured retrieval use, and partial indexes for active work queues.
+- Index tenant_id plus lifecycle/status and common sort keys. OOH/DOOH published coordinates must be materialised as PostGIS spatial data with a GiST/SP-GiST index suitable for bounded-distance peer queries; numeric latitude/longitude may remain interchange fields but are not the benchmark query primitive. Add vector indexes only for measured retrieval use, and partial indexes for active work queues.
 
 - Store large documents and images in object storage, not database byte columns; retain hashes and immutable object versions.
 

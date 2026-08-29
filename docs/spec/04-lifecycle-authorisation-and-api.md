@@ -222,6 +222,8 @@
 | POST       | /tenants/{tid}/inventory-imports/{id}:publish   | inventory publish       | Publish approved candidates                                                     |
 | GET        | /tenants/{tid}/inventory-products               | inventory view          | Large-catalogue cursor search and filters                                       |
 | GET        | /tenants/{tid}/inventory-products/{id}          | inventory view          | Dedicated product detail, rates, assets and evidence                            |
+| GET        | /tenants/{tid}/inventory-products/{id}/benchmark | inventory view         | Deterministic market comparison for the exact published product/rate version    |
+| GET        | /tenants/{tid}/inventory-products/{id}/comparables | inventory view       | Peer cohort, distances, inclusion/exclusion reasons and comparable facts        |
 | POST       | /tenants/{tid}/inventory-products               | supplier inventory edit | Create supplier-owned draft listing                                             |
 | POST       | /tenants/{tid}/inventory-products/{id}:publish  | inventory publish       | Validate and publish listing                                                    |
 | POST       | /tenants/{tid}/rfqs                             | rfq create              | Create draft RFQ                                                                |

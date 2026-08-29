@@ -30,7 +30,9 @@ PROJECT_POLICIES = {
             {
                 "Microsoft.EntityFrameworkCore",
                 "Microsoft.EntityFrameworkCore.Relational",
+                "Minio",
                 "Npgsql.EntityFrameworkCore.PostgreSQL",
+                "PdfPig",
             }
         ),
     ),

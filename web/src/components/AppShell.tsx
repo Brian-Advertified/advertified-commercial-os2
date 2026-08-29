@@ -9,6 +9,7 @@ const destinations = [
   { to: '/home', label: 'Home', icon: 'home', enabled: true },
   { to: '/opportunities', label: 'Opportunities', icon: 'tasks', enabled: true },
   { to: '/briefs/new', label: 'Briefs', icon: 'tasks', enabled: true },
+  { to: '/inventory', label: 'Inventory', icon: 'tasks', enabled: true },
   { to: '/tasks', label: 'Tasks', icon: 'tasks', enabled: true },
   { to: '/notifications', label: 'Notifications', icon: 'bell', enabled: false },
   { to: '/profile', label: 'Profile', icon: 'profile', enabled: true },

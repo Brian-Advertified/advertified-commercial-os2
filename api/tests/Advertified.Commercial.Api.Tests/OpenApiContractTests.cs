@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
@@ -9,7 +10,11 @@ public sealed class OpenApiContractTests
     [Fact]
     public async Task RetainedV1ContractMatchesTheRunningApi()
     {
-        await using var factory = new WebApplicationFactory<Program>();
+        await using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseDeterministicInventoryProtection();
+            });
         using var client = factory.CreateClient();
         var actualJson = await client.GetStringAsync("/swagger/v1/swagger.json");
         var retainedPath = Path.Combine(
@@ -90,6 +95,17 @@ public sealed class OpenApiContractTests
         Assert.Null(submitBrief["properties"]!["approverUserId"]);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/opportunities/{opportunityId}/briefs:draft"]);
+        Assert.NotNull(paths["/api/v1/tenants/{tenantId}/inventory-imports"]!["post"]);
+        var executeImport = paths[
+            "/api/v1/tenants/{tenantId}/inventory-imports/{importId}:execute"]!["post"]!;
+        AssertHeaderParameter(executeImport["parameters"]!.AsArray(), "If-Match", true);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/inventory-candidates/{candidateId}:review"]);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/inventory-imports/{importId}:publish"]);
+        Assert.NotNull(paths["/api/v1/tenants/{tenantId}/inventory-products"]!["get"]);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/inventory-products/{productId}"]!["get"]);
     }
 
     private static void AssertHeaderParameter(

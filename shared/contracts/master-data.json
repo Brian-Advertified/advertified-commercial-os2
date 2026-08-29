@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "1.4.0",
+  "registryVersion": "1.5.0",
   "effectiveFrom": "2026-08-29",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
@@ -66,7 +66,11 @@
       {"code":"brief_create","displayLabel":"Create assigned briefs","isActive":true,"sortOrder":280,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"brief_edit","displayLabel":"Edit assigned brief drafts","isActive":true,"sortOrder":290,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"brief_submit","displayLabel":"Submit assigned brief drafts","isActive":true,"sortOrder":300,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
-      {"code":"brief_approve","displayLabel":"Confirm assigned brief versions","isActive":true,"sortOrder":310,"metadata":{"roles":["internal_planner","agency_admin","agency_campaign_user"]}}
+      {"code":"brief_approve","displayLabel":"Confirm assigned brief versions","isActive":true,"sortOrder":310,"metadata":{"roles":["internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"inventory_view","displayLabel":"View published inventory","isActive":true,"sortOrder":320,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_admin","supplier_user"]}},
+      {"code":"inventory_import","displayLabel":"Import inventory sources","isActive":true,"sortOrder":330,"metadata":{"roles":["platform_admin","inventory_ops","supplier_admin"]}},
+      {"code":"inventory_review","displayLabel":"Review inventory candidates","isActive":true,"sortOrder":340,"metadata":{"roles":["platform_admin","inventory_ops"]}},
+      {"code":"inventory_publish","displayLabel":"Publish reviewed inventory","isActive":true,"sortOrder":350,"metadata":{"roles":["platform_admin","inventory_ops"]}}
     ],
     "briefSourceTypes": [
       {"code":"SUPPLIED_TEXT","displayLabel":"Supplied Text","isActive":true,"sortOrder":10},
@@ -122,7 +126,64 @@
       {"code":"CRITIC_RESOLUTION","displayLabel":"Resolve Critic Objection","isActive":true,"sortOrder":50},
       {"code":"STRATEGY_APPROVAL","displayLabel":"Approve Strategy","isActive":true,"sortOrder":60},
       {"code":"RUN_RECOVERY","displayLabel":"Recover Workflow Run","isActive":true,"sortOrder":70},
-      {"code":"BRIEF_APPROVAL","displayLabel":"Confirm Campaign Brief","isActive":true,"sortOrder":80}
+      {"code":"BRIEF_APPROVAL","displayLabel":"Confirm Campaign Brief","isActive":true,"sortOrder":80},
+      {"code":"INVENTORY_CANDIDATE_REVIEW","displayLabel":"Review Inventory Candidate","isActive":true,"sortOrder":90}
+    ],
+    "documentClasses": [
+      {"code":"CSV","displayLabel":"Comma-Separated Values","isActive":true,"sortOrder":10,"metadata":{"mediaType":"text/csv"}},
+      {"code":"XLSX","displayLabel":"Excel Workbook","isActive":true,"sortOrder":20,"metadata":{"mediaType":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}},
+      {"code":"PDF","displayLabel":"PDF Document","isActive":true,"sortOrder":30,"metadata":{"mediaType":"application/pdf"}},
+      {"code":"DOCX","displayLabel":"Word Document","isActive":true,"sortOrder":40,"metadata":{"mediaType":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}},
+      {"code":"PNG","displayLabel":"PNG Image","isActive":true,"sortOrder":50,"metadata":{"mediaType":"image/png"}},
+      {"code":"JPEG","displayLabel":"JPEG Image","isActive":true,"sortOrder":60,"metadata":{"mediaType":"image/jpeg"}}
+    ],
+    "inventoryReviewDecisions": [
+      {"code":"APPROVE","displayLabel":"Approve","isActive":true,"sortOrder":10},
+      {"code":"REJECT","displayLabel":"Reject","isActive":true,"sortOrder":20},
+      {"code":"EDIT","displayLabel":"Edit and Approve","isActive":true,"sortOrder":30}
+    ],
+    "availabilityStatuses": [
+      {"code":"UNKNOWN","displayLabel":"Availability Unknown","isActive":true,"sortOrder":10},
+      {"code":"AVAILABLE","displayLabel":"Available","isActive":true,"sortOrder":20},
+      {"code":"LIMITED","displayLabel":"Limited Availability","isActive":true,"sortOrder":30},
+      {"code":"UNAVAILABLE","displayLabel":"Unavailable","isActive":true,"sortOrder":40}
+    ],
+    "verificationLevels": [
+      {"code":"UNVERIFIED","displayLabel":"Unverified","isActive":true,"sortOrder":10},
+      {"code":"SOURCE_VERIFIED","displayLabel":"Source Verified","isActive":true,"sortOrder":20},
+      {"code":"HUMAN_VERIFIED","displayLabel":"Human Verified","isActive":true,"sortOrder":30}
+    ],
+    "inventoryProductTypes": [
+      {"code":"OOH_SITE","displayLabel":"Out of Home Site","isActive":true,"sortOrder":10},
+      {"code":"DOOH_SCREEN","displayLabel":"Digital Out of Home Screen","isActive":true,"sortOrder":20},
+      {"code":"RADIO_SPOT","displayLabel":"Radio Spot","isActive":true,"sortOrder":30},
+      {"code":"TV_SPOT","displayLabel":"Television Spot","isActive":true,"sortOrder":40},
+      {"code":"PRINT_PLACEMENT","displayLabel":"Print Placement","isActive":true,"sortOrder":50},
+      {"code":"DIGITAL_PLACEMENT","displayLabel":"Digital Placement","isActive":true,"sortOrder":60},
+      {"code":"SOCIAL_PLACEMENT","displayLabel":"Social Placement","isActive":true,"sortOrder":70},
+      {"code":"INFLUENCER_PACKAGE","displayLabel":"Influencer Package","isActive":true,"sortOrder":80},
+      {"code":"EXPERIENCE","displayLabel":"Experiential Placement","isActive":true,"sortOrder":90},
+      {"code":"PODCAST_SPOT","displayLabel":"Podcast Spot","isActive":true,"sortOrder":100},
+      {"code":"RETAIL_PLACEMENT","displayLabel":"Retail Placement","isActive":true,"sortOrder":110},
+      {"code":"TRANSIT_PLACEMENT","displayLabel":"Transit Placement","isActive":true,"sortOrder":120},
+      {"code":"MALL_PLACEMENT","displayLabel":"Mall Placement","isActive":true,"sortOrder":130},
+      {"code":"EMAIL_PLACEMENT","displayLabel":"Email Placement","isActive":true,"sortOrder":140},
+      {"code":"MOBILE_PLACEMENT","displayLabel":"Mobile Placement","isActive":true,"sortOrder":150}
+    ],
+    "inventoryImportStepTypes": [
+      {"code":"UPLOAD_PROTECTION","displayLabel":"Protect Upload","isActive":true,"sortOrder":10},
+      {"code":"CLASSIFICATION","displayLabel":"Classify Source","isActive":true,"sortOrder":20},
+      {"code":"EXTRACTION","displayLabel":"Extract Source","isActive":true,"sortOrder":30},
+      {"code":"NORMALIZATION","displayLabel":"Normalize Fields","isActive":true,"sortOrder":40},
+      {"code":"VALIDATION","displayLabel":"Validate Candidates","isActive":true,"sortOrder":50},
+      {"code":"REVIEW","displayLabel":"Review Candidates","isActive":true,"sortOrder":60},
+      {"code":"PUBLICATION","displayLabel":"Publish Inventory","isActive":true,"sortOrder":70}
+    ],
+    "malwareScanStatuses": [
+      {"code":"PENDING","displayLabel":"Scan Pending","isActive":true,"sortOrder":10},
+      {"code":"CLEAN","displayLabel":"Clean","isActive":true,"sortOrder":20},
+      {"code":"INFECTED","displayLabel":"Unsafe File","isActive":true,"sortOrder":30},
+      {"code":"ERROR","displayLabel":"Scan Failed","isActive":true,"sortOrder":40}
     ],
     "tenantTypes": [
       {"code":"PLATFORM","displayLabel":"Advertified Platform","isActive":true,"sortOrder":10},

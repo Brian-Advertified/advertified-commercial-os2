@@ -48,6 +48,19 @@ services:
       retries: 12
       start_period: 10s
 
+  clamav:
+    image: clamav/clamav:1.4.3
+    ports:
+      - "127.0.0.1:${CLAMAV_PORT:-53310}:3310"
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 3"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
+
   redis:
     image: redis:7.4.2-alpine
     command: ["redis-server", "--appendonly", "yes"]
@@ -76,4 +89,5 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  clamav_data:
   redis_data:

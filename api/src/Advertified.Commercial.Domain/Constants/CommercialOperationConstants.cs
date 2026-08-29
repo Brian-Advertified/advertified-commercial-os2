@@ -20,6 +20,9 @@ public static class CommercialResourceTypes
     public static readonly ResourceTypeCode HumanTask = new("human_task");
     public static readonly ResourceTypeCode CampaignBrief = new("campaign_brief");
     public static readonly ResourceTypeCode BriefVersion = new("brief_version");
+    public static readonly ResourceTypeCode InventoryImport = new("inventory_import");
+    public static readonly ResourceTypeCode InventoryCandidate = new("inventory_candidate");
+    public static readonly ResourceTypeCode InventoryProduct = new("inventory_product");
 }
 
 public static class CommercialActions
@@ -51,6 +54,10 @@ public static class CommercialActions
     public static readonly ActionCode BriefSubmitted = new("brief_version.submitted");
     public static readonly ActionCode BriefApproved = new("brief_version.approved");
     public static readonly ActionCode BriefRejected = new("brief_version.rejected");
+    public static readonly ActionCode InventoryImportCreated = new("inventory_import.created");
+    public static readonly ActionCode InventoryImportExecuted = new("inventory_import.executed");
+    public static readonly ActionCode InventoryCandidateReviewed = new("inventory_candidate.reviewed");
+    public static readonly ActionCode InventoryPublished = new("inventory.published");
 }
 
 public static class CommercialEventTypes
@@ -82,4 +89,8 @@ public static class CommercialEventTypes
     public static readonly EventTypeCode BriefSubmitted = new("BriefSubmitted");
     public static readonly EventTypeCode BriefApproved = new("BriefApproved");
     public static readonly EventTypeCode BriefRejected = new("BriefRejected");
+    public static readonly EventTypeCode InventoryImportCreated = new("InventoryImportCreated");
+    public static readonly EventTypeCode InventoryImportExecuted = new("InventoryImportExecuted");
+    public static readonly EventTypeCode InventoryCandidateReviewed = new("InventoryCandidateReviewed");
+    public static readonly EventTypeCode InventoryPublished = new("InventoryPublished");
 }

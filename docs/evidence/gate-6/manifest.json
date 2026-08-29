@@ -1,0 +1,90 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 6,
+  "evidenceDate": "2026-08-29",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "5975f32d145da44f5012a23c0a6971edfe60d062",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Commercial API Release build",
+      "command": "dotnet build api/Advertified.Commercial.Api.csproj --configuration Release --no-restore",
+      "outcome": "PASS",
+      "summary": ".NET 10/C# 14 affected graph completed with zero warnings and zero errors."
+    },
+    {
+      "name": "Migration runner Release build",
+      "command": "dotnet build api/src/Advertified.Commercial.DatabaseMigrator/Advertified.Commercial.DatabaseMigrator.csproj --configuration Release --no-restore",
+      "outcome": "PASS",
+      "summary": "The dedicated migration runner completed with zero warnings and zero errors."
+    },
+    {
+      "name": "Complete Commercial API test suite",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release --no-restore",
+      "outcome": "PASS",
+      "summary": "34 passed, including disposable PostgreSQL, 38-table RLS, retained OpenAPI, and Gate 6 coverage."
+    },
+    {
+      "name": "Gate 6 inventory lifecycle and scale",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~InventoryGate6AcceptanceTests",
+      "outcome": "PASS",
+      "summary": "The end-to-end case passed the 100 MiB, six-class corpus, malware, review, publication, tenant, immutability, and 10,001-product paging boundaries."
+    },
+    {
+      "name": "Agent runtime tests and lint",
+      "command": "python -m pytest; python -m ruff check . (from agent-runtime)",
+      "outcome": "PASS",
+      "summary": "16 deterministic tests passed and Ruff reported no findings."
+    },
+    {
+      "name": "Architecture guardrails",
+      "command": "python -m pytest tests/architecture -q",
+      "outcome": "PASS",
+      "summary": "21 passed, including all six retained evidence manifests and governed vocabulary/dependency rules."
+    },
+    {
+      "name": "Web verification",
+      "command": "npm run lint; npm run type-check; npm test; npm run build (from web)",
+      "outcome": "PASS",
+      "summary": "Lint and TypeScript passed, 4 focused tests passed, and the Vite production build succeeded."
+    },
+    {
+      "name": "Browser journeys",
+      "command": "npm run test:e2e (from web)",
+      "outcome": "PASS",
+      "summary": "12 passed across desktop and compact projects, including Gate 6 import-to-search."
+    },
+    {
+      "name": "Web runtime dependency audit",
+      "command": "npm audit --omit=dev --audit-level=high (from web)",
+      "outcome": "PASS",
+      "summary": "Zero vulnerabilities reported."
+    },
+    {
+      "name": "Local infrastructure validation",
+      "command": "docker compose -f infrastructure/docker-compose.yml up -d --build --wait; docker compose -f infrastructure/docker-compose.yml ps",
+      "outcome": "PASS",
+      "summary": "Compose validates and all five local non-production services report healthy; ClamAV effective stream/file limits are 100 MiB."
+    },
+    {
+      "name": "Remote CI and independent review",
+      "command": "Owner-authorised publication followed by remote CI and named reviews",
+      "outcome": "PENDING",
+      "summary": "No push, merge, release, deployment, or production migration was performed."
+    }
+  ],
+  "unresolvedBlockers": [
+    "Remote CI and independent Engineering, Security/Privacy, and Operations review remain pending.",
+    "Migration 202608290005_InventoryTruth is verified in disposable PostgreSQL but not authorised or applied to the shared local database."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}

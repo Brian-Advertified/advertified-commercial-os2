@@ -69,6 +69,9 @@ def test_gate_evidence_manifests_match_the_closed_schema_contract() -> None:
         json.loads((evidence_root / "gate-1" / "manifest.json").read_text(encoding="utf-8")),
         json.loads((evidence_root / "gate-2" / "manifest.json").read_text(encoding="utf-8")),
         json.loads((evidence_root / "gate-3" / "manifest.json").read_text(encoding="utf-8")),
+        json.loads((evidence_root / "gate-4" / "manifest.json").read_text(encoding="utf-8")),
+        json.loads((evidence_root / "gate-5" / "manifest.json").read_text(encoding="utf-8")),
+        json.loads((evidence_root / "gate-6" / "manifest.json").read_text(encoding="utf-8")),
     ]
     allowed_fields = set(schema["properties"])
     required_fields = set(schema["required"])

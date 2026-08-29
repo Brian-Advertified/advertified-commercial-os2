@@ -10,6 +10,7 @@ The canonical setup and verification commands are maintained in the repository `
 | Redis | 56379 |
 | MinIO API | 59000 |
 | MinIO console | 59001 |
+| ClamAV scanner | 53310 |
 | MailHog SMTP | 51025 |
 | MailHog UI | 58025 |
 
@@ -24,7 +25,15 @@ docker compose -f infrastructure/docker-compose.yml up -d --build --wait
 docker compose -f infrastructure/docker-compose.yml ps
 ```
 
-All four services must report healthy. PostgreSQL health asserts major version 16 and the presence of `pgcrypto`, `postgis`, and `vector`.
+All five services must report healthy. PostgreSQL health asserts major version 16 and the presence of `pgcrypto`, `postgis`, and `vector`.
+
+Gate 6 development uses MinIO and ClamAV. Before starting the API, set
+`InventoryProtection__AccessKey` and `InventoryProtection__SecretKey` in that terminal to the
+matching MinIO values from the ignored `infrastructure/.env`. The API fails closed when required
+protection configuration or either service is unavailable. Inventory sources are limited to
+100 MiB. `InventoryProtection__MaximumSourceBytes` is the single application policy setting;
+the database and scanner retain fixed 100 MiB safety ceilings and the API rejects a configured
+value above them. The browser reads the active value from the authenticated inventory response.
 
 ## Stop without deleting data
 

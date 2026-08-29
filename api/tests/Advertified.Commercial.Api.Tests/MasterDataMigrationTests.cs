@@ -81,12 +81,15 @@ public sealed class MasterDataMigrationTests
     {
         await using var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
+            {
+                builder.UseDeterministicInventoryProtection();
                 builder.ConfigureAppConfiguration((_, configuration) =>
                     configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         ["Authentication:Mode"] = "Disabled",
                         ["ConnectionStrings:CommercialDatabase"] = connectionString,
-                    })));
+                    }));
+            });
         using var client = factory.CreateClient();
         using var response = await client.GetAsync("/health/live");
 

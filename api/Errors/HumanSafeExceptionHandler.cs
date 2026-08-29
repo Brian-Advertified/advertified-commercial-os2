@@ -5,6 +5,7 @@ using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Application.Opportunity;
+using Advertified.Commercial.Application.Inventory;
 
 namespace Advertified.Commercial.Api.Errors;
 
@@ -106,6 +107,16 @@ public sealed class HumanSafeExceptionHandler(
                 "Action is not available",
                 "Refresh this opportunity and complete its current step first.",
                 "INVALID_LIFECYCLE_TRANSITION"),
+            InventoryPublishBlockedException => new(
+                StatusCodes.Status409Conflict,
+                "Inventory is not ready to publish",
+                "Resolve the blocking candidate fields and complete review before publishing.",
+                "INVENTORY_PUBLISH_BLOCKED"),
+            InventoryProtectionUnavailableException or FileNotFoundException => new(
+                StatusCodes.Status503ServiceUnavailable,
+                "File protection is unavailable",
+                "Try again after the local file protection services are available.",
+                "INVENTORY_PROTECTION_UNAVAILABLE"),
             ArgumentException or BadHttpRequestException => new(
                 StatusCodes.Status400BadRequest,
                 "Some information needs attention",

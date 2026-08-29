@@ -207,6 +207,65 @@
 .version-grid h3 { color: var(--navy); }
 .version-grid small { color: var(--muted); }
 
+.inventory-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
+  gap: 1rem;
+  align-items: start;
+}
+.inventory-search {
+  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr auto;
+  gap: 0.8rem;
+  align-items: end;
+}
+.inventory-upload { position: sticky; top: 1rem; }
+.inventory-results .record-card p + p { margin-top: 0.2rem; font-size: 0.82rem; }
+.load-more { justify-self: center; }
+.import-summary {
+  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+.import-summary div { display: grid; gap: 0.3rem; }
+.import-summary span,
+.candidate-facts span,
+.product-fact span { color: var(--muted); font-size: 0.78rem; }
+.import-summary .inline-alert { grid-column: 1 / -1; }
+.import-action { margin-bottom: 1rem; }
+.candidate-stack { display: grid; gap: 1rem; }
+.candidate-card h2 { margin: 0; color: var(--navy); }
+.candidate-card header p:last-child { margin-bottom: 0; color: var(--muted); }
+.candidate-facts {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+.candidate-facts div { padding: 0.75rem; display: grid; gap: 0.25rem; background: var(--canvas); border-radius: 0.55rem; }
+.validation-list { padding-left: 1.2rem; color: var(--muted); }
+.validation-list .blocking { color: #9a382f; font-weight: 700; }
+.evidence-panel { margin-top: 1rem; border-top: 1px solid var(--line); padding-top: 0.8rem; }
+.evidence-panel summary { cursor: pointer; color: var(--electric-deep); font-weight: 750; }
+.evidence-table { margin-top: 0.75rem; display: grid; gap: 0.35rem; }
+.evidence-table div { display: grid; grid-template-columns: 0.7fr 1fr 1.4fr; gap: 0.5rem; padding: 0.6rem; background: var(--canvas); }
+.evidence-table small { color: var(--muted); overflow-wrap: anywhere; }
+.candidate-actions { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: end; }
+.reject-action { margin-left: auto; display: flex; gap: 0.5rem; align-items: end; }
+.reject-action label { display: grid; gap: 0.2rem; color: var(--muted); font-size: 0.75rem; }
+.reject-action select { padding: 0.45rem; border: 1px solid var(--line-strong); border-radius: 0.4rem; }
+.correction-form { margin-top: 1rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+.correction-form .candidate-actions { grid-column: 1 / -1; }
+.publish-panel { margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.publish-panel h2 { margin: 0; }
+.product-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.product-detail-grid h2,
+.source-lineage h2 { margin-top: 0; color: var(--navy); }
+.product-fact { display: flex; justify-content: space-between; gap: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--line); }
+.source-lineage { margin-top: 1rem; }
+
 @media (max-width: 800px) {
   .sign-in-page { grid-template-columns: 1fr; }
   .sign-in-story { min-height: 42vh; padding: 1.5rem; }
@@ -218,7 +277,17 @@
   .qualification-grid,
   .action-form { grid-template-columns: 1fr; }
   .brief-form,
-  .version-grid { grid-template-columns: 1fr; }
+  .version-grid,
+  .inventory-layout,
+  .inventory-search,
+  .import-summary,
+  .candidate-facts,
+  .correction-form,
+  .product-detail-grid { grid-template-columns: 1fr; }
   .brief-form .field-wide { grid-column: auto; }
   .opportunity-form { position: static; }
+  .inventory-upload { position: static; }
+  .evidence-table div { grid-template-columns: 1fr; }
+  .reject-action { margin-left: 0; }
+  .publish-panel { align-items: stretch; flex-direction: column; }
 }

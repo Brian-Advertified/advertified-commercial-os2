@@ -2,7 +2,7 @@
 
 **Evidence date:** 2026-08-29  
 **Clean parent recorded before remediation:** `0986f62ad0748289fdafe8f36f5f9a3dabaab4d8`  
-**Current change state:** Gates 2–4 committed locally; Gate 5 delivered and verified locally pending commit
+**Current change state:** Gates 2–6 delivered and committed locally
 **Status vocabulary:** ABSENT, SCAFFOLDED, IMPLEMENTED, VERIFIED, BLOCKED
 
 A capability is VERIFIED only when repeatable evidence was observed. Documentation does not make a capability implemented.
@@ -133,16 +133,30 @@ See `docs/evidence/gate-4/` for commands and exact outcomes.
 
 See `docs/evidence/gate-5/` for commands and exact outcomes.
 
-## Gates 6–13
+## Gate 6 — inventory truth
 
-Gates 6–13 remain ABSENT and sequence-blocked. A document, route label, container,
+| Capability | Status | Evidence / blocker |
+|---|---|---|
+| Bounded Gate 6 work packet | VERIFIED | `docs/GATE6_WORK_PACKET.md`; local implementation authorised 2026-08-29 |
+| Protected supplier-file intake | VERIFIED | 100 MiB boundary, byte classification, mismatch denial, quarantine, malware isolation, immutable hash protection and six-class held-out corpus pass |
+| Evidence-linked candidate review | VERIFIED | Raw/normalised values, transformations, source locators/hashes, blocking validation, exact assignment and creator separation pass |
+| Versioned publication and inventory search | VERIFIED | Immutable product/rate/availability/asset versions, detail and deterministic cursor paging over 10,001 products pass |
+| Gate 6 API/OpenAPI and browser journey | VERIFIED | Retained contracts and desktop/compact import-review-publish-search journeys pass |
+| OOH benchmark prerequisites | SCAFFOLDED | Published inventory has geography/lat/long/rate truth, but typed OOH comparable attributes (dimensions, digital/loop/share, structure/route context) and a PostGIS spatial benchmark index/query primitive are not yet implemented. Must be completed before Gate 7 may claim OOH comparative intelligence. |
+| Main local database migration | ABSENT | Migration `202608290005_InventoryTruth` passed disposable PostgreSQL apply and RLS checks but was not applied to the shared local database |
+| Live provider/network/commercial action | ABSENT | Deterministic fixtures only; no OCR/AI, supplier contact, booking, spend, external publication or production resource |
+| Gate 6 owner/independent review | PENDING | Local implementation and repeatable evidence are complete; the implementing AI does not approve production readiness |
+
+## Gates 7–13
+
+Gates 7–13 remain ABSENT and sequence-blocked. A document, route label, container,
 contract, or scaffold is not a product implementation.
 
 | Gate | Status |
 |---|---|
 | 4 Evidence and Opportunity | VERIFIED locally — owner directed delivered; non-local review pending |
 | 5 Canonical Brief | VERIFIED locally — owner/independent review pending |
-| 6 Inventory truth | BLOCKED |
+| 6 Inventory truth | VERIFIED locally — implementation and evidence complete; non-local review pending |
 | 7 Planning | BLOCKED |
 | 8 Proposal and client decision | BLOCKED |
 | 9 Rapid OOH | BLOCKED |

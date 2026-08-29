@@ -6,13 +6,12 @@ Advertified is a marketing intelligence and campaign operating system. This repo
 - C# 14/.NET 10 for the canonical Commercial API
 - Python 3.12-compatible FastAPI for typed agent proposals
 - PostgreSQL 16 with PostGIS and pgvector
-- Redis, MinIO, and MailHog for local non-production infrastructure
+- Redis, MinIO, ClamAV, and MailHog for local non-production infrastructure
 
-The foundation and Gate 4 Evidence/Opportunity workflow build and test locally. Brian Rabuthu
-recorded local Gate 2 and Gate 3 GO on 2026-08-29; those gates are committed as `115d500`.
-He subsequently directed Gate 4 delivered under `docs/GATE4_WORK_PACKET.md`. Its repeatable
-local evidence is retained in `docs/evidence/gate-4/`; production and publication remain
-separate decisions.
+Gates 2–6 are implemented locally. Gate 6 turns protected supplier files into reviewed,
+versioned, searchable inventory with retained source lineage. Repeatable local evidence is in
+`docs/evidence/gate-6/`; production, publication, and shared-database changes remain separate
+decisions.
 
 ## Start here
 
@@ -70,11 +69,13 @@ Commercial API:
 
 ```powershell
 $env:ConnectionStrings__CommercialDatabase = '<connection from your ignored infrastructure/.env>'
+$env:InventoryProtection__AccessKey = '<MINIO_ROOT_USER from your ignored infrastructure/.env>'
+$env:InventoryProtection__SecretKey = '<MINIO_ROOT_PASSWORD from your ignored infrastructure/.env>'
 dotnet run --project api/Advertified.Commercial.Api.csproj --urls http://localhost:5000
 ```
 
-Remove `ConnectionStrings__CommercialDatabase` from the terminal environment when the API
-stops. Never put the local password in tracked application settings.
+Remove the connection and inventory-protection credentials from the terminal environment when
+the API stops. Never put local passwords in tracked application settings.
 
 Agent runtime:
 
@@ -94,6 +95,7 @@ Local endpoints:
 | Agent runtime description | http://localhost:8000 |
 | Agent runtime liveness | http://localhost:8000/health/live |
 | MinIO API / console | http://localhost:59000 / http://localhost:59001 |
+| ClamAV TCP scanner | localhost:53310 |
 | MailHog | http://localhost:58025 |
 | PostgreSQL | localhost:55432 |
 | Redis | localhost:56379 |
@@ -145,7 +147,7 @@ docker compose -f infrastructure/docker-compose.yml config --quiet
 docker compose -f infrastructure/docker-compose.yml ps
 ```
 
-All four Compose services must be healthy. PostgreSQL health includes a version-16 check and verifies `pgcrypto`, `postgis`, and `vector`.
+All five Compose services must be healthy. PostgreSQL health includes a version-16 check and verifies `pgcrypto`, `postgis`, and `vector`.
 
 ## Architectural boundary
 

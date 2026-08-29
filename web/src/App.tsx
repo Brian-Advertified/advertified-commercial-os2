@@ -17,6 +17,9 @@ import { StrategyPage } from './pages/StrategyPage'
 import { RunPage } from './pages/RunPage'
 import { NewBriefPage } from './pages/NewBriefPage'
 import { BriefPage } from './pages/BriefPage'
+import { InventoryPage } from './pages/InventoryPage'
+import { InventoryImportPage } from './pages/InventoryImportPage'
+import { InventoryProductPage } from './pages/InventoryProductPage'
 
 function AuthenticatedApplication() {
   const { session, loading } = useSession()
@@ -40,6 +43,9 @@ function App() {
           <Route path="/runs/:runId" element={<RunPage />} />
           <Route path="/briefs/new" element={<NewBriefPage />} />
           <Route path="/briefs/:briefId" element={<BriefPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/inventory/imports/:importId" element={<InventoryImportPage />} />
+          <Route path="/inventory/products/:productId" element={<InventoryProductPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/notifications" element={<DeferredPage destination="Notifications" />} />

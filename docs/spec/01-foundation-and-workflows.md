@@ -166,7 +166,7 @@ Briefs are not five-field CRUD. A CampaignBrief contains immutable BriefVersions
 | Strategy                 | What growth and communications strategy follows from the evidence? | StrategyVersion with objectives, audience hypotheses and channel implications  | Strategy approval                           | Current / near-term |
 | Brief Drafting           | How does approved evidence become a complete campaign brief?       | Draft BriefVersion preserving unknowns, assumptions and lineage                | Brief approval                              | Current / near-term |
 | Audience                 | Which audiences are plausible and why?                             | Evidence-backed AudienceDefinitions with confidence and exclusions             | Audience / strategy review                  | Near-term           |
-| Inventory Intelligence   | Which verified products are eligible and valuable?                 | Scored candidates, evidence and rejection reasons                              | Inventory selection / supplier confirmation | Current / near-term |
+| Inventory Intelligence   | Which verified products are eligible and valuable?                 | Scored candidates plus deterministic benchmark facts, peer cohort, evidence and rejection reasons | Inventory selection / supplier confirmation | Current / near-term |
 | Media Planning           | How should channels, budget and flighting work together?           | MediaMixVersion and MediaPlanVersion                                           | Media-mix and plan approval                 | Current / near-term |
 | Critic & Readiness       | What is weak, unsupported, contradictory or unsafe?                | Immutable objections, severity, evidence gaps and readiness decision           | Human resolves and approves                 | Current / near-term |
 | Proposal Narrative       | How should the approved plan be explained to the client?           | Client-ready tier narratives from approved structured facts                    | Proposal approval                           | Near-term           |
@@ -183,7 +183,7 @@ Briefs are not five-field CRUD. A CampaignBrief contains immutable BriefVersions
 | Inventory ingestion               | Classify files, reconstruct tables, extract assets, normalize rows and create review tasks       |
 | Eligibility and shortlist engine  | Apply hard constraints first; score only eligible candidates; retain rejection reasons           |
 | Geography / route / POI resolvers | Resolve geographic requirements deterministically and expose uncertainty                         |
-| Commercial benchmark engine       | Typed money, VAT, fees, rate comparison, freshness and comparable calculations                   |
+| Commercial benchmark engine       | Typed money/VAT/fees, spatial peer selection, compatible rate normalization, freshness, market statistics and reproducible benchmark snapshots |
 | Supply / forecast service         | Availability, reach or outcome ranges with explicit source and confidence                        |
 | Document assembler                | Generate branded proposals and PDFs only from approved structured artefacts                      |
 | Notifications / human tasks       | Route named approvals and exceptions with clear next action                                      |

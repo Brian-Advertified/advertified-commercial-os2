@@ -91,7 +91,7 @@
 | 10       | Enrich            | Resolve known supplier/station/publication identity and approved reference geography; never replace evidence | enrichment proposal               |
 | 11       | Review            | Show original/render beside candidate, changes, confidence and issues                                        | append-only decisions             |
 | 12       | Publish           | Commit approved products, versioned rates, availability, assets and evidence idempotently                    | published inventory               |
-| 13       | Benchmark         | Create comparable rate metrics only across compatible products and periods                                   | benchmark facts                   |
+| 13       | Benchmark readiness | Preserve typed comparable attributes, spatial keys, rate basis and freshness needed by downstream intelligence; Gate 6 makes no market-position claim | benchmark-ready published truth   |
 | 14       | Evaluate          | Run labelled known and unseen-file corpus; record precision, recall, unresolved rate and failure class       | release report                    |
 
 ## 23.2 Common inventory schema
@@ -143,6 +143,70 @@
 
 - The review screen must support field correction, multi-row action, evidence zoom, asset replacement, duplicate resolution, rejection reasons and publish preview for catalogues above 10,000 products.
 
+## 23.5 OOH/DOOH benchmark engine
+
+The benchmark engine runs only against published, permissioned inventory truth. It is deterministic first and may optionally add an AI explanation after the facts are calculated. A benchmark used by a shortlist, plan or proposal is persisted as an immutable snapshot bound to exact product/rate versions and a benchmark-policy version.
+
+### 23.5.1 Comparator cohort rules
+
+A target OOH/DOOH placement is compared only with products that pass all hard compatibility checks. Defaults are governed configuration, not prompt text or UI-only logic.
+
+| **Dimension** | **Hard rule / default behaviour** |
+|---------------|-----------------------------------|
+| Publication state | Target and peers are published and not superseded/withdrawn for the comparison period. |
+| Channel | OOH compares with OOH; DOOH compares with DOOH. Digital and static are never silently mixed in one price cohort. |
+| Product/format class | Same canonical product type and compatible governed format/structure class. Broader fallbacks must be labelled and may lower confidence. |
+| Rate basis | Same buying unit or a documented deterministic normalization to a common unit. Incompatible package, per-play, loop, weekly, four-week and monthly rates are excluded rather than guessed. |
+| Currency/VAT | Common currency and VAT basis before statistics. FX conversion is not implicit; if configured later it must use a dated evidenced rate and remain visible. |
+| Effective period | Rate validity overlaps the requested comparison date/window. Expired historical rates can be shown as history but not mixed into a current-market benchmark. |
+| Geography | Prefer verified coordinates and PostGIS distance. Progressively expand configured radii only until the target cohort size is reached; then locality and municipality fallbacks may be used and are explicitly labelled. |
+| Physical size | Where dimensions exist, compare within a governed display-area tolerance or matching size/format band. Missing dimensions lower confidence and cannot be treated as equal size. |
+| Digital delivery | Loop length, slot length, plays per loop and share-of-loop must be compatible or deterministically normalizable before commercial efficiency comparison. |
+| Measurement | Traffic/reach/impressions/footfall efficiency is calculated only when source, period, unit and methodology are compatible. |
+| Freshness | Stale rates remain visible as exclusions/history unless policy explicitly permits them; stale facts do not silently influence current-market position. |
+
+Default spatial expansion should be configurable, with an initial policy such as 3 km → 5 km → 10 km → 25 km → locality → municipality. The engine stops widening when it has a useful compatible cohort; it does not keep adding distant products merely to make the sample look larger.
+
+### 23.5.2 Required deterministic outputs
+
+For every successful benchmark the service returns at minimum:
+
+- target product version, rate version, normalized buying unit and comparison date/window;
+- actual geography basis used, target coordinate, peer distance for spatial cohorts and radius/fallback level;
+- included peer product/rate version IDs and excluded candidate counts grouped by stable reason code;
+- comparable peer count and data-completeness/freshness summary;
+- target rate, peer median, lower/upper quartile, minimum, maximum and target rate percentile;
+- percentage and absolute amount above/below the peer median;
+- normalized rate per display-area unit when dimensions and buying basis support it;
+- verified cost-per-thousand or equivalent audience/traffic efficiency only when compatible measurement evidence exists;
+- confidence classification plus machine-readable reasons such as `SMALL_COHORT`, `MISSING_DIMENSIONS`, `MIXED_MEASUREMENT_METHOD`, `STALE_PEERS` or `GEOGRAPHY_FALLBACK`;
+- the exact benchmark-policy version, normalization rules and calculation timestamp.
+
+Do not calculate a supposedly precise market percentile from an insufficient cohort. Governed defaults should treat fewer than 2 compatible peers as `INSUFFICIENT`; 2–4 as low confidence; 5–9 as medium confidence; and 10+ as high sample-size confidence, with the final confidence also reduced by freshness, missing fields and geography/measurement fallbacks. These thresholds are configuration and must be versioned if changed.
+
+### 23.5.3 Human-facing market position
+
+The product detail experience must include a `Market comparison` section that makes the calculation understandable without exposing implementation jargon. At minimum it shows:
+
+- the target rate and normalized basis, for example `R42,000 per 4 weeks`;
+- peer median and the target's percentage above/below it;
+- number of comparable sites and the actual area used, for example `18 comparable digital large-format sites within 5 km`;
+- percentile or quartile position when statistically defensible;
+- measurement-efficiency comparison when evidence permits it;
+- rate freshness and benchmark confidence;
+- a governed plain-language position such as `strong value`, `market-aligned` or `above market`, derived from visible deterministic thresholds rather than an opaque AI score;
+- a `View comparable sites` action opening a map/list of the target and included peers with rate, format, size, distance, freshness and source/verification context;
+- an explanation panel showing the cohort filters and why material near-by products were excluded.
+
+An optional AI narrative may explain the result, e.g. that a placement is below the local median while carrying stronger verified traffic, but it receives only the benchmark facts. It cannot alter the cohort, perform hidden arithmetic, invent audience measures or turn `INSUFFICIENT`/low-confidence evidence into a confident recommendation.
+
+### 23.5.4 Reproducibility and downstream use
+
+- Interactive product-detail benchmarks may be recalculated against the latest published truth, but any benchmark cited by Inventory Intelligence, a shortlist, MediaPlanVersion or ProposalVersion stores an immutable `InventoryBenchmarkSnapshot`.
+- If a peer rate, target rate, relevant product attribute or benchmark policy changes, the live benchmark becomes a new calculation and affected draft planning artefacts are marked stale where the change is material.
+- Supplier ownership, commercial preference or campaign fit may influence shortlist scoring only after the benchmark facts are calculated; they cannot change the market statistics themselves.
+- Benchmark outputs are decision support, not proof of performance. `Cheaper` means cheaper on the stated comparable commercial basis; `better value` requires the additional evidenced metric(s) displayed beside that conclusion.
+
 # 24. Authenticated screen implementation contracts
 
 ## 24.1 Universal screen contract
@@ -173,7 +237,8 @@
 | /audiences/:id                | Review evidence-backed audience definitions                            | Approve audience direction        | Hypothesis labels, exclusions, low confidence                                                          |
 | /media-mixes/:id              | Compare channel roles and budget allocation                            | Approve media mix                 | Budget mismatch, unsupported channel, revision                                                         |
 | /inventory                    | Search large verified catalogue                                        | Select/view product               | No match, stale rates, unavailable, partial assets                                                     |
-| /inventory/:id                | Dedicated editable product detail                                      | Update/select product             | Rate history, asset/evidence review, supplier-only fields                                              |
+| /inventory/intelligence       | Compare verified inventory and understand local commercial position    | Open benchmarked product          | Insufficient peers, low confidence, geography fallback, stale/incompatible rates                       |
+| /inventory/:id                | Dedicated editable product detail with transparent market comparison   | View comparable sites             | Rate history, asset/evidence review, insufficient peers, low confidence, supplier-only fields          |
 | /inventory/imports/:id/review | Resolve extraction candidates beside source evidence                   | Publish approved inventory        | 10k+ pagination, errors, duplicates, missing assets                                                    |
 | /shortlists/:id               | Understand selected and rejected inventory                             | Confirm shortlist                 | Replace inventory, supplier confirmation, no eligible supply                                           |
 | /media-plans/:id              | Inspect lines, forecasts, rates, totals and assumptions                | Approve media plan                | Stale rate, availability unknown, total mismatch                                                       |

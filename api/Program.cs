@@ -10,21 +10,28 @@ using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Application.Security;
+using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Advertified.Commercial.Infrastructure.Brief;
 using Advertified.Commercial.Infrastructure.Identity;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Advertified.Commercial.Infrastructure.Persistence;
+using Advertified.Commercial.Infrastructure.Inventory;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
 var authenticationMode = builder.Configuration["Authentication:Mode"];
 var agentRuntime = builder.Configuration
     .GetSection(AgentRuntimeOptions.SectionName)
     .Get<AgentRuntimeOptions>() ?? new AgentRuntimeOptions();
+var inventoryProtection = builder.Configuration
+    .GetSection(InventoryProtectionOptions.SectionName)
+    .Get<InventoryProtectionOptions>() ?? new InventoryProtectionOptions();
 
 if ((authenticationMode is LocalIdentityDefaults.DeterministicMode
         or LocalIdentityDefaults.DeterministicSessionMode)
@@ -41,6 +48,14 @@ if (agentRuntime.Mode != AgentRuntimeOptions.DisabledMode &&
 {
     throw new InvalidOperationException(
         "The Gate 4 deterministic agent runtime is restricted to development and test.");
+}
+
+if ((inventoryProtection.ObjectStoreMode == InventoryProtectionOptions.InMemoryMode ||
+        inventoryProtection.ScannerMode == InventoryProtectionOptions.DeterministicScanner) &&
+    !builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Test"))
+{
+    throw new InvalidOperationException(
+        "Deterministic inventory protection is restricted to development and test.");
 }
 
 var connectionString = builder.Configuration.GetConnectionString("CommercialDatabase");
@@ -70,6 +85,40 @@ builder.Services.AddScoped<IOpportunityWorkflowCommands, OpportunityWorkflowComm
 builder.Services.AddScoped<BriefRecordStore>();
 builder.Services.AddScoped<IBriefReader, BriefReader>();
 builder.Services.AddScoped<IBriefCommands, BriefCommands>();
+builder.Services.AddScoped<InventoryRecordStore>();
+builder.Services.AddScoped<IInventoryReader, InventoryReader>();
+builder.Services.AddScoped<IInventoryCommands, InventoryCommands>();
+builder.Services.Configure<FormOptions>(options =>
+    options.MultipartBodyLengthLimit = inventoryProtection.MaximumSourceBytes + 1_048_576);
+builder.Services.AddOptions<InventoryProtectionOptions>()
+    .Bind(builder.Configuration.GetSection(InventoryProtectionOptions.SectionName))
+    .Validate(InventoryProtectionOptions.HasSupportedObjectStore,
+        "The inventory object store mode is invalid.")
+    .Validate(InventoryProtectionOptions.HasSupportedScanner,
+        "The inventory scanner mode is invalid.")
+    .Validate(InventoryProtectionOptions.HasSupportedSourceLimit,
+        "The inventory source limit must be between 1 byte and 100 MiB.")
+    .Validate(InventoryProtectionOptions.HasCompleteMinioConfiguration,
+        "MinIO inventory protection requires an endpoint and credentials.")
+    .Validate(InventoryProtectionOptions.HasCompleteClamAvConfiguration,
+        "ClamAV inventory protection requires a valid host and port.")
+    .ValidateOnStart();
+builder.Services.AddSingleton<IMinioClient>(serviceProvider =>
+{
+    var options = serviceProvider.GetRequiredService<
+        Microsoft.Extensions.Options.IOptions<InventoryProtectionOptions>>().Value;
+    var client = new MinioClient().WithEndpoint(options.Endpoint)
+        .WithCredentials(options.AccessKey, options.SecretKey);
+    return (options.UseTls ? client.WithSSL() : client).Build();
+});
+builder.Services.AddSingleton<IInventoryObjectStore>(serviceProvider =>
+    inventoryProtection.ObjectStoreMode == InventoryProtectionOptions.MinioMode
+        ? ActivatorUtilities.CreateInstance<MinioInventoryObjectStore>(serviceProvider)
+        : new InMemoryInventoryObjectStore());
+builder.Services.AddSingleton<IInventoryMalwareScanner>(serviceProvider =>
+    inventoryProtection.ScannerMode == InventoryProtectionOptions.ClamAvScanner
+        ? ActivatorUtilities.CreateInstance<ClamAvInventoryMalwareScanner>(serviceProvider)
+        : new DeterministicInventoryMalwareScanner());
 builder.Services.AddOptions<AgentRuntimeOptions>()
     .Bind(builder.Configuration.GetSection(AgentRuntimeOptions.SectionName))
     .Validate(
@@ -187,7 +236,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapGet("/", () => Results.Ok(new ServiceDescription(
     "Advertified Commercial API",
-    "gate-5-canonical-brief",
+    "gate-6-inventory-truth",
     "Tenant-safe commercial operations with a local browser-session boundary.")))
     .WithTags("Service");
 
@@ -208,6 +257,7 @@ app.MapIdentityEndpoints();
 app.MapFoundationEndpoints();
 app.MapOpportunityEndpoints();
 app.MapBriefEndpoints();
+app.MapInventoryEndpoints();
 
 app.Run();
 

@@ -26,6 +26,8 @@ const safeMessages: Readonly<Record<string, string>> = {
   VALIDATION_FAILED: 'Review the information and try again.',
   VERSION_CONFLICT: 'This information changed. Refresh it before saving again.',
   INVALID_LIFECYCLE_TRANSITION: 'Complete the current opportunity step first.',
+  INVENTORY_PUBLISH_BLOCKED: 'Resolve the blocking inventory fields before publishing.',
+  INVENTORY_PROTECTION_UNAVAILABLE: 'File protection is unavailable. Try again shortly.',
 }
 
 export const sessionExpiredEvent = 'advertified:session-expired'
@@ -79,7 +81,7 @@ function createHeaders(init: RequestInit, options: RequestOptions): Headers {
   if (options.antiforgeryToken) headers.set('X-CSRF-TOKEN', options.antiforgeryToken)
   if (options.expectedVersion) headers.set('If-Match', `"${options.expectedVersion}"`)
   if (options.idempotencyKey) headers.set('Idempotency-Key', options.idempotencyKey)
-  if (init.body) headers.set('Content-Type', 'application/json')
+  if (init.body && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
   return headers
 }
 
