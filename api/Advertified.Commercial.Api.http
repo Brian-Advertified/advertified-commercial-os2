@@ -1,6 +1,14 @@
-@Advertified.Commercial.Api_HostAddress = http://localhost:5068
+@host = http://localhost:5000
 
-GET {{Advertified.Commercial.Api_HostAddress}}/weatherforecast/
+GET {{host}}/
 Accept: application/json
 
 ###
+
+GET {{host}}/health/live
+Accept: application/json
+
+###
+
+GET {{host}}/health/ready
+Accept: application/json

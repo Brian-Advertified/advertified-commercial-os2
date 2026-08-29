@@ -1,0 +1,92 @@
+{
+  "fixture_version": "1.0.0",
+  "fixture_id": "gate1.business-interpretation.contract",
+  "invocation": {
+    "schema_version": "1.0.0",
+    "tenant_id": "11111111-1111-1111-1111-111111111111",
+    "actor_id": "22222222-2222-2222-2222-222222222222",
+    "effective_role": "agent_runtime_service",
+    "run_id": "33333333-3333-3333-3333-333333333333",
+    "step_id": "44444444-4444-4444-4444-444444444444",
+    "correlation_id": "55555555-5555-5555-5555-555555555555",
+    "agent_code": "business_interpretation",
+    "contract_version": "1.0.0",
+    "prompt_version": "1.0.0",
+    "resource_refs": [
+      {
+        "resource_type": "EvidenceSet",
+        "resource_id": "66666666-6666-6666-6666-666666666666",
+        "version": 3
+      }
+    ],
+    "approved_evidence_item_ids": [
+      "77777777-7777-7777-7777-777777777777"
+    ],
+    "locale": "en-ZA",
+    "account_policy_version": "1.0.0",
+    "tool_policy": {
+      "allowed_tools": [],
+      "max_tool_calls": 0,
+      "consequence_policy": "PROPOSE_ONLY"
+    },
+    "provider_policy": {
+      "provider": "deterministic",
+      "model": "fixture-v1",
+      "temperature": 0,
+      "timeout_seconds": 30,
+      "max_attempts": 1,
+      "cost_cap_minor": 0,
+      "allow_live": false
+    },
+    "resume": {
+      "checkpoint_id": null,
+      "prior_validated_output_ref": null,
+      "prior_usage_ref": null
+    }
+  },
+  "output": {
+    "schema_version": "1.0.0",
+    "status": "COMPLETED",
+    "artifact": {
+      "summary": "Approved evidence remains the factual source.",
+      "source_version": 3
+    },
+    "evidence_bindings": [
+      {
+        "field_path": "artifact.summary",
+        "evidence_item_ids": [
+          "77777777-7777-7777-7777-777777777777"
+        ]
+      }
+    ],
+    "unknowns": [],
+    "assumptions": [],
+    "confidence": [
+      {
+        "field_path": "artifact.summary",
+        "confidence": 1
+      }
+    ],
+    "objections": [],
+    "rationale": "The contract probe repeats only the approved fixture evidence.",
+    "suggested_next_action": {
+      "command_code": "SubmitForHumanReview",
+      "requires_human": true
+    },
+    "usage": {
+      "provider": "deterministic",
+      "model": "fixture-v1",
+      "units": 0,
+      "tool_calls": 0,
+      "incremental_cost_minor": 0,
+      "cache_status": "FIXTURE"
+    }
+  },
+  "expectation": {
+    "expected_status": "COMPLETED",
+    "material_field_paths": [
+      "artifact.summary"
+    ],
+    "max_incremental_cost_minor": 0
+  }
+}

@@ -1,77 +1,79 @@
-version: '3.8'
+name: advertified-os2-dev
 
 services:
-  # PostgreSQL with PostGIS and pgvector
   postgres:
-    image: pgvector/pgvector:pg16
-    container_name: advertified-postgres
+    build:
+      context: ./postgres
+    image: advertified/postgres-dev:16-postgis3-pgvector0.8.6
     environment:
-      POSTGRES_DB: advertified
-      POSTGRES_USER: advertified
-      POSTGRES_PASSWORD: dev_password_change_in_production
-      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: ${POSTGRES_DB:-advertified}
+      POSTGRES_USER: ${POSTGRES_USER:-advertified}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-advertified-local-only}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./infrastructure/init-scripts:/docker-entrypoint-initdb.d
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+      - ./verify-extensions.sql:/opt/advertified/verify-extensions.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U advertified"]
-      interval: 10s
+      test:
+        - CMD-SHELL
+        - >-
+          pg_isready -U ${POSTGRES_USER:-advertified} -d ${POSTGRES_DB:-advertified} &&
+          psql -U ${POSTGRES_USER:-advertified} -d ${POSTGRES_DB:-advertified}
+          -v ON_ERROR_STOP=1 -f /opt/advertified/verify-extensions.sql
+          >/dev/null &&
+          psql -U ${POSTGRES_USER:-advertified} -d ${POSTGRES_DB:-advertified}
+          -Atc "SHOW server_version_num;" | grep -Eq '^16'
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 12
+      start_period: 10s
 
-  # MinIO for S3-compatible storage
   minio:
-    image: minio/minio:latest
-    container_name: advertified-minio
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin_change_in_production
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-advertified-local}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-advertified-local-only}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:${MINIO_API_PORT:-59000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-59001}:9001"
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
+      test: ["CMD", "curl", "--fail", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
-  # Redis for caching and queues
   redis:
-    image: redis:7-alpine
-    container_name: advertified-redis
+    image: redis:7.4.2-alpine
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-56379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 12
 
-  # Mailhog for email testing
   mailhog:
-    image: mailhog/mailhog:latest
-    container_name: advertified-mailhog
+    image: mailhog/mailhog:v1.0.1
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - "127.0.0.1:${MAIL_SMTP_PORT:-51025}:1025"
+      - "127.0.0.1:${MAIL_UI_PORT:-58025}:8025"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8025/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:8025/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
 
 volumes:
   postgres_data:
   minio_data:
   redis_data:
-
-networks:
-  default:
-    name: advertified-network

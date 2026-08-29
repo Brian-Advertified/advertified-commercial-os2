@@ -1,0 +1,20 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,csproj}]
+indent_style = space
+indent_size = 4
+dotnet_diagnostic.CA1502.severity = error
+dotnet_code_quality.CA1502.threshold = 10
+
+[*.{json,jsonc,yml,yaml,ts,tsx,js,mjs,css,md,py}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

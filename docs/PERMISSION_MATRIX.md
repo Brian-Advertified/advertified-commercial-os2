@@ -1,114 +1,57 @@
-# Advertified Permission Matrix
+# Advertified permission and approval design
 
-## Canonical Roles (Section 20.1)
+**Status:** DRAFT — NOT IMPLEMENTED  
+**Named security owner:** UNASSIGNED  
+**Named product owner:** UNASSIGNED
 
-| Role Code | Display Label | Maximum Scope | Can Self-Approve |
-|-----------|---------------|---------------|-----------------|
-| platform_admin | Platform Administrator | Cross-tenant administration only | No (except by explicit policy) |
-| internal_planner | Internal Planner | Assigned clients and work queues | No (separate approver required) |
-| inventory_ops | Inventory Operations | Assigned channels and suppliers | No (except own review tasks) |
-| agency_admin | Agency Administrator | Own agency and assigned advertisers | Yes (within agency scope) |
-| agency_campaign_user | Agency Campaign User | Assigned advertisers and campaigns | No (approver required) |
-| advertiser_admin | Advertiser Administrator | Own advertiser tenant | Yes (within advertiser scope) |
-| advertiser_approver | Advertiser Approver | Own advertiser and assigned resources | Yes (within approval scope) |
-| supplier_admin | Supplier Administrator | Own supplier tenant | Yes (within supplier scope) |
-| supplier_user | Supplier User | Assigned supplier resources | No (except own listings) |
-| influencer_rep | Influencer Representative | Owned or represented profiles | Yes (within profile scope) |
-| agent_runtime_service | Agent Runtime Service | No interactive login | N/A (service identity) |
-| worker_service | Worker Service | No interactive login | N/A (service identity) |
+The canonical role codes are governed in `shared/contracts/master-data.json`. This document is design input for Gate 1/2; it does not prove API, database, object-storage, worker, or agent enforcement.
 
-## Internal Permission Matrix (Section 20.2)
+## Universal invariants
 
-| Capability | platform_admin | internal_planner | inventory_ops |
-|------------|----------------|------------------|----------------|
-| Tenant/user administration | Manage | View assigned | No |
-| Opportunities and evidence | All | Create/edit assigned | Evidence review only |
-| Brief/strategy/audience | All | Create/edit/submit assigned | View where inventory context required |
-| Media mix/plan/proposal | All | Create/edit/submit assigned | View supply and price evidence |
-| Commercial approval | Allowed if separately assigned | Allowed if assigned approver | No |
-| Inventory/imports | All | View/select | Create/review/publish assigned |
-| Suppliers/RFQs/bookings | All | Create and coordinate assigned | Manage supplier operations assigned |
-| Agents/integrations/policy | Manage | Run approved workflows | Run inventory workflows |
-| Audit/AI cost/security | View by privilege | Own runs/cost | Own imports/runs |
-| Supplier cost/margin/profit | Admin-only finance privilege | No; sees approved client-facing price | Supplier rate only; no client margin/profit |
+- Every protected request/tool/job carries authenticated actor, tenant, effective role, resource, and correlation context.
+- The C# Commercial API independently resolves active membership, assignment, resource tenant, state, and permission.
+- Client/browser/agent claims are never trusted as authority.
+- Deny by default. A missing assignment or policy is a denial.
+- Edit, submit, review, approve, publish, book, pay, invoice, and administer are distinct permissions.
+- A creator cannot self-approve a material consequence.
+- Delegation requires an explicit scope, start/end time, delegator, delegate, and audit.
+- Service identities have no interactive login and receive only task-specific commands.
+- Cross-tenant administration never grants silent access to client commercial content.
+- Supplier and influencer identities see only owned/assigned resources and never internal margin.
+- Agent and worker identities cannot approve, spend, publish, communicate externally, or bypass lifecycle commands.
 
-## Agency and Advertiser Permission Matrix (Section 20.3)
+## Role scope intent
 
-| Capability | agency_admin | agency_campaign_user | advertiser_admin | advertiser_approver |
-|------------|--------------|----------------------|------------------|-------------------|
-| Users/settings | Manage agency | No | Manage advertiser | No |
-| Opportunities | Create/view assigned | Create/view assigned | View own | View assigned |
-| Briefs | Create/edit/submit | Create/edit/submit assigned | Create/edit/submit own | Review assigned |
-| Strategy/audience | View/comment | View/comment assigned | View/comment | Approve/reject assigned |
-| Media mix/plan | View/comment | View/comment assigned | View/comment | Approve/reject assigned |
-| Proposal | View/comment | View/comment assigned | View own | Approve/select/decline assigned |
-| Campaign/results | View assigned | View assigned | View own | View assigned |
-| Supplier cost/internal margin | No | No | No | No |
+| Role | Maximum intended scope | Consequential approval |
+|---|---|---|
+| platform_admin | Platform administration; explicit support access only | No implicit commercial approval |
+| internal_planner | Assigned clients/opportunities/plans | Only if separately assigned as approver and not creator |
+| inventory_ops | Assigned imports/channels/suppliers | Review/publish only under explicit policy; no client approval |
+| agency_admin | Own agency and assigned advertisers | Explicit assigned scope; no creator self-approval |
+| agency_campaign_user | Assigned advertiser/campaign work | No |
+| advertiser_admin | Own advertiser administration | Explicit assigned scope; no creator self-approval |
+| advertiser_approver | Own assigned artefacts | Yes for exact assigned version |
+| supplier_admin | Own supplier administration/listings | Own supply confirmations; no client commercial approval |
+| supplier_user | Assigned supplier resources | Own assigned operational response only |
+| influencer_rep | Owned/represented profiles | Own deliverable response only |
+| agent_runtime_service | Allowlisted proposal tools | Never |
+| worker_service | Allowlisted durable jobs | Never |
 
-## Supplier and Influencer Permission Matrix (Section 20.4)
+## Consequence gates
 
-| Capability | supplier_admin | supplier_user | influencer_rep |
-|------------|----------------|--------------|----------------|
-| Users/settings | Manage supplier | No | Manage represented profile |
-| Listings/rates/assets | Create/edit/publish request | Edit assigned | Create/edit own profile and rates |
-| Availability | Manage own | Update assigned | Update own deliverable availability |
-| RFQs/requests | View/respond own | Respond assigned | View/respond own |
-| Bookings/deliverables | Confirm/manage own | Update assigned | Manage own deliverables |
-| Other suppliers or client margin | No | No | No |
+| Consequence | Minimum required authority/evidence |
+|---|---|
+| Evidence approval | Designated reviewer, exact EvidenceItem version |
+| Strategy/Brief/Plan approval | Assigned human approver, exact immutable version |
+| Proposal send/client decision | Approved proposal version and named human action |
+| Inventory publication | Inventory reviewer plus source/validation version |
+| Supplier commitment/booking | Named authorised human, confirmed supply/rate version |
+| Payment/invoice | Finance-authorised human and reconciled commercial version |
+| Creative/public publication | Brand/legal approvals and exact asset version |
+| External email/webhook | Named human approval or narrowly approved deterministic notification policy |
 
-## Critical Authorization Invariants
+## Required negative tests
 
-**Every tool call carries**: tenant_id, actor_id, role, resource_id, correlation_id
+For every protected resource family test cross-tenant read, write, enumerate, export, object key, background job, event replay, agent tool, and indirect parent/child access. Also test revoked membership, expired delegation, stale version, creator self-approval, service identity overreach, and guessed identifiers.
 
-**Commercial API independently re-authorises**: Every requested action before reading or writing protected state
-
-**Approval permission is distinct from edit permission**: Creator of consequential artefact cannot self-approve unless explicit account policy allows it
-
-**Browser claims are never trusted**: API resolves effective permissions from authenticated identity, active membership, tenant, assignment, and resource state
-
-**Tenant predicate on every protected query**: Database policies or equivalent constraints provide defence in depth for highest-risk tables
-
-**Launch-blocking negative tests**: Attempt cross-tenant reads, writes, enumeration, object-key access, background jobs, and agent tool calls for every protected resource family
-
-## Approval Workflow Matrix
-
-| Artefact Type | Creator Role | Approver Role | Self-Approval Allowed |
-|--------------|--------------|---------------|----------------------|
-| EvidenceItem | Any role with evidence capture | inventory_ops or designated reviewer | No |
-| StrategyVersion | internal_planner | Designated strategy approver | No |
-| BriefVersion | internal_planner or agency_admin | advertiser_approver or designated approver | Only if policy allows |
-| MediaMixVersion | internal_planner | Designated media approver | No |
-| MediaPlanVersion | internal_planner | Designated plan approver | No |
-| ProposalVersion | internal_planner | advertiser_approver | No |
-| InventoryProduct | supplier_admin or inventory_ops | inventory_ops (for publish) | Yes for supplier own listings |
-| Booking | internal_planner | supplier_admin (for confirmation) | No |
-
-## Cross-Tenant Access Rules
-
-**Allowed cross-tenant operations**:
-- platform_admin: Full cross-tenant administration
-- RFQs: Cross-tenant supplier requests (initiated by internal_planner)
-- Public inventory viewing: Non-tenant-restricted catalogue search
-
-**Forbidden cross-tenant operations**:
-- Direct database access across tenant boundaries
-- Agent tool calls without tenant-scoped authorization
-- API calls without tenant context validation
-- File access across tenant object storage boundaries
-- Background job processing without tenant isolation
-
-## Service Identity Permissions
-
-**agent_runtime_service**:
-- Read approved inputs from Commercial API
-- Submit typed proposals through tools
-- No interactive login
-- No direct database access
-- No external effect without human approval
-
-**worker_service**:
-- Execute approved jobs, imports, rendering, notifications
-- Job-scoped service identity
-- No interactive login
-- Idempotent operations only
-- Audit all side effects
+No permission row becomes “implemented” until those tests exercise the real API and persistence boundary.

@@ -1,0 +1,29 @@
+{
+  "$schema": "./manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 0,
+  "evidenceDate": "YYYY-MM-DD",
+  "repository": "repository-name",
+  "branch": "branch-name",
+  "baseCommit": null,
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Named check",
+      "command": "Exact reproducible command",
+      "outcome": "PENDING",
+      "summary": "Observed result, not confidence"
+    }
+  ],
+  "unresolvedBlockers": [
+    "List each exact blocker or use an empty array"
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": null,
+    "decisionDate": null
+  }
+}

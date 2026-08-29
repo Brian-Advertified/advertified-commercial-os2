@@ -1,126 +1,47 @@
-# Repository Verification - Actual Command Output
+# Repository verification
 
-**Verification Date**: 2026-08-29
-**Verification Method**: Direct command execution
+**Repository:** `C:\Users\CC KEMPTON\source\advertified-commercial-os2`  
+**Branch:** `master`  
+**Verification date:** 2026-08-29  
+**State:** expected uncommitted remediation changes
 
-## Repository Status (OBSERVED)
+## Clean parent
 
-### Git Status
-```bash
-$ git status --short --branch
-## master
-```
+Before remediation, repository status reported a clean `master` worktree. The previously recorded HEAD was:
 
-**Result**: Clean working directory, on master branch, no uncommitted changes
-
-### Commit Information
-```bash
-$ git rev-parse HEAD
+```text
 0986f62ad0748289fdafe8f36f5f9a3dabaab4d8
 ```
 
-```bash
-$ git log -1 --oneline
-0986f62 Address critical gaps in implementation plan - ACKNOWLEDGED INCOMPLETE
-```
+That commit remains the immutable parent/rollback reference. Re-run `git rev-parse HEAD` immediately before any owner-authorised commit.
 
-**Result**: Current commit is 0986f62, branch is master, working directory is clean
+## Verified local results
 
-## Dependency Verification (OBSERVED)
+| Check | Result |
+|---|---|
+| Normative specification integrity | Seven of seven split-part SHA-256 hashes match source chunks |
+| React exact runtime version | 19.2.0 |
+| Web lock/install | package lock generated; install succeeded |
+| Web lint/type-check/tests/build | PASS / PASS / 2 PASS / PASS |
+| .NET target | net8.0 |
+| API Release build/tests | PASS with zero warnings / 2 PASS |
+| Python runtime baseline | 3 tests PASS; provider disabled |
+| Architecture tests | 10 PASS |
+| Compose validation/build/up | PASS |
+| os2 services | four healthy |
+| PostgreSQL | 16; health requires pgcrypto, PostGIS, pgvector |
 
-### Web Application
-```bash
-$ cd web
-$ cat package.json
-```
+## Local Docker isolation
 
-**React version**: ^19.2.8 (DEVIALTION from specification 19.2.0)
-**TypeScript version**: ~6.0.2 (not in specification baseline)
-**Vite version**: 8.2.2 (not in specification baseline)
+The new project uses loopback-only ports 55432, 56379, 59000/59001, and 51025/58025 to avoid silently using containers from other Advertified workspaces. No Docker volume was deleted. Only containers carrying the os2 Compose project label count as evidence.
 
-### Commercial API
-```bash
-$ cd api
-$ cat Advertified.Commercial.Api.csproj
-```
+## Not performed
 
-**.NET version**: 8.0 (matches specification)
+- no commit, stage, push, pull, merge, or deploy;
+- no AWS/cloud mutation;
+- no production data or secret retrieval;
+- no live or paid model/provider call;
+- no product-feature implementation;
+- no remote GitHub Actions run.
 
-### Agent Runtime
-```bash
-$ cd agent-runtime
-$ cat requirements.txt
-```
-
-**Python**: 3.10+ specified (not yet installed)
-**FastAPI**: 0.104.1 specified (not yet installed)
-
-## Docker Configuration (REPORTED - Not Executed)
-
-```bash
-$ docker compose config
-```
-
-**Status**: Not executed - Docker services not started
-
-```bash
-$ docker compose ps
-```
-
-**Status**: Not executed - Docker services not started
-
-## Build Status (REPORTED - Not Executed)
-
-```bash
-$ cd web
-$ npm run build
-```
-
-**Status**: Not executed - Dependencies not installed
-
-```bash
-$ cd api
-$ dotnet build
-```
-
-**Status**: Not executed - Dependencies not installed
-
-```bash
-$ cd agent-runtime
-$ pytest
-```
-
-**Status**: Not executed - Dependencies not installed
-
-## Verification Summary
-
-**Verified Facts**:
-- Repository: advertified-commercial-os2 (OBSERVED)
-- Branch: master (OBSERVED)
-- Commit: 0986f62ad0748289fdafe8f36f5f9a3dabaab4d8 (OBSERVED)
-- Working directory: Clean (OBSERVED)
-- .NET version: 8.0 (OBSERVED - matches specification)
-
-**Reported Facts** (require verification):
-- Docker configuration: Not executed
-- Docker services: Not started
-- Web build: Not executed
-- API build: Not executed
-- Agent runtime tests: Not executed
-
-**Deviations Identified**:
-- React: 19.2.8 vs specification 19.2.0 (requires ADR)
-- TypeScript: 6.0.2 not in specification baseline (requires documentation)
-- Vite: 8.2.2 not in specification baseline (requires documentation)
-
-## Evidence Classification
-
-**OBSERVED**: Direct command execution with retained output
-**REPORTED**: Configuration exists but not executed/verified
-**VERIFIED**: Successfully executed and validated (none yet)
-
-## Existing User Changes
-
-**Claim**: None (OBSERVED from git status)
-**Verification**: git status shows clean working directory
-**Conclusion**: Safe to proceed - no user work at risk
+See `docs/GATE0_VERIFICATION_STATUS.md` and `docs/CAPABILITY_LEDGER.md` for the controlling status.

@@ -1,112 +1,36 @@
-# ADR-0002: No Autonomous Spend or Publication - Human Approval Required
+# ADR-0002: Human approval for material consequences
 
 ## Status
-Accepted
+
+Proposed implementation decision — the normative no-autonomy rule already applies.
 
 ## Context
-The Advertified system handles client budgets, creative work that goes public, supplier commitments, and external communications. These are material commercial consequences with financial and legal implications.
 
-Several design approaches were considered:
-1. **Full autonomy**: Agents could execute spend, publication, and supplier commitments independently
-2. **Configurable autonomy**: Different levels of autonomy per client or account type
-3. **Human approval required**: Every material consequence requires named human approval
+Advertified handles client money, public creative, supplier commitments, external communication, pricing, payments, and invoices. These effects require accountable human authority and immutable evidence.
 
-## Decision
-**Advertified will require human approval for all material commercial consequences.**
+## Proposed decision
 
-### Explicit No-Autonomy Policy
+The following always require a named authorised human acting on the exact immutable version:
 
-The following actions ALWAYS require named human approval:
-- Client budget spend (any amount)
-- Creative publication to public channels
-- Supplier commitment (bookings, contracts)
-- External communication (proposals, emails, outreach)
-- Material commercial changes (rate changes, plan modifications)
-- Payment initiation
+- budget/spend or material pricing change;
+- proposal/external communication;
+- supplier commitment, booking, contract, or cancellation;
+- payment or invoice;
+- creative/public publication;
+- client acceptance/decline;
+- legal/privacy/security notification or production release.
 
-### Rationale
-1. **Financial accountability**: Client budgets must be controlled by authorized representatives
-2. **Legal protection**: Creative publication requires brand and legal compliance checks
-3. **Commercial risk**: Supplier commitments have contractual and financial implications
-4. **Brand protection**: External communications represent the brand and require oversight
-5. **Client trust**: Clients expect control over their spend and public presence
-6. **Liability management**: Human approval provides clear accountability and audit trail
+Creation, editing, submission, review, and approval are separate permissions. A creator cannot self-approve. Delegation is explicit, scoped, time-bound, revocable, and audited. No “emergency,” “fast-track,” bulk, agent, worker, or configuration path may bypass the consequence check.
 
-### Alternatives Considered
-- **Full autonomy**: Rejected due to unacceptable financial and legal risk
-- **Configurable autonomy**: Rejected due to complexity and potential for misconfiguration
-- **Hybrid approach**: Rejected due to unclear boundaries and potential for accidental autonomy
+Deterministic low-risk notifications may later operate under a narrowly approved policy that fixes audience, template, trigger, opt-out, rate limit, and audit. That is not general external-communication authority.
 
-## Consequences
+## Required enforcement evidence
 
-### Positive
-- Clear accountability for all commercial decisions
-- Reduced financial and legal risk
-- Client confidence in platform control
-- Audit trail with named decision-makers
-- Alignment with client expectations
+- API and persistence invariants;
+- negative permission and stale-version tests;
+- tenant/assignment/delegation tests;
+- durable idempotent command/audit/outbox trail;
+- UI wording showing the exact consequence and version;
+- named owner approval.
 
-### Negative
-- Slower execution speed for routine actions
-- Higher operational overhead for approval management
-- Potential bottleneck if approvers are unavailable
-- More complex workflow design
-
-### Mitigations
-- Fast-track approval processes for low-risk, high-volume actions
-- Parallel approval workflows where appropriate
-- Clear SLAs for approval response times
-- Automated routing and notification systems
-- Delegation mechanisms for approver unavailability
-
-## Implementation
-1. **Commercial API enforces approval gates**: No spend/publication/commitment commands execute without explicit approval record
-2. **Workflow design**: Every material consequence workflow includes explicit human approval step
-3. **UI design**: Clear indication of approval requirements and current approver
-4. **Audit trail**: Every approval records approver, timestamp, decision, and rationale
-5. **Agent contracts**: Agents explicitly forbidden from executing external consequences
-6. **Tool policy**: External consequence tools require human approval parameter
-
-## Scope and Boundaries
-
-### In Scope (Requires Approval)
-- All client budget spend
-- All creative publication
-- All supplier commitments
-- All external communications
-- Material commercial changes
-- Payment initiation
-
-### Out of Scope (May Be Automated)
-- Internal calculations and computations
-- Data processing and validation
-- Notification generation (within approved parameters)
-- Draft generation (not final delivery)
-- Analysis and recommendations
-- Routine data updates within approved parameters
-
-## Configuration and Exceptions
-
-**No exceptions to core policy**: The no-autonomy policy is non-negotiable for material consequences.
-
-**Configuration options**:
-- Approval routing based on amount thresholds
-- Delegation chains for approver unavailability
-- Fast-track processes for low-risk actions
-- Bulk approval for similar low-risk items
-
-**Exception process**: Any exception to this policy requires explicit ADR with legal and commercial sign-off.
-
-## References
-- Advertified Unified Specification v1.1, Section 1 (Executive decisions)
-- Advertified Unified Specification v1.1, Section 6 (Agent operating model)
-- Agent contract specifications (Section 22)
-
-## Participants
-- Product Owner - Business requirements
-- Commercial Lead - Financial processes
-- Legal Counsel - Legal compliance
-- Engineering Lead - Technical implementation
-
-## Date
-2026-08-29
+No implementation may treat this Proposed ADR as permission to weaken the normative rule.

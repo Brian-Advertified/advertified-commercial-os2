@@ -1,163 +1,138 @@
-# Advertified Unified
+# Advertified Commercial OS
 
-Production build specification for Advertified Unified - a marketing intelligence and campaign management platform using Amazon Bedrock AgentCore.
+Advertified is a marketing intelligence and campaign operating system. This repository is the clean implementation baseline for the locked stack:
 
-## Architecture Overview
+- React 19.2.0, TypeScript, and Vite for the web application
+- C#/.NET 8 for the canonical Commercial API
+- Python 3.12-compatible FastAPI for typed agent proposals
+- PostgreSQL 16 with PostGIS and pgvector
+- Redis, MinIO, and MailHog for local non-production infrastructure
 
-This system implements a comprehensive marketing platform with the following components:
+The foundation builds and tests locally. Product features are not implemented yet. Gate 1 guardrail work may start; Gates 2–13 remain blocked until their work packet and owner decisions are approved.
 
-- **Web Application**: React 19.2.0/TypeScript/Vite - Authenticated user interface
-- **Commercial API**: C#/.NET ASP.NET Core - Canonical business state and operations
-- **Agent Runtime**: Python/FastAPI with Amazon Bedrock AgentCore - AI agent orchestration
-- **Workers**: C# and Python workers for background processing
-- **Database**: PostgreSQL/PostGIS/pgvector - Commercial data and geographic queries
-- **Storage**: S3-compatible storage - Files, assets, and documents
+## Start here
 
-## Getting Started
+Read these in order before changing code:
 
-### Prerequisites
+1. `AGENTS.md`
+2. `docs/DEVELOPMENT_ENTRY_GATE.md`
+3. `docs/spec/README.md`
+4. `docs/IMPLEMENTATION_PLAN.md`
+5. the applicable proposed/approved ADRs
 
-- Node.js 20+ (for web application)
-- .NET 8.0 SDK (for Commercial API)
-- Python 3.10+ (for agent runtime)
-- Docker and Docker Compose (for local development)
-- AWS CLI configured with appropriate credentials
-- PostgreSQL 15+ with PostGIS and pgvector extensions
+## Prerequisites
 
-### Local Development Setup
+- Git
+- Docker Desktop with Docker Compose v2
+- Node.js 22
+- .NET 8 SDK
+- Python 3.12
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd advertified-commercial-os2
-   ```
+AWS credentials are not required for the current baseline. Live and paid AI calls are disabled.
 
-2. **Install dependencies**
-   ```bash
-   # Web application
-   cd web
-   npm install
-   cd ..
+## One-time setup
 
-   # Commercial API
-   cd api
-   dotnet restore
-   cd ..
+From `C:\Users\CC KEMPTON\source\advertified-commercial-os2` in PowerShell:
 
-   # Agent runtime
-   cd agent-runtime
-   pip install -r requirements.txt
-   cd ..
-   ```
+```powershell
+Copy-Item infrastructure/env.example infrastructure/.env
+docker compose -f infrastructure/docker-compose.yml up -d --build --wait
 
-3. **Start local development environment**
-   ```bash
-   docker-compose up -d
-   ```
+Set-Location web
+npm ci
+Set-Location ..
 
-4. **Run database migrations**
-   ```bash
-   cd api
-   dotnet ef database update
-   cd ..
-   ```
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r agent-runtime/requirements-dev.txt
 
-5. **Start services**
-   ```bash
-   # Terminal 1: Web application
-   cd web
-   npm run dev
-
-   # Terminal 2: Commercial API
-   cd api
-   dotnet run
-
-   # Terminal 3: Agent runtime
-   cd agent-runtime
-   uvicorn main:app --reload
-   ```
-
-## Project Structure
-
-```
-advertified-commercial-os2/
-├── web/                  # React frontend application
-├── api/                   # C#/.NET Commercial API
-├── agent-runtime/         # Python/FastAPI AgentCore runtime
-├── workers/               # Background workers (C# and Python)
-├── shared/                # Shared contracts and schemas
-├── infrastructure/        # Docker, deployment, and ops configs
-├── tests/                 # Test suites
-├── docs/                  # Documentation
-└── README.md
+dotnet restore api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj
 ```
 
-## Development Guidelines
+Change only the local passwords in `infrastructure/.env`. The file is ignored and must never be committed.
 
-### Key Principles
+## Run the three applications
 
-1. **SOLID Principles**: Single responsibility, open/closed, Liskov substitution, interface segregation, dependency inversion
-2. **Separation of Concerns**: Clear boundaries between web, API, agents, and workers
-3. **No Dead Code**: Remove unused code immediately
-4. **Test Coverage**: Add test cases for each function
-5. **Loose Coupling**: Modules should be independent and interchangeable
+Use three PowerShell terminals from the repository root.
 
-### File Size Limits
+Web:
 
-- Maximum 400 lines per source file (enforced by CI)
-- Prefer functions under 40 lines (60-line hard limit)
-- Cyclomatic complexity target <= 10 per function
+```powershell
+npm --prefix web run dev
+```
 
-### Technology Constraints
+Commercial API:
 
-- **Web**: React 19.2.0, TypeScript, Vite (no Tailwind without ADR)
-- **API**: C#/.NET ASP.NET Core (no Python business API)
-- **Runtime**: Python/FastAPI with AgentCore (no separate A2A containers)
-- **Database**: PostgreSQL/PostGIS/pgvector (no SQLite)
-- **AI**: AWS Bedrock only (no Explee or unapproved providers)
+```powershell
+dotnet run --project api/Advertified.Commercial.Api.csproj --urls http://localhost:5000
+```
 
-## Implementation Gates
+Agent runtime:
 
-The system is built through 13 ordered gates:
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn main:app --app-dir agent-runtime --reload --port 8000
+```
 
-1. **Gate 0**: Repository baseline
-2. **Gate 1**: Architecture guardrails
-3. **Gate 2**: Canonical foundation
-4. **Gate 3**: Authenticated shell
-5. **Gate 4**: Evidence and opportunity
-6. **Gate 5**: Canonical Brief
-7. **Gate 6**: Inventory truth
-8. **Gate 7**: Planning
-9. **Gate 8**: Proposal
-10. **Gate 9**: Rapid OOH
-11. **Gate 10**: Supplier marketplace
-12. **Gate 11**: Campaign delivery
-13. **Gate 12**: Hardening
-14. **Gate 13**: Production launch
+Local endpoints:
 
-## AI Agents
+| Surface | URL |
+|---|---|
+| Web baseline | http://localhost:5173 |
+| Commercial API description | http://localhost:5000 |
+| Commercial API liveness | http://localhost:5000/health/live |
+| Commercial API Swagger | http://localhost:5000/swagger |
+| Agent runtime description | http://localhost:8000 |
+| Agent runtime liveness | http://localhost:8000/health/live |
+| MinIO API / console | http://localhost:59000 / http://localhost:59001 |
+| MailHog | http://localhost:58025 |
+| PostgreSQL | localhost:55432 |
+| Redis | localhost:56379 |
 
-The system uses 11 specialized agents orchestrated through Amazon Bedrock AgentCore:
+The runtime description intentionally reports zero implemented agents and a disabled provider. Do not change those claims until agent contracts and evaluations actually exist.
 
-1. **Opportunity Intelligence**: What credible advertising opportunity exists?
-2. **Business Interpretation**: What does this business sell, to whom, and in what buying context?
-3. **Strategy**: What growth and communications strategy follows from the evidence?
-4. **Brief Drafting**: How does approved evidence become a complete campaign brief?
-5. **Audience**: Which audiences are plausible and why?
-6. **Inventory Intelligence**: Which verified products are eligible and valuable?
-7. **Media Planning**: How should channels, budget and flighting work together?
-8. **Critic & Readiness**: What is weak, unsupported, contradictory or unsafe?
-9. **Proposal Narrative**: How should the approved plan be explained to the client?
-10. **Creative**: What concepts and adaptations could support the approved plan?
-11. **Measurement**: What changed and what should be learned?
+## Verify before handing off
 
-## Documentation
+```powershell
+npm --prefix web run lint
+npm --prefix web run type-check
+npm --prefix web test
+npm --prefix web run build
 
-- Build specification: See `docs/ADVERTIFIED_UNIFIED_STRATEGY.md`
-- API documentation: Auto-generated OpenAPI at `/api/v1/docs`
-- Architecture decisions: `docs/adr/`
-- Implementation status: `docs/CAPABILITY_LEDGER.md`
+dotnet build api/Advertified.Commercial.Api.csproj --configuration Release
+dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release
 
-## License
+.\.venv\Scripts\Activate.ps1
+python -m pytest agent-runtime
+python -m ruff check agent-runtime
+python -m pytest tests/architecture -q
 
-Proprietary - All rights reserved
+docker compose -f infrastructure/docker-compose.yml config --quiet
+docker compose -f infrastructure/docker-compose.yml ps
+```
+
+All four Compose services must be healthy. PostgreSQL health includes a version-16 check and verifies `pgcrypto`, `postgis`, and `vector`.
+
+## Architectural boundary
+
+The Commercial API is the only canonical commercial write boundary. Python may propose typed outputs through authorised API contracts and must not access PostgreSQL directly. React contains no database/provider credentials. AI cannot approve, spend, publish, book, invoice, or communicate externally.
+
+Opportunity discovery and a supplied Brief are separate paths. The canonical delivery lifecycle is:
+
+Brief → Plan → Proposal → Client Decision → Funding → Booking → Readiness → Live → Proof → Measurement → Learning.
+
+## Repository map
+
+| Path | Responsibility |
+|---|---|
+| `web/` | React application |
+| `api/` | C# Commercial API and tests |
+| `agent-runtime/` | Provider-disabled Python runtime and tests |
+| `shared/` | Versioned schemas and master/reference data |
+| `infrastructure/` | Local Docker environment |
+| `tests/architecture/` | Executable repository boundaries |
+| `docs/spec/` | Complete split normative v1.1 specification |
+| `docs/adr/` | Decision records; status matters |
+
+Proprietary. All rights reserved.

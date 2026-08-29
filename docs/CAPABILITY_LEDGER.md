@@ -1,242 +1,79 @@
-# Advertified Unified - Capability Ledger
+# Advertified capability ledger
 
-This ledger tracks the implementation status of every capability specified in the Advertified Unified Production Build Specification v1.1.
+**Evidence date:** 2026-08-29  
+**Clean parent recorded before remediation:** `0986f62ad0748289fdafe8f36f5f9a3dabaab4d8`  
+**Current change state:** uncommitted owner-review diff  
+**Status vocabulary:** ABSENT, SCAFFOLDED, IMPLEMENTED, VERIFIED, BLOCKED
 
-## Status Legend
+A capability is VERIFIED only when repeatable evidence was observed. Documentation does not make a capability implemented.
 
-- **ABSENT**: Not yet implemented
-- **SCAFFOLDED**: Basic structure exists but lacks functionality
-- **IMPLEMENTED**: Code exists but not verified
-- **VERIFIED**: Tested and meets acceptance criteria
-- **BLOCKED**: Cannot proceed due to external dependency
+## Gate 0 — repository baseline
 
-## Gate 0: Repository Baseline
+| Capability | Status | Evidence |
+|---|---|---|
+| Correct os2 repository and branch | VERIFIED | configured os2 path, `master`; clean at start |
+| Binding contributor/AI rules | IMPLEMENTED | `AGENTS.md` |
+| Complete normative v1.1 source | VERIFIED | Seven ordered parts; all seven hashes match source chunks |
+| React dependency lock | VERIFIED | Exact React 19.2.0 and locked install |
+| Commercial API baseline | VERIFIED | Release build and health endpoint tests |
+| Agent runtime baseline | VERIFIED | Provider disabled; zero agents claimed |
+| PostgreSQL 16 local foundation | VERIFIED | PostGIS and pgvector image plus health checks |
+| Redis, MinIO, and MailHog | VERIFIED | Four os2 services healthy |
+| CI definition | IMPLEMENTED | Real architecture, web, API, Python, and Compose jobs |
+| GitHub CI result | BLOCKED | Requires owner-authorised commit/push |
+| Product journeys | ABSENT | Correctly excluded from Gate 0 |
 
-| Capability | Status | Evidence | Notes |
-|------------|--------|----------|-------|
-| Project structure created | IMPLEMENTED | Directory structure exists | web, api, agent-runtime, workers, shared, infrastructure, tests, docs |
-| Setup instructions documented | IMPLEMENTED | README.md created | Basic setup guide |
-| Capability ledger created | IMPLEMENTED | This file | Initial version - PARTIAL |
-| Logical repository map defined | IMPLEMENTED | IMPLEMENTATION_PLAN.md v2.0 | Complete rewrite with executable detail |
-| Toolchain pins established | IMPLEMENTED | Projects created | .NET 8.0, React 19.2.0, Python 3.12 |
-| Legacy disposition recorded | IMPLEMENTED | Documentation pending | No legacy yet - clean build |
-| Docker environment | IMPLEMENTED | docker-compose.yml | PostgreSQL, MinIO, Redis, Mailhog - NOT VERIFIED |
-| Environment configuration | IMPLEMENTED | env.example and .env | Full configuration template |
-| ADR template created | IMPLEMENTED | docs/adr/0000-adr-template.md | Architecture decision process |
-| Common schemas | IMPLEMENTED | shared/schemas/common.json | Base data contracts |
-| Setup guide | IMPLEMENTED | docs/SETUP_GUIDE.md | Developer onboarding |
-| Git repository | IMPLEMENTED | Commit ed3bc26d321140ab69b60e5c368017ade92a900e | Initial commit with scaffolding |
-| Docker services health | ABSENT | Not verified | Services not started/tested |
-| Build execution | ABSENT | Not verified | npm run build, dotnet build not executed |
-| Test execution | ABSENT | Not verified | No tests created/executed |
-| Current routes/screenshots | ABSENT | Not verified | No route documentation or screenshots |
-| Legacy disposition register | IMPLEMENTED | Documented | Clean build, no legacy systems |
-| Known failures/blockers | IMPLEMENTED | Documented | None currently |
-| Production resource confirmation | IMPLEMENTED | Documented | No production resources used (correct) |
+**Local Gate 0 evidence:** PASS; Gate 1 work is authorised.  
+**Merge/release:** NO-GO until owner diff review and remote CI.
 
-**Gate 0 Status**: PARTIAL - Scaffolding complete, verification pending
-**Commit SHA**: ed3bc26d321140ab69b60e5c368017ade92a900e
-**Missing Evidence**: Docker health verification, build results, test results, routes/screenshots
+## Gate 1 — architecture guardrails
 
-## Gate 1: Architecture Guardrails
+| Capability | Status | Evidence / blocker |
+|---|---|---|
+| C# dependency direction | VERIFIED | Domain → none; Application → Domain; Infrastructure → Application/Domain; API → Application/Infrastructure |
+| C# analyzers and complexity | VERIFIED | .NET 8 analyzers; Release build 0 warnings/errors |
+| TypeScript complexity/function limits | VERIFIED | Oxlint 0 warnings/errors with complexity 10 and function maximum 60 |
+| Python complexity/function limits | IMPLEMENTED | Ruff C90 and 60-line architecture rule; local Ruff rerun remains pending |
+| 400-line authored-source rule | VERIFIED | Architecture suite |
+| Controlled violating fixtures | VERIFIED | Dependency, DB import, ADR, function, and file-size detectors reject known violations |
+| Tenant deny-by-default harness | VERIFIED | Missing, inactive, wrong actor, wrong tenant, and missing permission all deny identically |
+| Cross-tenant command containment | VERIFIED | Denial occurs before idempotency lookup or handler execution |
+| Command/idempotency contract | VERIFIED | Duplicate fixture returns one canonical outcome; changed payload conflicts |
+| Audit/outbox correlation | VERIFIED | Mismatched tenant/command/correlation cannot commit |
+| Optimistic concurrency contract | VERIFIED | Expected version is mandatory and outcome advances exactly once |
+| Opportunity state-machine skeleton | VERIFIED | Typed canonical transitions and invalid-transition negatives |
+| Governed master-data registry | VERIFIED | Single embedded JSON source; 11 coherent collections |
+| PostgreSQL master-data migration | VERIFIED | Throwaway PostgreSQL 16 apply/bootstrap/reapply/protection/rollback test |
+| Stable master-data codes and audit | VERIFIED | Database rejects code change/delete and records item history |
+| Closed eleven-agent roster | VERIFIED | Exact code-controlled roster test; no agent is claimed implemented |
+| Versioned invocation/output contracts | VERIFIED | Strict typed Pydantic v1 envelopes and exact resource versions |
+| Deterministic provider | VERIFIED | Exact fixture or safe failure; no fallback, live call, or cost |
+| Agent evaluation fixture format | VERIFIED | Evidence/assumption/unknown classification and tool/cost boundaries validated |
+| ADR ownership process | IMPLEMENTED | Accepted status requires actual names and ISO decision date |
+| Evidence manifest/report format | IMPLEMENTED | Versioned schema and templates; Gate 1 report pending owner review |
+| Accepted ADR and Gate 1 owner decision | BLOCKED | Brian Rabuthu is the accountable owner; final GO awaits remote CI and evidence review |
+| Remote CI | BLOCKED | No commit or push was authorised |
 
-| Capability | Status | Evidence | Notes |
-|------------|--------|----------|-------|
-| 400-line CI rule | IMPLEMENTED | GitHub Actions CI workflow | File size checks in CI |
-| Architecture analyzers | IMPLEMENTED | ESLint, .NET analyzers configured | Linting rules established |
-| Master data registry | IMPLEMENTED | shared/contracts/master-data.json | Canonical master data defined |
-| ADR template | IMPLEMENTED | docs/adr/0000-adr-template.md | Template and first ADR created |
-| Generated contracts | ABSENT | OpenAPI pending | Need API first |
-| Dependency rules | IMPLEMENTED | CI dependency scanning | Security scanning configured |
-| Architecture boundary tests | IMPLEMENTED | tests/architecture/boundary-tests.py | Enforces separation rules |
-| Technology stack ADR | IMPLEMENTED | docs/adr/0001-use-amazon-bedrock-agentcore.md | AgentCore decision recorded |
-| ESLint configuration | IMPLEMENTED | .eslintrc.json | Web application linting |
-| .NET configuration | IMPLEMENTED | Updated csproj file | Code quality rules enabled |
+**Local executed evidence:** web lint/type-check/2 tests/build pass; API build and 18 tests pass; agent runtime 9 tests pass; architecture 20 tests pass.  
+**Gate 1 decision:** PENDING. An AI cannot close the gate.
 
-## Gate 2: Canonical Foundation
+## Gates 2–13
 
-| Capability | Status | Evidence | Notes |
-|------------|--------|----------|-------|
-| Tenant domain model | ABSENT | C# domain pending | Core entity |
-| User domain model | ABSENT | C# domain pending | Core entity |
-| Membership domain model | ABSENT | C# domain pending | Core entity |
-| Value objects | ABSENT | C# classes pending | Money, VAT, etc |
-| Audit system | ABSENT | C# implementation pending | Append-only events |
-| Idempotency system | ABSENT | C# implementation pending | Key-based deduplication |
-| Outbox pattern | ABSENT | C# implementation pending | Event publishing |
-| Database migrations | ABSENT | EF Core pending | Schema management |
-| OpenAPI specification | ABSENT | Swagger pending | API contracts |
+All product capabilities remain ABSENT and gate-BLOCKED. A document, route label, container, contract, or scaffold is not a product implementation.
 
-## Gate 3: Authenticated Shell
+| Gate | Status |
+|---|---|
+| 2 Canonical commercial foundation | BLOCKED |
+| 3 Authenticated application shell | BLOCKED |
+| 4 Evidence and Opportunity | BLOCKED |
+| 5 Canonical Brief | BLOCKED |
+| 6 Inventory truth | BLOCKED |
+| 7 Planning | BLOCKED |
+| 8 Proposal and client decision | BLOCKED |
+| 9 Rapid OOH | BLOCKED |
+| 10 Supplier marketplace | BLOCKED |
+| 11 Campaign delivery and learning | BLOCKED |
+| 12 Hardening and certification | BLOCKED |
+| 13 Production launch | BLOCKED |
 
-| Capability | Status | Evidence | Notes |
-|------------|--------|----------|-------|
-| Sign-in functionality | ABSENT | React components pending | OIDC integration |
-| Invite system | ABSENT | React/API pending | Token-based invites |
-| Workspace selection | ABSENT | React components pending | Tenant context |
-| Role dashboard | ABSENT | React components pending | KPI displays |
-| Route guards | ABSENT | React Router pending | Permission checks |
-| Error states | ABSENT | React components pending | UX patterns |
-| Accessibility states | ABSENT | React components pending | WCAG 2.2 AA |
-
-## Gate 4: Evidence and Opportunity
-
-| Capability | Status | Evidence | Notes |
-|------------|--------|----------|-------|
-| Evidence capture | ABSENT | API/React pending | File upload |
-| Crawl policy | ABSENT | Python worker pending | Web scraping |
-| Evidence review | ABSENT | React/API pending | Human approval |
-| Business interpretation | ABSENT | Agent pending | Business model analysis |
-| Opportunity angles | ABSENT | Agent pending | Opportunity generation |
-| Strategy generation | ABSENT | Agent pending | Growth strategy |
-| Critic agent | ABSENT | Agent pending | Quality control |
-
-## Gate 5: Canonical Brief
-
-| Capability | Status | Evidence | Notes |
-|------------|--------|----------|-------|
-| CampaignBrief aggregate | ABSENT | C# domain pending | Core brief entity |
-| BriefVersion immutability | ABSENT | C# implementation pending | Version control |
-| Brief comparison | ABSENT | React components pending | Diff display |
-| Unknowns tracking | ABSENT | C# domain pending | Knowledge gaps |
-| Brief approval workflow | ABSENT | API/React pending | Human gates |
-| Stale downstream logic | ABSENT | C# implementation pending | Dependency tracking |
-
-## Gate 6: Inventory Truth
-
-| Capability | Status | Evidence | Notes |
-|------------|--------|----------|-------|
-| Import pipeline | ABSENT | Python worker pending | File processing |
-| Document classification | ABSENT | Python implementation pending | Type detection |
-| Structure extraction | ABSENT | Docling integration pending | Table parsing |
-| Asset extraction | ABSENT | Python implementation pending | Logo/image handling |
-| Evidence linking | ABSENT | C# implementation pending | Field lineage |
-| Human review interface | ABSENT | React components pending | Bulk operations |
-| Channel schemas | ABSENT | C# domain pending | Multi-channel support |
-| Catalog search | ABSENT | API/React pending | Large-scale queries |
-| Detail pages | ABSENT | React components pending | Product display |
-| Supplier ownership | ABSENT | C# implementation pending | Access control |
-
-## Gate 7: Planning
-
-| Capability | Status | Evidence | Notes |
-|------------|--------|----------|-------|
-| Audience agent | ABSENT | Agent pending | Segment analysis |
-| Media mix agent | ABSENT | Agent pending | Budget allocation |
-| Eligibility engine | ABSENT | C# implementation pending | Hard constraints |
-| Shortlist generation | ABSENT | Agent pending | Inventory selection |
-| Benchmark calculations | ABSENT | C# implementation pending | Rate comparison |
-| Supply forecast | ABSENT | API integration pending | Availability |
-| MediaPlan approval | ABSENT | API/React pending | Human gates |
-| Stale input handling | ABSENT | C# implementation pending | Plan invalidation |
-
-## Gate 8: Proposal
-
-| Capability | Status | Evidence | Notes |
-|------------|--------|----------|-------|
-| Tier configuration | ABSENT | C# domain pending | Multi-option proposals |
-| Proposal narrative agent | ABSENT | Agent pending | Client communication |
-| Proposal critic | ABSENT | Agent pending | Quality control |
-| Total calculations | ABSENT | C# implementation pending | Financial reconciliation |
-| Proposal approval | ABSENT | API/React pending | Human gates |
-| Branded document generation | ABSENT | Python worker pending | DOCX/PDF rendering |
-| Proposal sending | ABSENT | API/worker pending | External delivery |
-
-## Gate 9: Rapid OOH
-
-| Capability | Status | Evidence | Notes |
-|------------|--------|----------|-------|
-| Automatic path detection | ABSENT | C# implementation pending | Brief analysis |
-| Geography resolution | ABSENT | Maps integration pending | Location services |
-| Route/POI handling | ABSENT | Maps integration pending | Waypoint management |
-| OOH eligibility | ABSENT | C# implementation pending | Format constraints |
-| Supplier confirmation | ABSENT | API integration pending | Availability check |
-| Recalculation logic | ABSENT | C# implementation pending | Dynamic updates |
-
-## Gate 10: Supplier Marketplace
-
-| Capability | Status | Evidence | Notes |
-|------------|--------|----------|-------|
-| Supplier user management | ABSENT | API/React pending | Self-service |
-| Listing creation | ABSENT | API/React pending | Inventory management |
-| Freshness tracking | ABSENT | C# implementation pending | Rate monitoring |
-| RFQ system | ABSENT | API/React pending | Request for quote |
-| Supplier responses | ABSENT | API/React pending | Quote management |
-| Booking workflow | ABSENT | API/React pending | Commitment process |
-| Commercial settings | ABSENT | C# domain pending | Supplier configuration |
-
-## Gate 11: Campaign Delivery
-
-| Capability | Status | Evidence | Notes |
-|------------|--------|----------|-------|
-| Creative workflow | ABSENT | API/React pending | Asset management |
-| Booking management | ABSENT | C# implementation pending | Commitment tracking |
-| Proof submission | ABSENT | API/React pending | Delivery evidence |
-| Performance facts | ABSENT | API integration pending | Measurement data |
-| Measurement interpretation | ABSENT | Agent pending | Analytics |
-| Client reporting | ABSENT | React components pending | Outcome display |
-
-## Gate 12: Hardening
-
-| Capability | Status | Evidence | Notes |
-|------------|--------|----------|-------|
-| Recovery mechanisms | ABSENT | Implementation pending | Checkpoint system |
-| Security controls | ABSENT | Implementation pending | Authentication/authorization |
-| POPIA compliance | ABSENT | Implementation pending | Privacy controls |
-| Performance optimization | ABSENT | Implementation pending | SLO compliance |
-| Observability | ABSENT | Implementation pending | Monitoring/alerting |
-| Backup/restore | ABSENT | Implementation pending | Data protection |
-| Runbooks | ABSENT | Documentation pending | Operational procedures |
-
-## Gate 13: Production Launch
-
-| Capability | Status | Evidence | Notes |
-|------------|--------|----------|-------|
-| 30-case certification | ABSENT | Test execution pending | Quality validation |
-| Zero-Bedrock certification | ABSENT | Test execution pending | Deterministic provider |
-| Unanimous greenlight | ABSENT | Sign-off pending | Stakeholder approval |
-| Production deployment | ABSENT | Infrastructure pending | AWS setup |
-| Monitoring setup | ABSENT | Infrastructure pending | Telemetry |
-| Handover complete | ABSENT | Documentation pending | Operations transfer |
-
-## Agent Implementation Status
-
-| Agent | Status | Evidence | Notes |
-|-------|--------|----------|-------|
-| Opportunity Intelligence | ABSENT | Agent code pending | Bedrock integration |
-| Business Interpretation | ABSENT | Agent code pending | Evidence analysis |
-| Strategy | ABSENT | Agent code pending | Growth planning |
-| Brief Drafting | ABSENT | Agent code pending | Brief generation |
-| Audience | ABSENT | Agent code pending | Segment analysis |
-| Inventory Intelligence | ABSENT | Agent code pending | Supply evaluation |
-| Media Planning | ABSENT | Agent code pending | Mix optimization |
-| Critic & Readiness | ABSENT | Agent code pending | Quality control |
-| Proposal Narrative | ABSENT | Agent code pending | Client communication |
-| Creative | ABSENT | Agent code pending | Concept generation |
-| Measurement | ABSENT | Agent code pending | Performance analysis |
-
-## Integration Status
-
-| Integration | Status | Evidence | Notes |
-|-------------|--------|----------|-------|
-| AWS Bedrock | ABSENT | Configuration pending | AI provider |
-| OIDC Provider | ABSENT | Configuration pending | Authentication |
-| S3 Storage | ABSENT | Configuration pending | File storage |
-| Docling | ABSENT | Installation pending | Document extraction |
-| Resend Email | ABSENT | Configuration pending | Notifications |
-| Maps Provider | ABSENT | Configuration pending | Geocoding |
-| Payment Provider | ABSENT | Configuration pending | VodaPay/EFT |
-
-## Summary Statistics
-
-- **Total Capabilities**: 128
-- **Implemented**: 22 (17%)
-- **Verified**: 0 (0%)
-- **Failed**: 6 (5%) - Web build, API build, agent tests, architecture tests, MailHog health, database initialization
-- **Blocked**: 0 (0%)
-- **Pending**: 106 (83%)
-- **Gate 0 Status**: NO-GO - Critical failures prevent implementation
-
-## Last Updated
-
-2026-08-29 - GATE0 NO-GO VERDICT: Repository not ready for implementation. Official assessment identifies 15 critical failures across engineering and planning. Repository is clean day-zero scaffold with no verified capability. Web build FAILED, API build FAILED, agent tests FAILED, architecture tests provide false confidence. Gates 4-13 incomplete, v1.1 specification absent, circular contradictions in agent sequence, master data conflicts, unsafe approval controls, incorrect dependencies, false legal claims in POPIA documentation. Sound foundations retained but requires plan-control gate and Gate 0 repair before any feature implementation. OWNER UNASSIGNED — GATE CANNOT CLOSE.
+Local evidence is not remote CI evidence. No tests discovered is not a pass. A proposed ADR is not accepted. An AI cannot approve legal compliance, security, a gate, or production readiness.

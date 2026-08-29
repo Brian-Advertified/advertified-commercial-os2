@@ -1,0 +1,170 @@
+using System.Text.Json;
+
+namespace Advertified.Commercial.Domain.Governance;
+
+public sealed record ResourceReference
+{
+    public ResourceReference(
+        ResourceTypeCode resourceType,
+        Guid resourceId,
+        long version)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(resourceType.Value);
+        ArgumentOutOfRangeException.ThrowIfLessThan(version, 1);
+
+        ResourceType = resourceType;
+        ResourceId = IdValue.Require(resourceId, nameof(resourceId));
+        Version = version;
+    }
+
+    public ResourceTypeCode ResourceType { get; }
+
+    public Guid ResourceId { get; }
+
+    public long Version { get; }
+}
+
+public sealed record AuditRecord
+{
+    public AuditRecord(
+        Guid auditId,
+        TenantId tenantId,
+        ActorId actorId,
+        CommandId commandId,
+        CorrelationId correlationId,
+        ActionCode action,
+        ResourceReference resource,
+        DateTimeOffset occurredAtUtc)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(action.Value);
+        ArgumentNullException.ThrowIfNull(resource);
+        UtcValue.Require(occurredAtUtc, nameof(occurredAtUtc));
+
+        AuditId = IdValue.Require(auditId, nameof(auditId));
+        TenantId = tenantId;
+        ActorId = actorId;
+        CommandId = commandId;
+        CorrelationId = correlationId;
+        Action = action;
+        Resource = resource;
+        OccurredAtUtc = occurredAtUtc;
+    }
+
+    public Guid AuditId { get; init; }
+
+    public TenantId TenantId { get; }
+
+    public ActorId ActorId { get; }
+
+    public CommandId CommandId { get; }
+
+    public CorrelationId CorrelationId { get; }
+
+    public ActionCode Action { get; init; }
+
+    public ResourceReference Resource { get; }
+
+    public DateTimeOffset OccurredAtUtc { get; init; }
+}
+
+public sealed record OutboxMessage
+{
+    public OutboxMessage(
+        Guid eventId,
+        TenantId tenantId,
+        CommandId causationId,
+        CorrelationId correlationId,
+        EventTypeCode eventType,
+        ResourceReference aggregate,
+        JsonElement payload,
+        DateTimeOffset occurredAtUtc)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventType.Value);
+        ArgumentNullException.ThrowIfNull(aggregate);
+        UtcValue.Require(occurredAtUtc, nameof(occurredAtUtc));
+
+        if (payload.ValueKind == JsonValueKind.Undefined)
+        {
+            throw new ArgumentException("An outbox payload is required.", nameof(payload));
+        }
+
+        EventId = IdValue.Require(eventId, nameof(eventId));
+        TenantId = tenantId;
+        CausationId = causationId;
+        CorrelationId = correlationId;
+        EventType = eventType;
+        Aggregate = aggregate;
+        Payload = payload.Clone();
+        OccurredAtUtc = occurredAtUtc;
+    }
+
+    public Guid EventId { get; }
+
+    public TenantId TenantId { get; }
+
+    public CommandId CausationId { get; }
+
+    public CorrelationId CorrelationId { get; }
+
+    public EventTypeCode EventType { get; }
+
+    public ResourceReference Aggregate { get; }
+
+    public JsonElement Payload { get; }
+
+    public DateTimeOffset OccurredAtUtc { get; }
+}
+
+public sealed record CommandOutcome
+{
+    public CommandOutcome(
+        JsonElement data,
+        long aggregateVersion,
+        AuditRecord audit,
+        OutboxMessage outbox)
+    {
+        if (data.ValueKind == JsonValueKind.Undefined)
+        {
+            throw new ArgumentException("Canonical command data is required.", nameof(data));
+        }
+
+        ArgumentOutOfRangeException.ThrowIfLessThan(aggregateVersion, 1);
+        ArgumentNullException.ThrowIfNull(audit);
+        ArgumentNullException.ThrowIfNull(outbox);
+
+        Data = data.Clone();
+        AggregateVersion = aggregateVersion;
+        Audit = audit;
+        Outbox = outbox;
+    }
+
+    public JsonElement Data { get; }
+
+    public long AggregateVersion { get; }
+
+    public AuditRecord Audit { get; }
+
+    public OutboxMessage Outbox { get; }
+}
+
+public enum CommandDisposition
+{
+    Applied = 1,
+    Replayed = 2,
+}
+
+public sealed record CommandReceipt(
+    CommandDisposition Disposition,
+    CommandOutcome Outcome,
+    AuditRecord ReceiptAudit);
+
+internal static class UtcValue
+{
+    public static void Require(DateTimeOffset value, string parameterName)
+    {
+        if (value.Offset != TimeSpan.Zero)
+        {
+            throw new ArgumentException("The timestamp must be UTC.", parameterName);
+        }
+    }
+}

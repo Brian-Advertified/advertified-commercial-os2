@@ -1,324 +1,141 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Advertified Master Data Registry",
-  "description": "Canonical master data and configuration values for Advertified Unified",
-  "definitions": {
-    "MasterDataRecord": {
-      "type": "object",
-      "description": "Base structure for master data records",
-      "properties": {
-        "code": {
-          "type": "string",
-          "description": "Stable machine code that is never repurposed"
-        },
-        "displayLabel": {
-          "type": "string",
-          "description": "User-facing label that may change"
-        },
-        "isActive": {
-          "type": "boolean",
-          "description": "Whether the record is currently active"
-        },
-        "sortOrder": {
-          "type": "integer",
-          "description": "Display order"
-        },
-        "metadata": {
-          "type": "object",
-          "description": "Additional metadata schema"
-        },
-        "effectiveFrom": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Effective start date"
-        },
-        "effectiveTo": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Effective end date (null if still active)"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "required": ["code", "displayLabel", "isActive", "sortOrder"]
-    },
-    "Channel": {
-      "allOf": [
-        { "$ref": "#/definitions/MasterDataRecord" },
-        {
-          "type": "object",
-          "properties": {
-            "code": {
-              "enum": ["OOH", "DOOH", "RADIO", "TV", "PRINT", "DIGITAL", "SOCIAL", "INFLUENCER", "EXPERIENTIAL", "PODCAST", "RETAIL", "TRANSIT", "MALL", "EMAIL", "MOBILE"]
-            }
-          }
-        }
-      ]
-    },
-    "Role": {
-      "allOf": [
-        { "$ref": "#/definitions/MasterDataRecord" },
-        {
-          "type": "object",
-          "properties": {
-            "code": {
-              "enum": ["platform_admin", "internal_planner", "inventory_ops", "agency_admin", "agency_campaign_user", "advertiser_admin", "advertiser_approver", "supplier_admin", "supplier_user", "influencer_rep", "agent_runtime_service", "worker_service"]
-            }
-          }
-        }
-      ]
-    },
-    "LifecycleStatus": {
-      "allOf": [
-        { "$ref": "#/definitions/MasterDataRecord" },
-        {
-          "type": "object",
-          "properties": {
-            "code": {
-              "enum": ["CREATED", "QUALIFYING", "EVIDENCE_REVIEW", "STRATEGY_READY", "BRIEF_READY", "PLANNING", "PROPOSAL_READY", "WON", "LOST", "ARCHIVED", "DRAFT", "IN_REVIEW", "APPROVED", "REJECTED", "SENT", "SELECTED", "DECLINED", "EXPIRED", "UPLOADED", "CLASSIFYING", "EXTRACTING", "VALIDATING", "REVIEW_REQUIRED", "PUBLISHING", "COMPLETED", "FAILED", "PENDING", "CONFIRMED", "SUBMITTED", "ISSUED", "QUEUED", "RUNNING", "WAITING_FOR_HUMAN", "PLANNED", "BOOKED", "CREATIVE_PENDING", "READY", "LIVE"]
-            }
-          }
-        }
-      ]
-    },
-    "RateType": {
-      "allOf": [
-        { "$ref": "#/definitions/MasterDataRecord" },
-        {
-          "type": "object",
-          "properties": {
-            "code": {
-              "enum": ["CPM", "CPC", "CPL", "CPA", "FLAT_RATE", "SPOT_RATE", "PACKAGE_RATE", "DAY_RATE", "WEEK_RATE", "MONTH_RATE"]
-            }
-          }
-        }
-      ]
-    },
-    "AssetType": {
-      "allOf": [
-        { "$ref": "#/definitions/MasterDataRecord" },
-        {
-          "type": "object",
-          "properties": {
-            "code": {
-              "enum": ["LOGO", "PRODUCT_IMAGE", "OOH_PHOTO", "CREATIVE_FILE", "PROOF_IMAGE", "SPECIFICATION", "TERMS_DOCUMENT", "RATE_CARD"]
-            }
-          }
-        }
-      ]
-    },
-    "ProposalTier": {
-      "allOf": [
-        { "$ref": "#/definitions/MasterDataRecord" },
-        {
-          "type": "object",
-          "properties": {
-            "code": {
-              "enum": ["ESSENTIAL", "GROWTH", "PREMIUM"]
-            }
-          }
-        }
-      ]
-    },
-    "PaymentMethod": {
-      "allOf": [
-        { "$ref": "#/definitions/MasterDataRecord" },
-        {
-          "type": "object",
-          "properties": {
-            "code": {
-              "enum": ["VODAPAY", "MANUAL_EFT", "ADVERTISE_NOW_PAY_LATER"]
-            }
-          }
-        }
-      ]
-    },
-    "RejectionReason": {
-      "allOf": [
-        { "$ref": "#/definitions/MasterDataRecord" },
-        {
-          "type": "object",
-          "properties": {
-            "code": {
-              "enum": ["INELIGIBLE_GEOGRAPHY", "INELIGIBLE_FORMAT", "STALE_RATE", "UNAVAILABLE", "MINIMUM_ORDER", "BUDIENT_MISMATCH", "QUALITY_ISSUE", "DUPLICATE", "MISSING_INFO", "SUPPLIER_DECLINED"]
-            }
-          }
-        }
-      ]
-    },
-    "TaskPriority": {
-      "allOf": [
-        { "$ref": "#/definitions/MasterDataRecord" },
-        {
-          "type": "object",
-          "properties": {
-            "code": {
-              "enum": ["URGENT", "HIGH", "MEDIUM", "LOW"]
-            }
-          }
-        }
-      ]
-    },
-    "Currency": {
-      "allOf": [
-        { "$ref": "#/definitions/MasterDataRecord" },
-        {
-          "type": "object",
-          "properties": {
-            "code": {
-              "enum": ["ZAR", "USD", "EUR", "GBP"]
-            }
-          }
-        }
-      ]
-    },
-    "VATStatus": {
-      "allOf": [
-        { "$ref": "#/definitions/MasterDataRecord" },
-        {
-          "type": "object",
-          "properties": {
-            "code": {
-              "enum": ["REGISTERED", "EXEMPT", "NOT_APPLICABLE"]
-            }
-          }
-        }
-      ]
-    }
-  },
-  "channels": [
-    {
-      "code": "OOH",
-      "displayLabel": "Out of Home",
-      "isActive": true,
-      "sortOrder": 1,
-      "metadata": {
-        "supportsGeography": true,
-        "supportsFormat": true,
-        "supportsDigital": false
-      }
-    },
-    {
-      "code": "DOOH",
-      "displayLabel": "Digital Out of Home",
-      "isActive": true,
-      "sortOrder": 2,
-      "metadata": {
-        "supportsGeography": true,
-        "supportsFormat": true,
-        "supportsDigital": true
-      }
-    },
-    {
-      "code": "RADIO",
-      "displayLabel": "Radio",
-      "isActive": true,
-      "sortOrder": 3,
-      "metadata": {
-        "supportsGeography": true,
-        "supportsStation": true,
-        "supportsDaypart": true
-      }
-    },
-    {
-      "code": "DIGITAL",
-      "displayLabel": "Digital",
-      "isActive": true,
-      "sortOrder": 4,
-      "metadata": {
-        "supportsTargeting": true,
-        "supportsTracking": true
-      }
-    },
-    {
-      "code": "SOCIAL",
-      "displayLabel": "Social Media",
-      "isActive": true,
-      "sortOrder": 5,
-      "metadata": {
-        "supportsTargeting": true,
-        "supportsInfluencer": true
-      }
-    }
-  ],
-  "roles": [
-    {
-      "code": "platform_admin",
-      "displayLabel": "Platform Administrator",
-      "isActive": true,
-      "sortOrder": 1,
-      "metadata": {
-        "scope": "cross_tenant",
-        "privileges": ["all"]
-      }
-    },
-    {
-      "code": "internal_planner",
-      "displayLabel": "Internal Planner",
-      "isActive": true,
-      "sortOrder": 2,
-      "metadata": {
-        "scope": "assigned_clients",
-        "privileges": ["opportunities", "briefs", "planning", "proposals"]
-      }
-    },
-    {
-      "code": "inventory_ops",
-      "displayLabel": "Inventory Operations",
-      "isActive": true,
-      "sortOrder": 3,
-      "metadata": {
-        "scope": "assigned_channels",
-        "privileges": ["inventory", "imports", "suppliers"]
-      }
-    }
-  ],
-  "proposalTiers": [
-    {
-      "code": "LAUNCH",
-      "displayLabel": "Launch",
-      "isActive": true,
-      "sortOrder": 1,
-      "metadata": {
-        "budgetRange": "R10,000–R100,000",
-        "description": "Launch campaigns for new products or markets"
-      }
-    },
-    {
-      "code": "BOOST",
-      "displayLabel": "Boost",
-      "isActive": true,
-      "sortOrder": 2,
-      "metadata": {
-        "budgetRange": "R100,000–R500,000",
-        "description": "Enhanced campaigns for established products"
-      }
-    },
-    {
-      "code": "SCALE",
-      "displayLabel": "Scale",
-      "isActive": true,
-      "sortOrder": 3,
-      "metadata": {
-        "budgetRange": "R500,000–R1 million",
-        "description": "Large-scale campaigns for market expansion"
-      }
-    },
-    {
-      "code": "DOMINANCE",
-      "displayLabel": "Dominance",
-      "isActive": true,
-      "sortOrder": 4,
-      "metadata": {
-        "budgetRange": "R1 million+",
-        "description": "Market leadership campaigns with maximum reach"
-      }
-    }
-  ]
+  "$schema": "../schemas/master-data-registry.schema.json",
+  "registryVersion": "1.0.0",
+  "effectiveFrom": "2026-08-29",
+  "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
+  "collections": {
+    "channels": [
+      {"code":"OOH","displayLabel":"Out of Home","isActive":true,"sortOrder":10,"metadata":{"supportsGeography":true,"isDigital":false}},
+      {"code":"DOOH","displayLabel":"Digital Out of Home","isActive":true,"sortOrder":20,"metadata":{"supportsGeography":true,"isDigital":true}},
+      {"code":"RADIO","displayLabel":"Radio","isActive":true,"sortOrder":30},
+      {"code":"TV","displayLabel":"Television","isActive":true,"sortOrder":40},
+      {"code":"PRINT","displayLabel":"Print","isActive":true,"sortOrder":50},
+      {"code":"DIGITAL","displayLabel":"Digital","isActive":true,"sortOrder":60},
+      {"code":"SOCIAL","displayLabel":"Social Media","isActive":true,"sortOrder":70},
+      {"code":"INFLUENCER","displayLabel":"Influencer","isActive":true,"sortOrder":80},
+      {"code":"EXPERIENTIAL","displayLabel":"Experiential","isActive":true,"sortOrder":90},
+      {"code":"PODCAST","displayLabel":"Podcast","isActive":true,"sortOrder":100},
+      {"code":"RETAIL","displayLabel":"Retail Media","isActive":true,"sortOrder":110},
+      {"code":"TRANSIT","displayLabel":"Transit","isActive":true,"sortOrder":120},
+      {"code":"MALL","displayLabel":"Mall Media","isActive":true,"sortOrder":130},
+      {"code":"EMAIL","displayLabel":"Email","isActive":true,"sortOrder":140},
+      {"code":"MOBILE","displayLabel":"Mobile","isActive":true,"sortOrder":150}
+    ],
+    "roles": [
+      {"code":"platform_admin","displayLabel":"Platform Administrator","isActive":true,"sortOrder":10},
+      {"code":"internal_planner","displayLabel":"Internal Planner","isActive":true,"sortOrder":20},
+      {"code":"inventory_ops","displayLabel":"Inventory Operations","isActive":true,"sortOrder":30},
+      {"code":"agency_admin","displayLabel":"Agency Administrator","isActive":true,"sortOrder":40},
+      {"code":"agency_campaign_user","displayLabel":"Agency Campaign User","isActive":true,"sortOrder":50},
+      {"code":"advertiser_admin","displayLabel":"Advertiser Administrator","isActive":true,"sortOrder":60},
+      {"code":"advertiser_approver","displayLabel":"Advertiser Approver","isActive":true,"sortOrder":70},
+      {"code":"supplier_admin","displayLabel":"Supplier Administrator","isActive":true,"sortOrder":80},
+      {"code":"supplier_user","displayLabel":"Supplier User","isActive":true,"sortOrder":90},
+      {"code":"influencer_rep","displayLabel":"Influencer Representative","isActive":true,"sortOrder":100},
+      {"code":"agent_runtime_service","displayLabel":"Agent Runtime Service","isActive":true,"sortOrder":110},
+      {"code":"worker_service","displayLabel":"Worker Service","isActive":true,"sortOrder":120}
+    ],
+    "lifecycleStatuses": [
+      {"code":"CREATED","displayLabel":"Created","isActive":true,"sortOrder":10},
+      {"code":"QUALIFYING","displayLabel":"Qualifying","isActive":true,"sortOrder":20},
+      {"code":"EVIDENCE_REVIEW","displayLabel":"Evidence Review","isActive":true,"sortOrder":30},
+      {"code":"STRATEGY_READY","displayLabel":"Strategy Ready","isActive":true,"sortOrder":40},
+      {"code":"BRIEF_READY","displayLabel":"Brief Ready","isActive":true,"sortOrder":50},
+      {"code":"PLANNING","displayLabel":"Planning","isActive":true,"sortOrder":60},
+      {"code":"PROPOSAL_READY","displayLabel":"Proposal Ready","isActive":true,"sortOrder":70},
+      {"code":"WON","displayLabel":"Won","isActive":true,"sortOrder":80},
+      {"code":"LOST","displayLabel":"Lost","isActive":true,"sortOrder":90},
+      {"code":"ARCHIVED","displayLabel":"Archived","isActive":true,"sortOrder":100},
+      {"code":"DRAFT","displayLabel":"Draft","isActive":true,"sortOrder":110},
+      {"code":"IN_REVIEW","displayLabel":"In Review","isActive":true,"sortOrder":120},
+      {"code":"APPROVED","displayLabel":"Approved","isActive":true,"sortOrder":130},
+      {"code":"REJECTED","displayLabel":"Rejected","isActive":true,"sortOrder":140},
+      {"code":"SENT","displayLabel":"Sent","isActive":true,"sortOrder":150},
+      {"code":"SELECTED","displayLabel":"Selected","isActive":true,"sortOrder":160},
+      {"code":"DECLINED","displayLabel":"Declined","isActive":true,"sortOrder":170},
+      {"code":"EXPIRED","displayLabel":"Expired","isActive":true,"sortOrder":180},
+      {"code":"UPLOADED","displayLabel":"Uploaded","isActive":true,"sortOrder":190},
+      {"code":"CLASSIFYING","displayLabel":"Classifying","isActive":true,"sortOrder":200},
+      {"code":"EXTRACTING","displayLabel":"Extracting","isActive":true,"sortOrder":210},
+      {"code":"VALIDATING","displayLabel":"Validating","isActive":true,"sortOrder":220},
+      {"code":"REVIEW_REQUIRED","displayLabel":"Review Required","isActive":true,"sortOrder":230},
+      {"code":"PUBLISHING","displayLabel":"Publishing","isActive":true,"sortOrder":240},
+      {"code":"COMPLETED","displayLabel":"Completed","isActive":true,"sortOrder":250},
+      {"code":"FAILED","displayLabel":"Failed","isActive":true,"sortOrder":260},
+      {"code":"PENDING","displayLabel":"Pending","isActive":true,"sortOrder":270},
+      {"code":"CONFIRMED","displayLabel":"Confirmed","isActive":true,"sortOrder":280},
+      {"code":"SUBMITTED","displayLabel":"Submitted","isActive":true,"sortOrder":290},
+      {"code":"ISSUED","displayLabel":"Issued","isActive":true,"sortOrder":300},
+      {"code":"QUEUED","displayLabel":"Queued","isActive":true,"sortOrder":310},
+      {"code":"RUNNING","displayLabel":"Running","isActive":true,"sortOrder":320},
+      {"code":"WAITING_FOR_HUMAN","displayLabel":"Waiting for Human","isActive":true,"sortOrder":330},
+      {"code":"PLANNED","displayLabel":"Planned","isActive":true,"sortOrder":340},
+      {"code":"BOOKED","displayLabel":"Booked","isActive":true,"sortOrder":350},
+      {"code":"CREATIVE_PENDING","displayLabel":"Creative Pending","isActive":true,"sortOrder":360},
+      {"code":"READY","displayLabel":"Ready","isActive":true,"sortOrder":370},
+      {"code":"LIVE","displayLabel":"Live","isActive":true,"sortOrder":380}
+    ],
+    "rateTypes": [
+      {"code":"CPM","displayLabel":"Cost per Thousand","isActive":true,"sortOrder":10},
+      {"code":"CPC","displayLabel":"Cost per Click","isActive":true,"sortOrder":20},
+      {"code":"CPL","displayLabel":"Cost per Lead","isActive":true,"sortOrder":30},
+      {"code":"CPA","displayLabel":"Cost per Acquisition","isActive":true,"sortOrder":40},
+      {"code":"FLAT_RATE","displayLabel":"Flat Rate","isActive":true,"sortOrder":50},
+      {"code":"SPOT_RATE","displayLabel":"Spot Rate","isActive":true,"sortOrder":60},
+      {"code":"PACKAGE_RATE","displayLabel":"Package Rate","isActive":true,"sortOrder":70},
+      {"code":"DAY_RATE","displayLabel":"Day Rate","isActive":true,"sortOrder":80},
+      {"code":"WEEK_RATE","displayLabel":"Week Rate","isActive":true,"sortOrder":90},
+      {"code":"MONTH_RATE","displayLabel":"Month Rate","isActive":true,"sortOrder":100}
+    ],
+    "assetTypes": [
+      {"code":"LOGO","displayLabel":"Logo","isActive":true,"sortOrder":10},
+      {"code":"PRODUCT_IMAGE","displayLabel":"Product Image","isActive":true,"sortOrder":20},
+      {"code":"OOH_PHOTO","displayLabel":"Out of Home Photo","isActive":true,"sortOrder":30},
+      {"code":"CREATIVE_FILE","displayLabel":"Creative File","isActive":true,"sortOrder":40},
+      {"code":"PROOF_IMAGE","displayLabel":"Proof Image","isActive":true,"sortOrder":50},
+      {"code":"SPECIFICATION","displayLabel":"Specification","isActive":true,"sortOrder":60},
+      {"code":"TERMS_DOCUMENT","displayLabel":"Terms Document","isActive":true,"sortOrder":70},
+      {"code":"RATE_CARD","displayLabel":"Rate Card","isActive":true,"sortOrder":80}
+    ],
+    "proposalTiers": [
+      {"code":"LAUNCH","displayLabel":"Launch","isActive":true,"sortOrder":10,"metadata":{"currency":"ZAR","minBudgetMinor":1000000,"maxBudgetMinor":10000000}},
+      {"code":"BOOST","displayLabel":"Boost","isActive":true,"sortOrder":20,"metadata":{"currency":"ZAR","minBudgetMinor":10000000,"maxBudgetMinor":50000000}},
+      {"code":"SCALE","displayLabel":"Scale","isActive":true,"sortOrder":30,"metadata":{"currency":"ZAR","minBudgetMinor":50000000,"maxBudgetMinor":100000000}},
+      {"code":"DOMINANCE","displayLabel":"Dominance","isActive":true,"sortOrder":40,"metadata":{"currency":"ZAR","minBudgetMinor":100000000,"maxBudgetMinor":null}}
+    ],
+    "paymentMethods": [
+      {"code":"VODAPAY","displayLabel":"VodaPay","isActive":true,"sortOrder":10},
+      {"code":"MANUAL_EFT","displayLabel":"Manual EFT","isActive":true,"sortOrder":20},
+      {"code":"ADVERTISE_NOW_PAY_LATER","displayLabel":"Advertise Now, Pay Later","isActive":true,"sortOrder":30}
+    ],
+    "rejectionReasons": [
+      {"code":"INELIGIBLE_GEOGRAPHY","displayLabel":"Ineligible Geography","isActive":true,"sortOrder":10},
+      {"code":"INELIGIBLE_FORMAT","displayLabel":"Ineligible Format","isActive":true,"sortOrder":20},
+      {"code":"STALE_RATE","displayLabel":"Stale Rate","isActive":true,"sortOrder":30},
+      {"code":"UNAVAILABLE","displayLabel":"Unavailable","isActive":true,"sortOrder":40},
+      {"code":"MINIMUM_ORDER","displayLabel":"Minimum Order Not Met","isActive":true,"sortOrder":50},
+      {"code":"BUDGET_MISMATCH","displayLabel":"Budget Mismatch","isActive":true,"sortOrder":60},
+      {"code":"QUALITY_ISSUE","displayLabel":"Quality Issue","isActive":true,"sortOrder":70},
+      {"code":"DUPLICATE","displayLabel":"Duplicate","isActive":true,"sortOrder":80},
+      {"code":"MISSING_INFO","displayLabel":"Missing Information","isActive":true,"sortOrder":90},
+      {"code":"SUPPLIER_DECLINED","displayLabel":"Supplier Declined","isActive":true,"sortOrder":100}
+    ],
+    "taskPriorities": [
+      {"code":"URGENT","displayLabel":"Urgent","isActive":true,"sortOrder":10},
+      {"code":"HIGH","displayLabel":"High","isActive":true,"sortOrder":20},
+      {"code":"MEDIUM","displayLabel":"Medium","isActive":true,"sortOrder":30},
+      {"code":"LOW","displayLabel":"Low","isActive":true,"sortOrder":40}
+    ],
+    "currencies": [
+      {"code":"ZAR","displayLabel":"South African Rand","isActive":true,"sortOrder":10},
+      {"code":"USD","displayLabel":"US Dollar","isActive":true,"sortOrder":20},
+      {"code":"EUR","displayLabel":"Euro","isActive":true,"sortOrder":30},
+      {"code":"GBP","displayLabel":"Pound Sterling","isActive":true,"sortOrder":40}
+    ],
+    "vatStatuses": [
+      {"code":"REGISTERED","displayLabel":"VAT Registered","isActive":true,"sortOrder":10},
+      {"code":"EXEMPT","displayLabel":"VAT Exempt","isActive":true,"sortOrder":20},
+      {"code":"NOT_APPLICABLE","displayLabel":"Not Applicable","isActive":true,"sortOrder":30}
+    ]
+  }
 }
