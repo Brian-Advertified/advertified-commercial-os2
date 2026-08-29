@@ -1,10 +1,41 @@
 # Advertified permission and approval design
 
-**Status:** DRAFT — NOT IMPLEMENTED  
-**Named security owner:** UNASSIGNED  
-**Named product owner:** UNASSIGNED
+**Status:** Gate 2 registry and mappings accepted for local non-production implementation — Brian Rabuthu, 2026-08-29
+**Accountable owner:** Brian Rabuthu
+**Independent security review:** PENDING before publication or production
 
-The canonical role codes are governed in `shared/contracts/master-data.json`. This document is design input for Gate 1/2; it does not prove API, database, object-storage, worker, or agent enforcement.
+The canonical role and Gate 2 permission codes are governed in
+`shared/contracts/master-data.json`. Database-backed resolution is required before a mapping
+is IMPLEMENTED; repeatable denial evidence is required before it is VERIFIED.
+
+## Accepted Gate 2 permission ceiling
+
+An active mapping never grants access by itself. Authenticated identity, active membership,
+tenant context, database RLS and any resource assignment must also allow the request.
+Missing assignment data denies access. `platform_admin` receives no automatic cross-tenant
+bypass and must hold an active membership in the selected tenant for these Gate 2 routes.
+
+| Permission code | Exact mapped roles |
+|---|---|
+| `workspace_read` | All human roles; no service roles |
+| `tenant_read` | All human roles; no service roles |
+| `tenant_manage` | platform_admin, agency_admin, advertiser_admin, supplier_admin |
+| `user_read_self` | All human roles; self only |
+| `user_manage_self` | All human roles; self only |
+| `membership_read` | platform_admin, agency_admin, advertiser_admin, supplier_admin |
+| `membership_manage` | platform_admin, agency_admin, advertiser_admin, supplier_admin |
+| `client_account_read` | platform_admin, agency_admin |
+| `client_account_manage` | platform_admin, agency_admin |
+| `agency_read` | platform_admin, agency_admin, agency_campaign_user |
+| `agency_manage` | platform_admin, agency_admin |
+| `contact_read` | platform_admin, agency_admin |
+| `contact_manage` | platform_admin, agency_admin |
+
+The human roles are `platform_admin`, `internal_planner`, `inventory_ops`, `agency_admin`,
+`agency_campaign_user`, `advertiser_admin`, `advertiser_approver`, `supplier_admin`,
+`supplier_user` and `influencer_rep`. `agent_runtime_service` and `worker_service` receive no
+interactive Gate 2 permissions. Internal planners and campaign users do not receive client
+or contact access until a canonical assignment model can enforce their assigned scope.
 
 ## Universal invariants
 

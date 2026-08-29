@@ -28,7 +28,7 @@ Live or paid AI/provider calls are forbidden during redevelopment. `AWS_BEDROCK_
 ## 3. Locked technology and ownership boundaries
 
 - Web: React 19.2.0, TypeScript, and Vite.
-- Canonical commercial API: C# on .NET 8.
+- Canonical commercial API: C# 14 on .NET 10.
 - Agent runtime: Python 3.12-compatible FastAPI.
 - Database: PostgreSQL 16 with PostGIS and pgvector.
 - Local object storage: an S3-compatible service.
@@ -96,10 +96,11 @@ During editing:
 
 1. Make the smallest coherent vertical change.
 2. Preserve tenant and permission boundaries.
-3. Add or update tests with the behavior.
-4. Use deterministic fixtures.
-5. Keep documentation and capability status truthful.
-6. Do not weaken a guardrail to make a check pass.
+3. Add only the smallest test that proves an acceptance rule, domain invariant, security boundary, migration behavior, or real regression.
+4. Consolidate equivalent cases with parameterised data. Do not duplicate suites, test framework/library behavior, chase coverage percentages, or inflate test counts.
+5. Use deterministic fixtures.
+6. Keep documentation and capability status truthful.
+7. Do not weaken a guardrail to make a check pass.
 
 After editing:
 

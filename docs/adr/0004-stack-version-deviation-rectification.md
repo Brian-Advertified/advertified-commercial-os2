@@ -2,7 +2,7 @@
 
 ## Status
 
-Superseded by the normative specification, exact manifests, and verified Gate 0 baseline.
+Superseded by the normative specification and then by ADR-0009 for the Commercial API runtime.
 
 ## Recorded outcome
 

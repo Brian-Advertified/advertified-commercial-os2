@@ -81,20 +81,20 @@
       "name": "Remote CI",
       "command": "GitHub Advertified CI workflow",
       "outcome": "PENDING",
-      "summary": "No commit or push was authorised."
+      "summary": "Local commit 6f75c7e exists; push found no usable origin, and Brian Rabuthu deferred branch publication and remote CI."
     },
     {
       "name": "Owner diff review",
       "command": "Named owner reviews the complete uncommitted diff and this evidence report",
       "outcome": "PENDING",
-      "summary": "The accountable owner and required reviewers are not assigned."
+      "summary": "Brian Rabuthu is the accountable owner; final Gate 1 GO remains pending deferred Ruff and remote CI evidence."
     }
   ],
   "unresolvedBlockers": [
     "Run the configured Python Ruff command against the current agent-runtime files.",
-    "Run remote CI from an owner-authorised commit or pull request.",
+    "Publish local commit 6f75c7e and run remote CI when Brian Rabuthu resumes branch publication.",
     "Complete remote CI and the accountable owner's final diff and evidence review.",
-    "Before Gate 2, approve authentication/session/CSRF, tenancy enforcement, migration topology, and deployment topology decisions."
+    "Accept the exact Gate 2 identity/session, tenant-isolation, migration-topology and work-packet proposals before implementation."
   ],
   "ownerReview": {
     "status": "PENDING",

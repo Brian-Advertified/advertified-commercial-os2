@@ -1,0 +1,102 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 3,
+  "evidenceDate": "2026-08-29",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "6f75c7ea4d86e3f8d9637cad40a764fb886c9513",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Commercial API Release build",
+      "command": "dotnet build api/Advertified.Commercial.Api.csproj --configuration Release --no-restore",
+      "outcome": "PASS",
+      "summary": ".NET 10 build completed with zero warnings and zero errors."
+    },
+    {
+      "name": "Database migrator Release build",
+      "command": "dotnet build api/src/Advertified.Commercial.DatabaseMigrator/Advertified.Commercial.DatabaseMigrator.csproj --configuration Release --no-restore",
+      "outcome": "PASS",
+      "summary": "The affected project graph completed with zero warnings and zero errors."
+    },
+    {
+      "name": "Complete Commercial API test suite",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release --no-restore --verbosity minimal",
+      "outcome": "PASS",
+      "summary": "32 passed, including session security and the disposable PostgreSQL browser-session journey."
+    },
+    {
+      "name": "Architecture guardrails",
+      "command": "python -m pytest tests/architecture -q",
+      "outcome": "PASS",
+      "summary": "21 passed, including browser token and notification-adapter boundaries."
+    },
+    {
+      "name": "Web lint, type-check, focused tests and production build",
+      "command": "npm run lint; npm run type-check; npm test; npm run build",
+      "outcome": "PASS",
+      "summary": "Oxlint and TypeScript passed; 4 focused tests passed; Vite production build passed."
+    },
+    {
+      "name": "Authenticated browser journeys",
+      "command": "npm run test:e2e -- --workers=1",
+      "outcome": "PASS",
+      "summary": "4 passed across 1280px desktop and 390px compact viewports with reduced motion."
+    },
+    {
+      "name": "Web runtime dependency audit",
+      "command": "npm audit --omit=dev --audit-level=high",
+      "outcome": "PASS",
+      "summary": "Zero vulnerabilities reported."
+    },
+    {
+      "name": "Retained OpenAPI v1 contract",
+      "command": "OpenApiContractTests in the complete C# suite",
+      "outcome": "PASS",
+      "summary": "Running and retained contracts match; session CSRF and commercial command semantics are explicit."
+    },
+    {
+      "name": "Initial API compile",
+      "command": "dotnet build api/Advertified.Commercial.Api.csproj --configuration Release",
+      "outcome": "FAIL",
+      "summary": "A handler constant hid a framework member and one helper was not static; both analyzer findings were corrected before the passing build."
+    },
+    {
+      "name": "Initial focused session test run",
+      "command": "dotnet test ... --filter BrowserSessionSecurityTests|HumanSafeApiBoundaryTests",
+      "outcome": "FAIL",
+      "summary": "The new challenge writer emitted application/json and startup scheme selection ignored test overrides; content type and policy forwarding were corrected, then 8 passed."
+    },
+    {
+      "name": "Initial browser journey",
+      "command": "npm run test:e2e",
+      "outcome": "FAIL",
+      "summary": "Strict UUID validation rejected unrestricted .NET GUIDs; Zod guid validation corrected the contract mismatch."
+    },
+    {
+      "name": "Compact navigation rerun",
+      "command": "npx playwright test --project=compact --workers=1",
+      "outcome": "FAIL",
+      "summary": "Hidden compact labels removed the Profile link accessible name; explicit aria-labels corrected it and the final compact run passed."
+    },
+    {
+      "name": "Remote CI and independent review",
+      "command": "Owner-authorised publication followed by remote CI and named reviews",
+      "outcome": "PENDING",
+      "summary": "No commit, push, merge, release or deployment is authorised or performed."
+    }
+  ],
+  "unresolvedBlockers": [
+    "Remote CI and independent Engineering, Security/Privacy and Operations review remain pending until publication is authorised.",
+    "Production identity, session persistence and deployment configuration remain explicitly unimplemented."
+  ],
+  "ownerReview": {
+    "status": "APPROVED",
+    "owner": "Brian Rabuthu",
+    "decisionDate": "2026-08-29"
+  }
+}

@@ -19,6 +19,7 @@
   --muted: #6c778b;
   --slate-light: #c7d1df;
   --line: #dfe5ee;
+  --line-strong: #cbd4e1;
   --shadow-sm: 0 0.4rem 1.2rem rgba(7, 26, 51, 0.05);
   --shadow-lg: 0 1.5rem 3rem rgba(7, 26, 51, 0.18);
 }
@@ -38,7 +39,8 @@ body {
 }
 
 button,
-a {
+a,
+input {
   font: inherit;
 }
 

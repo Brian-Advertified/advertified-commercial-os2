@@ -48,7 +48,8 @@ def test_language_analyzers_enforce_complexity_and_function_size() -> None:
         (REPO_ROOT / "web" / ".oxlintrc.json").read_text(encoding="utf-8")
     )
 
-    assert "<AnalysisLevel>8.0-recommended</AnalysisLevel>" in build_properties
+    assert "<AnalysisLevel>10.0-recommended</AnalysisLevel>" in build_properties
+    assert "<LangVersion>14.0</LangVersion>" in build_properties
     assert "dotnet_diagnostic.CA1502.severity = error" in editor_config
     assert "dotnet_code_quality.CA1502.threshold = 10" in editor_config
     assert python_config["tool"]["ruff"]["target-version"] == "py312"
@@ -66,6 +67,8 @@ def test_gate_evidence_manifests_match_the_closed_schema_contract() -> None:
     manifests = [
         json.loads((evidence_root / "manifest.template.json").read_text(encoding="utf-8")),
         json.loads((evidence_root / "gate-1" / "manifest.json").read_text(encoding="utf-8")),
+        json.loads((evidence_root / "gate-2" / "manifest.json").read_text(encoding="utf-8")),
+        json.loads((evidence_root / "gate-3" / "manifest.json").read_text(encoding="utf-8")),
     ]
     allowed_fields = set(schema["properties"])
     required_fields = set(schema["required"])
@@ -73,6 +76,10 @@ def test_gate_evidence_manifests_match_the_closed_schema_contract() -> None:
     allowed_check_fields = set(check_schema["properties"])
     required_check_fields = set(check_schema["required"])
     allowed_outcomes = set(check_schema["properties"]["outcome"]["enum"])
+    review_schema = schema["properties"]["ownerReview"]
+    allowed_review_statuses = set(
+        review_schema["properties"]["status"]["enum"]
+    )
 
     for manifest in manifests:
         assert required_fields <= set(manifest)
@@ -83,12 +90,16 @@ def test_gate_evidence_manifests_match_the_closed_schema_contract() -> None:
             assert set(check) <= allowed_check_fields
             assert check["outcome"] in allowed_outcomes
 
-    gate_manifest = manifests[1]
-    assert gate_manifest["gate"] == 1
-    assert gate_manifest["liveProviderUsed"] is False
-    assert gate_manifest["productionResourcesUsed"] is False
-    assert gate_manifest["incrementalAiCostMinor"] == 0
-    assert gate_manifest["ownerReview"]["status"] == "PENDING"
+    for expected_gate, gate_manifest in enumerate(manifests[1:], start=1):
+        assert gate_manifest["gate"] == expected_gate
+        assert gate_manifest["liveProviderUsed"] is False
+        assert gate_manifest["productionResourcesUsed"] is False
+        assert gate_manifest["incrementalAiCostMinor"] == 0
+        review = gate_manifest["ownerReview"]
+        assert review["status"] in allowed_review_statuses
+        if review["status"] == "APPROVED":
+            assert review["owner"]
+            assert review["decisionDate"]
 
 
 def test_accepted_adrs_require_actual_people_and_dates() -> None:

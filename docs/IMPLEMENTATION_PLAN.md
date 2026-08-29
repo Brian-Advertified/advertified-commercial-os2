@@ -4,7 +4,7 @@
 **Evidence date:** 2026-08-29  
 **Normative product source:** `docs/spec/README.md`  
 **Execution rules:** `AGENTS.md`  
-**Current permission:** Gate 1 guardrails only
+**Current permission:** Gate 3 complete; no Gate 4 implementation without an exact approved packet
 
 This is the execution index, not a replacement for the full v1.1 specification. Every gate uses the applicable normative sections and the historical traceability/adversarial fixtures in Section 31.
 
@@ -13,8 +13,10 @@ This is the execution index, not a replacement for the full v1.1 specification. 
 | Gate | State | Meaning |
 |---:|---|---|
 | 0 | Evidence passed locally | Baseline builds, tests, Compose, and extension health pass |
-| 1 | Active | Finish architecture, tenancy, command, decision, and evidence guardrails |
-| 2–13 | Blocked | No implementation until prior gate evidence and an approved work packet exist |
+| 1 | Implemented locally; owner decision pending | Guardrails have repeatable local evidence; remote CI and final owner review remain pending |
+| 2 | GO | Brian Rabuthu recorded local Gate 2 GO on 2026-08-29; publication and production reviews remain pending |
+| 3 | GO | Brian Rabuthu recorded local Gate 3 GO on 2026-08-29; non-local reviews remain separate |
+| 4–13 | Blocked | No implementation until prior gate evidence and an approved work packet exist |
 
 There are fourteen gates numbered 0 through 13.
 
@@ -96,7 +98,10 @@ Minimum scope:
 - typed money, IDs, timestamps, pagination, errors, correlation;
 - command/idempotency/version contracts;
 - master/reference tables seeded from the governed registry;
-- API contract tests, migration upgrade/restore tests, and cross-tenant denial tests.
+- API contract tests, migration upgrade/restore tests, and cross-tenant denial tests;
+- versioned OpenAPI contracts with Zod validation whenever the browser first consumes an API boundary.
+
+Tests are limited to acceptance rules, domain invariants, security boundaries, migrations, and real regressions. Equivalent cases are parameterised; framework behavior and test-count padding are excluded.
 
 Authentication provider choice, browser session model, CSRF, logout, and service identity must be owner-approved before implementation.
 
@@ -111,7 +116,11 @@ Required behavior:
 - role/tenant context and server-authoritative navigation;
 - dashboards and work queues backed by real API contracts;
 - loading, empty, stale, forbidden, error, and recovery states;
-- no internal implementation jargon in customer-facing surfaces;
+- simple, task-led pages with the commercial detail needed to act;
+- purposeful charts, graphs, icons, and reduced-motion-safe animation where they explain comparison, trend, status, or workflow;
+- Zod at forms, route parameters, browser storage, and API-response boundaries;
+- one NotificationService backed by the approved Toastr adapter; components never call the library directly;
+- stable API error codes mapped to human-sensible content; no internal exceptions, provider messages, database wording, stack traces, or private workflow terminology;
 - accessibility checks and authenticated Playwright journeys.
 
 The current Gate 0 page is not this gate.

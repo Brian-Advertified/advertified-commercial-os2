@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "1.0.0",
+  "registryVersion": "1.2.0",
   "effectiveFrom": "2026-08-29",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
@@ -34,6 +34,34 @@
       {"code":"influencer_rep","displayLabel":"Influencer Representative","isActive":true,"sortOrder":100},
       {"code":"agent_runtime_service","displayLabel":"Agent Runtime Service","isActive":true,"sortOrder":110},
       {"code":"worker_service","displayLabel":"Worker Service","isActive":true,"sortOrder":120}
+    ],
+    "permissions": [
+      {"code":"workspace_read","displayLabel":"View own workspaces","isActive":true,"sortOrder":10,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_admin","supplier_user","influencer_rep"]}},
+      {"code":"tenant_read","displayLabel":"View tenant profile","isActive":true,"sortOrder":20,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_admin","supplier_user","influencer_rep"]}},
+      {"code":"tenant_manage","displayLabel":"Manage tenant profile","isActive":true,"sortOrder":30,"metadata":{"roles":["platform_admin","agency_admin","advertiser_admin","supplier_admin"]}},
+      {"code":"user_read_self","displayLabel":"View own user profile","isActive":true,"sortOrder":40,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_admin","supplier_user","influencer_rep"]}},
+      {"code":"user_manage_self","displayLabel":"Manage own user profile","isActive":true,"sortOrder":50,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_admin","supplier_user","influencer_rep"]}},
+      {"code":"membership_read","displayLabel":"View tenant memberships","isActive":true,"sortOrder":60,"metadata":{"roles":["platform_admin","agency_admin","advertiser_admin","supplier_admin"]}},
+      {"code":"membership_manage","displayLabel":"Manage tenant memberships","isActive":true,"sortOrder":70,"metadata":{"roles":["platform_admin","agency_admin","advertiser_admin","supplier_admin"]}},
+      {"code":"client_account_read","displayLabel":"View client accounts","isActive":true,"sortOrder":80,"metadata":{"roles":["platform_admin","agency_admin"]}},
+      {"code":"client_account_manage","displayLabel":"Manage client accounts","isActive":true,"sortOrder":90,"metadata":{"roles":["platform_admin","agency_admin"]}},
+      {"code":"agency_read","displayLabel":"View agency profile","isActive":true,"sortOrder":100,"metadata":{"roles":["platform_admin","agency_admin","agency_campaign_user"]}},
+      {"code":"agency_manage","displayLabel":"Manage agency profile","isActive":true,"sortOrder":110,"metadata":{"roles":["platform_admin","agency_admin"]}},
+      {"code":"contact_read","displayLabel":"View client contacts","isActive":true,"sortOrder":120,"metadata":{"roles":["platform_admin","agency_admin"]}},
+      {"code":"contact_manage","displayLabel":"Manage client contacts","isActive":true,"sortOrder":130,"metadata":{"roles":["platform_admin","agency_admin"]}}
+    ],
+    "tenantTypes": [
+      {"code":"PLATFORM","displayLabel":"Advertified Platform","isActive":true,"sortOrder":10},
+      {"code":"AGENCY","displayLabel":"Agency","isActive":true,"sortOrder":20},
+      {"code":"ADVERTISER","displayLabel":"Advertiser","isActive":true,"sortOrder":30},
+      {"code":"SUPPLIER","displayLabel":"Media Supplier","isActive":true,"sortOrder":40}
+    ],
+    "contactPurposes": [
+      {"code":"BILLING","displayLabel":"Billing","isActive":true,"sortOrder":10},
+      {"code":"CAMPAIGN","displayLabel":"Campaign Delivery","isActive":true,"sortOrder":20},
+      {"code":"COMMERCIAL","displayLabel":"Commercial Relationship","isActive":true,"sortOrder":30},
+      {"code":"DELIVERY","displayLabel":"Media Delivery","isActive":true,"sortOrder":40},
+      {"code":"LEGAL","displayLabel":"Legal and Compliance","isActive":true,"sortOrder":50}
     ],
     "lifecycleStatuses": [
       {"code":"CREATED","displayLabel":"Created","isActive":true,"sortOrder":10},
@@ -73,7 +101,11 @@
       {"code":"BOOKED","displayLabel":"Booked","isActive":true,"sortOrder":350},
       {"code":"CREATIVE_PENDING","displayLabel":"Creative Pending","isActive":true,"sortOrder":360},
       {"code":"READY","displayLabel":"Ready","isActive":true,"sortOrder":370},
-      {"code":"LIVE","displayLabel":"Live","isActive":true,"sortOrder":380}
+      {"code":"LIVE","displayLabel":"Live","isActive":true,"sortOrder":380},
+      {"code":"ACTIVE","displayLabel":"Active","isActive":true,"sortOrder":390},
+      {"code":"INACTIVE","displayLabel":"Inactive","isActive":true,"sortOrder":400},
+      {"code":"INVITED","displayLabel":"Invited","isActive":true,"sortOrder":410},
+      {"code":"SUSPENDED","displayLabel":"Suspended","isActive":true,"sortOrder":420}
     ],
     "rateTypes": [
       {"code":"CPM","displayLabel":"Cost per Thousand","isActive":true,"sortOrder":10},

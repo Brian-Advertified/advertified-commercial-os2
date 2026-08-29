@@ -20,8 +20,14 @@ Read documents according to their role. A lower row cannot override a higher row
 - `docs/evidence/manifest.schema.json`: machine-readable gate-evidence contract.
 - `docs/evidence/GATE_REPORT_TEMPLATE.md`: human-readable gate handoff template.
 - `docs/evidence/gate-1/`: current Gate 1 evidence; it records PENDING and cannot self-approve the gate.
+- `docs/evidence/gate-2/`: retained uncommitted Gate 2 evidence; Brian Rabuthu recorded local GO on 2026-08-29.
+- `docs/evidence/gate-3/`: retained authenticated-shell evidence; Brian Rabuthu recorded local GO on 2026-08-29.
+- `docs/GATE2_WORK_PACKET.md`: owner-approved bounded local non-production Gate 2 scope.
+- `docs/GATE3_WORK_PACKET.md`: owner-approved, locally implemented authenticated-shell scope.
+- `docs/adr/0009-dotnet-10-csharp-14-baseline.md`: accepted current Commercial API runtime baseline.
+- `docs/UX_DIRECTION.md`: owner-directed authenticated product experience and human-language boundary.
 - `docs/DOMAIN_MODEL_COMPLETE.md`: legacy draft name; not an implemented or approved complete model.
-- `docs/PERMISSION_MATRIX.md`: design draft; no enforcement exists yet.
+- `docs/PERMISSION_MATRIX.md`: accepted Gate 2 permission ceiling; later-gate capabilities remain design input.
 - `docs/POPIA_COMPLIANCE.md`: engineering checklist; not legal advice or approval.
 - `docs/GATE0_NO_GO_VERDICT.md`: historical review, superseded after remediation.
 - `docs/REWRITE_REQUIRED_ACKNOWLEDGMENT.md`: historical gap closure record.

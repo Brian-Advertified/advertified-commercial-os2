@@ -1,3 +1,5 @@
+using Advertified.Commercial.Domain.Commercial;
+using Advertified.Commercial.Infrastructure.Persistence.Records;
 using Microsoft.EntityFrameworkCore;
 
 namespace Advertified.Commercial.Infrastructure.MasterData;
@@ -11,11 +13,30 @@ public sealed class GovernanceDbContext(DbContextOptions<GovernanceDbContext> op
 
     public DbSet<MasterDataItemHistory> MasterDataItemHistory => Set<MasterDataItemHistory>();
 
+    public DbSet<Tenant> Tenants => Set<Tenant>();
+
+    public DbSet<User> Users => Set<User>();
+
+    public DbSet<Membership> Memberships => Set<Membership>();
+
+    public DbSet<ClientAccount> ClientAccounts => Set<ClientAccount>();
+
+    public DbSet<Agency> Agencies => Set<Agency>();
+
+    public DbSet<Contact> Contacts => Set<Contact>();
+
+    public DbSet<IdempotencyRecordRow> IdempotencyRecords => Set<IdempotencyRecordRow>();
+
+    public DbSet<AuditEventRow> AuditEvents => Set<AuditEventRow>();
+
+    public DbSet<OutboxMessageRow> OutboxMessages => Set<OutboxMessageRow>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ConfigureCollection(modelBuilder);
         ConfigureItem(modelBuilder);
         ConfigureHistory(modelBuilder);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(GovernanceDbContext).Assembly);
     }
 
     private static void ConfigureCollection(ModelBuilder modelBuilder)

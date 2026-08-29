@@ -32,15 +32,53 @@ FORBIDDEN_AGENT_PACKAGES = {
 REQUIRED_MASTER_COLLECTIONS = {
     "assetTypes",
     "channels",
+    "contactPurposes",
     "currencies",
     "lifecycleStatuses",
     "paymentMethods",
+    "permissions",
     "proposalTiers",
     "rateTypes",
     "rejectionReasons",
     "roles",
     "taskPriorities",
+    "tenantTypes",
     "vatStatuses",
+}
+
+BASIC_HUMAN_ROLES = {
+    "platform_admin",
+    "internal_planner",
+    "inventory_ops",
+    "agency_admin",
+    "agency_campaign_user",
+    "advertiser_admin",
+    "advertiser_approver",
+    "supplier_admin",
+    "supplier_user",
+    "influencer_rep",
+}
+ADMIN_ROLES = {
+    "platform_admin",
+    "agency_admin",
+    "advertiser_admin",
+    "supplier_admin",
+}
+AGENCY_ADMIN_ROLES = {"platform_admin", "agency_admin"}
+GATE2_PERMISSION_ROLES = {
+    "workspace_read": BASIC_HUMAN_ROLES,
+    "tenant_read": BASIC_HUMAN_ROLES,
+    "tenant_manage": ADMIN_ROLES,
+    "user_read_self": BASIC_HUMAN_ROLES,
+    "user_manage_self": BASIC_HUMAN_ROLES,
+    "membership_read": ADMIN_ROLES,
+    "membership_manage": ADMIN_ROLES,
+    "client_account_read": AGENCY_ADMIN_ROLES,
+    "client_account_manage": AGENCY_ADMIN_ROLES,
+    "agency_read": AGENCY_ADMIN_ROLES | {"agency_campaign_user"},
+    "agency_manage": AGENCY_ADMIN_ROLES,
+    "contact_read": AGENCY_ADMIN_ROLES,
+    "contact_manage": AGENCY_ADMIN_ROLES,
 }
 
 
@@ -98,6 +136,26 @@ def test_web_has_no_server_or_persistence_imports() -> None:
     assert not violations, f"Web boundary imports found: {violations}"
 
 
+def test_browser_tokens_and_notification_adapter_stay_inside_their_boundaries() -> None:
+    toast_violations = []
+    browser_token_violations = []
+    forbidden_tokens = re.compile(r"(?:localStorage|accessToken|refreshToken|bearerToken)")
+
+    for path in (REPO_ROOT / "web" / "src").rglob("*"):
+        if path.suffix not in {".ts", ".tsx"}:
+            continue
+        content = path.read_text(encoding="utf-8")
+        if "react-toastify" in content and "notifications" not in path.parts:
+            toast_violations.append(relative(path))
+        if forbidden_tokens.search(content):
+            browser_token_violations.append(relative(path))
+
+    assert not toast_violations, f"Toast adapter leaked into components: {toast_violations}"
+    assert not browser_token_violations, (
+        f"Browser token storage or fields found: {browser_token_violations}"
+    )
+
+
 def test_commercial_api_contains_no_model_prompts() -> None:
     prompt_terms = re.compile(
         r"system\s+prompt|user\s+prompt|prompt\s+template|completion\s+prompt",
@@ -150,6 +208,14 @@ def test_master_data_registry_is_coherent() -> None:
 
     assert "BUDIENT_MISMATCH" not in path.read_text(encoding="utf-8")
 
+    permissions = collections["permissions"]
+    assert {item["code"] for item in permissions} == set(GATE2_PERMISSION_ROLES)
+    for permission in permissions:
+        roles = permission.get("metadata", {}).get("roles", [])
+        assert set(roles) == GATE2_PERMISSION_ROLES[permission["code"]]
+        assert len(roles) == len(set(roles))
+        assert set(roles) <= {item["code"] for item in collections["roles"]}
+
 
 def test_governed_codes_are_not_inline_application_literals() -> None:
     registry = json.loads(
@@ -165,7 +231,7 @@ def test_governed_codes_are_not_inline_application_literals() -> None:
 
     for path in source_files():
         path_text = relative(path).lower()
-        if "test" in path_text or "constant" in path_text:
+        if "test" in path_text or "e2e" in path.parts or "constant" in path_text:
             continue
         literals = {
             match.group("value")

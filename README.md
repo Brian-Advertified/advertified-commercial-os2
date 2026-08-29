@@ -3,12 +3,14 @@
 Advertified is a marketing intelligence and campaign operating system. This repository is the clean implementation baseline for the locked stack:
 
 - React 19.2.0, TypeScript, and Vite for the web application
-- C#/.NET 8 for the canonical Commercial API
+- C# 14/.NET 10 for the canonical Commercial API
 - Python 3.12-compatible FastAPI for typed agent proposals
 - PostgreSQL 16 with PostGIS and pgvector
 - Redis, MinIO, and MailHog for local non-production infrastructure
 
-The foundation builds and tests locally. Product features are not implemented yet. Gate 1 guardrail work may start; Gates 2–13 remain blocked until their work packet and owner decisions are approved.
+The foundation builds and tests locally. Brian Rabuthu recorded local Gate 2 GO on
+2026-08-29. Brian Rabuthu recorded local Gate 3 GO for the implemented authenticated shell;
+Gate 4 and later product journeys remain blocked pending exact approved work packets.
 
 ## Start here
 
@@ -25,7 +27,7 @@ Read these in order before changing code:
 - Git
 - Docker Desktop with Docker Compose v2
 - Node.js 22
-- .NET 8 SDK
+- .NET 10 SDK
 - Python 3.12
 
 AWS credentials are not required for the current baseline. Live and paid AI calls are disabled.
@@ -65,8 +67,12 @@ npm --prefix web run dev
 Commercial API:
 
 ```powershell
+$env:ConnectionStrings__CommercialDatabase = '<connection from your ignored infrastructure/.env>'
 dotnet run --project api/Advertified.Commercial.Api.csproj --urls http://localhost:5000
 ```
+
+Remove `ConnectionStrings__CommercialDatabase` from the terminal environment when the API
+stops. Never put the local password in tracked application settings.
 
 Agent runtime:
 
@@ -79,7 +85,7 @@ Local endpoints:
 
 | Surface | URL |
 |---|---|
-| Web baseline | http://localhost:5173 |
+| Authenticated web application | http://localhost:5173/sign-in |
 | Commercial API description | http://localhost:5000 |
 | Commercial API liveness | http://localhost:5000/health/live |
 | Commercial API Swagger | http://localhost:5000/swagger |
@@ -92,12 +98,35 @@ Local endpoints:
 
 The runtime description intentionally reports zero implemented agents and a disabled provider. Do not change those claims until agent contracts and evaluations actually exist.
 
+The Gate 3 web application starts at `/sign-in`, creates only the approved local opaque
+browser session and shows real database-backed workspaces. An identity with no active
+canonical membership receives the truthful empty-access state; the application never seeds
+or fabricates a workspace, task, notification or dashboard count.
+
+## Database migrations
+
+The API never applies migrations at startup. The dedicated migration runner requires an
+explicit `--apply`, an operator-supplied migration connection, and already provisioned
+least-privilege `advertified_migrator` and `advertified_app` group roles. Schema migrations
+do not create cluster roles:
+
+```powershell
+$env:ADVERTIFIED_MIGRATION_CONNECTION_STRING = '<approved migration-only connection>'
+dotnet run --project api/src/Advertified.Commercial.DatabaseMigrator/Advertified.Commercial.DatabaseMigrator.csproj -- --apply
+Remove-Item Env:ADVERTIFIED_MIGRATION_CONNECTION_STRING
+```
+
+Brian Rabuthu authorised migration `202608290002_CanonicalCommercialFoundation` against
+the `advertified-os2-dev-postgres-1` local database on 2026-08-29; that migration is now
+applied. Every future migration requires its own exact target approval.
+
 ## Verify before handing off
 
 ```powershell
 npm --prefix web run lint
 npm --prefix web run type-check
 npm --prefix web test
+npm --prefix web run test:e2e -- --workers=1
 npm --prefix web run build
 
 dotnet build api/Advertified.Commercial.Api.csproj --configuration Release

@@ -1,0 +1,112 @@
+.sign-in-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(20rem, 1.08fr) minmax(24rem, 0.92fr);
+}
+
+.sign-in-story {
+  min-height: 100vh;
+  padding: clamp(2rem, 5vw, 5rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--white);
+  background:
+    radial-gradient(circle at 82% 22%, rgb(43 124 255 / 42%), transparent 30%),
+    linear-gradient(145deg, var(--navy) 8%, #102e59 100%);
+}
+
+.brand-lockup {
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: var(--white);
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.sign-in-story h1 {
+  max-width: 11ch;
+  margin: 0;
+  font-size: clamp(2.8rem, 6vw, 5.6rem);
+  line-height: 0.96;
+  letter-spacing: -0.055em;
+}
+
+.sign-in-story > div > p:last-child {
+  max-width: 36rem;
+  margin: 1.5rem 0 0;
+  color: var(--slate-light);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.trust-note {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--electric-soft);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.sign-in-panel {
+  padding: 2rem;
+  display: grid;
+  place-items: center;
+  background: var(--canvas);
+}
+
+.sign-in-card { width: min(28rem, 100%); }
+.sign-in-card h2 {
+  margin: 0;
+  color: var(--navy);
+  font-size: clamp(2rem, 4vw, 3.15rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.supporting-copy,
+.privacy-note { color: var(--muted); line-height: 1.65; }
+.supporting-copy { margin: 1.25rem 0 1.75rem; }
+.privacy-note { margin: 1.25rem 0 0; font-size: 0.79rem; }
+
+.profile-layout {
+  display: grid;
+  grid-template-columns: minmax(14rem, 0.36fr) minmax(0, 0.64fr);
+  gap: 1rem;
+  align-items: start;
+}
+.profile-summary { text-align: center; }
+.profile-avatar { width: 4.5rem; height: 4.5rem; margin: 0 auto 1rem; font-size: 1.6rem; }
+.profile-summary h2 { margin: 0; color: var(--navy); }
+.profile-summary p { color: var(--muted); overflow-wrap: anywhere; }
+.profile-summary .status-chip { display: inline-block; }
+.profile-form { display: grid; gap: 1.25rem; }
+.field-group { display: grid; gap: 0.45rem; }
+.field-group label { color: var(--navy); font-size: 0.85rem; font-weight: 800; }
+.field-group input {
+  width: 100%;
+  min-height: 2.85rem;
+  padding: 0.7rem 0.8rem;
+  color: var(--body);
+  background: var(--white);
+  border: 1px solid var(--line-strong);
+  border-radius: 0.6rem;
+}
+.field-group input:disabled { color: var(--muted); background: var(--canvas); }
+.field-group input[aria-invalid="true"] { border-color: #c34c41; }
+.field-error { margin: 0; color: #9a382f; font-size: 0.8rem; }
+.field-note { margin: 0; color: var(--muted); font-size: 0.78rem; }
+.form-actions { padding-top: 0.5rem; border-top: 1px solid var(--line); }
+
+@media (max-width: 800px) {
+  .sign-in-page { grid-template-columns: 1fr; }
+  .sign-in-story { min-height: 42vh; padding: 1.5rem; }
+  .sign-in-story h1 { max-width: 13ch; font-size: clamp(2.5rem, 11vw, 4.5rem); }
+  .trust-note { margin-top: 2rem; }
+  .sign-in-panel { min-height: 58vh; padding: 2rem 1.25rem; }
+  .profile-layout { grid-template-columns: 1fr; }
+}

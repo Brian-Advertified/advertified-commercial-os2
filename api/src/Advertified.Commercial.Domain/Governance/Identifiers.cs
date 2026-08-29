@@ -10,6 +10,56 @@ public readonly record struct TenantId
     public Guid Value { get; }
 }
 
+public readonly record struct UserId
+{
+    public UserId(Guid value)
+    {
+        Value = IdValue.Require(value, nameof(value));
+    }
+
+    public Guid Value { get; }
+}
+
+public readonly record struct MembershipId
+{
+    public MembershipId(Guid value)
+    {
+        Value = IdValue.Require(value, nameof(value));
+    }
+
+    public Guid Value { get; }
+}
+
+public readonly record struct ClientAccountId
+{
+    public ClientAccountId(Guid value)
+    {
+        Value = IdValue.Require(value, nameof(value));
+    }
+
+    public Guid Value { get; }
+}
+
+public readonly record struct AgencyId
+{
+    public AgencyId(Guid value)
+    {
+        Value = IdValue.Require(value, nameof(value));
+    }
+
+    public Guid Value { get; }
+}
+
+public readonly record struct ContactId
+{
+    public ContactId(Guid value)
+    {
+        Value = IdValue.Require(value, nameof(value));
+    }
+
+    public Guid Value { get; }
+}
+
 public readonly record struct ActorId
 {
     public ActorId(Guid value)

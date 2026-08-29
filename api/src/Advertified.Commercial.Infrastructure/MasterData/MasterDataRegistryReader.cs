@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Advertified.Commercial.Domain.Constants;
 
 namespace Advertified.Commercial.Infrastructure.MasterData;
 
@@ -33,10 +34,42 @@ internal static class MasterDataRegistryReader
                     .ToArray()))
             .ToArray();
 
+        ValidatePermissionMappings(collections);
+
         return new MasterDataRegistry(
             registry.RegistryVersion,
             effectiveFrom,
             collections);
+    }
+
+    private static void ValidatePermissionMappings(
+        IReadOnlyList<MasterDataRegistryCollection> collections)
+    {
+        var roles = RequireCollection(collections, MasterDataConstants.RoleCollection)
+            .Items.Select(item => item.Code)
+            .ToHashSet(StringComparer.Ordinal);
+        var permissions = RequireCollection(
+            collections,
+            MasterDataConstants.PermissionCollection);
+
+        foreach (var permission in permissions.Items)
+        {
+            var assignedRoles = PermissionRoleMetadata.ReadRoles(permission.MetadataJson);
+            if (assignedRoles.Count == 0 || !assignedRoles.IsSubsetOf(roles))
+            {
+                throw new InvalidOperationException(
+                    "A permission references an unknown or empty role mapping.");
+            }
+        }
+    }
+
+    private static MasterDataRegistryCollection RequireCollection(
+        IReadOnlyList<MasterDataRegistryCollection> collections,
+        string collectionCode)
+    {
+        return collections.SingleOrDefault(item => item.Code == collectionCode)
+            ?? throw new InvalidOperationException(
+                $"The governed {collectionCode} collection is missing.");
     }
 
     private sealed record RegistryDocument(

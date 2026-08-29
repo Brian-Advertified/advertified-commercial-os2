@@ -1,8 +1,8 @@
 # Development entry gate
 
-**Current decision:** LOCAL DEVELOPMENT GO — GATE 1 ONLY  
+**Current decision:** GATE 3 GO — GATE 4 IMPLEMENTATION NO-GO
 **Evidence date:** 2026-08-29  
-**Merge/feature/deploy decision:** NO-GO
+**Remote merge/deploy decision:** NO-GO
 
 This is the operational handoff for a developer or implementation agent.
 
@@ -73,18 +73,58 @@ Out of scope:
 | Agent runtime tests | PASS | 9 deterministic tests |
 | Architecture guardrails | PASS | 20 tests including evidence-schema integrity and controlled violations |
 | Python Ruff | PENDING | Enforced in CI; current local rerun still required |
-| Remote CI | PENDING | Commit/push not authorised |
+| Remote CI | DEFERRED | Local commit `6f75c7e`; owner deferred publication after no usable `origin` was found |
 | Named owner diff review | PENDING | Brian Rabuthu named; final review follows remote CI |
 
-The implementation packet is technically complete for local review, but Gate 1 is not approved. Its manifest and report are in `docs/evidence/gate-1/`. Gate 2 remains blocked.
+Brian Rabuthu accepted ADR-0005 through ADR-0008 and the exact Gate 2 work packet for local non-production implementation on 2026-08-29. Pending Ruff and remote CI remain truthful blockers for publication; they do not authorise merge, release or deployment.
 
-## Blockers before Gate 2
+## Deferred evidence and non-local blockers
 
-- accountable owner Brian Rabuthu must record the final dated Gate 1 GO after remote CI;
-- browser authentication/session/CSRF design is undecided;
-- tenancy enforcement mechanism is undecided;
-- migration and deployment topology need approved ADRs;
-- legal/privacy and security documents are drafts, not approvals;
-- Gate 2 work packet has not been approved.
+- Python Ruff and remote CI remain pending while branch publication is deferred;
+- no usable Git remote is configured for local commit `6f75c7e`;
+- independent Engineering, Security/Privacy and Operations review is mandatory before publication, production or deployment;
+- legal/privacy and security documents remain drafts, not production approvals;
+- migration `202608290002_CanonicalCommercialFoundation` was explicitly authorised and applied only to the scoped os2 local database; future migrations require separate approval.
 
-Do not resolve those choices by guessing. Record the decision owner and request the smallest explicit choice.
+Gate 2 received local GO from Brian Rabuthu on 2026-08-29. Brian then approved the exact
+local-only scope in `docs/GATE3_WORK_PACKET.md` by directing implementation to continue.
+That packet is now implemented and locally verified. Brian recorded Gate 3 GO on
+2026-08-29. Do not begin Gate 4 until he separately approves an exact Gate 4 work packet.
+
+## Current Gate 2 implementation evidence
+
+| Check | State | Observed result |
+|---|---|---|
+| .NET 10/C# 14 retarget | PASS | All C# projects target `net10.0`; explicit C# 14; accepted ADR-0009 |
+| Release builds | PASS | Commercial API and dedicated migration runner build with 0 warnings/errors |
+| Complete C# suite | PASS | 29 tests on .NET 10 |
+| Architecture guardrails | PASS | 20 tests |
+| Disposable migration | PASS | Empty apply, repeat apply/bootstrap, protection and rollback using least-privilege effective role |
+| Tenant isolation | PASS | Forced RLS and cross-tenant read/write/association denial verified in disposable PostgreSQL |
+| API boundary | PASS | Six-aggregate routes, ETag/If-Match, idempotency, correlation, cursor, typed safe errors and retained OpenAPI v1 contract |
+| Local identity boundary | PASS | Production startup, expired/invalid identity and interactive service-identity denial verified; no cookie-authenticated browser endpoint exists in Gate 2 |
+| Main local database | PASS | Exact owner-authorised migration applied through the runner; migration history, owners, forced RLS and privileges verified |
+| Role-permission mapping | PASS | 13 governed Gate 2 permissions; exact conservative mappings; database-backed resolution; no service-role permissions |
+| Remote CI and independent review | PENDING | No commit, push, merge, release or deployment authorised or performed |
+
+The retained report and machine-readable manifest are in `docs/evidence/gate-2/`.
+Brian Rabuthu directed progression to Gate 3 on 2026-08-29, recording local Gate 2 GO.
+That decision did not authorise publication, production or deployment; the separately
+approved Gate 3 packet authorised only the local implementation recorded below.
+
+## Current Gate 3 implementation evidence
+
+| Check | State | Observed result |
+|---|---|---|
+| Commercial API and migration runner Release builds | PASS | .NET 10/C# 14; 0 warnings/errors |
+| Complete C# suite | PASS | 32 tests, including real disposable-PostgreSQL browser-session journey |
+| Architecture guardrails | PASS | 21 tests |
+| Web lint, type-check, tests and build | PASS | 0 lint/type findings; 4 focused tests; Vite build |
+| Browser acceptance | PASS | 4 Playwright cases across desktop and compact reduced-motion viewports |
+| Web runtime audit | PASS | 0 vulnerabilities |
+| Live provider, production resource or database migration | NOT USED | Local deterministic fixtures/session only; no schema change |
+| Remote CI and independent review | PENDING | No commit, push, merge, release or deployment authorised or performed |
+
+The retained report and manifest are in `docs/evidence/gate-3/`. Brian Rabuthu recorded the
+dated local Gate 3 completion GO on 2026-08-29. This does not authorise Gate 4,
+publication, production or deployment.

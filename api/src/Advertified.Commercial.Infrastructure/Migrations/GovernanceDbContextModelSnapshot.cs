@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Advertified.Commercial.Infrastructure.Migrations;
 
 [DbContext(typeof(GovernanceDbContext))]
-public sealed class GovernanceDbContextModelSnapshot : ModelSnapshot
+public sealed partial class GovernanceDbContextModelSnapshot : ModelSnapshot
 {
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -155,5 +155,9 @@ public sealed class GovernanceDbContextModelSnapshot : ModelSnapshot
                     .IsRequired()
                     .HasConstraintName("fk_master_data_items_collections");
             });
+
+        BuildCommercialIdentityModel(modelBuilder);
+        BuildCommercialBusinessModel(modelBuilder);
+        BuildCommercialPlatformModel(modelBuilder);
     }
 }

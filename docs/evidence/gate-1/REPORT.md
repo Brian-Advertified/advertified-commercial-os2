@@ -44,8 +44,8 @@ No agent is marked implemented. The closed roster is only a governed contract bo
 | Python lint | `cd agent-runtime && python -m ruff check .` | PENDING | Configured in CI; current local rerun unavailable through the bounded runner |
 | Architecture | `python -m pytest tests/architecture -q` | PASS | 20 passed, including evidence-schema integrity |
 | os2 services | `docker compose -f infrastructure/docker-compose.yml ps` | PASS | PostgreSQL, Redis, MinIO, and MailHog healthy |
-| Remote CI | GitHub Advertified CI workflow | PENDING | Commit/push not authorised |
-| Owner review | Complete diff and evidence review | PENDING | Owner/reviewers unassigned |
+| Remote CI | GitHub Advertified CI workflow | PENDING | Local commit `6f75c7e`; no usable origin; owner deferred publication |
+| Owner review | Complete diff and evidence review | PENDING | Brian Rabuthu named; final GO awaits deferred evidence |
 
 “No tests discovered” was not treated as a pass. The detailed machine-readable record is `docs/evidence/gate-1/manifest.json`.
 
@@ -59,18 +59,18 @@ No agent is marked implemented. The closed roster is only a governed contract bo
 - Production resource used or changed: No.
 - Secrets or production data introduced: No.
 - Consequential external action performed: No.
-- Product screen or Gate 2 work started: No.
+- Product screen or Gate 2 implementation started: No; decision preparation only.
 
 ## Unresolved blockers
 
 | Blocker | Decision owner | Smallest next action | Required retest |
 |---|---|---|---|
 | Current Python Ruff result absent | Developer or CI runner | Run the configured Ruff command | Ruff |
-| Remote CI absent | Repository owner | Authorise commit/PR workflow when ready | Full CI |
+| Remote CI absent | Brian Rabuthu | Configure a usable remote and publish `6f75c7e` when remote work resumes | Full CI |
 | Final Gate 1 decision awaits CI | Brian Rabuthu | Review remote CI and confirm dated GO | Diff, evidence, and CI review |
-| Gate 2 decisions unresolved | Relevant named owners | Approve auth/session/CSRF, tenancy, migration, and deployment ADRs | Gate-specific checks |
+| Gate 2 proposals await acceptance | Brian Rabuthu and required reviewers | Decide exact ADR-0005 through ADR-0008 and the work packet | Gate-specific checks |
 
-Safe local work is limited to correcting Gate 1 failures or evidence gaps. Gate 2 remains blocked.
+Brian Rabuthu authorised local Gate 2 decision preparation while publication is deferred. Gate 2 implementation remains blocked until the exact ADRs and work packet are Accepted.
 
 ## Diff and review
 
@@ -78,9 +78,9 @@ Safe local work is limited to correcting Gate 1 failures or evidence gaps. Gate 
 - Automated and targeted file review completed: Yes.
 - Complete accountable-owner diff review: Conditional close-out approval received; final confirmation follows CI.
 - Files staged: No.
-- Commit/push/deploy performed: No.
+- Commit/push/deploy performed: local commit `6f75c7e` created; push failed because no usable `origin` exists; no deployment.
 - Accountable owner: Brian Rabuthu.
-- Required reviewers: Remote CI; no additional human reviewer designated.
+- Required reviewers: remote CI deferred; Gate 2 Engineering and Security/Privacy reviewers remain unassigned.
 - Owner decision/date: close-out and Git push authorised on 2026-08-29; final Gate 1 GO pending CI.
 
 An AI prepared this report but did not approve the gate, security, privacy, legal compliance, or production readiness.

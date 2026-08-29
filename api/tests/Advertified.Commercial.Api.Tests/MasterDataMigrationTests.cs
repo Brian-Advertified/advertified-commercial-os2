@@ -1,7 +1,13 @@
+using Advertified.Commercial.DatabaseMigrator;
 using Advertified.Commercial.Infrastructure.MasterData;
+using Advertified.Commercial.Infrastructure.Migrations;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.Extensions.Configuration;
 using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -23,18 +29,18 @@ public sealed class MasterDataMigrationTests
             .Build();
         await postgres.StartAsync();
 
+        await AssertApiStartupDoesNotMigrateAsync(postgres.GetConnectionString());
+        await PrepareMigrationRoleAsync(postgres.GetConnectionString());
+
         var options = new DbContextOptionsBuilder<GovernanceDbContext>()
             .UseNpgsql(postgres.GetConnectionString())
             .Options;
         await using var dbContext = new GovernanceDbContext(options);
 
-        await dbContext.Database.MigrateAsync();
-
-        var bootstrapper = new MasterDataBootstrapper(
-            dbContext,
-            new FixedTimeProvider());
-        var first = await bootstrapper.ApplyAsync();
-        var second = await bootstrapper.ApplyAsync();
+        var operation = new DatabaseMigrationOperation(new FixedTimeProvider());
+        var applied = await operation.ApplyAsync(postgres.GetConnectionString());
+        var first = applied.MasterData;
+        var second = (await operation.ApplyAsync(postgres.GetConnectionString())).MasterData;
 
         Assert.Equal(first, second);
         Assert.Equal(first.CollectionCount, await dbContext.MasterDataSets.CountAsync());
@@ -69,6 +75,80 @@ public sealed class MasterDataMigrationTests
         Assert.False(await SchemaExistsAsync(
             postgres.GetConnectionString(),
             "governance"));
+    }
+
+    private static async Task AssertApiStartupDoesNotMigrateAsync(string connectionString)
+    {
+        await using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+                builder.ConfigureAppConfiguration((_, configuration) =>
+                    configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        ["Authentication:Mode"] = "Disabled",
+                        ["ConnectionStrings:CommercialDatabase"] = connectionString,
+                    })));
+        using var client = factory.CreateClient();
+        using var response = await client.GetAsync("/health/live");
+
+        response.EnsureSuccessStatusCode();
+        Assert.False(await SchemaExistsAsync(connectionString, "governance"));
+    }
+
+    private static async Task PrepareMigrationRoleAsync(string connectionString)
+    {
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand(
+            """
+            CREATE ROLE advertified_migrator
+                NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+            CREATE ROLE advertified_app
+                NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+            GRANT advertified_migrator TO advertified_gate1;
+            GRANT CREATE ON DATABASE advertified_gate1 TO advertified_migrator;
+            GRANT CREATE ON SCHEMA public TO advertified_migrator;
+            """,
+            connection);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    [Fact]
+    public void ModelSnapshotMatchesCurrentPersistenceModel()
+    {
+        var options = new DbContextOptionsBuilder<GovernanceDbContext>()
+            .UseNpgsql("Host=localhost;Database=model-only;Username=model-only")
+            .Options;
+        using var dbContext = new GovernanceDbContext(options);
+        var modelDiffer = dbContext.GetService<IMigrationsModelDiffer>();
+        var currentModel = dbContext.GetService<IDesignTimeModel>().Model;
+        var snapshot = new GovernanceDbContextModelSnapshot().Model;
+        var snapshotModel = dbContext.GetService<IModelRuntimeInitializer>()
+            .Initialize(snapshot, designTime: true);
+
+        var differences = modelDiffer.GetDifferences(
+            snapshotModel.GetRelationalModel(),
+            currentModel.GetRelationalModel());
+
+        Assert.False(
+            differences.Count > 0,
+            string.Join(", ", differences.Select(DescribeOperation)));
+    }
+
+    private static string DescribeOperation(MigrationOperation operation)
+    {
+        return operation switch
+        {
+            AlterColumnOperation column =>
+                $"Alter:{column.Table}.{column.Name}:" +
+                $"new[{column.ColumnType},{column.MaxLength},{column.IsNullable}," +
+                $"{column.IsUnicode},{column.DefaultValueSql}]" +
+                $"old[{column.OldColumn.ColumnType},{column.OldColumn.MaxLength}," +
+                $"{column.OldColumn.IsNullable},{column.OldColumn.IsUnicode}," +
+                $"{column.OldColumn.DefaultValueSql}]",
+            CreateIndexOperation index =>
+                $"Index:{index.Table}.{index.Name}({string.Join('|', index.Columns)})",
+            _ => operation.GetType().Name,
+        };
     }
 
     private static async Task<bool> SchemaExistsAsync(
