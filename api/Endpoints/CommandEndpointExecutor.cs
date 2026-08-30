@@ -47,13 +47,14 @@ internal static class CommandEndpointExecutor
         TimeProvider timeProvider,
         bool requireVersion,
         Func<CommandEnvelope<TCommand>, CancellationToken, Task<CommandResult<TResult>>> execute,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool allowZeroVersion = false)
         where TCommand : notnull
         where TResult : notnull
     {
         var envelope = CommandEnvelopeFactory.Create(
             context, new TenantId(tenantId), identity.ActorId,
-            command, timeProvider, requireVersion);
+            command, timeProvider, requireVersion, allowZeroVersion);
         var result = await execute(envelope, cancellationToken);
         CommandEnvelopeFactory.SetEntityHeaders(
             context, result.Version, result.Replayed);

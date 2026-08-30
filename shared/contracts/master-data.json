@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.0.0",
+  "registryVersion": "2.1.0",
   "effectiveFrom": "2026-08-30",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
@@ -89,7 +89,9 @@
       {"code":"rfq_create","displayLabel":"Create marketplace requests","isActive":true,"sortOrder":510,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"rfq_send","displayLabel":"Send marketplace requests","isActive":true,"sortOrder":520,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"rfq_respond","displayLabel":"Respond to own marketplace requests","isActive":true,"sortOrder":530,"metadata":{"roles":["platform_admin","supplier_admin","supplier_user"]}},
-      {"code":"rfq_review","displayLabel":"Review marketplace responses","isActive":true,"sortOrder":540,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}}
+      {"code":"rfq_review","displayLabel":"Review marketplace responses","isActive":true,"sortOrder":540,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"commercial_settings_view","displayLabel":"View commercial policy","isActive":true,"sortOrder":550,"metadata":{"roles":["platform_admin","agency_admin"]}},
+      {"code":"commercial_settings_manage","displayLabel":"Manage commercial policy","isActive":true,"sortOrder":560,"metadata":{"roles":["platform_admin","agency_admin"]}}
     ],
     "briefSourceTypes": [
       {"code":"SUPPLIED_TEXT","displayLabel":"Supplied Text","isActive":true,"sortOrder":10},
@@ -415,7 +417,8 @@
       {"code":"marketplace_listing","displayLabel":"Marketplace Listing","isActive":true,"sortOrder":310},
       {"code":"marketplace_listing_version","displayLabel":"Marketplace Listing Version","isActive":true,"sortOrder":320},
       {"code":"marketplace_rfq","displayLabel":"Marketplace RFQ","isActive":true,"sortOrder":330},
-      {"code":"marketplace_supplier_response","displayLabel":"Marketplace Supplier Response","isActive":true,"sortOrder":340}
+      {"code":"marketplace_supplier_response","displayLabel":"Marketplace Supplier Response","isActive":true,"sortOrder":340},
+      {"code":"commercial_policy_version","displayLabel":"Commercial Policy Version","isActive":true,"sortOrder":350}
     ],
     "commercialActions": [
       {"code":"tenant.updated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -477,7 +480,8 @@
       {"code":"marketplace_rfq.created","displayLabel":"Marketplace RFQ Created","isActive":true,"sortOrder":570},
       {"code":"marketplace_rfq.sent","displayLabel":"Marketplace RFQ Sent","isActive":true,"sortOrder":580},
       {"code":"marketplace_rfq.response_submitted","displayLabel":"Marketplace Response Submitted","isActive":true,"sortOrder":590},
-      {"code":"marketplace_rfq.response_accepted","displayLabel":"Marketplace Response Accepted","isActive":true,"sortOrder":600}
+      {"code":"marketplace_rfq.response_accepted","displayLabel":"Marketplace Response Accepted","isActive":true,"sortOrder":600},
+      {"code":"commercial_policy.version_created","displayLabel":"Commercial Policy Version Created","isActive":true,"sortOrder":610}
     ],
     "commercialEventTypes": [
       {"code":"TenantUpdated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -539,7 +543,8 @@
       {"code":"MarketplaceRfqCreated","displayLabel":"Marketplace RFQ Created","isActive":true,"sortOrder":570},
       {"code":"MarketplaceRfqSent","displayLabel":"Marketplace RFQ Sent","isActive":true,"sortOrder":580},
       {"code":"MarketplaceResponseSubmitted","displayLabel":"Marketplace Response Submitted","isActive":true,"sortOrder":590},
-      {"code":"MarketplaceResponseAccepted","displayLabel":"Marketplace Response Accepted","isActive":true,"sortOrder":600}
+      {"code":"MarketplaceResponseAccepted","displayLabel":"Marketplace Response Accepted","isActive":true,"sortOrder":600},
+      {"code":"CommercialPolicyVersionCreated","displayLabel":"Commercial Policy Version Created","isActive":true,"sortOrder":610}
     ],
     "creativeTextRoles": [
       {"code":"HEADLINE","displayLabel":"Headline","isActive":true,"sortOrder":10},

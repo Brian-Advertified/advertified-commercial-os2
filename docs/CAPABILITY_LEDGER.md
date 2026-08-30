@@ -203,7 +203,7 @@ Gates 9–13 remain sequence-bound. A document, route label, container, contract
 | 7 Planning | VERIFIED locally — implementation and evidence complete; non-local review pending |
 | 8 Proposal and client decision | VERIFIED locally — implementation and evidence complete; non-local review pending |
 | 9 OOH-only campaign mode and proposal inbox | VERIFIED LOCALLY; OWNER/INDEPENDENT REVIEW PENDING |
-| 10 Supplier marketplace | IN PROGRESS — first tenant-safe listing/RFQ/response/acceptance vertical verified locally; booking and commercial settings remain |
+| 10 Supplier marketplace | IN PROGRESS — tenant-safe marketplace exchange and versioned commercial policy verified locally; selected-option booking remains |
 | 11 Campaign delivery and learning | BLOCKED by remaining Gate 10 scope |
 | 12 Hardening and certification | BLOCKED by Gate 11 |
 | 13 Production launch | BLOCKED by Gate 12 and independent launch decisions |

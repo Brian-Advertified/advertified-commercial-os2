@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Advertified.Commercial.Application.Commands;
+using Advertified.Commercial.Application.CommercialSettings;
 using Advertified.Commercial.Application.EmailAutomation;
 using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Domain.Commercial;
@@ -67,6 +68,11 @@ public sealed class HumanSafeExceptionHandler(
                 "Access denied",
                 "You do not have access to this workspace or action.",
                 "TENANT_FORBIDDEN"),
+            CommercialPolicyNotConfiguredException => new(
+                StatusCodes.Status404NotFound,
+                "Commercial policy is not configured",
+                "Ask an agency or platform administrator to configure this workspace policy.",
+                "COMMERCIAL_POLICY_NOT_CONFIGURED"),
             VersionConflictException or DbUpdateConcurrencyException => new(
                 StatusCodes.Status409Conflict,
                 "Changes could not be saved",

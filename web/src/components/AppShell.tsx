@@ -14,6 +14,7 @@ const destinations = [
   { to: '/inventory', label: 'Inventory', icon: 'tasks', enabled: true },
   { to: '/ooh-inbox', label: 'Proposal inbox', icon: 'mail', enabled: true },
   { to: '/marketplace', label: 'Marketplace', icon: 'tasks', enabled: true },
+  { to: '/admin/commercial', label: 'Commercial', icon: 'tasks', enabled: true },
   { to: '/tasks', label: 'Tasks', icon: 'tasks', enabled: true },
   { to: '/notifications', label: 'Notifications', icon: 'bell', enabled: false },
   { to: '/profile', label: 'Profile', icon: 'profile', enabled: true },
@@ -24,11 +25,16 @@ const oohInboxRoles = new Set<string>([
   masterDataCodes.roles.internalPlanner,
   masterDataCodes.roles.agencyAdmin,
 ])
+const commercialAdministratorRoles = new Set<string>([
+  masterDataCodes.roles.platformAdmin,
+  masterDataCodes.roles.agencyAdmin,
+])
 
 function PrimaryNavigation({ roleCode }: { roleCode?: string }) {
   const visible = destinations.filter((item) =>
     (item.to !== '/ooh-inbox' || oohInboxRoles.has(roleCode ?? '')) &&
-    (item.to !== '/marketplace' || marketplaceViewerRoles.has(roleCode ?? '')))
+    (item.to !== '/marketplace' || marketplaceViewerRoles.has(roleCode ?? '')) &&
+    (item.to !== '/admin/commercial' || commercialAdministratorRoles.has(roleCode ?? '')))
   return <nav>{visible.map((item) => item.enabled ? (
     <NavLink key={item.to}
       className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}

@@ -77,6 +77,9 @@ def test_gate_evidence_manifests_match_the_closed_schema_contract() -> None:
     allowed_check_fields = set(check_schema["properties"])
     required_check_fields = set(check_schema["required"])
     allowed_outcomes = set(check_schema["properties"]["outcome"]["enum"])
+    allowed_working_tree_states = set(
+        schema["properties"]["workingTreeState"]["enum"]
+    )
     review_schema = schema["properties"]["ownerReview"]
     allowed_review_statuses = set(
         review_schema["properties"]["status"]["enum"]
@@ -86,6 +89,7 @@ def test_gate_evidence_manifests_match_the_closed_schema_contract() -> None:
         assert required_fields <= set(manifest)
         assert set(manifest) <= allowed_fields
         assert manifest["schemaVersion"] == "1.0.0"
+        assert manifest["workingTreeState"] in allowed_working_tree_states
         for check in manifest["checks"]:
             assert required_check_fields <= set(check)
             assert set(check) <= allowed_check_fields

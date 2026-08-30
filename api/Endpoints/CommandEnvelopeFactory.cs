@@ -16,7 +16,8 @@ internal static class CommandEnvelopeFactory
         ActorId actorId,
         TCommand command,
         TimeProvider timeProvider,
-        bool requireVersion)
+        bool requireVersion,
+        bool allowZeroVersion = false)
         where TCommand : notnull
     {
         var idempotencyValue = context.Request.Headers[IdempotencyHeader].ToString();
@@ -35,7 +36,7 @@ internal static class CommandEnvelopeFactory
             new CorrelationId(Guid.Parse(context.TraceIdentifier)),
             new IdempotencyKey(idempotencyValue),
             new Sha256Digest(digest),
-            requireVersion ? ReadExpectedVersion(context) : 0,
+            requireVersion ? ReadExpectedVersion(context, allowZeroVersion) : 0,
             timeProvider.GetUtcNow(),
             command);
     }
@@ -49,7 +50,7 @@ internal static class CommandEnvelopeFactory
         }
     }
 
-    private static long ReadExpectedVersion(HttpContext context)
+    private static long ReadExpectedVersion(HttpContext context, bool allowZeroVersion)
     {
         var value = context.Request.Headers[VersionHeader].ToString();
         if (string.IsNullOrWhiteSpace(value))
@@ -63,7 +64,8 @@ internal static class CommandEnvelopeFactory
             unquoted = unquoted[1..^1];
         }
 
-        return long.TryParse(unquoted, out var version) && version > 0
+        var minimumVersion = allowZeroVersion ? 0 : 1;
+        return long.TryParse(unquoted, out var version) && version >= minimumVersion
             ? version
             : throw new ArgumentException("The record version is invalid.");
     }

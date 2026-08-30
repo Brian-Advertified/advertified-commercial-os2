@@ -49,6 +49,8 @@ const safeMessages: Readonly<Record<string, string>> = {
     'The supplier must publish current rate and availability details first.',
   MARKETPLACE_RESPONSE_EXPIRED:
     'This supplier response expired. Ask the supplier for a current response.',
+  COMMERCIAL_POLICY_NOT_CONFIGURED:
+    'Commercial settings have not been configured for this workspace.',
   [masterDataCodes.automationFailureReasons.invalidRecipient]:
     'A safe reply address could not be confirmed.',
   [masterDataCodes.automationFailureReasons.clientNotResolved]:
@@ -120,7 +122,9 @@ function createHeaders(init: RequestInit, options: RequestOptions): Headers {
   headers.set('Accept', 'application/json')
   headers.set('X-Correlation-ID', crypto.randomUUID())
   if (options.antiforgeryToken) headers.set('X-CSRF-TOKEN', options.antiforgeryToken)
-  if (options.expectedVersion) headers.set('If-Match', `"${options.expectedVersion}"`)
+  if (options.expectedVersion !== undefined) {
+    headers.set('If-Match', `"${options.expectedVersion}"`)
+  }
   if (options.idempotencyKey) headers.set('Idempotency-Key', options.idempotencyKey)
   if (init.body && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
   return headers

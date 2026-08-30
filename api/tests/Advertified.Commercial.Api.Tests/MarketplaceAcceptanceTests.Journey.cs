@@ -85,11 +85,23 @@ public sealed partial class MarketplaceAcceptanceTests
             supplier, SupplierTenantId, $"marketplace-rfqs/{rfqId}/responses",
             "marketplace-response-submit", null, ResponseBody(clock.GetUtcNow().AddDays(1)));
         var responseId = response.RootElement.GetProperty("response").GetProperty("id").GetGuid();
-        using var accepted = await CommandAsync(
-            buyer, BuyerTenantId, $"marketplace-responses/{responseId}:accept",
-            "marketplace-response-accept", 1, new { reason = "Buyer approved this exact response." });
-        Assert.Equal("ACCEPTED", accepted.RootElement.GetProperty("status").GetString());
-        Assert.Equal(BuyerUserId, accepted.RootElement.GetProperty("response")
+        var acceptancePath = $"marketplace-responses/{responseId}:accept";
+        var attempts = await Task.WhenAll(
+            RawCommandAsync(buyer, BuyerTenantId, acceptancePath,
+                "marketplace-response-accept-a", 1,
+                new { reason = "Buyer approved this exact response." }),
+            RawCommandAsync(buyer, BuyerTenantId, acceptancePath,
+                "marketplace-response-accept-b", 1,
+                new { reason = "Concurrent duplicate must fail closed." }));
+        using var accepted = attempts.Single(item => item.IsSuccessStatusCode);
+        using var rejected = attempts.Single(item => !item.IsSuccessStatusCode);
+        await AssertProblemAsync(
+            rejected, HttpStatusCode.Conflict, "INVALID_LIFECYCLE_TRANSITION");
+        using var acceptedJson = JsonDocument.Parse(
+            await accepted.Content.ReadAsStringAsync());
+        Assert.Equal("ACCEPTED",
+            acceptedJson.RootElement.GetProperty("status").GetString());
+        Assert.Equal(BuyerUserId, acceptedJson.RootElement.GetProperty("response")
             .GetProperty("acceptedBy").GetGuid());
     }
 

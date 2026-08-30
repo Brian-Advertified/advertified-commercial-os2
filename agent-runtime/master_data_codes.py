@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: 542da9f07caf85b46e641cd2638c810efd700091e19941ae511b038aa861a35d
+# source-sha256: a51bee0962c9f34c2d7b3ac56d2876954fb709d97669f789f2092bc83e9519dc
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.0.0"
+REGISTRY_VERSION = "2.1.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -90,6 +90,8 @@ class Permissions(StrEnum):
     RFQ_SEND = "rfq_send"
     RFQ_RESPOND = "rfq_respond"
     RFQ_REVIEW = "rfq_review"
+    COMMERCIAL_SETTINGS_VIEW = "commercial_settings_view"
+    COMMERCIAL_SETTINGS_MANAGE = "commercial_settings_manage"
 
 class BriefSourceTypes(StrEnum):
     SUPPLIED_TEXT = "SUPPLIED_TEXT"
@@ -416,6 +418,7 @@ class CommercialResourceTypes(StrEnum):
     MARKETPLACE_LISTING_VERSION = "marketplace_listing_version"
     MARKETPLACE_RFQ = "marketplace_rfq"
     MARKETPLACE_SUPPLIER_RESPONSE = "marketplace_supplier_response"
+    COMMERCIAL_POLICY_VERSION = "commercial_policy_version"
 
 class CommercialActions(StrEnum):
     TENANT_UPDATED = "tenant.updated"
@@ -478,6 +481,7 @@ class CommercialActions(StrEnum):
     MARKETPLACE_RFQ_SENT = "marketplace_rfq.sent"
     MARKETPLACE_RFQ_RESPONSE_SUBMITTED = "marketplace_rfq.response_submitted"
     MARKETPLACE_RFQ_RESPONSE_ACCEPTED = "marketplace_rfq.response_accepted"
+    COMMERCIAL_POLICY_VERSION_CREATED = "commercial_policy.version_created"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -540,6 +544,7 @@ class CommercialEventTypes(StrEnum):
     MARKETPLACE_RFQ_SENT = "MarketplaceRfqSent"
     MARKETPLACE_RESPONSE_SUBMITTED = "MarketplaceResponseSubmitted"
     MARKETPLACE_RESPONSE_ACCEPTED = "MarketplaceResponseAccepted"
+    COMMERCIAL_POLICY_VERSION_CREATED = "CommercialPolicyVersionCreated"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"

@@ -220,9 +220,11 @@ Supplier silence produces an explicit unavailable/review state—never a fabrica
 suppliers publish immutable projections of reviewed inventory, buyers discover only the public
 projection, RFQs are visible only to their two tenant counterparties, suppliers submit an
 attributable immutable response and buyers accept its exact unexpired version. The local send
-transition performs no external communication, and acceptance creates no booking. Booking,
-commercial settings and the remaining Gate 10 scope are not implemented; owner and independent
-review of this vertical remain pending. Evidence is retained under `docs/evidence/gate-10/`.
+transition performs no external communication, and acceptance creates no booking. Versioned tenant
+commercial settings and exact money/VAT calculation are now implemented and verified locally.
+Selected-option booking and the remaining Gate 10 scope are not implemented; owner and independent
+review remain pending. Evidence is retained under `docs/evidence/gate-10/` and
+`docs/evidence/gate10-commercial-policy-20260830/`.
 
 ## Gate 11 — campaign delivery and learning
 

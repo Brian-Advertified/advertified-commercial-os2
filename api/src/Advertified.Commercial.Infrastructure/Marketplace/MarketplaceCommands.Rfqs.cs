@@ -115,8 +115,10 @@ public sealed partial class MarketplaceCommands
         Guid responseId, CommandEnvelope<AcceptMarketplaceResponseCommand> envelope,
         CancellationToken cancellationToken)
     {
-        await LockExchangeAsync(responseId, cancellationToken);
         var now = timeProvider.GetUtcNow();
+        var visible = await store.FindRfqByResponseAsync(responseId, now, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Marketplace response access denied.");
+        await LockExchangeAsync(visible.Id, cancellationToken);
         var rfq = await store.FindRfqByResponseAsync(responseId, now, cancellationToken)
             ?? throw new UnauthorizedAccessException("Marketplace response access denied.");
         if (rfq.BuyerTenantId != envelope.TenantId.Value || !rfq.ResponseId.HasValue ||

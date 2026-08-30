@@ -211,9 +211,14 @@ MARKETPLACE_PERMISSION_ROLES = {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
     },
 }
+COMMERCIAL_PERMISSION_ROLES = {
+    "commercial_settings_view": {"platform_admin", "agency_admin"},
+    "commercial_settings_manage": {"platform_admin", "agency_admin"},
+}
 REQUIRED_PERMISSION_ROLES = (
     FOUNDATION_PERMISSION_ROLES | OPPORTUNITY_PERMISSION_ROLES | BRIEF_PERMISSION_ROLES
     | INVENTORY_PERMISSION_ROLES | PLANNING_PERMISSION_ROLES | PROPOSAL_PERMISSION_ROLES
     | EMAIL_AUTOMATION_PERMISSION_ROLES | MARKETPLACE_PERMISSION_ROLES
+    | COMMERCIAL_PERMISSION_ROLES
 )
 

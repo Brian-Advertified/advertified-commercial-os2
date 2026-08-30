@@ -36,6 +36,8 @@ const OohInboxPage = lazy(() => import('./pages/OohInboxPage')
   .then(module => ({ default: module.OohInboxPage })))
 const MarketplacePage = lazy(() => import('./pages/MarketplacePage')
   .then(module => ({ default: module.MarketplacePage })))
+const CommercialPolicyPage = lazy(() => import('./pages/CommercialPolicyPage')
+  .then(module => ({ default: module.CommercialPolicyPage })))
 
 function AuthenticatedApplication() {
   const { session, loading } = useSession()
@@ -67,6 +69,7 @@ function App() {
           <Route path="/proposals/:proposalId" element={<Suspense fallback={<LoadingState label="Loading proposal" />}><ProposalPage /></Suspense>} />
           <Route path="/ooh-inbox" element={<Suspense fallback={<LoadingState label="Loading OOH proposal inbox" />}><OohInboxPage /></Suspense>} />
           <Route path="/marketplace" element={<Suspense fallback={<LoadingState label="Loading supplier marketplace" />}><MarketplacePage /></Suspense>} />
+          <Route path="/admin/commercial" element={<Suspense fallback={<LoadingState label="Loading commercial settings" />}><CommercialPolicyPage /></Suspense>} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/notifications" element={<DeferredPage destination="Notifications" />} />
