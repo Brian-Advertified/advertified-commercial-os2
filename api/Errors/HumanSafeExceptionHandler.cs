@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Advertified.Commercial.Application.Commands;
+using Advertified.Commercial.Application.Booking;
 using Advertified.Commercial.Application.CommercialSettings;
 using Advertified.Commercial.Application.EmailAutomation;
 using Advertified.Commercial.Api.Authentication;
@@ -73,6 +74,11 @@ public sealed class HumanSafeExceptionHandler(
                 "Commercial policy is not configured",
                 "Ask an agency or platform administrator to configure this workspace policy.",
                 "COMMERCIAL_POLICY_NOT_CONFIGURED"),
+            BookingReviewRequiredException => new(
+                StatusCodes.Status409Conflict,
+                "Booking needs review",
+                "The selected price, policy, rate, or availability changed. Create a new plan and client-confirmed proposal before booking.",
+                "BOOKING_REVIEW_REQUIRED"),
             VersionConflictException or DbUpdateConcurrencyException => new(
                 StatusCodes.Status409Conflict,
                 "Changes could not be saved",

@@ -28,6 +28,8 @@ public sealed partial class MarketplaceAcceptanceTests
         Guid.Parse("92000000-0000-0000-0000-000000000002");
     private static readonly Guid OtherUserId =
         Guid.Parse("92000000-0000-0000-0000-000000000003");
+    private static readonly Guid ClientUserId =
+        Guid.Parse("92000000-0000-0000-0000-000000000004");
     private static readonly Guid ProductId =
         Guid.Parse("93000000-0000-0000-0000-000000000001");
     private static readonly Guid BuyerClientId =
@@ -81,11 +83,13 @@ public sealed partial class MarketplaceAcceptanceTests
         db.Users.AddRange(
             CreateUser(SupplierUserId, "supplier@marketplace.example", "Supplier User"),
             CreateUser(BuyerUserId, "buyer@marketplace.example", "Buyer User"),
-            CreateUser(OtherUserId, "other@marketplace.example", "Other User"));
+            CreateUser(OtherUserId, "other@marketplace.example", "Other User"),
+            CreateUser(ClientUserId, "client@marketplace.example", "Client Approver"));
         db.Memberships.AddRange(
             CreateMembership(SupplierTenantId, SupplierUserId, "supplier_admin", 1),
             CreateMembership(BuyerTenantId, BuyerUserId, "agency_admin", 2),
-            CreateMembership(OtherTenantId, OtherUserId, "supplier_admin", 3));
+            CreateMembership(OtherTenantId, OtherUserId, "supplier_admin", 3),
+            CreateMembership(BuyerTenantId, ClientUserId, "advertiser_approver", 4));
         db.ClientAccounts.Add(new ClientAccount(
             new ClientAccountId(BuyerClientId), new TenantId(BuyerTenantId),
             "marketplace-planning-client", "Marketplace Planning Client",

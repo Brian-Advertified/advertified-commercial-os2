@@ -51,6 +51,8 @@ const safeMessages: Readonly<Record<string, string>> = {
     'This supplier response expired. Ask the supplier for a current response.',
   COMMERCIAL_POLICY_NOT_CONFIGURED:
     'Commercial settings have not been configured for this workspace.',
+  BOOKING_REVIEW_REQUIRED:
+    'The selected price, policy, rate, or availability changed. Start a new plan and client-confirmed proposal.',
   [masterDataCodes.automationFailureReasons.invalidRecipient]:
     'A safe reply address could not be confirmed.',
   [masterDataCodes.automationFailureReasons.clientNotResolved]:

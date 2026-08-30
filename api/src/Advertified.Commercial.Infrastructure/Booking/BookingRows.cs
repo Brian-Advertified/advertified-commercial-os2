@@ -1,0 +1,107 @@
+using Advertified.Commercial.Application.Booking;
+
+namespace Advertified.Commercial.Infrastructure.Booking;
+
+internal sealed record BookableLineRow(
+    Guid ProposalVersionId,
+    Guid ProposalOptionId,
+    Guid ProposalDecisionId,
+    Guid PlanVersionId,
+    Guid MediaPlanLineId,
+    string SupplierName,
+    string ProductName,
+    string Channel,
+    string Geography,
+    DateOnly FlightStart,
+    DateOnly FlightEnd,
+    int RunningPeriods,
+    int Quantity,
+    long ClientPriceMinor,
+    long FeesMinor,
+    long VatMinor,
+    string Currency,
+    bool AlreadyBooked)
+{
+    internal BookablePlanLineView ToView() => new(
+        ProposalVersionId, ProposalOptionId, ProposalDecisionId, PlanVersionId,
+        MediaPlanLineId, SupplierName, ProductName, Channel, Geography,
+        FlightStart, FlightEnd, RunningPeriods, Quantity, ClientPriceMinor,
+        FeesMinor, VatMinor, Currency, AlreadyBooked);
+}
+
+internal sealed record BookingSourceRow(
+    Guid ProposalVersionId,
+    Guid ProposalOptionId,
+    Guid ProposalDecisionId,
+    Guid PlanVersionId,
+    Guid MediaPlanLineId,
+    Guid SupplierTenantId,
+    Guid MarketplaceListingVersionId,
+    Guid SupplierId,
+    Guid InventoryProductId,
+    Guid ProductVersionId,
+    Guid RateId,
+    Guid AvailabilityId,
+    string SupplierName,
+    string ProductName,
+    string Channel,
+    string Geography,
+    DateOnly FlightStart,
+    DateOnly FlightEnd,
+    int RunningPeriods,
+    int Quantity,
+    long SupplierCostMinor,
+    long ClientPriceMinor,
+    long FeesMinor,
+    long VatMinor,
+    string Currency);
+
+internal sealed record BookingRow(
+    Guid Id,
+    Guid BuyerTenantId,
+    Guid SupplierTenantId,
+    Guid? ProposalVersionId,
+    Guid? ProposalOptionId,
+    Guid? ProposalDecisionId,
+    Guid? PlanVersionId,
+    Guid? MediaPlanLineId,
+    Guid MarketplaceListingVersionId,
+    Guid CommercialPolicyVersionId,
+    string SupplierName,
+    string ProductName,
+    string Channel,
+    string Geography,
+    DateOnly FlightStart,
+    DateOnly FlightEnd,
+    int RunningPeriods,
+    int Quantity,
+    long SupplierCostMinor,
+    long? ClientPriceMinor,
+    long? FeesMinor,
+    long? VatMinor,
+    string Currency,
+    string Terms,
+    string Status,
+    Guid CreatedBy,
+    DateTimeOffset CreatedAtUtc,
+    Guid? RequestedBy,
+    DateTimeOffset? RequestedAtUtc,
+    string? RequestReason,
+    Guid? ConfirmedBy,
+    DateTimeOffset? ConfirmedAtUtc,
+    string? ConfirmationReason,
+    string? SupplierNote,
+    bool TermsAccepted,
+    long Version,
+    DateTimeOffset UpdatedAtUtc)
+{
+    internal BookingView ToView() => new(
+        Id, BuyerTenantId, SupplierTenantId, ProposalVersionId, ProposalOptionId,
+        ProposalDecisionId, PlanVersionId, MediaPlanLineId,
+        MarketplaceListingVersionId, SupplierName, ProductName, Channel, Geography,
+        FlightStart, FlightEnd, RunningPeriods, Quantity, SupplierCostMinor,
+        ClientPriceMinor, FeesMinor, VatMinor, Currency, Terms, Status, CreatedBy,
+        CreatedAtUtc, RequestedBy, RequestedAtUtc, RequestReason, ConfirmedBy,
+        ConfirmedAtUtc, ConfirmationReason, SupplierNote, TermsAccepted, Version,
+        UpdatedAtUtc);
+}

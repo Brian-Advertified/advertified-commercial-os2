@@ -8,7 +8,12 @@
 
 **Packet B0 result:** implemented and verified locally on 2026-08-30; reproducible evidence is
 retained under `docs/evidence/gate10-marketplace-planning-lineage-20260830/`. The selected-option
-booking and supplier-confirmation workflow remains open.
+booking and supplier-confirmation workflow was the remaining Packet B dependency.
+
+**Packet B result:** implemented and verified locally on 2026-08-30; reproducible evidence is
+retained under `docs/evidence/gate10-selected-option-booking-20260830/`. The local Gate 10
+implementation packet is complete, but Gate 10 is not owner-approved: independent security/privacy,
+commercial and operations review remain pending, and no production deployment is authorised.
 
 ## Bounded requirement
 

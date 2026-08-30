@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: 093e97ae8ef3f8850b6e47293de5aad72332ea9eae9fee2af8a5c29a4d4d41bc
+# source-sha256: fce9f7934e3fc804e6c6fe2abd9ae7cf362f050b4685a0fb7bafd5d8689c2332
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.2.0"
+REGISTRY_VERSION = "2.3.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -92,6 +92,10 @@ class Permissions(StrEnum):
     RFQ_REVIEW = "rfq_review"
     COMMERCIAL_SETTINGS_VIEW = "commercial_settings_view"
     COMMERCIAL_SETTINGS_MANAGE = "commercial_settings_manage"
+    BOOKING_VIEW = "booking_view"
+    BOOKING_CREATE = "booking_create"
+    BOOKING_REQUEST = "booking_request"
+    BOOKING_CONFIRM = "booking_confirm"
 
 class BriefSourceTypes(StrEnum):
     SUPPLIED_TEXT = "SUPPLIED_TEXT"
@@ -420,6 +424,7 @@ class CommercialResourceTypes(StrEnum):
     MARKETPLACE_RFQ = "marketplace_rfq"
     MARKETPLACE_SUPPLIER_RESPONSE = "marketplace_supplier_response"
     COMMERCIAL_POLICY_VERSION = "commercial_policy_version"
+    BOOKING = "booking"
 
 class CommercialActions(StrEnum):
     TENANT_UPDATED = "tenant.updated"
@@ -483,6 +488,9 @@ class CommercialActions(StrEnum):
     MARKETPLACE_RFQ_RESPONSE_SUBMITTED = "marketplace_rfq.response_submitted"
     MARKETPLACE_RFQ_RESPONSE_ACCEPTED = "marketplace_rfq.response_accepted"
     COMMERCIAL_POLICY_VERSION_CREATED = "commercial_policy.version_created"
+    BOOKING_CREATED = "booking.created"
+    BOOKING_CONFIRMATION_REQUESTED = "booking.confirmation_requested"
+    BOOKING_CONFIRMED = "booking.confirmed"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -546,6 +554,9 @@ class CommercialEventTypes(StrEnum):
     MARKETPLACE_RESPONSE_SUBMITTED = "MarketplaceResponseSubmitted"
     MARKETPLACE_RESPONSE_ACCEPTED = "MarketplaceResponseAccepted"
     COMMERCIAL_POLICY_VERSION_CREATED = "CommercialPolicyVersionCreated"
+    BOOKING_CREATED = "BookingCreated"
+    BOOKING_CONFIRMATION_REQUESTED = "BookingConfirmationRequested"
+    BOOKING_CONFIRMED = "BookingConfirmed"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"
@@ -622,6 +633,7 @@ class LifecycleStatuses(StrEnum):
     INVITED = "INVITED"
     SUSPENDED = "SUSPENDED"
     CANCELLED = "CANCELLED"
+    PENDING_SUPPLIER = "PENDING_SUPPLIER"
 
 class RateTypes(StrEnum):
     CPM = "CPM"

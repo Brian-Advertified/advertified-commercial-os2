@@ -1,0 +1,82 @@
+.booking-section {
+  margin-top: 2rem;
+}
+
+.booking-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+}
+
+.booking-card {
+  display: flex;
+  flex-direction: column;
+  gap: .8rem;
+}
+
+.booking-card-heading {
+  align-items: start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.booking-card-heading h3 {
+  margin: .25rem 0 0;
+}
+
+.booking-total {
+  align-items: baseline;
+  background: var(--canvas);
+  border-radius: .6rem;
+  display: flex;
+  justify-content: space-between;
+  padding: .9rem;
+}
+
+.booking-total strong {
+  font-size: 1.15rem;
+}
+
+.booking-guardrail,
+.booking-confirmed {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.booking-confirmed {
+  border-left: 3px solid var(--electric-deep);
+  padding-left: .8rem;
+}
+
+.booking-terms summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.booking-confirmation {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: .8rem;
+  padding-top: 1rem;
+}
+
+.booking-confirmation label {
+  display: grid;
+  gap: .4rem;
+}
+
+.booking-confirmation label:first-child {
+  align-items: start;
+  display: flex;
+}
+
+.booking-confirmation textarea {
+  min-height: 5rem;
+}
+
+@media (max-width: 800px) {
+  .booking-grid {
+    grid-template-columns: 1fr;
+  }
+}

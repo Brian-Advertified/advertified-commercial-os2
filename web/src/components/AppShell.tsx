@@ -5,6 +5,7 @@ import { useWorkspace } from '../auth/workspace-state'
 import { notifications } from '../notifications/notifications'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { marketplaceViewerRoles } from '../marketplace/marketplace-roles'
+import { bookingViewerRoles } from '../booking/booking-roles'
 import { Icon } from './Icon'
 
 const destinations = [
@@ -14,6 +15,7 @@ const destinations = [
   { to: '/inventory', label: 'Inventory', icon: 'tasks', enabled: true },
   { to: '/ooh-inbox', label: 'Proposal inbox', icon: 'mail', enabled: true },
   { to: '/marketplace', label: 'Marketplace', icon: 'tasks', enabled: true },
+  { to: '/bookings', label: 'Bookings', icon: 'tasks', enabled: true },
   { to: '/admin/commercial', label: 'Commercial', icon: 'tasks', enabled: true },
   { to: '/tasks', label: 'Tasks', icon: 'tasks', enabled: true },
   { to: '/notifications', label: 'Notifications', icon: 'bell', enabled: false },
@@ -29,12 +31,16 @@ const commercialAdministratorRoles = new Set<string>([
   masterDataCodes.roles.platformAdmin,
   masterDataCodes.roles.agencyAdmin,
 ])
+const destinationRoles: Readonly<Record<string, ReadonlySet<string>>> = {
+  '/ooh-inbox': oohInboxRoles,
+  '/marketplace': marketplaceViewerRoles,
+  '/bookings': bookingViewerRoles,
+  '/admin/commercial': commercialAdministratorRoles,
+}
 
 function PrimaryNavigation({ roleCode }: { roleCode?: string }) {
   const visible = destinations.filter((item) =>
-    (item.to !== '/ooh-inbox' || oohInboxRoles.has(roleCode ?? '')) &&
-    (item.to !== '/marketplace' || marketplaceViewerRoles.has(roleCode ?? '')) &&
-    (item.to !== '/admin/commercial' || commercialAdministratorRoles.has(roleCode ?? '')))
+    destinationRoles[item.to]?.has(roleCode ?? '') ?? true)
   return <nav>{visible.map((item) => item.enabled ? (
     <NavLink key={item.to}
       className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
