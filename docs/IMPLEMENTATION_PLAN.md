@@ -216,6 +216,14 @@ The `OOH_ONLY` selection is immutable. It cannot be widened into a full campaign
 
 Supplier silence produces an explicit unavailable/review state—never a fabricated response or one-off data correction.
 
+**Current status:** The first local marketplace exchange vertical is implemented and verified:
+suppliers publish immutable projections of reviewed inventory, buyers discover only the public
+projection, RFQs are visible only to their two tenant counterparties, suppliers submit an
+attributable immutable response and buyers accept its exact unexpired version. The local send
+transition performs no external communication, and acceptance creates no booking. Booking,
+commercial settings and the remaining Gate 10 scope are not implemented; owner and independent
+review of this vertical remain pending. Evidence is retained under `docs/evidence/gate-10/`.
+
 ## Gate 11 — campaign delivery and learning
 
 **Normative areas:** Sections 5, 7, 18.5, 19.3, 21.4, 22, 25–26  

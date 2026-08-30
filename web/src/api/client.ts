@@ -45,6 +45,10 @@ const safeMessages: Readonly<Record<string, string>> = {
   EMAIL_ATTACHMENT_BLOCKED: 'Review the attachment before continuing this request.',
   EMAIL_PAYLOAD_UNAVAILABLE: 'The complete incoming email could not be retrieved.',
   EMAIL_PROVIDER_UNAVAILABLE: 'The email service is unavailable. Try again shortly.',
+  MARKETPLACE_LISTING_UNAVAILABLE:
+    'The supplier must publish current rate and availability details first.',
+  MARKETPLACE_RESPONSE_EXPIRED:
+    'This supplier response expired. Ask the supplier for a current response.',
   [masterDataCodes.automationFailureReasons.invalidRecipient]:
     'A safe reply address could not be confirmed.',
   [masterDataCodes.automationFailureReasons.clientNotResolved]:

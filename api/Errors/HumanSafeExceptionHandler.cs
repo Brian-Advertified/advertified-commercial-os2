@@ -7,6 +7,7 @@ using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Application.Inventory;
+using Advertified.Commercial.Application.Marketplace;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.MasterData;
@@ -156,6 +157,16 @@ public sealed class HumanSafeExceptionHandler(
                 "Market comparison is unavailable",
                 "This product does not have a current comparable OOH rate yet.",
                 "INVENTORY_BENCHMARK_UNAVAILABLE"),
+            MarketplaceListingUnavailableException => new(
+                StatusCodes.Status409Conflict,
+                "Listing is not currently available",
+                "Ask the supplier to publish current rate and availability details.",
+                "MARKETPLACE_LISTING_UNAVAILABLE"),
+            MarketplaceResponseExpiredException => new(
+                StatusCodes.Status409Conflict,
+                "Supplier response expired",
+                "Ask the supplier for a current response before accepting it.",
+                "MARKETPLACE_RESPONSE_EXPIRED"),
             ProposalStaleException => new(
                 StatusCodes.Status409Conflict,
                 "Proposal inputs changed",

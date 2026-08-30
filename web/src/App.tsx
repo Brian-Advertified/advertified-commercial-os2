@@ -4,8 +4,8 @@ import './App.css'
 import './pages.css'
 import './planning.css'
 import './proposal.css'
-import './proposal.css'
 import './email-automation.css'
+import './marketplace.css'
 import { useSession } from './auth/session-state'
 import { WorkspaceProvider } from './auth/WorkspaceContext'
 import { AppShell } from './components/AppShell'
@@ -34,6 +34,8 @@ const ProposalPage = lazy(() => import('./pages/ProposalPage')
   .then(module => ({ default: module.ProposalPage })))
 const OohInboxPage = lazy(() => import('./pages/OohInboxPage')
   .then(module => ({ default: module.OohInboxPage })))
+const MarketplacePage = lazy(() => import('./pages/MarketplacePage')
+  .then(module => ({ default: module.MarketplacePage })))
 
 function AuthenticatedApplication() {
   const { session, loading } = useSession()
@@ -64,6 +66,7 @@ function App() {
           <Route path="/briefs/:briefId/proposals/new" element={<Suspense fallback={<LoadingState label="Loading proposal builder" />}><NewProposalPage /></Suspense>} />
           <Route path="/proposals/:proposalId" element={<Suspense fallback={<LoadingState label="Loading proposal" />}><ProposalPage /></Suspense>} />
           <Route path="/ooh-inbox" element={<Suspense fallback={<LoadingState label="Loading OOH proposal inbox" />}><OohInboxPage /></Suspense>} />
+          <Route path="/marketplace" element={<Suspense fallback={<LoadingState label="Loading supplier marketplace" />}><MarketplacePage /></Suspense>} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/notifications" element={<DeferredPage destination="Notifications" />} />

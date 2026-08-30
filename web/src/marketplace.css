@@ -1,0 +1,96 @@
+.marketplace-search {
+  align-items: end;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  margin-bottom: 1rem;
+}
+
+.marketplace-publish,
+.marketplace-action-form {
+  margin: 1rem 0;
+}
+
+.marketplace-publish {
+  border-left: 4px solid var(--electric-deep);
+}
+
+.marketplace-publish textarea,
+.marketplace-action-form textarea {
+  min-height: 6rem;
+}
+
+.marketplace-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  margin: 1rem 0 2rem;
+}
+
+.marketplace-listing {
+  display: flex;
+  flex-direction: column;
+}
+
+.marketplace-listing .button-row {
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.marketplace-facts {
+  display: grid;
+  gap: .6rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 1rem 0;
+}
+
+.marketplace-facts div {
+  background: var(--canvas);
+  border-radius: .5rem;
+  padding: .7rem;
+}
+
+.marketplace-facts dt {
+  color: var(--text-muted);
+  font-size: .75rem;
+  text-transform: uppercase;
+}
+
+.marketplace-facts dd {
+  margin: .25rem 0 0;
+}
+
+.marketplace-requests {
+  border-top: 1px solid var(--line);
+  padding-top: 2rem;
+}
+
+.marketplace-request h3 {
+  margin: .4rem 0 0;
+}
+
+.marketplace-response {
+  background: var(--canvas);
+  border-radius: .6rem;
+  margin: 1rem 0;
+  padding: 1rem;
+}
+
+.marketplace-response p:last-child {
+  margin-bottom: 0;
+}
+
+.marketplace-empty {
+  margin: 1rem 0 2rem;
+}
+
+@media (max-width: 800px) {
+  .marketplace-search,
+  .marketplace-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .marketplace-grid {
+    grid-template-columns: 1fr;
+  }
+}

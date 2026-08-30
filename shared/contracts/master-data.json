@@ -83,7 +83,13 @@
       {"code":"proposal_decide","displayLabel":"Select or decline a client proposal option","isActive":true,"sortOrder":450,"metadata":{"roles":["advertiser_admin","advertiser_approver"]}},
       {"code":"email_automation_view","displayLabel":"View inbound OOH proposal automation","isActive":true,"sortOrder":460,"metadata":{"roles":["platform_admin","internal_planner","agency_admin"]}},
       {"code":"email_automation_manage","displayLabel":"Configure and retry inbound OOH proposal automation","isActive":true,"sortOrder":470,"metadata":{"roles":["platform_admin","agency_admin"]}},
-      {"code":"email_automation_execute","displayLabel":"Execute inbound OOH proposal automation","isActive":true,"sortOrder":480,"metadata":{"roles":["platform_admin","agency_admin","worker_service"]}}
+      {"code":"email_automation_execute","displayLabel":"Execute inbound OOH proposal automation","isActive":true,"sortOrder":480,"metadata":{"roles":["platform_admin","agency_admin","worker_service"]}},
+      {"code":"marketplace_view","displayLabel":"View published marketplace inventory","isActive":true,"sortOrder":490,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_admin","supplier_user"]}},
+      {"code":"supplier_inventory_manage","displayLabel":"Manage own marketplace listings","isActive":true,"sortOrder":500,"metadata":{"roles":["platform_admin","supplier_admin","supplier_user"]}},
+      {"code":"rfq_create","displayLabel":"Create marketplace requests","isActive":true,"sortOrder":510,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"rfq_send","displayLabel":"Send marketplace requests","isActive":true,"sortOrder":520,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"rfq_respond","displayLabel":"Respond to own marketplace requests","isActive":true,"sortOrder":530,"metadata":{"roles":["platform_admin","supplier_admin","supplier_user"]}},
+      {"code":"rfq_review","displayLabel":"Review marketplace responses","isActive":true,"sortOrder":540,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}}
     ],
     "briefSourceTypes": [
       {"code":"SUPPLIED_TEXT","displayLabel":"Supplied Text","isActive":true,"sortOrder":10},
@@ -339,6 +345,23 @@
     "emailAutomationPolicies": [
       {"code":"OOH_INBOUND_PROPOSAL_V1","displayLabel":"Inbound OOH Proposal Automation v1","isActive":true,"sortOrder":10,"metadata":{"campaignMode":"OOH_ONLY","allowedChannels":["OOH","DOOH"],"requiredBriefFields":["objective","audience","geography","timing","budget","vatStatus"],"minimumStpConfidence":0.45,"minimumSupplyConfidence":"CONFIRMED","maximumProposalOptions":1,"maximumSourceBytes":1048576,"maximumClarificationCount":20,"maximumClarificationLength":4000,"maximumRetryReasonLength":2000,"requiresTenantOptIn":true,"allowAutomaticExternalSend":true,"allowAttachments":false,"proposalTitle":"Out-of-home media proposal","proposalOptionLabel":"Recommended OOH plan","proposalTerms":"The proposal is based on the exact approved plan, rates, availability and running periods shown. Any material change requires a new version.","emailSubjectPrefix":"Your Advertified OOH proposal","emailBody":"Please find the recommended out-of-home media proposal attached. Reply to this email if the campaign requirements need to change."}}
     ],
+    "marketplaceListingStatuses": [
+      {"code":"DRAFT","displayLabel":"Draft","isActive":true,"sortOrder":10},
+      {"code":"PUBLISHED","displayLabel":"Published","isActive":true,"sortOrder":20},
+      {"code":"ARCHIVED","displayLabel":"Archived","isActive":true,"sortOrder":30}
+    ],
+    "marketplaceRfqStatuses": [
+      {"code":"DRAFT","displayLabel":"Draft","isActive":true,"sortOrder":10},
+      {"code":"SENT","displayLabel":"Sent to Supplier","isActive":true,"sortOrder":20},
+      {"code":"RESPONDED","displayLabel":"Supplier Responded","isActive":true,"sortOrder":30},
+      {"code":"ACCEPTED","displayLabel":"Response Accepted","isActive":true,"sortOrder":40},
+      {"code":"EXPIRED","displayLabel":"Expired","isActive":true,"sortOrder":50}
+    ],
+    "marketplaceResponseStatuses": [
+      {"code":"SUBMITTED","displayLabel":"Submitted","isActive":true,"sortOrder":10},
+      {"code":"ACCEPTED","displayLabel":"Accepted","isActive":true,"sortOrder":20},
+      {"code":"EXPIRED","displayLabel":"Expired","isActive":true,"sortOrder":30}
+    ],
     "supplySourceTypes": [
       {"code":"NOT_SUPPLIED","displayLabel":"Not Supplied","isActive":true,"sortOrder":10},
       {"code":"PUBLISHED_INVENTORY","displayLabel":"Published Inventory","isActive":true,"sortOrder":20},
@@ -388,7 +411,11 @@
       {"code":"campaign_mode_selection","displayLabel":"Campaign Mode Selection","isActive":true,"sortOrder":270},
       {"code":"inbound_mailbox","displayLabel":"Inbound Mailbox","isActive":true,"sortOrder":280},
       {"code":"inbound_campaign_email","displayLabel":"Inbound Campaign Email","isActive":true,"sortOrder":290},
-      {"code":"email_proposal_automation_run","displayLabel":"Email Proposal Automation Run","isActive":true,"sortOrder":300}
+      {"code":"email_proposal_automation_run","displayLabel":"Email Proposal Automation Run","isActive":true,"sortOrder":300},
+      {"code":"marketplace_listing","displayLabel":"Marketplace Listing","isActive":true,"sortOrder":310},
+      {"code":"marketplace_listing_version","displayLabel":"Marketplace Listing Version","isActive":true,"sortOrder":320},
+      {"code":"marketplace_rfq","displayLabel":"Marketplace RFQ","isActive":true,"sortOrder":330},
+      {"code":"marketplace_supplier_response","displayLabel":"Marketplace Supplier Response","isActive":true,"sortOrder":340}
     ],
     "commercialActions": [
       {"code":"tenant.updated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -443,7 +470,14 @@
       {"code":"email_automation.started","displayLabel":"Email Proposal Automation Started","isActive":true,"sortOrder":500},
       {"code":"email_automation.review_required","displayLabel":"Email Proposal Automation Review Required","isActive":true,"sortOrder":510},
       {"code":"email_automation.sent","displayLabel":"Email Proposal Automation Sent","isActive":true,"sortOrder":520},
-      {"code":"email_automation.failed","displayLabel":"Email Proposal Automation Failed","isActive":true,"sortOrder":530}
+      {"code":"email_automation.failed","displayLabel":"Email Proposal Automation Failed","isActive":true,"sortOrder":530},
+      {"code":"marketplace_listing.created","displayLabel":"Marketplace Listing Created","isActive":true,"sortOrder":540},
+      {"code":"marketplace_listing.published","displayLabel":"Marketplace Listing Published","isActive":true,"sortOrder":550},
+      {"code":"marketplace_listing.archived","displayLabel":"Marketplace Listing Archived","isActive":true,"sortOrder":560},
+      {"code":"marketplace_rfq.created","displayLabel":"Marketplace RFQ Created","isActive":true,"sortOrder":570},
+      {"code":"marketplace_rfq.sent","displayLabel":"Marketplace RFQ Sent","isActive":true,"sortOrder":580},
+      {"code":"marketplace_rfq.response_submitted","displayLabel":"Marketplace Response Submitted","isActive":true,"sortOrder":590},
+      {"code":"marketplace_rfq.response_accepted","displayLabel":"Marketplace Response Accepted","isActive":true,"sortOrder":600}
     ],
     "commercialEventTypes": [
       {"code":"TenantUpdated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -498,7 +532,14 @@
       {"code":"EmailProposalAutomationStarted","displayLabel":"Email Proposal Automation Started","isActive":true,"sortOrder":500},
       {"code":"EmailProposalAutomationReviewRequired","displayLabel":"Email Proposal Automation Review Required","isActive":true,"sortOrder":510},
       {"code":"EmailProposalAutomationSent","displayLabel":"Email Proposal Automation Sent","isActive":true,"sortOrder":520},
-      {"code":"EmailProposalAutomationFailed","displayLabel":"Email Proposal Automation Failed","isActive":true,"sortOrder":530}
+      {"code":"EmailProposalAutomationFailed","displayLabel":"Email Proposal Automation Failed","isActive":true,"sortOrder":530},
+      {"code":"MarketplaceListingCreated","displayLabel":"Marketplace Listing Created","isActive":true,"sortOrder":540},
+      {"code":"MarketplaceListingPublished","displayLabel":"Marketplace Listing Published","isActive":true,"sortOrder":550},
+      {"code":"MarketplaceListingArchived","displayLabel":"Marketplace Listing Archived","isActive":true,"sortOrder":560},
+      {"code":"MarketplaceRfqCreated","displayLabel":"Marketplace RFQ Created","isActive":true,"sortOrder":570},
+      {"code":"MarketplaceRfqSent","displayLabel":"Marketplace RFQ Sent","isActive":true,"sortOrder":580},
+      {"code":"MarketplaceResponseSubmitted","displayLabel":"Marketplace Response Submitted","isActive":true,"sortOrder":590},
+      {"code":"MarketplaceResponseAccepted","displayLabel":"Marketplace Response Accepted","isActive":true,"sortOrder":600}
     ],
     "creativeTextRoles": [
       {"code":"HEADLINE","displayLabel":"Headline","isActive":true,"sortOrder":10},

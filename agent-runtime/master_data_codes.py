@@ -1,5 +1,5 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: c9ebd5b4e87293a19a44f13227d00dffe1e5fbdf64319f20175cce8eb186c749
+# source-sha256: 542da9f07caf85b46e641cd2638c810efd700091e19941ae511b038aa861a35d
 from enum import StrEnum
 
 REGISTRY_VERSION = "2.0.0"
@@ -84,6 +84,12 @@ class Permissions(StrEnum):
     EMAIL_AUTOMATION_VIEW = "email_automation_view"
     EMAIL_AUTOMATION_MANAGE = "email_automation_manage"
     EMAIL_AUTOMATION_EXECUTE = "email_automation_execute"
+    MARKETPLACE_VIEW = "marketplace_view"
+    SUPPLIER_INVENTORY_MANAGE = "supplier_inventory_manage"
+    RFQ_CREATE = "rfq_create"
+    RFQ_SEND = "rfq_send"
+    RFQ_RESPOND = "rfq_respond"
+    RFQ_REVIEW = "rfq_review"
 
 class BriefSourceTypes(StrEnum):
     SUPPLIED_TEXT = "SUPPLIED_TEXT"
@@ -339,6 +345,23 @@ class AutomationFailureReasons(StrEnum):
 class EmailAutomationPolicies(StrEnum):
     OOH_INBOUND_PROPOSAL_V1 = "OOH_INBOUND_PROPOSAL_V1"
 
+class MarketplaceListingStatuses(StrEnum):
+    DRAFT = "DRAFT"
+    PUBLISHED = "PUBLISHED"
+    ARCHIVED = "ARCHIVED"
+
+class MarketplaceRfqStatuses(StrEnum):
+    DRAFT = "DRAFT"
+    SENT = "SENT"
+    RESPONDED = "RESPONDED"
+    ACCEPTED = "ACCEPTED"
+    EXPIRED = "EXPIRED"
+
+class MarketplaceResponseStatuses(StrEnum):
+    SUBMITTED = "SUBMITTED"
+    ACCEPTED = "ACCEPTED"
+    EXPIRED = "EXPIRED"
+
 class SupplySourceTypes(StrEnum):
     NOT_SUPPLIED = "NOT_SUPPLIED"
     PUBLISHED_INVENTORY = "PUBLISHED_INVENTORY"
@@ -389,6 +412,10 @@ class CommercialResourceTypes(StrEnum):
     INBOUND_MAILBOX = "inbound_mailbox"
     INBOUND_CAMPAIGN_EMAIL = "inbound_campaign_email"
     EMAIL_PROPOSAL_AUTOMATION_RUN = "email_proposal_automation_run"
+    MARKETPLACE_LISTING = "marketplace_listing"
+    MARKETPLACE_LISTING_VERSION = "marketplace_listing_version"
+    MARKETPLACE_RFQ = "marketplace_rfq"
+    MARKETPLACE_SUPPLIER_RESPONSE = "marketplace_supplier_response"
 
 class CommercialActions(StrEnum):
     TENANT_UPDATED = "tenant.updated"
@@ -444,6 +471,13 @@ class CommercialActions(StrEnum):
     EMAIL_AUTOMATION_REVIEW_REQUIRED = "email_automation.review_required"
     EMAIL_AUTOMATION_SENT = "email_automation.sent"
     EMAIL_AUTOMATION_FAILED = "email_automation.failed"
+    MARKETPLACE_LISTING_CREATED = "marketplace_listing.created"
+    MARKETPLACE_LISTING_PUBLISHED = "marketplace_listing.published"
+    MARKETPLACE_LISTING_ARCHIVED = "marketplace_listing.archived"
+    MARKETPLACE_RFQ_CREATED = "marketplace_rfq.created"
+    MARKETPLACE_RFQ_SENT = "marketplace_rfq.sent"
+    MARKETPLACE_RFQ_RESPONSE_SUBMITTED = "marketplace_rfq.response_submitted"
+    MARKETPLACE_RFQ_RESPONSE_ACCEPTED = "marketplace_rfq.response_accepted"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -499,6 +533,13 @@ class CommercialEventTypes(StrEnum):
     EMAIL_PROPOSAL_AUTOMATION_REVIEW_REQUIRED = "EmailProposalAutomationReviewRequired"
     EMAIL_PROPOSAL_AUTOMATION_SENT = "EmailProposalAutomationSent"
     EMAIL_PROPOSAL_AUTOMATION_FAILED = "EmailProposalAutomationFailed"
+    MARKETPLACE_LISTING_CREATED = "MarketplaceListingCreated"
+    MARKETPLACE_LISTING_PUBLISHED = "MarketplaceListingPublished"
+    MARKETPLACE_LISTING_ARCHIVED = "MarketplaceListingArchived"
+    MARKETPLACE_RFQ_CREATED = "MarketplaceRfqCreated"
+    MARKETPLACE_RFQ_SENT = "MarketplaceRfqSent"
+    MARKETPLACE_RESPONSE_SUBMITTED = "MarketplaceResponseSubmitted"
+    MARKETPLACE_RESPONSE_ACCEPTED = "MarketplaceResponseAccepted"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"

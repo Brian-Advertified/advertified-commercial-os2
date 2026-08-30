@@ -136,6 +136,21 @@ public sealed class OpenApiContractTests
             "/api/v1/tenants/{tenantId}/proposal-versions/{proposalVersionId}:share"]!["post"]);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/proposal-versions/{proposalVersionId}:select-option"]!["post"]);
+        Assert.NotNull(paths["/api/v1/tenants/{tenantId}/marketplace-listings"]!["get"]);
+        var publishListing = paths[
+            "/api/v1/tenants/{tenantId}/marketplace-listings/{listingId}:publish"]!["post"]!;
+        AssertHeaderParameter(publishListing["parameters"]!.AsArray(), "If-Match", true);
+        Assert.NotNull(paths["/api/v1/tenants/{tenantId}/marketplace-rfqs"]!["post"]);
+        var sendRfq = paths[
+            "/api/v1/tenants/{tenantId}/marketplace-rfqs/{rfqId}:send"]!["post"]!;
+        AssertHeaderParameter(sendRfq["parameters"]!.AsArray(), "If-Match", true);
+        var respond = paths[
+            "/api/v1/tenants/{tenantId}/marketplace-rfqs/{rfqId}/responses"]!["post"]!;
+        Assert.DoesNotContain(respond["parameters"]!.AsArray(),
+            item => item?["name"]?.GetValue<string>() == "If-Match");
+        var accept = paths[
+            "/api/v1/tenants/{tenantId}/marketplace-responses/{responseId}:accept"]!["post"]!;
+        AssertHeaderParameter(accept["parameters"]!.AsArray(), "If-Match", true);
     }
 
     private static void AssertHeaderParameter(

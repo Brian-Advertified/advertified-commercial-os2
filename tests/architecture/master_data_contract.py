@@ -52,6 +52,9 @@ REQUIRED_MASTER_COLLECTIONS = {
     "emailAutomationCheckpoints",
     "automationFailureReasons",
     "emailAutomationPolicies",
+    "marketplaceListingStatuses",
+    "marketplaceRfqStatuses",
+    "marketplaceResponseStatuses",
     "rateFreshnessStatuses",
     "supplyConfidenceStatuses",
     "supplySourceTypes",
@@ -194,9 +197,23 @@ EMAIL_AUTOMATION_PERMISSION_ROLES = {
     "email_automation_manage": {"platform_admin", "agency_admin"},
     "email_automation_execute": {"platform_admin", "agency_admin", "worker_service"},
 }
+MARKETPLACE_PERMISSION_ROLES = {
+    "marketplace_view": BASIC_HUMAN_ROLES - {"influencer_rep"},
+    "supplier_inventory_manage": {"platform_admin", "supplier_admin", "supplier_user"},
+    "rfq_create": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "rfq_send": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "rfq_respond": {"platform_admin", "supplier_admin", "supplier_user"},
+    "rfq_review": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+}
 REQUIRED_PERMISSION_ROLES = (
     FOUNDATION_PERMISSION_ROLES | OPPORTUNITY_PERMISSION_ROLES | BRIEF_PERMISSION_ROLES
     | INVENTORY_PERMISSION_ROLES | PLANNING_PERMISSION_ROLES | PROPOSAL_PERMISSION_ROLES
-    | EMAIL_AUTOMATION_PERMISSION_ROLES
+    | EMAIL_AUTOMATION_PERMISSION_ROLES | MARKETPLACE_PERMISSION_ROLES
 )
 
