@@ -8,6 +8,7 @@ namespace Advertified.Commercial.Infrastructure.Planning;
 
 public sealed class PlanningReader(
     PlanningRecordStore store,
+    CampaignModePolicy campaignModePolicy,
     ITenantAuthorizer authorizer) : IPlanningReader
 {
     public async Task<PlanningWorkspaceView> GetWorkspaceAsync(
@@ -22,6 +23,8 @@ public sealed class PlanningReader(
         var brief = await store.FindBriefAsync(tenantId, briefVersionId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Planning access denied.");
         EnsureAssigned(brief, actorId);
+        var campaignModeRow = await store.FindCampaignModeAsync(
+            tenantId, briefVersionId, cancellationToken);
         var audienceRow = await store.FindLatestAudienceAsync(
             tenantId, briefVersionId, cancellationToken);
         var mixRow = await store.FindLatestMixAsync(tenantId, briefVersionId, cancellationToken);
@@ -29,6 +32,10 @@ public sealed class PlanningReader(
             tenantId, briefVersionId, cancellationToken);
         var planRow = await store.FindLatestPlanAsync(
             tenantId, briefVersionId, cancellationToken);
+        var campaignMode = campaignModeRow is null
+            ? null
+            : PlanningRecordStore.BuildCampaignModeView(
+                campaignModeRow, campaignModePolicy);
         var audience = audienceRow is null ? null : await store.BuildAudienceViewAsync(
             tenantId, audienceRow, cancellationToken);
         var mix = mixRow is null ? null : PlanningRecordStore.BuildMixView(mixRow);
@@ -37,7 +44,9 @@ public sealed class PlanningReader(
         var plan = planRow is null ? null : await store.BuildPlanViewAsync(
             tenantId, planRow, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return new PlanningWorkspaceView(brief.BriefId, briefVersionId, audience, mix, shortlist, plan);
+        return new PlanningWorkspaceView(
+            brief.BriefId, briefVersionId, campaignMode,
+            audience, mix, shortlist, plan);
     }
 
     public async Task<MediaPlanVersionView> GetPlanAsync(

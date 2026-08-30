@@ -162,8 +162,8 @@ The application must implement these as versioned policy defaults and expose law
 |--------|------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
 | E2E-01 | Tenant isolation       | Two tenants with similar IDs; all browser/API/job/tool cross-access attempts denied and audited                                       |
 | E2E-02 | Unbriefed opportunity  | Capture permitted sources -\> approve evidence -\> interpretation -\> opportunity angle -\> strategy/critic -\> approved BriefVersion |
-| E2E-03 | Full campaign          | Approved brief -\> audience -\> media mix -\> shortlist -\> supply/forecast -\> approved plan -\> proposal tiers -\> branded PDF      |
-| E2E-04 | Rapid OOH              | Brief determines OOH path -\> geography/route/POI -\> eligible inventory -\> confirmations -\> approved plan -\> proposal             |
+| E2E-03 | Full campaign          | Approved brief -\> STP -\> multi-channel media mix -\> shortlist -\> supply/forecast -\> approved plan -\> proposal options -\> branded PDF |
+| E2E-04 | OOH-only automation    | Signed email to configured mailbox -\> immutable OOH-only Brief -\> STP -\> OOH/DOOH-only mix -\> eligible benchmarked inventory -\> current supply -\> approved plan -\> branded proposal -\> exactly-once delivery without per-request user input |
 | E2E-05 | Unseen inventory file  | Upload held-out file -\> extract structure/assets -\> review -\> publish -\> dedicated detail page -\> searchable inventory           |
 | E2E-06 | Supplier self-service  | Supplier creates/updates listing, rate and availability -\> review/publish -\> RFQ -\> response -\> confirmation                      |
 | E2E-07 | Proposal send          | Approver reviews exact version/PDF -\> resolves recipient -\> sends once -\> delivery receipt -\> selected tier                       |
@@ -195,8 +195,8 @@ The application must implement these as versioned policy defaults and expose law
 
 | **Cohort**          | **Volume**                                           | **Acceptance proof**                                                                                                                                       |
 |---------------------|------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Rapid OOH           | 10 genuine briefs                                    | Each reaches an accepted exact immutable shortlist/proposal version and visually inspected editable presentation/PDF; provisional availability is truthful |
-| Full multi-channel  | 10 genuine briefs                                    | Each reaches an accepted exact immutable proposal option, approved plan and premium branded PDF                                                            |
+| OOH-only            | 10 genuine inbound or supplied briefs                 | Each uses the same STP/planning spine with only OOH/DOOH selected; complete mailbox cases send exactly once without per-request input, while incomplete/non-OOH cases send nothing and enter review |
+| Full multi-channel  | 10 genuine briefs                                    | Each reaches an accepted exact immutable proposal option, approved STP/plan and premium branded PDF                                                         |
 | Unbriefed discovery | 10 genuine opportunities including Rayetsa Furniture | Approved evidence -\> interpretation -\> opportunity/strategy -\> complete approved BriefVersion -\> plan -\> accepted proposal                            |
 | Total               | 30 accepted cases                                    | Not generated demos: real owner/UAT acceptance, canonical audit, inventory/pricing evidence and final artefact retained                                    |
 

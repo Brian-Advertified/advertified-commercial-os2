@@ -12,6 +12,10 @@ public static class BriefEndpoints
         var group = endpoints.MapGroup("/api/v1/tenants/{tenantId:guid}")
             .WithTags("Canonical Brief")
             .RequireAuthorization();
+        group.MapPost("/briefs:understand", UnderstandBriefAsync)
+            .WithName("UnderstandSuppliedBrief")
+            .Produces<SuppliedBriefUnderstandingView>()
+            .WithQueryProblems();
         group.MapPost("/briefs", CreateBriefAsync)
             .WithName("CreateCampaignBrief")
             .Produces<CampaignBriefSummaryView>(StatusCodes.Status201Created)
@@ -38,6 +42,17 @@ public static class BriefEndpoints
             .WithCommandProblems(requiresVersion: true);
         return endpoints;
     }
+
+    private static async Task<IResult> UnderstandBriefAsync(
+        Guid tenantId,
+        UnderstandSuppliedBriefRequest request,
+        ICurrentIdentity identity,
+        ISuppliedBriefUnderstandingService service,
+        CancellationToken cancellationToken) => Results.Ok(await service.UnderstandAsync(
+            identity.ActorId,
+            new TenantId(tenantId),
+            request,
+            cancellationToken));
 
     private static Task<IResult> CreateBriefAsync(
         Guid tenantId,

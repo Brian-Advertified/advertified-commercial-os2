@@ -5,8 +5,9 @@
 | **Entry journey**       | **One commercial spine**                                                                                                                                                                        | **Routing rule**                                                                 |
 |-------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
 | Discovery/unbriefed     | Advertified finds or receives a prospect, captures approved evidence, interprets the business, proposes opportunity/strategy and creates a complete reviewed draft BriefVersion                 | Human approves evidence, strategy and Brief before planning                      |
-| Brief-led full campaign | User uploads/pastes original brief; system understands it, preserves source, raises unknowns, creates canonical BriefVersion, then strategy, audience, mix, plan and proposal                   | User is not forced to choose implementation details                              |
-| Rapid OOH               | System identifies a genuine rapid OOH need from the Brief, resolves geography/routes/POIs, evaluates OOH, allows provisional availability-subject shortlist and produces editable shortlist/PDF | User does not choose the technical path; internal owner may override with reason |
+| Brief-led campaign      | User uploads/pastes original brief; system understands it, preserves source, raises unknowns, creates canonical BriefVersion, then STP, mix, plan and proposal | The immutable campaign mode controls allowed channels; the planning stages remain the same |
+| OOH-only campaign       | The same canonical STP-to-proposal flow runs with media selection restricted to OOH/DOOH, whether started interactively or by the configured inbound mailbox | It cannot gain another channel; changed scope starts a new CampaignBrief and planning lineage |
+| Inbound OOH automation  | A configured mailbox preserves the email as source evidence and runs the same OOH-only Brief, STP, planning, proposal, render and delivery services | No per-message user action on the ready path; any policy/readiness failure prevents send and opens review |
 
 ## 19.1 Opportunity lifecycle
 
@@ -39,12 +40,25 @@
 | MediaPlanVersion | IN_REVIEW         | ApproveMediaPlan    | no material stale input or unresolved blocker                    | APPROVED  |
 | ProposalVersion  | DRAFT             | SubmitProposal      | tiers distinct; plan, pricing, evidence and expiry valid         | IN_REVIEW |
 | ProposalVersion  | IN_REVIEW         | ApproveProposal     | named commercial approver; PDF preview generated                 | APPROVED  |
-| ProposalVersion  | APPROVED          | SendProposal        | recipient resolved; human confirms external send                 | SENT      |
+| ProposalVersion  | APPROVED          | SendProposal        | recipient resolved; either a human confirms the exact send or an enabled bounded inbound-OOH automation policy has passed every readiness guard | SENT      |
 | ProposalVersion  | SENT              | SelectTier          | selected tier exists and not expired                             | SELECTED  |
 | ProposalVersion  | SENT              | DeclineProposal     | reason optional; actor authorised                                | DECLINED  |
 | ProposalVersion  | APPROVED/SENT     | ExpireProposal      | expiry reached or authorised manual expiry                       | EXPIRED   |
 
 *An approved artefact is never updated. A material change creates a new draft version. Downstream artefacts continue to reference the approved input version until the replacement is approved; then affected downstream drafts are marked STALE and require regeneration or explicit revalidation.*
+
+### 19.2.1 Inbound OOH automation lifecycle
+
+| **From** | **Command** | **Guard** | **To** |
+|---|---|---|---|
+| — | ReceiveInboundEmail | configured mailbox, verified provider event, unique provider message ID/content hash | RECEIVED |
+| RECEIVED | StartAutomatedProposal | tenant automation enabled; sender/reply address valid; source preserved | PROCESSING |
+| PROCESSING | CompleteAutomatedProposal | OOH-only campaign mode; complete Brief; STP, mix, supply, plan, proposal and PDF all current; no unresolved material objection | SENT |
+| RECEIVED/PROCESSING | RequireAutomationReview | missing or conflicting material fact, non-OOH request, stale/insufficient supply, invalid recipient, policy limit or terminal provider failure | REVIEW_REQUIRED |
+| PROCESSING | FailAutomation | classified terminal implementation/provider failure with safe retry state | FAILED |
+| any | DetectDuplicateInboundEmail | same provider message ID or canonical content hash already accepted | DUPLICATE |
+
+`OOH_ONLY` and `FULL_CAMPAIGN` are immutable campaign modes, not separate planning engines. A non-OOH channel request can never mutate an OOH-only run; it requires a new CampaignBrief and new downstream artefacts from the original source.
 
 ## 19.3 Inventory import, booking, campaign and run lifecycles
 
@@ -196,7 +210,8 @@
 | POST       | /tenants/{tid}/opportunities/{id}/strategies:generate   | agent run        | Queue Strategy and Critic workflow                 |
 | GET        | /tenants/{tid}/strategies/{id}                          | strategy view    | Version, evidence, objections and approval         |
 | POST       | /tenants/{tid}/strategy-versions/{id}:approve           | strategy approve | Approve current version                            |
-| POST       | /tenants/{tid}/brief-versions/{id}/audiences:generate   | agent run        | Queue Audience agent                               |
+| POST       | /tenants/{tid}/brief-versions/{id}/campaign-mode:select | plan edit        | Lock `OOH_ONLY` or `FULL_CAMPAIGN` before STP      |
+| POST       | /tenants/{tid}/brief-versions/{id}/audiences:generate   | agent run        | Complete segmentation, targeting and positioning   |
 | POST       | /tenants/{tid}/brief-versions/{id}/media-mixes:generate | agent run        | Queue Media Planning mix stage                     |
 | POST       | /tenants/{tid}/media-mix-versions/{id}:approve          | plan approve     | Approve allocation and channel roles               |
 | POST       | /tenants/{tid}/brief-versions/{id}/shortlists:generate  | agent run        | Eligibility then Inventory Intelligence            |
@@ -210,6 +225,16 @@
 | POST       | /tenants/{tid}/proposal-versions/{id}:render            | proposal edit    | Generate branded DOCX/PDF from approved facts      |
 | POST       | /tenants/{tid}/proposal-versions/{id}:send              | external send    | Resolve recipient, confirm human approval and send |
 | POST       | /tenants/{tid}/proposal-versions/{id}:select-tier       | proposal select  | Record selected tier and start booking             |
+| GET        | /tenants/{tid}/email-automation/mailbox                | email automation view | Read the one-time OOH inbox configuration      |
+| POST       | /tenants/{tid}/email-automation/mailbox                | email automation manage | Configure mailbox, delegated owner and sender policy |
+| POST       | /tenants/{tid}/email-automation/webhooks/{provider}    | signed provider webhook | Idempotently capture an inbound email and start the OOH-only workflow |
+| GET        | /tenants/{tid}/email-automation/messages               | email automation view | Monitor sent, processing and review-required requests |
+| GET        | /tenants/{tid}/email-automation/messages/{id}          | email automation view | Inspect durable checkpoint and generated artefacts |
+| POST       | /tenants/{tid}/email-automation/messages/{id}:process  | email automation execute | Resume only a reviewable request from its last safe checkpoint |
+| POST       | /tenants/{tid}/inbound-campaign-emails               | email automation execute | Accept a signed provider event for the configured mailbox and preserve the source idempotently |
+| GET        | /tenants/{tid}/inbound-campaign-emails/{id}          | email automation view | Inspect source, readiness, canonical artefact links, delivery and failure state |
+| POST       | /tenants/{tid}/inbound-campaign-emails/{id}:process  | email automation execute | Run the canonical OOH-only Brief → STP → plan → proposal → PDF → send pipeline |
+| POST       | /tenants/{tid}/inbound-campaign-emails/{id}:retry    | email automation manage | Resume only from a safe persisted checkpoint without duplicate creation or send |
 
 ## 21.4 Inventory, supplier, delivery and operations endpoints
 

@@ -23,10 +23,6 @@ public static class PlanningEndpoints
                 GenerateAudiencesAsync)
             .WithName("GenerateAudiences").Produces<AudienceDefinitionSetView>()
             .WithCommandProblems(requiresVersion: false);
-        group.MapPost("/audience-definition-sets/{audienceSetId:guid}:approve",
-                ApproveAudienceStrategyAsync)
-            .WithName("ApproveAudienceStrategy").Produces<AudienceDefinitionSetView>()
-            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/brief-versions/{briefVersionId:guid}/media-mixes:generate",
                 GenerateMixAsync)
             .WithName("GenerateMediaMix").Produces<MediaMixVersionView>()
@@ -109,14 +105,6 @@ public static class PlanningEndpoints
             tenantId, command, context, identity, clock,
             (envelope, token) => commands.GenerateAudiencesAsync(
                 briefVersionId, envelope, token), cancellationToken);
-
-    private static Task<IResult> ApproveAudienceStrategyAsync(
-        Guid tenantId, Guid audienceSetId, ApproveAudienceStrategyCommand command,
-        HttpContext context, ICurrentIdentity identity, IAudienceStrategyCommands commands,
-        TimeProvider clock, CancellationToken cancellationToken) => ExecuteMutationAsync(
-            tenantId, command, context, identity, clock,
-            (envelope, token) => commands.ApproveAsync(
-                audienceSetId, envelope, token), cancellationToken);
 
     private static Task<IResult> GenerateMixAsync(
         Guid tenantId, Guid briefVersionId, GenerateMediaMixCommand command,

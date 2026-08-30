@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Advertified.Commercial.Application.Commands;
+using Advertified.Commercial.Application.EmailAutomation;
 using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Application.Opportunity;
@@ -120,6 +121,26 @@ public sealed class HumanSafeExceptionHandler(
                 "File protection is unavailable",
                 "Try again after the local file protection services are available.",
                 "INVENTORY_PROTECTION_UNAVAILABLE"),
+            CampaignModeRequiredException => new(
+                StatusCodes.Status409Conflict,
+                "Choose the campaign mode",
+                "Select out-of-home only or a full campaign before continuing.",
+                "CAMPAIGN_MODE_REQUIRED"),
+            CampaignModeLockedException => new(
+                StatusCodes.Status409Conflict,
+                "The campaign mode is already set",
+                "Start a new campaign and planning process to use another mode.",
+                "CAMPAIGN_MODE_LOCKED"),
+            SupplyConfirmationRequiredException => new(
+                StatusCodes.Status409Conflict,
+                "Supplier confirmation required",
+                "Confirm the current rate and availability for the selected placement before continuing.",
+                MasterDataCodes.RejectionReasons.SupplierConfirmationRequired),
+            CampaignRestartRequiredException => new(
+                StatusCodes.Status409Conflict,
+                "Start a new campaign",
+                "This OOH-only campaign cannot add another media type. Create a new campaign and begin again from the Brief.",
+                "CAMPAIGN_RESTART_REQUIRED"),
             PlanningInputStaleException => new(
                 StatusCodes.Status409Conflict,
                 "Planning inputs changed",
@@ -150,6 +171,41 @@ public sealed class HumanSafeExceptionHandler(
                 "Proposal expired",
                 "Ask the agency for a current proposal before making a decision.",
                 "PROPOSAL_EXPIRED"),
+            InvalidEmailWebhookException => new(
+                StatusCodes.Status400BadRequest,
+                "Inbound email notification rejected",
+                "The email provider notification could not be verified.",
+                "INVALID_EMAIL_WEBHOOK"),
+            InboundMailboxNotConfiguredException => new(
+                StatusCodes.Status409Conflict,
+                "Inbound proposal mailbox is not ready",
+                "Configure and enable the proposal mailbox before receiving requests.",
+                "INBOUND_MAILBOX_NOT_CONFIGURED"),
+            EmailAutomationReviewRequiredException review => new(
+                StatusCodes.Status409Conflict,
+                "This request needs review",
+                review.Message,
+                review.FailureCode),
+            EmailAutomationNotRetryableException => new(
+                StatusCodes.Status409Conflict,
+                "This request cannot be retried",
+                "Only a failed or review-required request can be retried.",
+                "EMAIL_AUTOMATION_NOT_RETRYABLE"),
+            EmailAttachmentBlockedException => new(
+                StatusCodes.Status409Conflict,
+                "An attachment needs review",
+                "Review the supplied attachments before continuing this request.",
+                "EMAIL_ATTACHMENT_BLOCKED"),
+            EmailPayloadUnavailableException => new(
+                StatusCodes.Status409Conflict,
+                "Email content is unavailable",
+                "Retrieve or resubmit the complete email before processing it.",
+                "EMAIL_PAYLOAD_UNAVAILABLE"),
+            EmailProviderUnavailableException or EmailDeliveryFailedException => new(
+                StatusCodes.Status503ServiceUnavailable,
+                "Email service is unavailable",
+                "Retry after the configured email service is available.",
+                "EMAIL_PROVIDER_UNAVAILABLE"),
             ArgumentException or BadHttpRequestException => new(
                 StatusCodes.Status400BadRequest,
                 "Some information needs attention",

@@ -5,11 +5,13 @@ import {
   audienceSetSchema,
   mediaMixSchema,
   mediaPlanSchema,
+  campaignModeSchema,
   planningWorkspaceSchema,
   shortlistSchema,
   type MediaAllocation,
   type MediaMix,
   type MediaPlan,
+  type CampaignMode,
   type PlanningWorkspace,
   type Shortlist,
 } from './planning-schemas'
@@ -42,6 +44,31 @@ export const planningApi = {
     return (await request(
       `/api/v1/tenants/${tenantId}/brief-versions/${briefVersionId}/planning`,
       planningWorkspaceSchema,
+    )).data
+  },
+
+  async selectCampaignMode(
+    tenantId: string,
+    briefVersionId: string,
+    mode: string,
+    token: string,
+    decision?: { source: string; confidence: number; reason: string },
+  ): Promise<CampaignMode> {
+    const resolved = decision ?? {
+      source: masterDataCodes.campaignModeDecisionSources.humanSelection,
+      confidence: 1,
+      reason: 'Campaign media selection confirmed before planning began.',
+    }
+    return (await request(
+      `/api/v1/tenants/${tenantId}/brief-versions/${briefVersionId}/campaign-mode:select`,
+      campaignModeSchema,
+      { method: 'POST', body: JSON.stringify({
+        mode,
+        decisionSource: resolved.source,
+        confidence: resolved.confidence,
+        reason: resolved.reason,
+      }) },
+      { antiforgeryToken: token, idempotencyKey: crypto.randomUUID() },
     )).data
   },
 

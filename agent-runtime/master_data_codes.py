@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: bcde0252f5c12b64ed280d6accf94f43d369f943d9a872b16c0f5a58196f8e2c
+# source-sha256: c9ebd5b4e87293a19a44f13227d00dffe1e5fbdf64319f20175cce8eb186c749
 from enum import StrEnum
 
-REGISTRY_VERSION = "1.9.0"
+REGISTRY_VERSION = "2.0.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -81,10 +81,14 @@ class Permissions(StrEnum):
     PROPOSAL_APPROVE = "proposal_approve"
     PROPOSAL_SHARE = "proposal_share"
     PROPOSAL_DECIDE = "proposal_decide"
+    EMAIL_AUTOMATION_VIEW = "email_automation_view"
+    EMAIL_AUTOMATION_MANAGE = "email_automation_manage"
+    EMAIL_AUTOMATION_EXECUTE = "email_automation_execute"
 
 class BriefSourceTypes(StrEnum):
     SUPPLIED_TEXT = "SUPPLIED_TEXT"
     OPPORTUNITY = "OPPORTUNITY"
+    INBOUND_EMAIL = "INBOUND_EMAIL"
 
 class OpportunitySourceTypes(StrEnum):
     DISCOVERY = "DISCOVERY"
@@ -93,6 +97,7 @@ class OpportunitySourceTypes(StrEnum):
 class EvidenceSourceTypes(StrEnum):
     SUPPLIED_TEXT = "SUPPLIED_TEXT"
     PERMITTED_URL = "PERMITTED_URL"
+    INBOUND_EMAIL = "INBOUND_EMAIL"
 
 class EvidencePolicyBases(StrEnum):
     OWNER_SUPPLIED = "OWNER_SUPPLIED"
@@ -280,6 +285,60 @@ class PlanningPolicies(StrEnum):
 class ProposalPolicies(StrEnum):
     CLIENT_OPTIONS_V1 = "CLIENT_OPTIONS_V1"
 
+class CampaignModes(StrEnum):
+    FULL_CAMPAIGN = "FULL_CAMPAIGN"
+    OOH_ONLY = "OOH_ONLY"
+
+class CampaignModeDecisionSources(StrEnum):
+    AGENT = "AGENT"
+    HUMAN_SELECTION = "HUMAN_SELECTION"
+    HUMAN_CLARIFICATION = "HUMAN_CLARIFICATION"
+    INBOUND_AUTOMATION = "INBOUND_AUTOMATION"
+
+class BriefUnderstandingPolicies(StrEnum):
+    BRIEF_UNDERSTANDING_V1 = "BRIEF_UNDERSTANDING_V1"
+
+class EmailProviders(StrEnum):
+    RESEND = "RESEND"
+    DETERMINISTIC = "DETERMINISTIC"
+
+class EmailAutomationStatuses(StrEnum):
+    RECEIVED = "RECEIVED"
+    PROCESSING = "PROCESSING"
+    SENT = "SENT"
+    REVIEW_REQUIRED = "REVIEW_REQUIRED"
+    FAILED = "FAILED"
+    DUPLICATE = "DUPLICATE"
+
+class EmailAutomationCheckpoints(StrEnum):
+    SOURCE_CAPTURED = "SOURCE_CAPTURED"
+    BRIEF_APPROVED = "BRIEF_APPROVED"
+    STP_APPROVED = "STP_APPROVED"
+    MIX_APPROVED = "MIX_APPROVED"
+    SHORTLIST_APPROVED = "SHORTLIST_APPROVED"
+    PLAN_APPROVED = "PLAN_APPROVED"
+    PROPOSAL_APPROVED = "PROPOSAL_APPROVED"
+    DOCUMENT_RENDERED = "DOCUMENT_RENDERED"
+    SENT = "SENT"
+
+class AutomationFailureReasons(StrEnum):
+    INVALID_MAILBOX = "INVALID_MAILBOX"
+    INVALID_PROVIDER_SIGNATURE = "INVALID_PROVIDER_SIGNATURE"
+    DUPLICATE_MESSAGE = "DUPLICATE_MESSAGE"
+    INVALID_RECIPIENT = "INVALID_RECIPIENT"
+    CLIENT_NOT_RESOLVED = "CLIENT_NOT_RESOLVED"
+    NON_OOH_REQUEST = "NON_OOH_REQUEST"
+    INCOMPLETE_BRIEF = "INCOMPLETE_BRIEF"
+    ATTACHMENT_REVIEW_REQUIRED = "ATTACHMENT_REVIEW_REQUIRED"
+    STP_UNREADY = "STP_UNREADY"
+    SUPPLY_UNREADY = "SUPPLY_UNREADY"
+    PLAN_UNREADY = "PLAN_UNREADY"
+    PROPOSAL_UNREADY = "PROPOSAL_UNREADY"
+    DELIVERY_FAILED = "DELIVERY_FAILED"
+
+class EmailAutomationPolicies(StrEnum):
+    OOH_INBOUND_PROPOSAL_V1 = "OOH_INBOUND_PROPOSAL_V1"
+
 class SupplySourceTypes(StrEnum):
     NOT_SUPPLIED = "NOT_SUPPLIED"
     PUBLISHED_INVENTORY = "PUBLISHED_INVENTORY"
@@ -326,6 +385,10 @@ class CommercialResourceTypes(StrEnum):
     PROPOSAL_VERSION = "proposal_version"
     PROPOSAL_DOCUMENT = "proposal_document"
     PROPOSAL_DECISION = "proposal_decision"
+    CAMPAIGN_MODE_SELECTION = "campaign_mode_selection"
+    INBOUND_MAILBOX = "inbound_mailbox"
+    INBOUND_CAMPAIGN_EMAIL = "inbound_campaign_email"
+    EMAIL_PROPOSAL_AUTOMATION_RUN = "email_proposal_automation_run"
 
 class CommercialActions(StrEnum):
     TENANT_UPDATED = "tenant.updated"
@@ -374,6 +437,13 @@ class CommercialActions(StrEnum):
     PROPOSAL_SHARED = "proposal.shared"
     PROPOSAL_SELECTED = "proposal.selected"
     PROPOSAL_DECLINED = "proposal.declined"
+    CAMPAIGN_MODE_SELECTED = "campaign_mode.selected"
+    INBOUND_MAILBOX_CONFIGURED = "inbound_mailbox.configured"
+    INBOUND_EMAIL_RECEIVED = "inbound_email.received"
+    EMAIL_AUTOMATION_STARTED = "email_automation.started"
+    EMAIL_AUTOMATION_REVIEW_REQUIRED = "email_automation.review_required"
+    EMAIL_AUTOMATION_SENT = "email_automation.sent"
+    EMAIL_AUTOMATION_FAILED = "email_automation.failed"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -422,6 +492,13 @@ class CommercialEventTypes(StrEnum):
     PROPOSAL_SHARED = "ProposalShared"
     PROPOSAL_OPTION_SELECTED = "ProposalOptionSelected"
     PROPOSAL_DECLINED = "ProposalDeclined"
+    CAMPAIGN_MODE_SELECTED = "CampaignModeSelected"
+    INBOUND_MAILBOX_CONFIGURED = "InboundMailboxConfigured"
+    INBOUND_CAMPAIGN_EMAIL_RECEIVED = "InboundCampaignEmailReceived"
+    EMAIL_PROPOSAL_AUTOMATION_STARTED = "EmailProposalAutomationStarted"
+    EMAIL_PROPOSAL_AUTOMATION_REVIEW_REQUIRED = "EmailProposalAutomationReviewRequired"
+    EMAIL_PROPOSAL_AUTOMATION_SENT = "EmailProposalAutomationSent"
+    EMAIL_PROPOSAL_AUTOMATION_FAILED = "EmailProposalAutomationFailed"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"
@@ -522,6 +599,10 @@ class AssetTypes(StrEnum):
     RATE_CARD = "RATE_CARD"
     BRAND_REFERENCE = "BRAND_REFERENCE"
 
+class ProposalDeliveryModes(StrEnum):
+    LOCAL_PORTAL = "LOCAL_PORTAL"
+    EMAIL = "EMAIL"
+
 class ProposalTiers(StrEnum):
     LAUNCH = "LAUNCH"
     BOOST = "BOOST"
@@ -544,6 +625,9 @@ class RejectionReasons(StrEnum):
     DUPLICATE = "DUPLICATE"
     MISSING_INFO = "MISSING_INFO"
     SUPPLIER_DECLINED = "SUPPLIER_DECLINED"
+    INELIGIBLE_ROUTE = "INELIGIBLE_ROUTE"
+    INELIGIBLE_POI = "INELIGIBLE_POI"
+    SUPPLIER_CONFIRMATION_REQUIRED = "SUPPLIER_CONFIRMATION_REQUIRED"
 
 class TaskPriorities(StrEnum):
     URGENT = "URGENT"

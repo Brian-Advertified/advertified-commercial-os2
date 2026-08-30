@@ -189,7 +189,7 @@ Gates 9–13 remain sequence-bound. A document, route label, container, contract
 | 6 Inventory truth | VERIFIED locally — implementation and evidence complete; non-local review pending |
 | 7 Planning | VERIFIED locally — implementation and evidence complete; non-local review pending |
 | 8 Proposal and client decision | VERIFIED locally — implementation and evidence complete; non-local review pending |
-| 9 Rapid OOH | NEXT |
+| 9 OOH-only campaign mode and proposal inbox | VERIFIED LOCALLY; OWNER/INDEPENDENT REVIEW PENDING |
 | 10 Supplier marketplace | BLOCKED by Gate 9 |
 | 11 Campaign delivery and learning | BLOCKED by Gate 10 |
 | 12 Hardening and certification | BLOCKED by Gate 11 |

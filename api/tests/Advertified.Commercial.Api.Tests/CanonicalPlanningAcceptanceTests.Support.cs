@@ -15,25 +15,28 @@ namespace Advertified.Commercial.Api.Tests;
 
 public sealed partial class CanonicalPlanningAcceptanceTests
 {
-    private static readonly Guid TenantId = Guid.Parse("71000000-0000-0000-0000-000000000001");
+    internal static readonly Guid TenantId = Guid.Parse("71000000-0000-0000-0000-000000000001");
     private static readonly Guid OtherTenantId = Guid.Parse("71000000-0000-0000-0000-000000000002");
-    private static readonly Guid OperatorId = Guid.Parse("72000000-0000-0000-0000-000000000001");
-    private static readonly Guid OtherUserId = Guid.Parse("72000000-0000-0000-0000-000000000002");
+    internal static readonly Guid OperatorId = Guid.Parse("72000000-0000-0000-0000-000000000001");
+    internal static readonly Guid OtherUserId = Guid.Parse("72000000-0000-0000-0000-000000000002");
     private static readonly Guid ClientId = Guid.Parse("73000000-0000-0000-0000-000000000001");
     private static readonly Guid BriefId = Guid.Parse("74000000-0000-0000-0000-000000000001");
-    private static readonly Guid BriefVersionId = Guid.Parse("74000000-0000-0000-0000-000000000002");
+    internal static readonly Guid BriefVersionId = Guid.Parse("74000000-0000-0000-0000-000000000002");
     private static readonly Guid BriefSourceId = Guid.Parse("74000000-0000-0000-0000-000000000003");
     private static readonly Guid SupplierId = Guid.Parse("75000000-0000-0000-0000-000000000001");
     private static readonly Guid ImportId = Guid.Parse("75000000-0000-0000-0000-000000000002");
     private static readonly Guid CandidateId = Guid.Parse("75000000-0000-0000-0000-000000000003");
     private static readonly DateTimeOffset Now = new(2026, 8, 29, 18, 0, 0, TimeSpan.Zero);
+    private const string EmailWebhookSecret = "whsec_Z2F0ZS05LXdlaGhvb2stc2VjcmV0";
 
-    private static PostgreSqlContainer CreatePostgres() => DisposablePostgres.Create(
+    internal static PostgreSqlContainer CreatePostgres() => DisposablePostgres.Create(
         "advertified_planning", "advertified_planning", "advertified-planning-local-only");
 
-    private static WebApplicationFactory<Program> CreateFactory(
+    internal static WebApplicationFactory<Program> CreateFactory(
         string connectionString,
-        Guid userId) => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        Guid userId,
+        bool enableEmailAutomation = false) =>
+        new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
     {
         builder.UseEnvironment("Test");
         builder.UseSetting("ConnectionStrings:CommercialDatabase", connectionString);
@@ -42,12 +45,21 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", userId.ToString());
         builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
         builder.UseDeterministicInventoryProtection();
+        builder.UseSetting("ProposalDelivery:Mode", "Deterministic");
+        if (enableEmailAutomation)
+        {
+            builder.UseSetting("EmailAutomation:Mode", "Deterministic");
+            builder.UseSetting("EmailAutomation:ResendWebhookSecret", EmailWebhookSecret);
+            builder.UseSetting("EmailAutomation:SenderAddress", "proposals@advertified.test");
+            builder.UseSetting("EmailAutomation:WebhookToleranceSeconds", "600");
+            builder.UseSetting("EmailAutomation:ProcessInline", "true");
+        }
         builder.UseSetting("Logging:LogLevel:Default", "Warning");
         builder.UseSetting("Logging:LogLevel:Microsoft.EntityFrameworkCore", "Warning");
         builder.ConfigureLogging(logging => logging.AddConsole());
     });
 
-    private static async Task SeedAsync(string connectionString)
+    internal static async Task SeedAsync(string connectionString)
     {
         await DisposablePostgres.EnableRequiredExtensionsAsync(connectionString);
         var options = new DbContextOptionsBuilder<GovernanceDbContext>()
@@ -90,7 +102,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         new TenantId(tenantId), new UserId(userId), new RoleCode(role),
         new LifecycleStatusCode("ACTIVE"), null, Now);
 
-    private static async Task<JsonDocument> CommandAsync<T>(
+    internal static async Task<JsonDocument> CommandAsync<T>(
         HttpClient client,
         string path,
         string key,

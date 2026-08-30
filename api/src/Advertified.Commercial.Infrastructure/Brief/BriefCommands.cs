@@ -12,11 +12,10 @@ namespace Advertified.Commercial.Infrastructure.Brief;
 
 public sealed partial class BriefCommands(
     BriefRecordStore store,
+    BriefClientResolver clientResolver,
     CommandDispatcher dispatcher,
     TimeProvider timeProvider) : IBriefCommands
 {
-    private static readonly string[] ClientAdminRoles =
-        [MasterDataCodes.Roles.PlatformAdmin, MasterDataCodes.Roles.AgencyAdmin];
 
     public async Task<CommandResult<CampaignBriefSummaryView>> CreateAsync(
         CommandEnvelope<CreateBriefCommand> envelope,
@@ -77,12 +76,26 @@ public sealed partial class BriefCommands(
         CancellationToken cancellationToken)
     {
         var command = envelope.Command;
-        if (command.OwnerUserId != envelope.ActorId.Value ||
-            !await CanCreateForClientAsync(
-                envelope.TenantId, command.ClientId, envelope.ActorId.Value, cancellationToken))
+        if (command.OwnerUserId != envelope.ActorId.Value)
         {
             throw new UnauthorizedAccessException("Brief assignment denied.");
         }
+        var now = timeProvider.GetUtcNow();
+        var client = await clientResolver.ResolveAsync(
+            envelope.TenantId,
+            envelope.ActorId,
+            command.ClientId,
+            command.ClientName,
+            now,
+            cancellationToken);
+        var sourceType = string.IsNullOrWhiteSpace(command.SourceType)
+            ? MasterDataCodes.BriefSourceTypes.SuppliedText
+            : command.SourceType.Trim().ToUpperInvariant();
+        await OpportunityCommandSupport.EnsureCodeAsync(
+            store.DbContext,
+            MasterDataCodes.BriefSourceTypes.Collection,
+            sourceType,
+            cancellationToken);
         var title = OpportunityCommandSupport.Required(command.Title, 300, nameof(command.Title));
         var sourceTitle = OpportunityCommandSupport.Required(
             command.SourceTitle, 300, nameof(command.SourceTitle));
@@ -92,52 +105,27 @@ public sealed partial class BriefCommands(
             command.SourceContent, 262_144, nameof(command.SourceContent));
         var id = Guid.NewGuid();
         var sourceId = Guid.NewGuid();
-        var now = timeProvider.GetUtcNow();
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.campaign_briefs (
                 id, tenant_id, client_account_id, title, owner_user_id, status_code,
                 version, created_at_utc, updated_at_utc)
             VALUES (
-                {id}, {envelope.TenantId.Value}, {command.ClientId}, {title},
+                {id}, {envelope.TenantId.Value}, {client.Id}, {title},
                 {command.OwnerUserId}, {MasterDataCodes.LifecycleStatuses.Created}, 1, {now}, {now});
             INSERT INTO commercial.brief_sources (
                 id, tenant_id, brief_id, source_type_code, locator, title, content,
                 content_hash, created_by, created_at_utc)
             VALUES (
-                {sourceId}, {envelope.TenantId.Value}, {id}, {MasterDataCodes.BriefSourceTypes.SuppliedText},
+                {sourceId}, {envelope.TenantId.Value}, {id}, {sourceType},
                 {locator}, {sourceTitle}, {content}, {OpportunityCommandSupport.Hash(content)},
                 {envelope.ActorId.Value}, {now});
             """, cancellationToken);
         var view = new CampaignBriefSummaryView(
-            id, envelope.TenantId.Value, command.ClientId, null, title, command.OwnerUserId,
+            id, envelope.TenantId.Value, client.Id, null, title, command.OwnerUserId,
             MasterDataCodes.LifecycleStatuses.Created, null, null, 1, now);
         return OpportunityCommandSupport.Outcome(
             envelope, view, id, 1, MasterDataReferences.CommercialResourceTypes.CampaignBrief,
             MasterDataReferences.CommercialActions.CampaignBriefCreated, MasterDataReferences.CommercialEventTypes.CampaignBriefCreated, now);
     }
 
-    private Task<bool> CanCreateForClientAsync(
-        TenantId tenantId,
-        Guid clientId,
-        Guid actorId,
-        CancellationToken cancellationToken) =>
-        store.DbContext.Database.SqlQuery<bool>($"""
-            SELECT EXISTS (
-                SELECT 1 FROM commercial.client_accounts client
-                WHERE client.tenant_id = {tenantId.Value} AND client.id = {clientId}
-                  AND (EXISTS (
-                        SELECT 1 FROM commercial.memberships membership
-                        WHERE membership.tenant_id = client.tenant_id
-                          AND membership.user_id = {actorId}
-                          AND membership.status_code = {MasterDataCodes.LifecycleStatuses.Active}
-                          AND membership.role_code = ANY({ClientAdminRoles}))
-                    OR EXISTS (
-                        SELECT 1 FROM commercial.client_account_assignments assignment
-                        WHERE assignment.tenant_id = client.tenant_id
-                          AND assignment.client_account_id = client.id
-                          AND assignment.user_id = {actorId}
-                          AND assignment.effective_from_utc <= now()
-                          AND (assignment.effective_to_utc IS NULL
-                            OR assignment.effective_to_utc > now())))) AS "Value"
-            """).SingleAsync(cancellationToken);
 }

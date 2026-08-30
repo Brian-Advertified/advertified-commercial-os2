@@ -41,6 +41,11 @@ public sealed record SelectProposalOptionCommand(
 
 public sealed record DeclineProposalCommand(string? Reason);
 
+public sealed record RecordAutomatedProposalDeliveryCommand(
+    Guid AutomationRunId,
+    string RecipientEmail,
+    string ProviderMessageId);
+
 public interface IProposalCommands
 {
     Task<CommandResult<ProposalVersionView>> GenerateAsync(
@@ -66,6 +71,11 @@ public interface IProposalCommands
     Task<CommandResult<ProposalVersionView>> ShareAsync(
         Guid proposalVersionId,
         CommandEnvelope<ShareProposalCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<ProposalVersionView>> RecordAutomatedDeliveryAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<RecordAutomatedProposalDeliveryCommand> envelope,
         CancellationToken cancellationToken);
 
     Task<CommandResult<ProposalVersionView>> SelectOptionAsync(

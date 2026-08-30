@@ -41,6 +41,8 @@ The C# Commercial API owns canonical business state, authorisation, tenant enfor
 
 Opportunity discovery and a supplied client Brief are distinct entry paths. A supplied Brief remains the source artefact and is never fabricated through an Opportunity workflow. The canonical lifecycle is Brief → Plan → Proposal → Client Decision → Funding → Booking → Readiness → Live → Proof → Measurement → Learning.
 
+`OOH_ONLY` and `FULL_CAMPAIGN` are immutable campaign-mode selections on that one canonical lifecycle. `OOH_ONLY` only restricts selectable channels to OOH/DOOH; `FULL_CAMPAIGN` permits the full channel registry. Never create a separate Rapid OOH aggregate, namespace, endpoint family, migration, permission set, route decision, proposal guard, or restart/expansion workflow. A changed OOH-only requirement starts a new CampaignBrief from the beginning.
+
 ## 4. Engineering guardrails
 
 Apply SOLID, explicit dependencies, cohesive modules, and one canonical owner for every rule. Prefer simple code over speculative abstraction. Do not create parallel domain models or temporary alternate sources of truth.

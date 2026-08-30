@@ -13,6 +13,7 @@ namespace Advertified.Commercial.Api.Tests;
 
 public sealed class TenantIsolationMigrationTests
 {
+    private const int ExpectedProtectedTableCount = 60;
     private static readonly TenantId FirstTenant =
         new(Guid.Parse("a1000000-0000-0000-0000-000000000001"));
     private static readonly TenantId SecondTenant =
@@ -45,7 +46,7 @@ public sealed class TenantIsolationMigrationTests
         await ExecuteAsync(connection, "SET ROLE advertified_app");
 
         Assert.False(await ApplicationRoleBypassesRlsAsync(connection));
-        Assert.Equal(55, await ProtectedTableCountAsync(connection));
+        Assert.Equal(ExpectedProtectedTableCount, await ProtectedTableCountAsync(connection));
         Assert.Equal(0, await CountClientsAsync(connection));
 
         await using (var transaction = await connection.BeginTransactionAsync())

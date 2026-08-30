@@ -11,6 +11,7 @@ import { MediaMixEditor } from '../planning/MediaMixEditor'
 import { MediaPlanPanel } from '../planning/MediaPlanPanel'
 import { MediaTimeline } from '../planning/MediaTimeline'
 import { ShortlistPanel } from '../planning/ShortlistPanel'
+import { announcePlanningChanged } from '../planning/planning-events'
 
 export function PlanningPage() {
   const briefVersionId = useParams().briefVersionId
@@ -53,7 +54,7 @@ function usePlanningWorkspace({ tenantId, briefVersionId }: PlanningContext) {
   }, [tenantId, briefVersionId])
   const act: ActionRunner = async (action) => {
     setBusy(true); setError(null)
-    try { await action(); await load() }
+    try { await action(); await load(); announcePlanningChanged() }
     catch (failure) { setError(humanMessage(failure)) }
     finally { setBusy(false) }
   }
@@ -71,6 +72,7 @@ function PlanningWorkspaceContent(props: PlanningContext & {
     <Link className="text-action back-link" to="/home">← Back to work</Link>
     <PlanningHero workspace={workspace} mix={mix} shortlist={shortlist} plan={plan} />
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
+    <CampaignModeStage {...props} />
     <AudienceStage {...props} />
     <MixStage {...props} mix={mix} />
     <ShortlistStage {...props} mix={mix} shortlist={shortlist} />
@@ -78,10 +80,52 @@ function PlanningWorkspaceContent(props: PlanningContext & {
   </section>
 }
 
+function CampaignModeStage(props: PlanningContext & {
+  workspace: PlanningWorkspace; busy: boolean; act: ActionRunner
+}) {
+  const campaignMode = props.workspace.campaignMode
+  if (campaignMode) return <section className="planning-section campaign-mode-locked">
+    <div><p className="eyebrow">Campaign planning</p>
+      <h2>{campaignMode.mode === masterDataCodes.campaignModes.oohOnly
+        ? 'Out-of-home only' : 'Full campaign'}</h2>
+      <p>{campaignMode.mode === masterDataCodes.campaignModes.oohOnly
+        ? 'This campaign follows the standard planning workflow with only out-of-home media available.'
+        : 'This campaign follows the standard planning workflow with all selected media types available.'}</p></div>
+    <div className="campaign-mode-lock-note"><strong>Selection locked</strong>
+      <span>Changing campaign type requires a new campaign and a fresh planning process.</span>
+      <Link className="text-action" to="/briefs/new">Start a new campaign</Link></div>
+  </section>
+
+  return <section className="planning-section campaign-mode-choice" aria-labelledby="campaign-mode-title">
+    <div className="planning-section-heading"><div><p className="eyebrow">Campaign planning</p>
+      <h2 id="campaign-mode-title">Choose the media selection</h2>
+      <p>Both choices use the same audience, media mix, inventory, plan and proposal workflow. The only difference is whether out-of-home is the only selected media.</p>
+    </div></div>
+    <div className="campaign-mode-options">
+      <button type="button" disabled={props.busy} onClick={() => void props.act(() =>
+        planningApi.selectCampaignMode(props.tenantId, props.briefVersionId,
+          masterDataCodes.campaignModes.oohOnly, props.token))}>
+        <span className="campaign-mode-mark">OOH</span><strong>Out-of-home only</strong>
+        <small>Use OOH and digital OOH, with the same planning and approval stages.</small>
+      </button>
+      <button type="button" disabled={props.busy} onClick={() => void props.act(() =>
+        planningApi.selectCampaignMode(props.tenantId, props.briefVersionId,
+          masterDataCodes.campaignModes.fullCampaign, props.token))}>
+        <span className="campaign-mode-mark">360°</span><strong>Full campaign</strong>
+        <small>Use out-of-home alongside one or more other selected media types.</small>
+      </button>
+    </div>
+    <p className="campaign-mode-warning">This choice cannot be changed later. Moving from out-of-home only to a full campaign requires a new campaign and a fresh start.</p>
+  </section>
+}
+
 function AudienceStage(props: PlanningContext & {
   workspace: PlanningWorkspace; busy: boolean; act: ActionRunner
 }) {
-  if (props.workspace.audience) return <AudienceSummary workspace={props.workspace} />
+  if (!props.workspace.campaignMode) return null
+  if (props.workspace.audience) {
+    return <AudienceSummary workspace={props.workspace} />
+  }
   return <StartCard title="Define the audience direction"
     copy="Turn the approved Brief into evidence-labelled audience definitions before allocating media."
     action="Build audience direction" busy={props.busy}
@@ -92,7 +136,7 @@ function AudienceStage(props: PlanningContext & {
 function MixStage(props: PlanningContext & {
   workspace: PlanningWorkspace; busy: boolean; act: ActionRunner; mix: MediaMix | null
 }) {
-  if (!props.workspace.audience) return null
+  if (props.workspace.audience?.status !== masterDataCodes.lifecycleStatuses.approved) return null
   if (!props.mix) return <StartCard title="Create the first media mix"
     copy="Start with a proposed allocation, then change the budgets, roles and running periods before confirming it."
     action="Create media mix" busy={props.busy}
@@ -153,6 +197,7 @@ function PlanningHero({ workspace, mix, shortlist, plan }: {
   workspace: PlanningWorkspace; mix: MediaMix | null; shortlist: Shortlist | null; plan: MediaPlan | null
 }) {
   const steps = [
+    ['Media choice', Boolean(workspace.campaignMode)],
     ['Audience', Boolean(workspace.audience)],
     ['Media mix', mix?.status === masterDataCodes.lifecycleStatuses.approved],
     ['Inventory', shortlist?.status === masterDataCodes.lifecycleStatuses.approved],
@@ -167,13 +212,20 @@ function PlanningHero({ workspace, mix, shortlist, plan }: {
 
 function AudienceSummary({ workspace }: { workspace: PlanningWorkspace }) {
   const audience = workspace.audience!
+  const targets = new Set(audience.targetAudienceIds)
   return <section className="planning-section audience-summary"><div className="planning-section-heading"><div>
-    <p className="eyebrow">Audience direction</p><h2>{audience.definitions.length} planning audience{audience.definitions.length === 1 ? '' : 's'}</h2>
-    <p>Evidence-backed interpretation remains distinct from assumptions and unknowns.</p></div>
+    <p className="eyebrow">Segmentation, targeting and positioning</p>
+    <h2>Audience strategy for this campaign</h2>
+    <p>The same STP stage applies whether the selected media is OOH-only or a full campaign.</p></div>
     <span className="status-chip">{audience.status}</span></div>
-    <div className="audience-chip-grid">{audience.definitions.map(item => <article key={item.id}>
-      <strong>{item.name}</strong><p>{item.description}</p><small>{item.classification.replaceAll('_', ' ')} · {Math.round(item.confidence * 100)}% confidence</small>
-    </article>)}</div></section>
+    <div className="stp-summary-grid">
+      <article><span>Segmentation</span><strong>{audience.definitions.length} segment{audience.definitions.length === 1 ? '' : 's'} · {audience.targetAudienceIds.length} targeted</strong>
+        <div className="audience-chip-grid">{audience.definitions.map(item => <div key={item.id}>
+          <strong>{item.name}</strong><p>{item.description}</p><small>{targets.has(item.id) ? 'Target audience · ' : ''}{item.classification.replaceAll('_', ' ')} · {Math.round(item.confidence * 100)}% confidence</small>
+        </div>)}</div></article>
+      <article><span>Targeting</span><strong>Who the plan must prioritise</strong><p>{audience.targetingRationale}</p></article>
+      <article><span>Positioning</span><strong>What the campaign should establish</strong><p>{audience.positioningStatement}</p></article>
+    </div></section>
 }
 
 function StartCard({ title, copy, action, busy, onAction }: {

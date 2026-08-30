@@ -104,27 +104,30 @@ public sealed class InventoryReader(
         var format = SummarySelect + Environment.NewLine + (cursor is null
             ? """
                 WHERE product.tenant_id = {0}
-                  AND ({1}::text IS NULL OR version.name ILIKE '%' || {1} || '%'
-                       OR product.supplier_product_code ILIKE '%' || {1} || '%')
-                  AND ({2}::text IS NULL OR version.channel_code = {2})
-                  AND ({3}::text IS NULL OR supplier.name ILIKE '%' || {3} || '%')
-                  AND ({4}::text IS NULL OR version.geography ILIKE '%' || {4} || '%')
-                ORDER BY lower(version.name), product.id LIMIT {5}
+                  AND product.status_code = {1}
+                  AND ({2}::text IS NULL OR version.name ILIKE '%' || {2} || '%'
+                       OR product.supplier_product_code ILIKE '%' || {2} || '%')
+                  AND ({3}::text IS NULL OR version.channel_code = {3})
+                  AND ({4}::text IS NULL OR supplier.name ILIKE '%' || {4} || '%')
+                  AND ({5}::text IS NULL OR version.geography ILIKE '%' || {5} || '%')
+                ORDER BY lower(version.name), version.product_id LIMIT {6}
                 """
             : """
                 WHERE product.tenant_id = {0}
-                  AND ({1}::text IS NULL OR version.name ILIKE '%' || {1} || '%'
-                       OR product.supplier_product_code ILIKE '%' || {1} || '%')
-                  AND ({2}::text IS NULL OR version.channel_code = {2})
-                  AND ({3}::text IS NULL OR supplier.name ILIKE '%' || {3} || '%')
-                  AND ({4}::text IS NULL OR version.geography ILIKE '%' || {4} || '%')
-                  AND (lower(version.name), product.id) > ({5}, {6})
-                ORDER BY lower(version.name), product.id LIMIT {7}
+                  AND product.status_code = {1}
+                  AND ({2}::text IS NULL OR version.name ILIKE '%' || {2} || '%'
+                       OR product.supplier_product_code ILIKE '%' || {2} || '%')
+                  AND ({3}::text IS NULL OR version.channel_code = {3})
+                  AND ({4}::text IS NULL OR supplier.name ILIKE '%' || {4} || '%')
+                  AND ({5}::text IS NULL OR version.geography ILIKE '%' || {5} || '%')
+                  AND (lower(version.name), version.product_id) > ({6}, {7})
+                ORDER BY lower(version.name), version.product_id LIMIT {8}
                 """);
         var arguments = cursor is null
-            ? new object?[] { tenantId.Value, search, channel, supplier, geography, take }
-            : [tenantId.Value, search, channel, supplier, geography,
-                cursor.Name, cursor.Id, take];
+            ? new object?[] { tenantId.Value, MasterDataCodes.LifecycleStatuses.Active,
+                search, channel, supplier, geography, take }
+            : [tenantId.Value, MasterDataCodes.LifecycleStatuses.Active,
+                search, channel, supplier, geography, cursor.Name, cursor.Id, take];
         var statement = FormattableStringFactory.Create(format, arguments);
         return store.DbContext.Database.SqlQuery<InventoryProductSummaryRow>(statement)
             .ToListAsync(cancellationToken);
@@ -209,7 +212,8 @@ public sealed class InventoryReader(
 
     private const string SummarySelect = """
         SELECT product.id AS "Id", product.supplier_id AS "SupplierId",
-            supplier.name AS "SupplierName", product.supplier_product_code AS "ProductCode",
+            supplier.name AS "SupplierName",
+            product.supplier_product_code AS "ProductCode",
             version.name AS "Name", version.channel_code AS "Channel",
             version.product_type_code AS "ProductType", version.geography AS "Geography",
             version.verification_code AS "Verification", product.version AS "Version",
@@ -218,6 +222,8 @@ public sealed class InventoryReader(
         JOIN commercial.inventory_suppliers supplier
           ON supplier.tenant_id = product.tenant_id AND supplier.id = product.supplier_id
         JOIN commercial.inventory_product_versions version
-          ON version.tenant_id = product.tenant_id AND version.id = product.current_version_id
+          ON version.tenant_id = product.tenant_id
+         AND version.id = product.current_version_id
+         AND version.product_id = product.id
         """;
 }

@@ -1,0 +1,85 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 9,
+  "evidenceDate": "2026-08-30",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "workingTreeState": "VERIFIED_FOR_COMMIT",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Isolated Release API build",
+      "command": "dotnet build api/Advertified.Commercial.Api.csproj --configuration Release --no-restore --artifacts-path .artifacts/gate9-api",
+      "outcome": "PASS",
+      "summary": "Release API build completed with zero warnings and zero errors."
+    },
+    {
+      "name": "Complete C# suite",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release --no-restore --artifacts-path .artifacts/gate9-tests",
+      "outcome": "PASS",
+      "summary": "41 of 41 tests passed, including campaign-mode immutability, PostGIS planning, proposal lifecycle, inbound email automation, migration, tenant isolation, audit/outbox and exactly-once delivery."
+    },
+    {
+      "name": "Inbound OOH proposal acceptance",
+      "command": "dotnet test ... --filter FullyQualifiedName~ConfiguredOohInboxCreatesStpPlanPdfAndSendsWithoutUserInput",
+      "outcome": "PASS",
+      "summary": "A signed deterministic email created its client, Brief, STP, OOH-only mix, benchmarked confirmed selection, approved plan, proposal and PDF, then replied once. Duplicate, non-OOH, incomplete and clarification-retry paths were proven."
+    },
+    {
+      "name": "Architecture guardrails",
+      "command": "python -m pytest tests/architecture -q",
+      "outcome": "PASS",
+      "summary": "23 of 23 checks passed, including an explicit prohibition on any parallel Rapid OOH aggregate, source tree, endpoint or campaign-route model."
+    },
+    {
+      "name": "Agent runtime",
+      "command": "cd agent-runtime; python -m pytest tests -q",
+      "outcome": "PASS",
+      "summary": "18 of 18 deterministic runtime tests passed with no live or paid provider call."
+    },
+    {
+      "name": "Web lint",
+      "command": "cd web; npm run lint",
+      "outcome": "PASS",
+      "summary": "Oxlint completed with zero warnings and zero errors."
+    },
+    {
+      "name": "Web unit tests",
+      "command": "cd web; npm test",
+      "outcome": "PASS",
+      "summary": "4 of 4 web unit tests passed."
+    },
+    {
+      "name": "Web production build",
+      "command": "cd web; npm run build",
+      "outcome": "PASS",
+      "summary": "The production build passed and the Proposal inbox is a separately lazy-loaded chunk."
+    },
+    {
+      "name": "Authenticated browser journeys",
+      "command": "cd web; npm run test:e2e",
+      "outcome": "PASS",
+      "summary": "18 of 18 desktop and compact journeys passed, including mailbox connection and sent/review Proposal inbox states."
+    },
+    {
+      "name": "Retained OpenAPI contract",
+      "command": "node tools/generate-openapi.mjs; dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release",
+      "outcome": "PASS",
+      "summary": "The retained v1 contract matches the running API and includes mailbox configuration, message monitoring, source content, outstanding questions, process and clarification retry boundaries."
+    }
+  ],
+  "unresolvedBlockers": [
+    "Remote CI and independent Engineering, Security/Privacy and Operations review remain pending.",
+    "The deterministic local provider did not contact Resend or an external recipient.",
+    "Migrations 003 through 012 were applied only to the isolated local development database; no shared or production database was changed.",
+    "Supplier marketplace, booking, finance, delivery, proof and measurement remain later gates."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}

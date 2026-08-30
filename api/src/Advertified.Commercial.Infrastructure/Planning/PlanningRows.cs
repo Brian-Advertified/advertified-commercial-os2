@@ -19,10 +19,24 @@ internal sealed record PlanningBriefRow(
     string EvidenceIdsJson,
     long Version);
 
+internal sealed record CampaignModeRow(
+    Guid Id,
+    Guid BriefVersionId,
+    string Mode,
+    string DecisionSource,
+    decimal Confidence,
+    string? Reason,
+    Guid SelectedBy,
+    long Version,
+    DateTimeOffset SelectedAtUtc);
+
 internal sealed record AudienceSetRow(
     Guid Id,
     Guid BriefVersionId,
     int VersionNumber,
+    string TargetAudienceIdsJson,
+    string TargetingRationale,
+    string PositioningStatement,
     string InputHash,
     string Status,
     DateTimeOffset CreatedAtUtc);

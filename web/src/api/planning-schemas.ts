@@ -33,6 +33,9 @@ export const audienceSetSchema = z.object({
   id: z.guid(),
   briefVersionId: z.guid(),
   versionNumber: z.number().int().positive(),
+  targetAudienceIds: z.array(z.guid()).min(1),
+  targetingRationale: z.string(),
+  positioningStatement: z.string(),
   inputHash: z.string(),
   status: z.string(),
   definitions: z.array(audienceDefinitionSchema),
@@ -158,19 +161,35 @@ export const mediaPlanSchema = z.object({
   createdAtUtc: z.iso.datetime({ offset: true }),
 })
 
+export const campaignModeSchema = z.object({
+  id: z.guid(),
+  briefVersionId: z.guid(),
+  mode: z.string().min(1),
+  allowedChannels: z.array(z.string().min(1)),
+  isLocked: z.boolean(),
+  decisionSource: z.string().min(1),
+  confidence: z.number().min(0).max(1),
+  reason: z.string().nullable(),
+  selectedBy: z.guid(),
+  selectedAtUtc: z.iso.datetime({ offset: true }),
+})
+
 export const planningWorkspaceSchema = z.object({
   briefId: z.guid(),
   briefVersionId: z.guid(),
+  campaignMode: campaignModeSchema.nullable(),
   audience: audienceSetSchema.nullable(),
   mediaMix: mediaMixSchema.nullable(),
   shortlist: shortlistSchema.nullable(),
   mediaPlan: mediaPlanSchema.nullable(),
 })
 
+export type AudienceSet = z.infer<typeof audienceSetSchema>
 export type RunningPeriod = z.infer<typeof runningPeriodSchema>
 export type MediaAllocation = z.infer<typeof mediaAllocationSchema>
 export type MediaMix = z.infer<typeof mediaMixSchema>
 export type ShortlistCandidate = z.infer<typeof shortlistCandidateSchema>
 export type Shortlist = z.infer<typeof shortlistSchema>
 export type MediaPlan = z.infer<typeof mediaPlanSchema>
+export type CampaignMode = z.infer<typeof campaignModeSchema>
 export type PlanningWorkspace = z.infer<typeof planningWorkspaceSchema>

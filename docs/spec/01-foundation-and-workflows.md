@@ -220,28 +220,38 @@ Briefs are not five-field CRUD. A CampaignBrief contains immutable BriefVersions
 
 | **Step** | **Action**                                           | **Owner**                   | **Output**                     |
 |----------|------------------------------------------------------|-----------------------------|--------------------------------|
-| 1        | Define evidence-backed audiences and exclusions      | Audience Agent              | AudienceDefinitions            |
-| 2        | Draft channel roles and budget ranges                | Media Planning Agent        | MediaMixVersion                |
-| 3        | Approve media mix before expensive supply work       | Human planner               | Approved mix                   |
-| 4        | Search inventory and apply deterministic eligibility | Inventory Agent + tools     | Candidates + rejection reasons |
-| 5        | Resolve supply, availability, rates and forecasts    | Supply services + human ops | Confirmed shortlist            |
-| 6        | Build media plan and run critic/readiness            | Media Planning + Critic     | PlanVersion + objections       |
-| 7        | Resolve objections and approve plan                  | Human planner               | Approved MediaPlanVersion      |
-| 8        | Build three materially different tiers               | Planning + Proposal Agent   | ProposalVersion                |
-| 9        | Approve client wording, pricing and assumptions      | Named human approver        | Approved proposal              |
-| 10       | Render branded PDF and record incremental AI cost    | Document + cost services    | Immutable deliverable + ledger |
+| 1        | Build evidence-backed segmentation, targeting and positioning | Audience / Strategy Agent | Approved STP version             |
+| 2        | Draft channel roles, allocations and running periods          | Media Planning Agent       | MediaMixVersion                  |
+| 3        | Approve or policy-authorise the media mix before supply work   | Human or approved automation policy | Approved mix          |
+| 4        | Search inventory and apply deterministic eligibility          | Inventory Agent + tools    | Candidates + rejection reasons   |
+| 5        | Resolve supply, availability, rates and forecasts             | Supply services + human ops | Confirmed shortlist             |
+| 6        | Build media plan and run critic/readiness                     | Media Planning + Critic    | PlanVersion + objections         |
+| 7        | Resolve objections and approve or policy-authorise the plan    | Human or approved automation policy | Approved MediaPlanVersion |
+| 8        | Build materially different client options where requested     | Planning + Proposal Agent  | ProposalVersion                  |
+| 9        | Approve client wording, pricing and assumptions                | Named human or pre-approved bounded automation policy | Approved proposal |
+| 10       | Render branded PDF, deliver through the authorised route and record incremental AI cost | Document, delivery and cost services | Immutable deliverable + ledger |
 
-## 7.3 Rapid OOH
+## 7.3 OOH-only campaign mode
 
-- Resolve digital/static format, geography, routes, POIs, dates, budget and hard exclusions from the approved BriefVersion.
+OOH-only work uses the same canonical campaign spine as every full campaign: approved Brief → segmentation, targeting and positioning → media mix → inventory eligibility and intelligence → supply/forecast → approved media plan → proposal → delivery. The only planning difference is that the immutable campaign mode constrains the selected media channels to OOH and/or DOOH.
 
-- Search verified OOH inventory, apply deterministic eligibility and preserve every rejection reason.
+- STP is mandatory. Geography, routes, POIs, movement context and buying occasions inform the segmentation and targeting; positioning still defines the audience promise, reasons to believe and message direction.
 
-- AI ranks only eligible products; a human may replace selections and must see the rationale and evidence.
+- The media mix contains only OOH/DOOH allocations, but users or an authorised automation policy may still change the split, formats, budget and independent running periods within those channels.
 
-- Supplier availability and current rates are confirmed, versioned and attached before the shortlist becomes a media plan.
+- Search verified OOH/DOOH inventory, apply deterministic eligibility, calculate transparent local benchmarks and preserve every rejection reason.
 
-- If the brief expands beyond rapid OOH, create a full-campaign child workflow without losing the approved evidence or brief lineage.
+- Supplier availability and current rates remain versioned. An automatically sent proposal is permitted only when the configured automation-readiness policy is satisfied; uncertain supply, missing commercial facts or unresolved material objections stop delivery rather than being hidden.
+
+- OOH-only mode is immutable for the campaign. It can never be converted, widened or promoted into a full campaign. A request for any non-OOH channel starts a completely new CampaignBrief and planning lineage from the source request; it does not reuse the OOH-only STP, mix, shortlist, supply confirmations, plan or proposal.
+
+### 7.3.1 Inbound OOH proposal automation
+
+A tenant may configure one dedicated inbound mailbox for OOH requests. Each accepted email is preserved as immutable source evidence and processed idempotently through the same canonical Brief, STP, planning, proposal and PDF services used by an interactive user.
+
+The happy path requires no per-request user input: validate the mailbox and sender policy, understand the email and permitted attachments, create the OOH-only Brief, produce STP, select only OOH/DOOH, reconcile eligible current inventory, approve under the bounded automation policy, render the branded proposal and send it to the verified reply address. The run records every input version, decision, delivery receipt and incremental AI cost.
+
+Automation never fills a missing material fact from plausibility. Missing recipient identity, budget, dates, geography, unsupported formats, stale rates, insufficient inventory, unresolved conflicts or a request for another media channel moves the message to `REVIEW_REQUIRED` and sends no proposal. Retrying the same provider message ID or content hash cannot create or send a duplicate proposal.
 
 ## 7.4 Inventory import and supplier operations
 

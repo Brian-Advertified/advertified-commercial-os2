@@ -1,4 +1,5 @@
 import type { ZodType } from 'zod'
+import { suppliedBriefUnderstandingSchema, type BriefClarification, type SuppliedBriefUnderstanding } from './brief-understanding-schemas'
 import { request } from './client'
 import {
   briefVersionSchema,
@@ -9,12 +10,20 @@ import {
 } from './schemas'
 
 export type CreateBrief = {
-  clientId: string
   title: string
   ownerUserId: string
   sourceLocator: string
   sourceTitle: string
   sourceContent: string
+  clientId?: string | null
+  clientName?: string | null
+  sourceType?: string | null
+}
+
+export type UnderstandBrief = {
+  sourceTitle: string
+  sourceContent: string
+  clarifications: BriefClarification[]
 }
 
 export type CreateBriefVersion = {
@@ -66,6 +75,19 @@ async function command<T>(
 }
 
 export const briefApi = {
+  async understand(
+    tenantId: string,
+    body: UnderstandBrief,
+    token: string,
+  ): Promise<SuppliedBriefUnderstanding> {
+    return (await request(
+      `/api/v1/tenants/${tenantId}/briefs:understand`,
+      suppliedBriefUnderstandingSchema,
+      { method: 'POST', body: JSON.stringify(body) },
+      { antiforgeryToken: token },
+    )).data
+  },
+
   async get(tenantId: string, briefId: string): Promise<CampaignBrief> {
     return (await request(
       `/api/v1/tenants/${tenantId}/briefs/${briefId}`,

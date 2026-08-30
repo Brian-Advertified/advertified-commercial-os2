@@ -32,7 +32,8 @@ public sealed class DeterministicPlanningAgentClient : IPlanningAgentClient
                 classification,
                 ["Do not infer sensitive individual attributes."],
                 input.EvidenceItemIds,
-                input.EvidenceItemIds.Count > 0 ? 0.70m : 0.45m)).ToArray();
+                input.EvidenceItemIds.Count > 0 ? 0.70m : 0.45m,
+                true)).ToArray();
         var channels = input.AvailableChannels.Distinct(StringComparer.Ordinal)
             .OrderBy(value => value, StringComparer.Ordinal).Take(3).ToArray();
         if (channels.Length == 0)
@@ -40,8 +41,17 @@ public sealed class DeterministicPlanningAgentClient : IPlanningAgentClient
             throw new InvalidLifecycleTransitionException();
         }
         var allocations = Allocate(input.BudgetMinor, channels);
+        var audienceNames = audiences.Select(item => item.Name).ToArray();
+        var targetingRationale = audienceNames.Length == 0
+            ? "No target segment was supplied; audience clarification is required."
+            : $"Prioritise {string.Join(", ", audienceNames)} in {string.Join(", ", input.Geographies)} because the approved Brief identifies them as the audiences and markets relevant to the objective.";
+        var positioningStatement = audienceNames.Length == 0
+            ? $"Position the campaign around the approved objective: {input.Objective}"
+            : $"For {string.Join(", ", audienceNames)}, position the advertised offer as the credible route to {input.Objective.ToLowerInvariant()}.";
         return Task.FromResult(new PlanningAgentProposal(
             audiences,
+            targetingRationale,
+            positioningStatement,
             allocations,
             ["Audience size, reach and response baseline are not supplied."],
             ["Channel allocations are an internal planning hypothesis pending plan review."],

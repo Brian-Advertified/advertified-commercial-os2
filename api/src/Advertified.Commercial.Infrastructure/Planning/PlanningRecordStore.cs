@@ -50,6 +50,37 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
             WHERE version.tenant_id = {tenantId.Value} AND version.id = {briefVersionId}
             """).SingleOrDefaultAsync(cancellationToken);
 
+    internal Task<CampaignModeRow?> FindCampaignModeAsync(
+        TenantId tenantId,
+        Guid briefVersionId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<CampaignModeRow>($"""
+            SELECT id AS "Id", brief_version_id AS "BriefVersionId",
+                mode_code AS "Mode", decision_source_code AS "DecisionSource",
+                confidence AS "Confidence", reason AS "Reason",
+                selected_by AS "SelectedBy", version AS "Version",
+                selected_at_utc AS "SelectedAtUtc"
+            FROM commercial.campaign_mode_selections
+            WHERE tenant_id = {tenantId.Value} AND brief_version_id = {briefVersionId}
+            """).SingleOrDefaultAsync(cancellationToken);
+
+    internal Task<bool> HasPlanningArtifactsAsync(
+        TenantId tenantId,
+        Guid briefVersionId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<bool>($"""
+            SELECT (
+                EXISTS (SELECT 1 FROM commercial.audience_definition_sets
+                    WHERE tenant_id = {tenantId.Value} AND brief_version_id = {briefVersionId})
+                OR EXISTS (SELECT 1 FROM commercial.media_mix_versions
+                    WHERE tenant_id = {tenantId.Value} AND brief_version_id = {briefVersionId})
+                OR EXISTS (SELECT 1 FROM commercial.inventory_shortlist_versions
+                    WHERE tenant_id = {tenantId.Value} AND brief_version_id = {briefVersionId})
+                OR EXISTS (SELECT 1 FROM commercial.media_plan_versions
+                    WHERE tenant_id = {tenantId.Value} AND brief_version_id = {briefVersionId})
+            ) AS "Value"
+            """).SingleAsync(cancellationToken);
+
     internal Task<List<string>> ListAvailableChannelsAsync(
         TenantId tenantId,
         CancellationToken cancellationToken) =>
@@ -66,6 +97,26 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
               AND product.status_code = {MasterDataCodes.LifecycleStatuses.Active}
             ORDER BY "Value"
             """).ToListAsync(cancellationToken);
+
+    internal Task<bool> HasApprovedOohOnlyMixAsync(
+        TenantId tenantId,
+        Guid briefVersionId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<bool>($"""
+            SELECT EXISTS (
+                SELECT 1
+                FROM commercial.media_mix_versions mix
+                WHERE mix.tenant_id = {tenantId.Value}
+                  AND mix.brief_version_id = {briefVersionId}
+                  AND mix.status_code = {MasterDataCodes.LifecycleStatuses.Approved}
+                  AND jsonb_array_length(mix.allocations_json) > 0
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM jsonb_array_elements(mix.allocations_json) allocation
+                      WHERE allocation->>'channel' NOT IN (
+                          {MasterDataCodes.Channels.Ooh},
+                          {MasterDataCodes.Channels.Dooh}))) AS "Value"
+            """).SingleAsync(cancellationToken);
 
     internal Task<List<PlanningInventoryRow>> ListInventoryAsync(
         TenantId tenantId,
@@ -129,7 +180,10 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
     {
         var rows = await dbContext.Database.SqlQuery<AudienceSetRow>($"""
             SELECT id AS "Id", brief_version_id AS "BriefVersionId",
-                version_no AS "VersionNumber", input_hash AS "InputHash",
+                version_no AS "VersionNumber",
+                target_audience_ids_json::text AS "TargetAudienceIdsJson",
+                targeting_rationale AS "TargetingRationale",
+                positioning_statement AS "PositioningStatement", input_hash AS "InputHash",
                 status_code AS "Status", created_at_utc AS "CreatedAtUtc"
             FROM commercial.audience_definition_sets
             WHERE tenant_id = {tenantId.Value} AND brief_version_id = {briefVersionId}

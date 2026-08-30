@@ -4,6 +4,16 @@
 
 **AUTHORISED FOR LOCAL IMPLEMENTATION — standing direction, 2026-08-29**
 
+**OWNER CORRECTION — Brian Rabuthu, 2026-08-30:** A supplied Brief is captured before any
+separate client-registration workflow. The user pastes or types the original source first. The
+Brief agent extracts and, where authorised evidence is available, researches the client,
+audience, geography, requested media and other planning inputs. It also determines whether the
+campaign mode is `OOH_ONLY` or `FULL_CAMPAIGN`. Clear, source-supported details flow into the draft
+without redundant human confirmation; the user is asked only to resolve material ambiguity,
+conflict or missing information. The Brief command matches or creates the minimum internal
+ClientAccount link without requiring client login, membership or prior onboarding. This
+correction supersedes every client-list prerequisite and blanket confirmation form.
+
 Brian Rabuthu directed sequential local gates to continue without repetitive approval pauses.
 Gate 4 is committed at `57c8db5` with repeatable evidence in `docs/evidence/gate-4/`.
 This packet binds the smallest Gate 5 vertical change before implementation begins.
@@ -16,8 +26,11 @@ production data, file ingestion, crawling, or external communication.
 
 Both canonical entry paths can produce a reviewed Brief without fabricating missing facts:
 
-1. A human pastes a supplied client Brief, preserves that source verbatim, and creates a
-   structured draft whose unknowns and assumptions remain explicit.
+1. A human pastes or types a supplied client Brief and the system preserves it verbatim. A
+   typed Brief-agent proposal extracts the client and planning details, separates researched
+   evidence from inference and unknowns, and selects `OOH_ONLY` or `FULL_CAMPAIGN` for an
+   unambiguous request. Only unclear, conflicting or materially missing details become human
+   questions. No separate client registration is required.
 2. An Opportunity at `BRIEF_READY` queues the closed-roster `brief_drafting` agent against
    the exact approved StrategyVersion and its approved evidence. The deterministic local
    provider returns a typed proposal only; the Commercial API creates canonical records.
@@ -60,6 +73,13 @@ forced RLS and the existing transaction-local context remain mandatory. Supplied
 snapshots never change. BriefVersion content cannot change after submission. Editing and
 material change create a new version by value; approved versions are never overwritten.
 
+For a supplied Brief, the API may match one accessible active ClientAccount by the extracted
+source-supported client name. When no accessible exact match exists, the same idempotent Brief
+command creates a minimum active internal ClientAccount and assigns it to the acting operator.
+An ambiguous or missing client name becomes a targeted human question before that link is
+created. This is internal canonical linkage, not client registration, portal access or an
+assertion that the client has supplied legal, billing or contact details.
+
 A Brief draft cannot be submitted unless business problem, objective and timing are present,
 and budget is either typed or explicitly recorded as unknown. Confirmation requires the
 current submitted version, its exact assigned task, an eligible human and no unresolved
@@ -97,21 +117,27 @@ Opportunity draft command. All mutations keep Idempotency-Key, If-Match where st
 correlation, audit, outbox and human-safe ProblemDetails behaviour. Brief detail returns every
 version and an explicit comparison basis; the browser parses consumed contracts with Zod.
 
-`brief_drafting` receives only canonical approved Opportunity inputs. Its strict output keeps
-facts, audience hypotheses, assumptions and unknowns separate and evidence-bound. The local
-deterministic provider has cost zero and no network/tool call. Invalid output fails closed and
-cannot create a Brief. Python never connects to PostgreSQL or approves its proposal.
+`brief_drafting` receives either the immutable supplied source or canonical approved
+Opportunity inputs. Its strict output keeps extracted facts, researched evidence, audience
+hypotheses, assumptions, conflicts and unknowns separate and evidence-bound. It includes a
+governed `OOH_ONLY` or `FULL_CAMPAIGN` campaign-mode decision, its rationale and whether human
+input is required. The local deterministic provider has cost zero and no network/tool call; therefore
+anything that would require external research remains explicitly unknown in local evidence.
+Invalid output fails closed and cannot create a Brief. Python never connects to PostgreSQL or
+approves its proposal.
 
 The browser adds `/briefs/new` for pasted UTF-8 source text and `/briefs/:id` for review,
-comparison, confirmation and rejection. Opportunity detail links to its Brief. User-facing
-copy says what is known, assumed and missing without exposing prompts, raw model output,
-internal exceptions or database terminology.
+comparison, confirmation and rejection. The intake page never depends on a pre-existing client
+list and never repeats every extracted field as a confirmation questionnaire. It shows the
+agent's route decision and asks only targeted questions for unclear or conflicting material
+details. Opportunity detail links to its Brief. User-facing copy says what is known, researched,
+inferred and missing without exposing prompts, raw model output, internal exceptions or database
+terminology.
 
 ## Explicit exclusions
 
 - binary upload, malware scanning, OCR, Docling, office/PDF parsing or object-storage writes;
-- invented extraction from unstructured text—the supplied form records the human's explicit
-  structured interpretation and preserves the original text;
+- treating an unsupported inference or uncited research result as a supplied fact;
 - live AI, model/provider SDKs, embeddings, vector retrieval, crawling or external tools;
 - implicit confirmation, accepting unresolved critical conflicts, or
   treating audience direction as completed audience research;
@@ -123,7 +149,10 @@ internal exceptions or database terminology.
 
 | Risk | Repeatable evidence required |
 |---|---|
-| Supplied path | Verbatim source and hash retained; explicit draft fields/unknowns survive create, review, approval and comparison |
+| Supplied path | Zero-client workspace can paste first, receive structured extraction plus a route decision, create/link the internal client, and retain verbatim source/hash through review, approval and comparison |
+| Agent interpretation | Clear client, audience, geography, media and timing details need no redundant confirmation; researched evidence and inference are labelled; only material ambiguity, conflict or missing input creates a user question |
+| Campaign mode | An unambiguous OOH-only Brief selects `OOH_ONLY`; broader or multi-channel work selects `FULL_CAMPAIGN`; an unclear media requirement asks the user to choose and records the resolution |
+| Client matching | One accessible exact name is reused; no match creates one minimum assigned record; ambiguous or blank names require one targeted answer and leave no partial canonical records |
 | Opportunity path | Only `BRIEF_READY` plus exact approved Strategy/evidence can draft; typed zero-cost output creates one canonical draft |
 | Versioning | Submitted content and approved versions are immutable; edits create a linked version; stale If-Match/base input is denied |
 | Human control | Exact agency assignee self-confirms; no advertiser approval is requested; cross-tenant access and double action are denied |

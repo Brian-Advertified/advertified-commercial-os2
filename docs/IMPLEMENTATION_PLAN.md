@@ -4,7 +4,7 @@
 **Evidence date:** 2026-08-29  
 **Normative product source:** `docs/spec/README.md`  
 **Execution rules:** `AGENTS.md`  
-**Current permission:** Rapid OOH local delivery authorised by standing sequential-delivery direction after verified proposal/client decision; no live provider, shared-database, deployment, push or merge authority
+**Current permission:** Gate 9 canonical OOH-only campaign-mode verification may continue locally under the standing sequential-delivery direction; no live provider, shared-database, deployment, push or merge authority
 
 This is the execution index, not a replacement for the full v1.1 specification. Every gate uses the applicable normative sections and the historical traceability/adversarial fixtures in Section 31.
 
@@ -21,7 +21,7 @@ This is the execution index, not a replacement for the full v1.1 specification. 
 | 6 | Delivered locally | Inventory truth implementation and repeatable evidence complete; owner/independent review remains pending |
 | 7 | Delivered locally | Canonical planning, editable media mix, PostGIS OOH benchmarking and repeatable evidence complete |
 | 8 | Delivered locally | Proposal generation, approved-plan bindings, branded PDF and assigned client decision are verified locally |
-| 9 | Authorised next | Rapid OOH local delivery may begin under standing sequential direction |
+| 9 | Verified locally; owner review pending | Canonical OOH-only mode and proposal inbox have repeatable local evidence; owner and independent review remain pending |
 | 10–13 | Blocked | No implementation until the preceding gate is verified and its exact work packet exists |
 
 There are fourteen gates numbered 0 through 13.
@@ -55,7 +55,7 @@ A gate exits only when:
 - Solo-agency continuity: one active agency administrator can own the operational path from
   supplied Brief through Proposal preparation. Internal same-agency hand-offs are optional;
   client decisions and consequential spend or booking controls remain explicit later boundaries.
-- Rapid OOH: approved Brief → OOH path → geography/routes/POIs → verified eligible inventory → supplier confirmation → recalculation → human selection → approved plan → proposal.
+- OOH-only campaign: the same Brief → Plan → Proposal lifecycle with selectable media restricted to OOH/DOOH; complete unambiguous inbound Briefs may use the governed proposal-inbox automation.
 - AI proposes. Deterministic services validate and calculate. Humans approve consequences. The C# API owns canonical state.
 
 ## Gate 0 — reproducible repository baseline
@@ -195,15 +195,19 @@ The same assigned agency operator may prepare and internally confirm the proposa
 required advertiser/client decision is the explicit Proposal / Client Decision boundary.
 
 **Current status:** Delivered and verified locally. Repeatable evidence is retained in
-`docs/evidence/gate-8/`. The deterministic local delivery adapter records sharing without
-contacting an external mail provider, and client selection creates no booking or invoice.
+`docs/evidence/gate-8/`. One to three genuinely different approved plan routes can be prepared,
+approved, rendered as a deterministic branded PDF, shared through the local delivery boundary,
+and selected or declined by an authorised client user. No live provider or production resource
+was used.
 
-## Gate 9 — Rapid OOH
+## Gate 9 — OOH-only campaign mode and proposal inbox
 
-**Normative areas:** Sections 7.3, 10, 21.3–21.4, 23–24, 31.2  
-**Outcome:** The specialised OOH planning path produces an approved OOH plan and only then a proposal.
+**Normative areas:** Sections 5–8, 10, 18.5, 21.3–21.4, 22–24, 31.2
+**Outcome:** OOH uses the same approved Brief → STP → media mix → verified inventory → approved plan → proposal lifecycle, with the selected media permanently restricted to OOH/DOOH.
 
-It depends on approved Brief and inventory truth. It may reuse generic Gate 8 proposal infrastructure, but never creates a proposal before supplier-confirmed inventory, recalculation, human selection, and plan approval.
+The `OOH_ONLY` selection is immutable. It cannot be widened into a full campaign; adding another media type requires a completely new campaign from the beginning and no planning artefact is carried across. A configured inbound mailbox may execute the same canonical flow and send the approved PDF without per-request user input only when the source is complete and unambiguous, STP is explicit, every selected site has current confirmed supply, all material objections are resolved, the reply address is safe and the sender policy allows it. Every other message stops in a visible review-required state and nothing is sent.
+
+**Current status:** Verified locally; owner and independent review remain pending. Clear supplied Briefs receive an automatic campaign-mode decision; only ambiguous material details are presented to a human. A clearly named client is created during Brief intake, so client pre-registration is not required. The OOH-only selection stays on the canonical planning lifecycle and cannot expand in place. The configured Proposal inbox proves complete zero-touch OOH delivery, exactly-once reply, no-send review paths and correction of only the unresolved Brief field. Repeatable evidence is retained under `docs/evidence/gate-9/`. No live provider, production resource, supplier contact, booking or financial commitment was used.
 
 ## Gate 10 — supplier marketplace
 

@@ -1,25 +1,25 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "1.9.0",
-  "effectiveFrom": "2026-08-29",
+  "registryVersion": "2.0.0",
+  "effectiveFrom": "2026-08-30",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
     "channels": [
-      {"code":"OOH","displayLabel":"Out of Home","isActive":true,"sortOrder":10,"metadata":{"supportsGeography":true,"isDigital":false,"requiresCoordinates":true,"defaultInventoryProductType":"OOH_SITE","benchmarkFamily":"OOH_LOCAL"}},
-      {"code":"DOOH","displayLabel":"Digital Out of Home","isActive":true,"sortOrder":20,"metadata":{"supportsGeography":true,"isDigital":true,"requiresCoordinates":true,"defaultInventoryProductType":"DOOH_SCREEN","benchmarkFamily":"OOH_LOCAL"}},
-      {"code":"RADIO","displayLabel":"Radio","isActive":true,"sortOrder":30,"metadata":{"defaultInventoryProductType":"RADIO_SPOT"}},
-      {"code":"TV","displayLabel":"Television","isActive":true,"sortOrder":40,"metadata":{"defaultInventoryProductType":"TV_SPOT"}},
-      {"code":"PRINT","displayLabel":"Print","isActive":true,"sortOrder":50,"metadata":{"defaultInventoryProductType":"PRINT_PLACEMENT"}},
-      {"code":"DIGITAL","displayLabel":"Digital","isActive":true,"sortOrder":60,"metadata":{"defaultInventoryProductType":"DIGITAL_PLACEMENT"}},
-      {"code":"SOCIAL","displayLabel":"Social Media","isActive":true,"sortOrder":70,"metadata":{"defaultInventoryProductType":"SOCIAL_PLACEMENT"}},
-      {"code":"INFLUENCER","displayLabel":"Influencer","isActive":true,"sortOrder":80,"metadata":{"defaultInventoryProductType":"INFLUENCER_PACKAGE"}},
-      {"code":"EXPERIENTIAL","displayLabel":"Experiential","isActive":true,"sortOrder":90,"metadata":{"defaultInventoryProductType":"EXPERIENCE"}},
-      {"code":"PODCAST","displayLabel":"Podcast","isActive":true,"sortOrder":100,"metadata":{"defaultInventoryProductType":"PODCAST_SPOT"}},
-      {"code":"RETAIL","displayLabel":"Retail Media","isActive":true,"sortOrder":110,"metadata":{"defaultInventoryProductType":"RETAIL_PLACEMENT"}},
-      {"code":"TRANSIT","displayLabel":"Transit","isActive":true,"sortOrder":120,"metadata":{"defaultInventoryProductType":"TRANSIT_PLACEMENT"}},
-      {"code":"MALL","displayLabel":"Mall Media","isActive":true,"sortOrder":130,"metadata":{"defaultInventoryProductType":"MALL_PLACEMENT"}},
-      {"code":"EMAIL","displayLabel":"Email","isActive":true,"sortOrder":140,"metadata":{"defaultInventoryProductType":"EMAIL_PLACEMENT"}},
-      {"code":"MOBILE","displayLabel":"Mobile","isActive":true,"sortOrder":150,"metadata":{"defaultInventoryProductType":"MOBILE_PLACEMENT"}}
+      {"code":"OOH","displayLabel":"Out of Home","isActive":true,"sortOrder":10,"metadata":{"supportsGeography":true,"isDigital":false,"requiresCoordinates":true,"defaultInventoryProductType":"OOH_SITE","benchmarkFamily":"OOH_LOCAL","briefTerms":["ooh","out of home","billboard","billboards","gantry"]}},
+      {"code":"DOOH","displayLabel":"Digital Out of Home","isActive":true,"sortOrder":20,"metadata":{"supportsGeography":true,"isDigital":true,"requiresCoordinates":true,"defaultInventoryProductType":"DOOH_SCREEN","benchmarkFamily":"OOH_LOCAL","briefTerms":["dooh","digital out of home","digital billboard","digital screen"]}},
+      {"code":"RADIO","displayLabel":"Radio","isActive":true,"sortOrder":30,"metadata":{"defaultInventoryProductType":"RADIO_SPOT","briefTerms":["radio","fm","audio spot"]}},
+      {"code":"TV","displayLabel":"Television","isActive":true,"sortOrder":40,"metadata":{"defaultInventoryProductType":"TV_SPOT","briefTerms":["television","tv","broadcast"]}},
+      {"code":"PRINT","displayLabel":"Print","isActive":true,"sortOrder":50,"metadata":{"defaultInventoryProductType":"PRINT_PLACEMENT","briefTerms":["print","newspaper","magazine"]}},
+      {"code":"DIGITAL","displayLabel":"Digital","isActive":true,"sortOrder":60,"metadata":{"defaultInventoryProductType":"DIGITAL_PLACEMENT","briefTerms":["digital media","online advertising","search advertising","display advertising"]}},
+      {"code":"SOCIAL","displayLabel":"Social Media","isActive":true,"sortOrder":70,"metadata":{"defaultInventoryProductType":"SOCIAL_PLACEMENT","briefTerms":["social media","facebook","instagram","tiktok","linkedin"]}},
+      {"code":"INFLUENCER","displayLabel":"Influencer","isActive":true,"sortOrder":80,"metadata":{"defaultInventoryProductType":"INFLUENCER_PACKAGE","briefTerms":["influencer","creator"]}},
+      {"code":"EXPERIENTIAL","displayLabel":"Experiential","isActive":true,"sortOrder":90,"metadata":{"defaultInventoryProductType":"EXPERIENCE","briefTerms":["experiential","activation","event activation"]}},
+      {"code":"PODCAST","displayLabel":"Podcast","isActive":true,"sortOrder":100,"metadata":{"defaultInventoryProductType":"PODCAST_SPOT","briefTerms":["podcast","podcast sponsorship"]}},
+      {"code":"RETAIL","displayLabel":"Retail Media","isActive":true,"sortOrder":110,"metadata":{"defaultInventoryProductType":"RETAIL_PLACEMENT","briefTerms":["retail media","in-store media"]}},
+      {"code":"TRANSIT","displayLabel":"Transit","isActive":true,"sortOrder":120,"metadata":{"defaultInventoryProductType":"TRANSIT_PLACEMENT","briefTerms":["transit media","bus advertising","taxi advertising"]}},
+      {"code":"MALL","displayLabel":"Mall Media","isActive":true,"sortOrder":130,"metadata":{"defaultInventoryProductType":"MALL_PLACEMENT","briefTerms":["mall media","shopping centre media"]}},
+      {"code":"EMAIL","displayLabel":"Email","isActive":true,"sortOrder":140,"metadata":{"defaultInventoryProductType":"EMAIL_PLACEMENT","briefTerms":["email marketing","newsletter"]}},
+      {"code":"MOBILE","displayLabel":"Mobile","isActive":true,"sortOrder":150,"metadata":{"defaultInventoryProductType":"MOBILE_PLACEMENT","briefTerms":["mobile advertising","sms","ussd"]}}
     ],
     "roles": [
       {"code":"platform_admin","displayLabel":"Platform Administrator","isActive":true,"sortOrder":10},
@@ -71,20 +71,24 @@
       {"code":"inventory_import","displayLabel":"Import inventory sources","isActive":true,"sortOrder":330,"metadata":{"roles":["platform_admin","inventory_ops","supplier_admin"]}},
       {"code":"inventory_review","displayLabel":"Review inventory candidates","isActive":true,"sortOrder":340,"metadata":{"roles":["platform_admin","inventory_ops"]}},
       {"code":"inventory_publish","displayLabel":"Publish reviewed inventory","isActive":true,"sortOrder":350,"metadata":{"roles":["platform_admin","inventory_ops"]}},
-      {"code":"plan_view","displayLabel":"View assigned planning","isActive":true,"sortOrder":360,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
-      {"code":"plan_generate","displayLabel":"Generate assigned planning artefacts","isActive":true,"sortOrder":370,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
-      {"code":"plan_edit","displayLabel":"Select and resolve assigned planning","isActive":true,"sortOrder":380,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
-      {"code":"plan_approve","displayLabel":"Approve assigned internal planning","isActive":true,"sortOrder":390,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"plan_view","displayLabel":"View assigned planning","isActive":true,"sortOrder":360,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","worker_service"]}},
+      {"code":"plan_generate","displayLabel":"Generate assigned planning artefacts","isActive":true,"sortOrder":370,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","worker_service"]}},
+      {"code":"plan_edit","displayLabel":"Select and resolve assigned planning","isActive":true,"sortOrder":380,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","worker_service"]}},
+      {"code":"plan_approve","displayLabel":"Approve assigned internal planning","isActive":true,"sortOrder":390,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","worker_service"]}},
       {"code":"proposal_view","displayLabel":"View assigned proposals","isActive":true,"sortOrder":400,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
       {"code":"proposal_generate","displayLabel":"Generate proposal choices","isActive":true,"sortOrder":410,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"proposal_edit","displayLabel":"Edit and render proposal drafts","isActive":true,"sortOrder":420,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"proposal_approve","displayLabel":"Approve client proposal wording and pricing","isActive":true,"sortOrder":430,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"proposal_share","displayLabel":"Share approved proposal for client review","isActive":true,"sortOrder":440,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
-      {"code":"proposal_decide","displayLabel":"Select or decline a client proposal option","isActive":true,"sortOrder":450,"metadata":{"roles":["advertiser_admin","advertiser_approver"]}}
+      {"code":"proposal_decide","displayLabel":"Select or decline a client proposal option","isActive":true,"sortOrder":450,"metadata":{"roles":["advertiser_admin","advertiser_approver"]}},
+      {"code":"email_automation_view","displayLabel":"View inbound OOH proposal automation","isActive":true,"sortOrder":460,"metadata":{"roles":["platform_admin","internal_planner","agency_admin"]}},
+      {"code":"email_automation_manage","displayLabel":"Configure and retry inbound OOH proposal automation","isActive":true,"sortOrder":470,"metadata":{"roles":["platform_admin","agency_admin"]}},
+      {"code":"email_automation_execute","displayLabel":"Execute inbound OOH proposal automation","isActive":true,"sortOrder":480,"metadata":{"roles":["platform_admin","agency_admin","worker_service"]}}
     ],
     "briefSourceTypes": [
       {"code":"SUPPLIED_TEXT","displayLabel":"Supplied Text","isActive":true,"sortOrder":10},
-      {"code":"OPPORTUNITY","displayLabel":"Approved Opportunity","isActive":true,"sortOrder":20}
+      {"code":"OPPORTUNITY","displayLabel":"Approved Opportunity","isActive":true,"sortOrder":20},
+      {"code":"INBOUND_EMAIL","displayLabel":"Inbound Campaign Email","isActive":true,"sortOrder":30}
     ],
     "opportunitySourceTypes": [
       {"code":"DISCOVERY","displayLabel":"Advertified Discovery","isActive":true,"sortOrder":10},
@@ -92,7 +96,8 @@
     ],
     "evidenceSourceTypes": [
       {"code":"SUPPLIED_TEXT","displayLabel":"Supplied Text","isActive":true,"sortOrder":10},
-      {"code":"PERMITTED_URL","displayLabel":"Permitted URL","isActive":true,"sortOrder":20}
+      {"code":"PERMITTED_URL","displayLabel":"Permitted URL","isActive":true,"sortOrder":20},
+      {"code":"INBOUND_EMAIL","displayLabel":"Inbound Email","isActive":true,"sortOrder":30}
     ],
     "evidencePolicyBases": [
       {"code":"OWNER_SUPPLIED","displayLabel":"Owner Supplied","isActive":true,"sortOrder":10},
@@ -280,6 +285,60 @@
     "proposalPolicies": [
       {"code":"CLIENT_OPTIONS_V1","displayLabel":"Client Proposal Options v1","isActive":true,"sortOrder":10,"metadata":{"minimumOptions":1,"maximumOptions":3,"defaultValidityDays":30,"maximumValidityDays":90}}
     ],
+    "campaignModes": [
+      {"code":"FULL_CAMPAIGN","displayLabel":"Full Campaign","isActive":true,"sortOrder":10,"metadata":{"allowedChannels":[],"immutableAfterSelection":true,"detectionTerms":["full campaign","integrated campaign","multi-channel","multichannel","radio","television","tv","social media","influencer","print media","podcast","digital marketing","search advertising","paid search"]}},
+      {"code":"OOH_ONLY","displayLabel":"Out-of-Home Only","isActive":true,"sortOrder":20,"metadata":{"allowedChannels":["OOH","DOOH"],"immutableAfterSelection":true,"detectionTerms":["ooh","dooh","out of home","out-of-home","billboard","billboards","gantry","gantries","street pole","street poles","outdoor media","digital screen","digital billboard","digital billboards"]}}
+    ],
+    "campaignModeDecisionSources": [
+      {"code":"AGENT","displayLabel":"Agent Recommendation","isActive":true,"sortOrder":10},
+      {"code":"HUMAN_SELECTION","displayLabel":"Human Selection","isActive":true,"sortOrder":20},
+      {"code":"HUMAN_CLARIFICATION","displayLabel":"Human Clarification","isActive":true,"sortOrder":30},
+      {"code":"INBOUND_AUTOMATION","displayLabel":"Inbound Automation Decision","isActive":true,"sortOrder":40}
+    ],
+    "briefUnderstandingPolicies": [
+      {"code":"BRIEF_UNDERSTANDING_V1","displayLabel":"Brief Understanding v1","isActive":true,"sortOrder":10,"metadata":{"clientLabels":["client","brand","company","advertiser"],"problemLabels":["business problem","problem","challenge","issue"],"objectiveLabels":["objective","goal","campaign objective","need"],"audienceLabels":["audience","target audience","target market","customers"],"geographyLabels":["geography","location","locations","areas","cities","province"],"timingLabels":["timing","dates","campaign dates","run dates","start date"],"mediaLabels":["media","channels","media needed","formats"],"measurementLabels":["measurement","success measure","success measures","kpi","kpis"],"constraintLabels":["constraints","requirements","must have","exclusions"],"defaultCurrency":"ZAR","minimumRouteConfidence":0.75}}
+    ],
+    "emailProviders": [
+      {"code":"RESEND","displayLabel":"Resend","isActive":true,"sortOrder":10},
+      {"code":"DETERMINISTIC","displayLabel":"Deterministic Local Provider","isActive":true,"sortOrder":20}
+    ],
+    "emailAutomationStatuses": [
+      {"code":"RECEIVED","displayLabel":"Received","isActive":true,"sortOrder":10},
+      {"code":"PROCESSING","displayLabel":"Processing","isActive":true,"sortOrder":20},
+      {"code":"SENT","displayLabel":"Proposal Sent","isActive":true,"sortOrder":30},
+      {"code":"REVIEW_REQUIRED","displayLabel":"Review Required","isActive":true,"sortOrder":40},
+      {"code":"FAILED","displayLabel":"Failed","isActive":true,"sortOrder":50},
+      {"code":"DUPLICATE","displayLabel":"Duplicate","isActive":true,"sortOrder":60}
+    ],
+    "emailAutomationCheckpoints": [
+      {"code":"SOURCE_CAPTURED","displayLabel":"Source Captured","isActive":true,"sortOrder":10},
+      {"code":"BRIEF_APPROVED","displayLabel":"Brief Approved","isActive":true,"sortOrder":20},
+      {"code":"STP_APPROVED","displayLabel":"STP Approved","isActive":true,"sortOrder":30},
+      {"code":"MIX_APPROVED","displayLabel":"Media Mix Approved","isActive":true,"sortOrder":40},
+      {"code":"SHORTLIST_APPROVED","displayLabel":"Inventory Shortlist Approved","isActive":true,"sortOrder":50},
+      {"code":"PLAN_APPROVED","displayLabel":"Media Plan Approved","isActive":true,"sortOrder":60},
+      {"code":"PROPOSAL_APPROVED","displayLabel":"Proposal Approved","isActive":true,"sortOrder":70},
+      {"code":"DOCUMENT_RENDERED","displayLabel":"Document Rendered","isActive":true,"sortOrder":80},
+      {"code":"SENT","displayLabel":"Proposal Sent","isActive":true,"sortOrder":90}
+    ],
+    "automationFailureReasons": [
+      {"code":"INVALID_MAILBOX","displayLabel":"Mailbox Not Configured","isActive":true,"sortOrder":10},
+      {"code":"INVALID_PROVIDER_SIGNATURE","displayLabel":"Invalid Provider Signature","isActive":true,"sortOrder":20},
+      {"code":"DUPLICATE_MESSAGE","displayLabel":"Duplicate Message","isActive":true,"sortOrder":30},
+      {"code":"INVALID_RECIPIENT","displayLabel":"Reply Address Not Valid","isActive":true,"sortOrder":40},
+      {"code":"CLIENT_NOT_RESOLVED","displayLabel":"Client Not Resolved","isActive":true,"sortOrder":50},
+      {"code":"NON_OOH_REQUEST","displayLabel":"Request Includes Other Media","isActive":true,"sortOrder":60},
+      {"code":"INCOMPLETE_BRIEF","displayLabel":"Brief Information Incomplete","isActive":true,"sortOrder":70},
+      {"code":"ATTACHMENT_REVIEW_REQUIRED","displayLabel":"Attachment Review Required","isActive":true,"sortOrder":75},
+      {"code":"STP_UNREADY","displayLabel":"STP Not Ready","isActive":true,"sortOrder":80},
+      {"code":"SUPPLY_UNREADY","displayLabel":"Supply Not Ready","isActive":true,"sortOrder":90},
+      {"code":"PLAN_UNREADY","displayLabel":"Media Plan Not Ready","isActive":true,"sortOrder":100},
+      {"code":"PROPOSAL_UNREADY","displayLabel":"Proposal Not Ready","isActive":true,"sortOrder":110},
+      {"code":"DELIVERY_FAILED","displayLabel":"Proposal Delivery Failed","isActive":true,"sortOrder":120}
+    ],
+    "emailAutomationPolicies": [
+      {"code":"OOH_INBOUND_PROPOSAL_V1","displayLabel":"Inbound OOH Proposal Automation v1","isActive":true,"sortOrder":10,"metadata":{"campaignMode":"OOH_ONLY","allowedChannels":["OOH","DOOH"],"requiredBriefFields":["objective","audience","geography","timing","budget","vatStatus"],"minimumStpConfidence":0.45,"minimumSupplyConfidence":"CONFIRMED","maximumProposalOptions":1,"maximumSourceBytes":1048576,"maximumClarificationCount":20,"maximumClarificationLength":4000,"maximumRetryReasonLength":2000,"requiresTenantOptIn":true,"allowAutomaticExternalSend":true,"allowAttachments":false,"proposalTitle":"Out-of-home media proposal","proposalOptionLabel":"Recommended OOH plan","proposalTerms":"The proposal is based on the exact approved plan, rates, availability and running periods shown. Any material change requires a new version.","emailSubjectPrefix":"Your Advertified OOH proposal","emailBody":"Please find the recommended out-of-home media proposal attached. Reply to this email if the campaign requirements need to change."}}
+    ],
     "supplySourceTypes": [
       {"code":"NOT_SUPPLIED","displayLabel":"Not Supplied","isActive":true,"sortOrder":10},
       {"code":"PUBLISHED_INVENTORY","displayLabel":"Published Inventory","isActive":true,"sortOrder":20},
@@ -325,7 +384,11 @@
       {"code":"media_plan_version","displayLabel":"Media Plan Version","isActive":true,"sortOrder":230},
       {"code":"proposal_version","displayLabel":"Proposal Version","isActive":true,"sortOrder":240},
       {"code":"proposal_document","displayLabel":"Proposal Document","isActive":true,"sortOrder":250},
-      {"code":"proposal_decision","displayLabel":"Proposal Decision","isActive":true,"sortOrder":260}
+      {"code":"proposal_decision","displayLabel":"Proposal Decision","isActive":true,"sortOrder":260},
+      {"code":"campaign_mode_selection","displayLabel":"Campaign Mode Selection","isActive":true,"sortOrder":270},
+      {"code":"inbound_mailbox","displayLabel":"Inbound Mailbox","isActive":true,"sortOrder":280},
+      {"code":"inbound_campaign_email","displayLabel":"Inbound Campaign Email","isActive":true,"sortOrder":290},
+      {"code":"email_proposal_automation_run","displayLabel":"Email Proposal Automation Run","isActive":true,"sortOrder":300}
     ],
     "commercialActions": [
       {"code":"tenant.updated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -373,7 +436,14 @@
       {"code":"proposal.rendered","displayLabel":"Proposal Rendered","isActive":true,"sortOrder":430},
       {"code":"proposal.shared","displayLabel":"Proposal Shared for Client Review","isActive":true,"sortOrder":440},
       {"code":"proposal.selected","displayLabel":"Proposal Option Selected","isActive":true,"sortOrder":450},
-      {"code":"proposal.declined","displayLabel":"Proposal Declined","isActive":true,"sortOrder":460}
+      {"code":"proposal.declined","displayLabel":"Proposal Declined","isActive":true,"sortOrder":460},
+      {"code":"campaign_mode.selected","displayLabel":"Campaign Mode Locked","isActive":true,"sortOrder":470},
+      {"code":"inbound_mailbox.configured","displayLabel":"Inbound Mailbox Configured","isActive":true,"sortOrder":480},
+      {"code":"inbound_email.received","displayLabel":"Inbound Campaign Email Received","isActive":true,"sortOrder":490},
+      {"code":"email_automation.started","displayLabel":"Email Proposal Automation Started","isActive":true,"sortOrder":500},
+      {"code":"email_automation.review_required","displayLabel":"Email Proposal Automation Review Required","isActive":true,"sortOrder":510},
+      {"code":"email_automation.sent","displayLabel":"Email Proposal Automation Sent","isActive":true,"sortOrder":520},
+      {"code":"email_automation.failed","displayLabel":"Email Proposal Automation Failed","isActive":true,"sortOrder":530}
     ],
     "commercialEventTypes": [
       {"code":"TenantUpdated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -421,7 +491,14 @@
       {"code":"ProposalRendered","displayLabel":"Proposal Rendered","isActive":true,"sortOrder":430},
       {"code":"ProposalShared","displayLabel":"Proposal Shared","isActive":true,"sortOrder":440},
       {"code":"ProposalOptionSelected","displayLabel":"Proposal Option Selected","isActive":true,"sortOrder":450},
-      {"code":"ProposalDeclined","displayLabel":"Proposal Declined","isActive":true,"sortOrder":460}
+      {"code":"ProposalDeclined","displayLabel":"Proposal Declined","isActive":true,"sortOrder":460},
+      {"code":"CampaignModeSelected","displayLabel":"Campaign Mode Locked","isActive":true,"sortOrder":470},
+      {"code":"InboundMailboxConfigured","displayLabel":"Inbound Mailbox Configured","isActive":true,"sortOrder":480},
+      {"code":"InboundCampaignEmailReceived","displayLabel":"Inbound Campaign Email Received","isActive":true,"sortOrder":490},
+      {"code":"EmailProposalAutomationStarted","displayLabel":"Email Proposal Automation Started","isActive":true,"sortOrder":500},
+      {"code":"EmailProposalAutomationReviewRequired","displayLabel":"Email Proposal Automation Review Required","isActive":true,"sortOrder":510},
+      {"code":"EmailProposalAutomationSent","displayLabel":"Email Proposal Automation Sent","isActive":true,"sortOrder":520},
+      {"code":"EmailProposalAutomationFailed","displayLabel":"Email Proposal Automation Failed","isActive":true,"sortOrder":530}
     ],
     "creativeTextRoles": [
       {"code":"HEADLINE","displayLabel":"Headline","isActive":true,"sortOrder":10},
@@ -522,6 +599,10 @@
       {"code":"RATE_CARD","displayLabel":"Rate Card","isActive":true,"sortOrder":80},
       {"code":"BRAND_REFERENCE","displayLabel":"Brand Reference","isActive":true,"sortOrder":90}
     ],
+    "proposalDeliveryModes": [
+      {"code":"LOCAL_PORTAL","displayLabel":"Advertified Client Workspace","isActive":true,"sortOrder":10},
+      {"code":"EMAIL","displayLabel":"Approved Email Delivery","isActive":false,"sortOrder":20}
+    ],
     "proposalTiers": [
       {"code":"LAUNCH","displayLabel":"Launch","isActive":true,"sortOrder":10,"metadata":{"currency":"ZAR","minBudgetMinor":1000000,"maxBudgetMinor":10000000}},
       {"code":"BOOST","displayLabel":"Boost","isActive":true,"sortOrder":20,"metadata":{"currency":"ZAR","minBudgetMinor":10000000,"maxBudgetMinor":50000000}},
@@ -543,7 +624,10 @@
       {"code":"QUALITY_ISSUE","displayLabel":"Quality Issue","isActive":true,"sortOrder":70},
       {"code":"DUPLICATE","displayLabel":"Duplicate","isActive":true,"sortOrder":80},
       {"code":"MISSING_INFO","displayLabel":"Missing Information","isActive":true,"sortOrder":90},
-      {"code":"SUPPLIER_DECLINED","displayLabel":"Supplier Declined","isActive":true,"sortOrder":100}
+      {"code":"SUPPLIER_DECLINED","displayLabel":"Supplier Declined","isActive":true,"sortOrder":100},
+      {"code":"INELIGIBLE_ROUTE","displayLabel":"Ineligible Route","isActive":true,"sortOrder":110},
+      {"code":"INELIGIBLE_POI","displayLabel":"Ineligible Point of Interest","isActive":true,"sortOrder":120},
+      {"code":"SUPPLIER_CONFIRMATION_REQUIRED","displayLabel":"Supplier Confirmation Required","isActive":true,"sortOrder":130}
     ],
     "taskPriorities": [
       {"code":"URGENT","displayLabel":"Urgent","isActive":true,"sortOrder":10},

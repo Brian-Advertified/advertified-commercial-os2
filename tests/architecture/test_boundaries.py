@@ -20,6 +20,8 @@ GENERATED_PARTS = {
     "dist",
     "node_modules",
     "obj",
+    "tmp",
+    "temp",
     "Generated",
     "generated",
 }
@@ -84,6 +86,35 @@ def test_authored_source_files_do_not_exceed_400_lines() -> None:
     }
 
     assert not violations, f"Source files over 400 lines: {violations}"
+
+
+def test_ooh_only_is_not_a_parallel_application_workflow() -> None:
+    rapid_ooh = re.compile(r"rapid[-_]?ooh", re.IGNORECASE)
+    forbidden_paths = [
+        relative(path)
+        for path in source_files()
+        if rapid_ooh.search(relative(path))
+    ]
+    forbidden_symbols = []
+    patterns = (
+        rapid_ooh,
+        re.compile(r"campaign[-_]?route", re.IGNORECASE),
+    )
+    for path in source_files():
+        if path.resolve() == Path(__file__).resolve():
+            continue
+        content = path.read_text(encoding="utf-8")
+        if any(pattern.search(content) for pattern in patterns):
+            forbidden_symbols.append(relative(path))
+
+    assert not forbidden_paths, (
+        "OOH-only must use canonical planning, not a RapidOoh source tree: "
+        f"{forbidden_paths}"
+    )
+    assert not forbidden_symbols, (
+        "OOH-only must not expose a parallel RapidOoh workflow: "
+        f"{forbidden_symbols}"
+    )
 
 
 def test_web_has_no_server_or_persistence_imports() -> None:

@@ -47,6 +47,14 @@ public sealed partial class ProposalCommands(
             envelope, MasterDataReferences.Permissions.ProposalShare,
             token => ShareOutcomeAsync(proposalVersionId, envelope, token), cancellationToken);
 
+    public Task<CommandResult<ProposalVersionView>> RecordAutomatedDeliveryAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<RecordAutomatedProposalDeliveryCommand> envelope,
+        CancellationToken cancellationToken) => DispatchAsync(
+            envelope, MasterDataReferences.Permissions.ProposalShare,
+            token => RecordAutomatedDeliveryOutcomeAsync(
+                proposalVersionId, envelope, token), cancellationToken);
+
     public Task<CommandResult<ProposalVersionView>> SelectOptionAsync(
         Guid proposalVersionId, CommandEnvelope<SelectProposalOptionCommand> envelope,
         CancellationToken cancellationToken) => DispatchAsync(

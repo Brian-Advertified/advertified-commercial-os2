@@ -4,6 +4,8 @@ import './App.css'
 import './pages.css'
 import './planning.css'
 import './proposal.css'
+import './proposal.css'
+import './email-automation.css'
 import { useSession } from './auth/session-state'
 import { WorkspaceProvider } from './auth/WorkspaceContext'
 import { AppShell } from './components/AppShell'
@@ -30,6 +32,8 @@ const NewProposalPage = lazy(() => import('./pages/NewProposalPage')
   .then(module => ({ default: module.NewProposalPage })))
 const ProposalPage = lazy(() => import('./pages/ProposalPage')
   .then(module => ({ default: module.ProposalPage })))
+const OohInboxPage = lazy(() => import('./pages/OohInboxPage')
+  .then(module => ({ default: module.OohInboxPage })))
 
 function AuthenticatedApplication() {
   const { session, loading } = useSession()
@@ -59,6 +63,7 @@ function App() {
           <Route path="/planning/:briefVersionId" element={<Suspense fallback={<LoadingState label="Loading media planning" />}><PlanningPage /></Suspense>} />
           <Route path="/briefs/:briefId/proposals/new" element={<Suspense fallback={<LoadingState label="Loading proposal builder" />}><NewProposalPage /></Suspense>} />
           <Route path="/proposals/:proposalId" element={<Suspense fallback={<LoadingState label="Loading proposal" />}><ProposalPage /></Suspense>} />
+          <Route path="/ooh-inbox" element={<Suspense fallback={<LoadingState label="Loading OOH proposal inbox" />}><OohInboxPage /></Suspense>} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/notifications" element={<DeferredPage destination="Notifications" />} />

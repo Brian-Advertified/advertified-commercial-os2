@@ -3,6 +3,7 @@ import { humanMessage } from '../api/client'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
 import { notifications } from '../notifications/notifications'
+import { masterDataCodes } from '../generated/master-data-codes'
 import { Icon } from './Icon'
 
 const destinations = [
@@ -10,10 +11,35 @@ const destinations = [
   { to: '/opportunities', label: 'Opportunities', icon: 'tasks', enabled: true },
   { to: '/briefs/new', label: 'Briefs', icon: 'tasks', enabled: true },
   { to: '/inventory', label: 'Inventory', icon: 'tasks', enabled: true },
+  { to: '/ooh-inbox', label: 'Proposal inbox', icon: 'mail', enabled: true },
   { to: '/tasks', label: 'Tasks', icon: 'tasks', enabled: true },
   { to: '/notifications', label: 'Notifications', icon: 'bell', enabled: false },
   { to: '/profile', label: 'Profile', icon: 'profile', enabled: true },
 ] as const
+
+const oohInboxRoles = new Set<string>([
+  masterDataCodes.roles.platformAdmin,
+  masterDataCodes.roles.internalPlanner,
+  masterDataCodes.roles.agencyAdmin,
+])
+
+function PrimaryNavigation({ roleCode }: { roleCode?: string }) {
+  const visible = destinations.filter((item) =>
+    item.to !== '/ooh-inbox' || oohInboxRoles.has(roleCode ?? ''))
+  return <nav>{visible.map((item) => item.enabled ? (
+    <NavLink key={item.to}
+      className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
+      to={item.to} aria-label={item.label}>
+      <Icon name={item.icon} /><span>{item.label}</span>
+    </NavLink>
+  ) : (
+    <span className="nav-link nav-link-disabled"
+      title="Available when its real workflow is implemented"
+      aria-disabled="true" key={item.to}>
+      <Icon name={item.icon} /><span>{item.label}</span>
+    </span>
+  ))}</nav>
+}
 
 export function AppShell() {
   const { signOut } = useSession()
@@ -33,27 +59,7 @@ export function AppShell() {
     <div className="app-shell">
       <aside className="navigation-rail" aria-label="Primary navigation">
         <NavLink className="brand-mark" to="/home" aria-label="Advertified home">A</NavLink>
-        <nav>
-          {destinations.map((item) => item.enabled ? (
-            <NavLink
-              key={item.to}
-              className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
-              to={item.to}
-              aria-label={item.label}
-            >
-              <Icon name={item.icon} /><span>{item.label}</span>
-            </NavLink>
-          ) : (
-            <span
-              className="nav-link nav-link-disabled"
-              title="Available when its real workflow is implemented"
-              aria-disabled="true"
-              key={item.to}
-            >
-              <Icon name={item.icon} /><span>{item.label}</span>
-            </span>
-          ))}
-        </nav>
+        <PrimaryNavigation roleCode={selected?.roleCode} />
         <span className="environment-pill">Local only</span>
       </aside>
 

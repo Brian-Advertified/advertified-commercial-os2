@@ -8,7 +8,11 @@ const sourceId = 'b5000000-0000-0000-0000-000000000001'
 const versionId = 'b6000000-0000-0000-0000-000000000001'
 const now = '2026-08-29T16:00:00Z'
 
-type State = { status: 'DRAFT' | 'IN_REVIEW' | 'APPROVED'; version: number; source: string }
+type State = {
+  status: 'DRAFT' | 'IN_REVIEW' | 'APPROVED'
+  version: number
+  source: string
+}
 
 test('one agency operator takes a supplied Brief through confirmation', async ({ page }) => {
   const state: State = { status: 'DRAFT', version: 1, source: '' }
@@ -18,23 +22,18 @@ test('one agency operator takes a supplied Brief through confirmation', async ({
   await page.route('**/api/v1/**', async (route) => handleApi(route, state))
 
   await page.goto('/briefs/new')
-  await page.getByLabel('Brief title').fill('December enquiry Brief')
-  await page.getByLabel('Original client wording').fill(
-    'The client needs qualified Gauteng enquiries by December; budget was not supplied.')
-  await page.getByLabel('Business problem').fill('Qualified demand is not established.')
-  await page.getByLabel('Objective').fill('Generate qualified enquiries.')
-  await page.getByLabel('Audience direction').fill('Workspace furniture buyers')
-  await page.getByLabel('Geography').fill('Gauteng')
-  await page.getByLabel('Timing').fill('By December 2026')
-  await page.getByRole('button', { name: 'Understand this Brief' }).click()
+  await page.getByLabel('Campaign or Brief name').fill('December enquiry Brief')
+  await page.getByLabel('Original Brief').fill(
+    'Client One needs qualified Gauteng enquiries by December. The media type is unclear.')
+  await page.getByRole('button', { name: 'Create campaign from Brief' }).click()
 
-  await expect(page.getByRole('heading', { name: 'December enquiry Brief' })).toBeVisible()
-  await expect(page.getByText('What budget is available?')).toBeVisible()
-  await page.getByText(/December enquiry Brief supplied source/).click()
-  await expect(page.getByText(/client needs qualified Gauteng enquiries/)).toBeVisible()
-  await page.getByRole('button', { name: 'Confirm this Brief' }).click()
-  await expect(page.getByText('APPROVED', { exact: true }).first()).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Confirm this Brief' })).toHaveCount(0)
+  await expect(page.getByRole('heading', {
+    name: 'Answer only what could not be confirmed',
+  })).toBeVisible()
+  await page.getByLabel('Should this use only out-of-home media or a full campaign?')
+    .selectOption('OOH_ONLY')
+  await page.getByRole('button', { name: 'Continue to planning' }).click()
+  await expect(page).toHaveURL(new RegExp(`/planning/${versionId}$`))
 })
 
 test('advertiser can read a Brief without being asked to confirm it', async ({ page }) => {
@@ -74,9 +73,23 @@ async function handleReadApi(route: Route, state: State, path: string, role: str
 
 async function handleWriteApi(route: Route, state: State, path: string) {
   const request = route.request()
+  if (path.endsWith('/briefs:understand')) {
+    expect(request.headers()['x-csrf-token']).toBe('csrf-brief')
+    const body = request.postDataJSON() as {
+      sourceTitle: string
+      sourceContent: string
+      clarifications: Array<{ fieldPath: string; value: string }>
+    }
+    expect(body.sourceTitle).toBe('December enquiry Brief')
+    state.source = body.sourceContent
+    const mode = body.clarifications.find(item => item.fieldPath === 'campaignMode')?.value
+    return json(route, understandingFixture(mode ?? null))
+  }
   if (path.endsWith('/briefs')) {
     assertMutation(route, false)
-    state.source = (request.postDataJSON() as { sourceContent: string }).sourceContent
+    const body = request.postDataJSON() as { clientId: string | null; clientName: string }
+    expect(body.clientId).toBeNull()
+    expect(body.clientName).toBe('Client One')
     return json(route, briefSummary('CREATED'), 201)
   }
   if (path.endsWith(`/briefs/${briefId}/versions`)) {
@@ -94,7 +107,52 @@ async function handleWriteApi(route: Route, state: State, path: string) {
     assertMutation(route, true); state.status = 'APPROVED'; state.version = 3
     return json(route, versionFixture(state))
   }
+  if (path.endsWith(`/brief-versions/${versionId}/campaign-mode:select`)) {
+    assertMutation(route, false)
+    expect((request.postDataJSON() as { mode: string }).mode).toBe('OOH_ONLY')
+    return json(route, {
+      id: 'b6500000-0000-0000-0000-000000000001', briefVersionId: versionId,
+      mode: 'OOH_ONLY', allowedChannels: ['OOH', 'DOOH'], isLocked: true,
+      decisionSource: 'HUMAN_CLARIFICATION', confidence: 1,
+      reason: 'The user resolved the unclear media requirement.', selectedBy: userId,
+      selectedAtUtc: now,
+    })
+  }
   return json(route, { code: 'NOT_FOUND', status: 404 }, 404)
+}
+
+function understandingFixture(mode: string | null) {
+  const needsChoice = mode === null
+  return {
+    clientName: 'Client One', title: 'December enquiry Brief', campaignMode: mode,
+    campaignModeConfidence: needsChoice ? 0 : 1,
+    requiresHumanClarification: needsChoice,
+    campaignModeRationale: needsChoice
+      ? 'The supplied Brief does not identify the required media.'
+      : 'The user selected out-of-home only.',
+    draft: {
+      businessProblem: 'Qualified demand is not established.',
+      objective: 'Generate qualified enquiries.', audiences: ['Workspace furniture buyers'],
+      geographies: ['Gauteng'], timing: 'By December 2026', budgetMinor: null,
+      budgetUnknown: true, currency: null, vatStatus: null, feesMinor: null,
+      mediaRequirements: mode ? ['OOH'] : [], constraints: [], measurement: [],
+      facts: ['The supplied Brief names Gauteng and December.'], unknowns: [],
+      assumptions: [], conflicts: [],
+    },
+    questions: needsChoice ? [{
+      fieldPath: 'campaignMode',
+      question: 'Should this use only out-of-home media or a full campaign?',
+      isBlocking: true, options: ['OOH_ONLY', 'FULL_CAMPAIGN'],
+    }] : [],
+    evidence: [{
+      fieldPath: 'geographies', kind: 'SUPPLIED_FACT', excerpt: 'Gauteng', confidence: 1,
+      sourceLocator: 'supplied:web:test',
+    }],
+    usage: {
+      provider: 'deterministic-local', model: 'fixture', promptVersion: '1.0.0',
+      researchStatus: 'NOT_RUN', toolCalls: 0, incrementalCostMinor: 0,
+    },
+  }
 }
 
 function briefFixture(state: State) {

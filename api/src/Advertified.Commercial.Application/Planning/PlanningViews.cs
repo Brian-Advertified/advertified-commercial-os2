@@ -20,6 +20,9 @@ public sealed record AudienceDefinitionSetView(
     Guid Id,
     Guid BriefVersionId,
     int VersionNumber,
+    IReadOnlyList<Guid> TargetAudienceIds,
+    string TargetingRationale,
+    string PositioningStatement,
     string InputHash,
     string Status,
     IReadOnlyList<AudienceDefinitionView> Definitions,
@@ -150,6 +153,7 @@ public sealed record MediaPlanVersionView(
 public sealed record PlanningWorkspaceView(
     Guid BriefId,
     Guid BriefVersionId,
+    CampaignModeSelectionView? CampaignMode,
     AudienceDefinitionSetView? Audience,
     MediaMixVersionView? MediaMix,
     InventoryShortlistVersionView? Shortlist,

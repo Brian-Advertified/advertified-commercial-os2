@@ -19,13 +19,14 @@ const now = '2026-08-29T19:00:00Z'
 
 type State = {
   audience: boolean
+  audienceApproved: boolean
   mix: null | { status: 'DRAFT' | 'APPROVED'; version: number; periods: { start: string; end: string }[] }
   shortlist: null | { status: 'DRAFT' | 'APPROVED'; version: number; selected: boolean }
   plan: null | { status: 'IN_REVIEW' | 'APPROVED'; version: number; resolved: boolean }
 }
 
 test('planner edits allocation and timing before approving the plan', async ({ page }) => {
-  const state: State = { audience: false, mix: null, shortlist: null, plan: null }
+  const state: State = { audience: false, audienceApproved: false, mix: null, shortlist: null, plan: null }
   await page.addInitScript((id) => {
     sessionStorage.setItem('advertified.workspace', JSON.stringify({ tenantId: id }))
   }, tenantId)
@@ -33,7 +34,7 @@ test('planner edits allocation and timing before approving the plan', async ({ p
 
   await page.goto(`/planning/${briefVersionId}`)
   await page.getByRole('button', { name: 'Build audience direction' }).click()
-  await expect(page.getByText('Local business decision makers')).toBeVisible()
+  await expect(page.getByText('Local business decision makers', { exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'Create media mix' }).click()
   await expect(page.getByRole('heading', { name: 'Shape the investment and timing' })).toBeVisible()
@@ -70,7 +71,15 @@ async function handleApi(route: Route, state: State) {
 }
 
 async function handleMixCommand(route: Route, state: State, path: string) {
-  if (path.endsWith('/audiences:generate')) { state.audience = true; return json(route, audience()) }
+  if (path.endsWith('/audiences:generate')) {
+    state.audience = true
+    state.audienceApproved = true
+    return json(route, audience(state))
+  }
+  if (path.endsWith(`${audienceId}:approve`)) {
+    state.audienceApproved = true
+    return json(route, audience(state))
+  }
   if (path.endsWith('/media-mixes:generate')) {
     state.mix = { status: 'DRAFT', version: 1, periods: [] }; state.shortlist = null; state.plan = null
     return json(route, mix(state))
@@ -121,15 +130,29 @@ function planning(state: State) {
   return {
     briefId,
     briefVersionId,
-    audience: state.audience ? audience() : null,
+    campaignMode: campaignMode(),
+    audience: state.audience ? audience(state) : null,
     mediaMix: state.mix ? mix(state) : null,
     shortlist: state.shortlist ? shortlist(state) : null,
     mediaPlan: state.plan ? plan(state.plan) : null,
   }
 }
 
-function audience() {
-  return { id: audienceId, briefVersionId, versionNumber: 1, inputHash: 'a'.repeat(64), status: 'APPROVED',
+function campaignMode() {
+  return {
+    id: 'c3500000-0000-0000-0000-000000000001', briefVersionId,
+    mode: 'OOH_ONLY', allowedChannels: ['OOH', 'DOOH'], isLocked: true,
+    decisionSource: 'AGENT', confidence: 0.95,
+    reason: 'The supplied Brief requests only OOH.', selectedBy: userId, selectedAtUtc: now,
+  }
+}
+
+function audience(state: State) {
+  return { id: audienceId, briefVersionId, versionNumber: 1,
+    targetAudienceIds: ['cf000000-0000-0000-0000-000000000001'],
+    targetingRationale: 'Prioritise local business decision makers in Johannesburg.',
+    positioningStatement: 'Present the advertiser as the practical local growth partner.',
+    inputHash: 'a'.repeat(64), status: state.audienceApproved ? 'APPROVED' : 'DRAFT',
     definitions: [{ id: 'cf000000-0000-0000-0000-000000000001', name: 'Local business decision makers',
       description: 'Businesses seeking local customer demand.', needState: 'Growth', buyingContext: 'Local purchase',
       geographies: ['Johannesburg'], language: null, lifeStage: null, lsmSem: null,

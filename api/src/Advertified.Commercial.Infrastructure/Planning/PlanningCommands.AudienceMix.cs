@@ -24,6 +24,23 @@ public sealed partial class PlanningCommands
         {
             throw new InvalidOperationException("The audience proposal is invalid.");
         }
+        var targetingRationale = OpportunityCommandSupport.Required(
+            proposal.TargetingRationale, 4000, nameof(proposal.TargetingRationale));
+        var positioningStatement = OpportunityCommandSupport.Required(
+            proposal.PositioningStatement, 4000, nameof(proposal.PositioningStatement));
+        var audienceRecords = proposal.Audiences
+            .Select(item => new PlannedAudienceRecord(Guid.NewGuid(), item))
+            .ToArray();
+        var targetAudienceIds = audienceRecords
+            .Where(item => item.Proposal.IsTarget)
+            .Select(item => item.Id)
+            .ToArray();
+        if (targetAudienceIds.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "The targeting proposal must identify at least one audience segment.");
+        }
+        var targetAudienceIdsJson = Write(targetAudienceIds);
         var latest = await store.FindLatestAudienceAsync(
             envelope.TenantId, briefVersionId, cancellationToken);
         var id = Guid.NewGuid();
@@ -32,15 +49,20 @@ public sealed partial class PlanningCommands
         var now = timeProvider.GetUtcNow();
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.audience_definition_sets (
-                id, tenant_id, brief_version_id, version_no, input_hash,
+                id, tenant_id, brief_version_id, version_no,
+                target_audience_ids_json, targeting_rationale,
+                positioning_statement, input_hash,
                 status_code, created_by, created_at_utc)
             VALUES ({id}, {envelope.TenantId.Value}, {briefVersionId}, {versionNumber},
-                {inputHash}, {MasterDataCodes.LifecycleStatuses.Approved}, {envelope.ActorId.Value}, {now})
+                {targetAudienceIdsJson}::jsonb, {targetingRationale},
+                {positioningStatement}, {inputHash},
+                {MasterDataCodes.LifecycleStatuses.Approved}, {envelope.ActorId.Value}, {now})
             """, cancellationToken);
-        foreach (var audience in proposal.Audiences)
+        foreach (var audience in audienceRecords)
         {
             await InsertAudienceAsync(
-                envelope.TenantId, id, audience, now, cancellationToken);
+                envelope.TenantId, id, audience.Id, audience.Proposal,
+                now, cancellationToken);
         }
         var row = await store.FindLatestAudienceAsync(
             envelope.TenantId, briefVersionId, cancellationToken)
@@ -61,7 +83,8 @@ public sealed partial class PlanningCommands
             briefVersionId, envelope, cancellationToken);
         var audience = await store.FindLatestAudienceAsync(
             envelope.TenantId, briefVersionId, cancellationToken);
-        if (audience is null || audience.Status != MasterDataCodes.LifecycleStatuses.Approved)
+        if (audience is null ||
+            audience.Status != MasterDataCodes.LifecycleStatuses.Approved)
         {
             throw new InvalidLifecycleTransitionException();
         }
@@ -77,6 +100,9 @@ public sealed partial class PlanningCommands
             item.Role,
             item.RunningPeriods.Select(period =>
                 new MediaRunningPeriodView(period.Start, period.End)).ToArray())).ToArray();
+        var campaignMode = await RequireCampaignModeAsync(
+            envelope.TenantId, briefVersionId, cancellationToken);
+        campaignModePolicy.EnsureAllocations(campaignMode.Mode, allocations);
         var allocationsJson = Write(allocations);
         var rolesJson = Write(allocations.ToDictionary(item => item.Channel, item => item.Role));
         var assumptionsJson = Write(proposal.Assumptions.Concat(proposal.Unknowns).ToArray());
@@ -118,8 +144,13 @@ public sealed partial class PlanningCommands
             throw new InvalidLifecycleTransitionException();
         }
         var allocations = envelope.Command.Allocations.Select(ToAllocationView).ToArray();
+        await EnsureOohSelectionRemainsLockedAsync(
+            envelope.TenantId, mix.BriefVersionId, allocations, cancellationToken);
         EnsureAllocations(allocations, brief.BudgetMinor!.Value);
         EnsureRunningPeriods(allocations);
+        var campaignMode = await RequireCampaignModeAsync(
+            envelope.TenantId, mix.BriefVersionId, cancellationToken);
+        campaignModePolicy.EnsureAllocations(campaignMode.Mode, allocations);
         var allocationsJson = Write(allocations);
         var rolesJson = Write(allocations.ToDictionary(item => item.Channel, item => item.Role));
         var inputHash = PlanningHash.ForMix(brief, mix.AudienceSetId, allocationsJson);
@@ -162,8 +193,13 @@ public sealed partial class PlanningCommands
         var brief = await LoadApprovedBriefAsync(
             mix.BriefVersionId, envelope, cancellationToken);
         var allocations = Read<MediaAllocationView[]>(mix.AllocationsJson);
+        await EnsureOohSelectionRemainsLockedAsync(
+            envelope.TenantId, mix.BriefVersionId, allocations, cancellationToken);
         EnsureAllocations(allocations, brief.BudgetMinor!.Value);
         EnsureRunningPeriods(allocations);
+        var campaignMode = await RequireCampaignModeAsync(
+            envelope.TenantId, mix.BriefVersionId, cancellationToken);
+        campaignModePolicy.EnsureAllocations(campaignMode.Mode, allocations);
         if (mix.Status != MasterDataCodes.LifecycleStatuses.Draft)
         {
             throw new InvalidLifecycleTransitionException();
@@ -220,8 +256,16 @@ public sealed partial class PlanningCommands
         CancellationToken cancellationToken)
         where TCommand : notnull
     {
-        var channels = await store.ListAvailableChannelsAsync(
+        var campaignMode = await RequireCampaignModeAsync(
+            envelope.TenantId, brief.Id, cancellationToken);
+        var availableChannels = await store.ListAvailableChannelsAsync(
             envelope.TenantId, cancellationToken);
+        var channels = campaignModePolicy.FilterAvailableChannels(
+            campaignMode.Mode, availableChannels);
+        if (channels.Length == 0)
+        {
+            throw new InvalidLifecycleTransitionException();
+        }
         return await planningAgent.ProposeAsync(new PlanningBriefInput(
             envelope.TenantId.Value, envelope.ActorId.Value, brief.Id, brief.Objective,
             Read<string[]>(brief.AudiencesJson), Read<string[]>(brief.GeographiesJson),
@@ -232,6 +276,7 @@ public sealed partial class PlanningCommands
     private Task<int> InsertAudienceAsync(
         TenantId tenantId,
         Guid setId,
+        Guid audienceId,
         AudienceDefinitionProposal audience,
         DateTimeOffset now,
         CancellationToken cancellationToken) =>
@@ -241,7 +286,7 @@ public sealed partial class PlanningCommands
                 buying_context, geography_json, language, life_stage, lsm_sem,
                 classification_code, exclusions_json, evidence_item_ids_json,
                 confidence, status_code)
-            VALUES ({Guid.NewGuid()}, {tenantId.Value}, {setId}, {audience.Name},
+            VALUES ({audienceId}, {tenantId.Value}, {setId}, {audience.Name},
                 {audience.Description}, {audience.NeedState}, {audience.BuyingContext},
                 {Write(audience.Geographies)}::jsonb, {audience.Language}, {audience.LifeStage},
                 {audience.LsmSem}, {audience.Classification},
@@ -256,6 +301,24 @@ public sealed partial class PlanningCommands
             item.Role,
             item.RunningPeriods.Select(period =>
                 new MediaRunningPeriodView(period.Start, period.End)).ToArray())).ToArray(), budget);
+
+    private async Task EnsureOohSelectionRemainsLockedAsync(
+        TenantId tenantId,
+        Guid briefVersionId,
+        IReadOnlyList<MediaAllocationView> allocations,
+        CancellationToken cancellationToken)
+    {
+        if (!await store.HasApprovedOohOnlyMixAsync(
+                tenantId, briefVersionId, cancellationToken))
+        {
+            return;
+        }
+        if (allocations.Any(item => item.Channel is not
+            (MasterDataCodes.Channels.Ooh or MasterDataCodes.Channels.Dooh)))
+        {
+            throw new CampaignRestartRequiredException();
+        }
+    }
 
     private static MediaAllocationView ToAllocationView(MediaAllocationInput allocation)
     {
@@ -300,6 +363,10 @@ public sealed partial class PlanningCommands
         }
     }
 }
+
+internal sealed record PlannedAudienceRecord(
+    Guid Id,
+    AudienceDefinitionProposal Proposal);
 
 internal static partial class PlanningHash
 {

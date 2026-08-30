@@ -24,7 +24,8 @@ public sealed record AudienceDefinitionProposal(
     string Classification,
     IReadOnlyList<string> Exclusions,
     IReadOnlyList<Guid> EvidenceItemIds,
-    decimal Confidence);
+    decimal Confidence,
+    bool IsTarget);
 
 public sealed record MediaAllocationProposal(
     string Channel,
@@ -34,6 +35,8 @@ public sealed record MediaAllocationProposal(
 
 public sealed record PlanningAgentProposal(
     IReadOnlyList<AudienceDefinitionProposal> Audiences,
+    string TargetingRationale,
+    string PositioningStatement,
     IReadOnlyList<MediaAllocationProposal> Allocations,
     IReadOnlyList<string> Unknowns,
     IReadOnlyList<string> Assumptions,

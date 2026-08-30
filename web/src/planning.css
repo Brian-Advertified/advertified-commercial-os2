@@ -85,8 +85,13 @@
 .timeline-track { position: relative; height: 1.4rem; background: linear-gradient(90deg, #f0f3f8, #e9eef5); border-radius: 999px; }
 .timeline-segment { position: absolute; top: 0.2rem; bottom: 0.2rem; background: var(--media-accent); border-radius: 999px; box-shadow: 0 0.2rem 0.45rem color-mix(in srgb, var(--media-accent) 20%, transparent); }
 
-.audience-chip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.8rem; }
-.audience-chip-grid article { padding: 1rem; background: var(--canvas); border-radius: 0.8rem; }
+.stp-summary-grid { display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 0.9rem; }
+.stp-summary-grid > article { padding: 1.05rem; background: var(--canvas); border-radius: 0.8rem; }
+.stp-summary-grid > article > span { display: block; margin-bottom: 0.35rem; color: var(--electric-deep); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.stp-summary-grid > article > strong { display: block; color: var(--navy); }
+.stp-summary-grid > article > p { margin: 0.45rem 0 0; line-height: 1.55; }
+.audience-chip-grid { display: grid; gap: 0.65rem; margin-top: 0.8rem; }
+.audience-chip-grid > div { padding-top: 0.65rem; border-top: 1px solid var(--line); }
 .audience-chip-grid strong { color: var(--navy); }
 .audience-chip-grid p { margin: 0.35rem 0; }
 .audience-chip-grid small { color: var(--muted); }
@@ -118,6 +123,22 @@
 .plan-objections article.is-resolved { opacity: 0.72; }
 .plan-objections p { margin: 0.2rem 0 0; color: var(--muted); }
 
+.campaign-mode-choice { display: grid; gap: 1rem; }
+.campaign-mode-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.campaign-mode-options button { min-height: 10.5rem; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; align-items: center; gap: 0.45rem 0.9rem; padding: 1.2rem; text-align: left; color: var(--body); background: var(--white); border: 1px solid var(--line-strong); border-radius: 1rem; cursor: pointer; transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
+.campaign-mode-options button:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--electric); box-shadow: var(--shadow-sm); }
+.campaign-mode-options button:disabled { opacity: 0.65; cursor: progress; }
+.campaign-mode-options strong { color: var(--navy); font-size: 1.15rem; }
+.campaign-mode-options small { grid-column: 2; color: var(--muted); line-height: 1.5; }
+.campaign-mode-mark { grid-row: 1 / 3; width: 3.5rem; height: 3.5rem; display: grid; place-items: center; color: var(--electric-deep); background: var(--electric-wash); border-radius: 0.9rem; font-weight: 850; }
+.campaign-mode-warning { margin: 0; padding: 0.85rem 1rem; color: var(--navy); background: var(--canvas); border-left: 0.22rem solid var(--electric); border-radius: 0.5rem; }
+.campaign-mode-locked { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
+.campaign-mode-locked h2 { margin: 0.2rem 0 0.35rem; color: var(--navy); }
+.campaign-mode-locked p { margin: 0; color: var(--muted); }
+.campaign-mode-lock-note { max-width: 24rem; display: grid; gap: 0.35rem; padding: 0.9rem 1rem; background: var(--canvas); border-radius: 0.8rem; }
+.campaign-mode-lock-note strong { color: var(--navy); }
+.campaign-mode-lock-note span { color: var(--muted); font-size: 0.82rem; }
+
 .media-tone-ooh { --media-accent: #5d68d9; }
 .media-tone-dooh { --media-accent: #2776d2; }
 .media-tone-radio { --media-accent: #d65a85; }
@@ -136,17 +157,20 @@
 
 @media (max-width: 900px) {
   .planning-hero, .planning-start-card, .planning-section-heading { align-items: stretch; flex-direction: column; }
-  .planning-progress { grid-template-columns: repeat(4, 1fr); min-width: 0; }
+  .planning-progress { grid-template-columns: repeat(5, 1fr); min-width: 0; }
+  .campaign-mode-locked { align-items: stretch; flex-direction: column; }
   .planning-progress div { flex-direction: column; gap: 0.3rem; font-size: 0.72rem; text-align: center; }
   .allocation-bar-row { grid-template-columns: minmax(7rem, 1fr) 1.5fr; }
   .allocation-bar-row > strong { grid-column: 2; }
   .timeline-row { grid-template-columns: 1fr; }
+  .stp-summary-grid { grid-template-columns: 1fr; }
   .plan-money-strip { grid-template-columns: repeat(2, 1fr); }
   .plan-line { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
-  .media-allocation-grid, .shortlist-grid, .audience-chip-grid { grid-template-columns: 1fr; }
+  .media-allocation-grid, .shortlist-grid, .audience-chip-grid,
+  .campaign-mode-options { grid-template-columns: 1fr; }
   .allocation-bar-row { grid-template-columns: 1fr; gap: 0.35rem; }
   .allocation-bar-row > strong { grid-column: 1; text-align: left; }
   .planning-actions { flex-direction: column-reverse; }

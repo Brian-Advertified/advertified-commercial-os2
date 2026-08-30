@@ -4,8 +4,10 @@ using Advertified.Commercial.Api.Background;
 using Advertified.Commercial.Api.Endpoints;
 using Advertified.Commercial.Api.Errors;
 using Advertified.Commercial.Api.OpenApi;
+using Advertified.Commercial.Api.Startup;
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Brief;
+using Advertified.Commercial.Application.EmailAutomation;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Opportunity;
@@ -15,6 +17,7 @@ using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Advertified.Commercial.Infrastructure.Brief;
+using Advertified.Commercial.Infrastructure.EmailAutomation;
 using Advertified.Commercial.Infrastructure.Identity;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Opportunity;
@@ -39,37 +42,15 @@ var inventoryProtection = builder.Configuration
 var inventoryExtraction = builder.Configuration
     .GetSection(InventoryExtractionOptions.SectionName)
     .Get<InventoryExtractionOptions>() ?? new InventoryExtractionOptions();
+var emailAutomation = builder.Configuration
+    .GetSection(EmailAutomationOptions.SectionName)
+    .Get<EmailAutomationOptions>() ?? new EmailAutomationOptions();
 
-if ((authenticationMode is LocalIdentityDefaults.DeterministicMode
-        or LocalIdentityDefaults.DeterministicSessionMode)
-    && !builder.Environment.IsDevelopment()
-    && !builder.Environment.IsEnvironment("Test"))
-{
-    throw new InvalidOperationException(
-        "Deterministic authentication and sessions are restricted to development and test.");
-}
-
-if (agentRuntime.Mode != AgentRuntimeOptions.DisabledMode &&
-    !builder.Environment.IsDevelopment() &&
-    !builder.Environment.IsEnvironment("Test"))
-{
-    throw new InvalidOperationException(
-        "The deterministic agent runtime is restricted to development and test.");
-}
-
-if ((inventoryProtection.ObjectStoreMode == InventoryProtectionOptions.InMemoryMode ||
-        inventoryProtection.ScannerMode == InventoryProtectionOptions.DeterministicScanner) &&
-    !builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Test"))
-{
-    throw new InvalidOperationException(
-        "Deterministic inventory protection is restricted to development and test.");
-}
-
-var connectionString = builder.Configuration.GetConnectionString("CommercialDatabase");
-if (string.IsNullOrWhiteSpace(connectionString))
-{
-    throw new InvalidOperationException("The commercial database connection is not configured.");
-}
+var connectionString = StartupConfigurationValidator.ValidateAndGetConnectionString(
+    builder,
+    authenticationMode,
+    agentRuntime,
+    inventoryProtection);
 
 builder.Services.AddDbContext<GovernanceDbContext>(
     options => options.UseNpgsql(connectionString));
@@ -90,8 +71,12 @@ builder.Services.AddScoped<IOpportunityReader, OpportunityReader>();
 builder.Services.AddScoped<IOpportunityCommands, OpportunityCommands>();
 builder.Services.AddScoped<IOpportunityWorkflowCommands, OpportunityWorkflowCommands>();
 builder.Services.AddScoped<BriefRecordStore>();
+builder.Services.AddScoped<BriefClientResolver>();
 builder.Services.AddScoped<IBriefReader, BriefReader>();
 builder.Services.AddScoped<IBriefCommands, BriefCommands>();
+builder.Services.AddSingleton(SuppliedBriefAgentPolicy.Load());
+builder.Services.AddScoped<ISuppliedBriefAgentClient, DeterministicSuppliedBriefAgentClient>();
+builder.Services.AddScoped<ISuppliedBriefUnderstandingService, SuppliedBriefUnderstandingService>();
 builder.Services.AddScoped<InventoryRecordStore>();
 builder.Services.AddScoped<IInventoryReader, InventoryReader>();
 builder.Services.AddScoped<IInventoryCommands, InventoryCommands>();
@@ -99,6 +84,7 @@ builder.Services.AddScoped<PlanningRecordStore>();
 builder.Services.AddScoped<IPlanningReader, PlanningReader>();
 builder.Services.AddScoped<IInventoryBenchmarkReader, InventoryBenchmarkReader>();
 builder.Services.AddSingleton(PlanningPolicy.Load());
+builder.Services.AddSingleton(CampaignModePolicy.Load());
 builder.Services.AddScoped<IPlanningCommands, PlanningCommands>();
 builder.Services.AddScoped<IPlanningAgentClient, DeterministicPlanningAgentClient>();
 builder.Services.AddScoped<ProposalRecordStore>();
@@ -107,6 +93,7 @@ builder.Services.AddScoped<IProposalReader, ProposalReader>();
 builder.Services.AddScoped<IProposalCommands, ProposalCommands>();
 builder.Services.AddScoped<IProposalNarrativeClient, DeterministicProposalNarrativeClient>();
 builder.Services.AddScoped<IProposalDeliveryClient, DeterministicProposalDeliveryClient>();
+builder.AddEmailAutomation(emailAutomation);
 builder.AddInventoryExtraction(inventoryExtraction);
 builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = inventoryProtection.MaximumSourceBytes + 1_048_576);
@@ -280,6 +267,7 @@ app.MapBriefEndpoints();
 app.MapInventoryEndpoints();
 app.MapPlanningEndpoints();
 app.MapProposalEndpoints();
+app.MapEmailAutomationEndpoints();
 
 app.Run();
 

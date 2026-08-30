@@ -49,6 +49,27 @@ public sealed class MasterDataMigrationTests
         Assert.True(first.ItemCount > first.CollectionCount);
         Assert.True(await dbContext.MasterDataItemHistory.CountAsync() >= first.ItemCount);
 
+        var collection = await dbContext.MasterDataSets
+            .OrderBy(value => value.Code)
+            .FirstAsync();
+        FormattableString updateCollectionMetadata = $"""
+            UPDATE governance.master_data_collections
+            SET registry_version = registry_version || '-regression-test'
+            WHERE code = {collection.Code}
+            """;
+        const string changedCollectionCode = "changed-collection-code";
+        FormattableString updateCollectionCode = $"""
+            UPDATE governance.master_data_collections
+            SET code = {changedCollectionCode}
+            WHERE code = {collection.Code}
+            """;
+
+        Assert.Equal(
+            1,
+            await dbContext.Database.ExecuteSqlInterpolatedAsync(updateCollectionMetadata));
+        await Assert.ThrowsAsync<PostgresException>(() =>
+            dbContext.Database.ExecuteSqlInterpolatedAsync(updateCollectionCode));
+
         var item = await dbContext.MasterDataItems
             .OrderBy(value => value.CollectionCode)
             .ThenBy(value => value.Code)

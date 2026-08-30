@@ -20,12 +20,39 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         using var client = operatorFactory.CreateClient();
         using var other = otherFactory.CreateClient();
 
+        using var campaignMode = await CommandAsync(
+            client, Path($"brief-versions/{BriefVersionId}/campaign-mode:select"),
+            "planning-mode-ooh", 1, new
+            {
+                mode = "OOH_ONLY",
+                decisionSource = "HUMAN_CLARIFICATION",
+                confidence = 1m,
+                reason = "The approved Brief requires out-of-home media only.",
+            });
+        Assert.Equal("OOH_ONLY", campaignMode.RootElement.GetProperty("mode").GetString());
+        Assert.True(campaignMode.RootElement.GetProperty("isLocked").GetBoolean());
+        using var attemptedExpansion = await RawCommandAsync(
+            client, Path($"brief-versions/{BriefVersionId}/campaign-mode:select"),
+            "planning-mode-expand", 1, new
+            {
+                mode = "FULL_CAMPAIGN",
+                decisionSource = "HUMAN_CLARIFICATION",
+                confidence = 1m,
+                reason = "This must require a new campaign.",
+            });
+        await AssertProblemAsync(
+            attemptedExpansion, HttpStatusCode.Conflict, "CAMPAIGN_MODE_LOCKED");
+
         using var audience = await CommandAsync(
             client, Path($"brief-versions/{BriefVersionId}/audiences:generate"),
             "planning-audience", 1, new { });
         Assert.Equal("APPROVED", audience.RootElement.GetProperty("status").GetString());
         Assert.Equal("HYPOTHESIS", audience.RootElement.GetProperty("definitions")[0]
             .GetProperty("classification").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(audience.RootElement
+            .GetProperty("targetingRationale").GetString()));
+        Assert.False(string.IsNullOrWhiteSpace(audience.RootElement
+            .GetProperty("positioningStatement").GetString()));
 
         using var mix = await CommandAsync(
             client, Path($"brief-versions/{BriefVersionId}/media-mixes:generate"),
@@ -33,6 +60,27 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         var mixId = mix.RootElement.GetProperty("id").GetGuid();
         Assert.Equal(1_000_000, mix.RootElement.GetProperty("allocations")[0]
             .GetProperty("budgetMinor").GetInt64());
+        using var invalidChannelMix = await RawCommandAsync(
+            client, Path($"media-mix-versions/{mixId}:update"),
+            "planning-mix-expand", 1, new
+            {
+                allocations = new[]
+                {
+                    new
+                    {
+                        channel = "RADIO",
+                        budgetMinor = 1_000_000,
+                        role = "This would widen the OOH-only campaign.",
+                        runningPeriods = new[]
+                        {
+                            new { start = "2026-09-01", end = "2026-09-30" },
+                        },
+                    },
+                },
+                reason = "This must be rejected by the locked campaign mode.",
+            });
+        await AssertProblemAsync(
+            invalidChannelMix, HttpStatusCode.Conflict, "CAMPAIGN_MODE_LOCKED");
         using var unbalancedMix = await RawCommandAsync(
             client, Path($"media-mix-versions/{mixId}:update"),
             "planning-mix-unbalanced", 1, new
@@ -91,10 +139,11 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         var stale = Assert.Single(candidates.EnumerateArray(), item =>
             !item.GetProperty("isEligible").GetBoolean() &&
             item.GetProperty("rejectionReason").GetString() == "STALE_RATE");
-        var selected = candidates.EnumerateArray().First(item =>
-            item.GetProperty("isEligible").GetBoolean());
-        Assert.Equal(3, selected.GetProperty("benchmark").GetProperty("cohortSize").GetInt32());
-        var selectedProductId = selected.GetProperty("inventoryProductId").GetGuid();
+        var confirmed = candidates.EnumerateArray().Single(item =>
+            item.GetProperty("isEligible").GetBoolean() &&
+            item.GetProperty("rateAmountMinor").GetInt64() == 100_000);
+        Assert.Equal(3, confirmed.GetProperty("benchmark").GetProperty("cohortSize").GetInt32());
+        var selectedProductId = confirmed.GetProperty("inventoryProductId").GetGuid();
         using var marketComparison = await client.GetAsync(
             Path($"inventory-products/{selectedProductId}/benchmark"));
         marketComparison.EnsureSuccessStatusCode();
@@ -103,7 +152,6 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         Assert.Equal(4, marketComparisonJson.RootElement.GetProperty("cohortSize").GetInt32());
         Assert.Equal("RADIUS_3_KM", marketComparisonJson.RootElement
             .GetProperty("geographyBasis").GetString());
-        var selectedId = selected.GetProperty("id").GetGuid();
         using var rejectedSelection = await RawCommandAsync(
             client, Path($"shortlist-versions/{shortlistId}:select"),
             "planning-select-rejected", 1,
@@ -114,35 +162,26 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         using var selection = await CommandAsync(
             client, Path($"shortlist-versions/{shortlistId}:select"),
             "planning-select", 1,
-            new { selectedCandidateIds = new[] { selectedId }, reason = "Best local fit." });
+            new { selectedCandidateIds = new[] { confirmed.GetProperty("id").GetGuid() },
+                reason = "Best confirmed local fit." });
         Assert.Equal("APPROVED", selection.RootElement.GetProperty("status").GetString());
 
         using var plan = await CommandAsync(
             client, Path($"brief-versions/{BriefVersionId}/media-plans:generate"),
             "planning-plan", 1, new { });
         var planId = plan.RootElement.GetProperty("id").GetGuid();
-        Assert.Equal("UNKNOWN", plan.RootElement.GetProperty("supplyConfidence").GetString());
+        Assert.Equal("CONFIRMED", plan.RootElement.GetProperty("supplyConfidence").GetString());
+        Assert.Empty(plan.RootElement.GetProperty("objections").EnumerateArray());
+        Assert.Equal("supplier-confirmation:email-001", plan.RootElement.GetProperty("lines")[0]
+            .GetProperty("supplySource").GetString());
         Assert.Equal(100_000, plan.RootElement.GetProperty("subtotalMinor").GetInt64());
         Assert.Equal(5_000, plan.RootElement.GetProperty("feesMinor").GetInt64());
         Assert.Equal(15_750, plan.RootElement.GetProperty("vatMinor").GetInt64());
         Assert.Equal(120_750, plan.RootElement.GetProperty("totalMinor").GetInt64());
 
-        using var blocked = await RawCommandAsync(
-            client, Path($"media-plan-versions/{planId}:approve"),
-            "planning-plan-blocked", 1, new { reason = "Too early" });
-        await AssertProblemAsync(blocked, HttpStatusCode.Conflict, "PLANNING_APPROVAL_BLOCKED");
-        var objection = plan.RootElement.GetProperty("objections")[0];
-        var objectionCode = objection.GetProperty("code").GetString();
-        using var resolved = await CommandAsync(
-            client,
-            Path($"media-plan-versions/{planId}/objections/{objectionCode}:resolve"),
-            "planning-resolve", 1,
-            new { resolution = "ACCEPTED_WITH_REASON",
-                reason = "Supplier confirmation remains a visible pre-booking task." });
-        Assert.Equal(2, resolved.RootElement.GetProperty("version").GetInt64());
         using var approvedPlan = await CommandAsync(
             client, Path($"media-plan-versions/{planId}:approve"),
-            "planning-plan-approve", 2, new { reason = "Internal plan is reconciled." });
+            "planning-plan-approve", 1, new { reason = "Confirmed OOH plan is reconciled." });
         Assert.Equal("APPROVED", approvedPlan.RootElement.GetProperty("status").GetString());
         Assert.Equal(OperatorId, approvedPlan.RootElement.GetProperty("approvedBy").GetGuid());
 

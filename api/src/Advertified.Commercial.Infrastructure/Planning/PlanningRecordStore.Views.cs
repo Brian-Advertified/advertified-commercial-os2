@@ -9,6 +9,20 @@ public sealed partial class PlanningRecordStore
 {
     private static readonly JsonSerializerOptions StoredJson = new(JsonSerializerDefaults.Web);
 
+    internal static CampaignModeSelectionView BuildCampaignModeView(
+        CampaignModeRow row,
+        CampaignModePolicy policy) => new(
+            row.Id,
+            row.BriefVersionId,
+            row.Mode,
+            policy.AllowedChannels(row.Mode),
+            true,
+            row.DecisionSource,
+            row.Confidence,
+            row.Reason,
+            row.SelectedBy,
+            row.SelectedAtUtc);
+
     internal async Task<AudienceDefinitionSetView> BuildAudienceViewAsync(
         TenantId tenantId,
         AudienceSetRow set,
@@ -32,8 +46,10 @@ public sealed partial class PlanningRecordStore
             row.Classification, Read<string[]>(row.ExclusionsJson),
             Read<Guid[]>(row.EvidenceIdsJson), row.Confidence, row.Status)).ToArray();
         return new AudienceDefinitionSetView(
-            set.Id, set.BriefVersionId, set.VersionNumber, set.InputHash, set.Status,
-            definitions, set.CreatedAtUtc);
+            set.Id, set.BriefVersionId, set.VersionNumber,
+            Read<Guid[]>(set.TargetAudienceIdsJson),
+            set.TargetingRationale, set.PositioningStatement,
+            set.InputHash, set.Status, definitions, set.CreatedAtUtc);
     }
 
     internal static MediaMixVersionView BuildMixView(MediaMixRow row) => new(

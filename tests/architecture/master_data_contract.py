@@ -25,6 +25,7 @@ REQUIRED_MASTER_COLLECTIONS = {
     "inventoryProductTypes",
     "inventoryImportStepTypes",
     "malwareScanStatuses",
+    "proposalDeliveryModes",
     "proposalTiers",
     "rateTypes",
     "rejectionReasons",
@@ -43,6 +44,14 @@ REQUIRED_MASTER_COLLECTIONS = {
     "evidenceClassifications",
     "planningPolicies",
     "proposalPolicies",
+    "campaignModes",
+    "campaignModeDecisionSources",
+    "briefUnderstandingPolicies",
+    "emailProviders",
+    "emailAutomationStatuses",
+    "emailAutomationCheckpoints",
+    "automationFailureReasons",
+    "emailAutomationPolicies",
     "rateFreshnessStatuses",
     "supplyConfidenceStatuses",
     "supplySourceTypes",
@@ -146,16 +155,19 @@ INVENTORY_PERMISSION_ROLES = {
 PLANNING_PERMISSION_ROLES = {
     "plan_view": {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
-        "advertiser_admin", "advertiser_approver",
+        "advertiser_admin", "advertiser_approver", "worker_service",
     },
     "plan_generate": {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+        "worker_service",
     },
     "plan_edit": {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+        "worker_service",
     },
     "plan_approve": {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+        "worker_service",
     },
 }
 PROPOSAL_PERMISSION_ROLES = {
@@ -177,8 +189,14 @@ PROPOSAL_PERMISSION_ROLES = {
     },
     "proposal_decide": {"advertiser_admin", "advertiser_approver"},
 }
+EMAIL_AUTOMATION_PERMISSION_ROLES = {
+    "email_automation_view": {"platform_admin", "internal_planner", "agency_admin"},
+    "email_automation_manage": {"platform_admin", "agency_admin"},
+    "email_automation_execute": {"platform_admin", "agency_admin", "worker_service"},
+}
 REQUIRED_PERMISSION_ROLES = (
     FOUNDATION_PERMISSION_ROLES | OPPORTUNITY_PERMISSION_ROLES | BRIEF_PERMISSION_ROLES
     | INVENTORY_PERMISSION_ROLES | PLANNING_PERMISSION_ROLES | PROPOSAL_PERMISSION_ROLES
+    | EMAIL_AUTOMATION_PERMISSION_ROLES
 )
 

@@ -40,6 +40,11 @@ public sealed record ApproveMediaPlanCommand(string? Reason);
 
 public interface IPlanningCommands
 {
+    Task<CommandResult<CampaignModeSelectionView>> SelectCampaignModeAsync(
+        Guid briefVersionId,
+        CommandEnvelope<SelectCampaignModeCommand> envelope,
+        CancellationToken cancellationToken);
+
     Task<CommandResult<AudienceDefinitionSetView>> GenerateAudiencesAsync(
         Guid briefVersionId,
         CommandEnvelope<GenerateAudiencesCommand> envelope,
@@ -112,6 +117,14 @@ public sealed class PlanningInputStaleException : Exception
 public sealed class PlanningApprovalBlockedException : Exception
 {
     public PlanningApprovalBlockedException() : base("The planning artefact is not approvable.")
+    {
+    }
+}
+
+public sealed class SupplyConfirmationRequiredException : Exception
+{
+    public SupplyConfirmationRequiredException()
+        : base("Selected inventory requires current supplier confirmation.")
     {
     }
 }

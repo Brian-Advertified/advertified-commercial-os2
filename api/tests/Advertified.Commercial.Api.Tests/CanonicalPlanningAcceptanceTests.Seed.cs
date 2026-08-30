@@ -124,13 +124,21 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             VALUES ($1, $2, $3, 'MONTH_RATE', 'ZAR', $4, '2026-01-01', $5,
                 'csv#row=2')
             """, rateId, TenantId, versionId, rate, effectiveTo);
+        var availability = index == 0 ? "AVAILABLE" : "UNKNOWN";
+        var validUntil = index == 0
+            ? new DateTimeOffset(2026, 10, 31, 23, 59, 59, TimeSpan.Zero)
+            : (DateTimeOffset?)null;
+        var availabilitySource = index == 0
+            ? "supplier-confirmation:email-001"
+            : "supplier-rate-card";
         AddCommand(batch,
             """
             INSERT INTO commercial.inventory_availability (
                 id, tenant_id, product_version_id, availability_code, observed_at_utc,
                 valid_until_utc, source_locator)
-            VALUES ($1, $2, $3, 'UNKNOWN', $4, NULL, 'supplier-rate-card')
-            """, availabilityId, TenantId, versionId, Now);
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            """, availabilityId, TenantId, versionId, availability, Now,
+            validUntil.HasValue ? validUntil.Value : DBNull.Value, availabilitySource);
         await batch.ExecuteNonQueryAsync();
     }
 

@@ -13,4 +13,4 @@ Do not implement a gate from this record. Use:
 4. executable contracts/tests;
 5. a named owner verdict.
 
-Rapid OOH is a specialised planning path: approved Brief → geography/routes/POIs → verified inventory → deterministic eligibility → supplier confirmation → recalculation → human selection → approved plan → proposal. Generic proposal infrastructure may be reused, but proposal cannot precede plan approval.
+OOH-only is an immutable campaign mode on the canonical planning path: approved Brief → audience/STP → media mix → verified inventory → deterministic eligibility → current supply confirmation → approved plan → proposal. It restricts selectable media to OOH/DOOH and never creates a parallel workflow; proposal cannot precede plan approval.

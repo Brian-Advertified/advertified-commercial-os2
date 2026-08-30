@@ -5,12 +5,14 @@ using Advertified.Commercial.Domain.Governance;
 namespace Advertified.Commercial.Application.Brief;
 
 public sealed record CreateBriefCommand(
-    Guid ClientId,
     string Title,
     Guid OwnerUserId,
     string SourceLocator,
     string SourceTitle,
-    string SourceContent);
+    string SourceContent,
+    Guid? ClientId = null,
+    string? ClientName = null,
+    string? SourceType = null);
 
 public sealed record BriefUnknownInput(
     string FieldPath,

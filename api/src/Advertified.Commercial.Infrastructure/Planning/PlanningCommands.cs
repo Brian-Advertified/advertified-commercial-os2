@@ -14,11 +14,20 @@ public sealed partial class PlanningCommands(
     CommandDispatcher dispatcher,
     TimeProvider timeProvider,
     PlanningPolicy planningPolicy,
+    CampaignModePolicy campaignModePolicy,
     IPlanningAgentClient planningAgent) : IPlanningCommands
 {
     private static readonly JsonSerializerOptions StoredJson = new(JsonSerializerDefaults.Web);
     private static readonly string[] UnconfirmedSupplyUncertainty =
         ["Supplier availability is not confirmed for the full flight."];
+
+    public Task<CommandResult<CampaignModeSelectionView>> SelectCampaignModeAsync(
+        Guid briefVersionId,
+        CommandEnvelope<SelectCampaignModeCommand> envelope,
+        CancellationToken cancellationToken) => DispatchAsync(
+            envelope, MasterDataReferences.Permissions.PlanGenerate,
+            token => SelectCampaignModeOutcomeAsync(briefVersionId, envelope, token),
+            CommandOutcomeFactory.ToResult<CampaignModeSelectionView>, cancellationToken);
 
     public Task<CommandResult<AudienceDefinitionSetView>> GenerateAudiencesAsync(
         Guid briefVersionId,
