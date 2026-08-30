@@ -46,8 +46,18 @@ internal sealed record InventoryCandidateRow
     public DateTimeOffset UpdatedAtUtc { get; set; }
 }
 
+internal sealed record InventoryCandidateCountsRow
+{
+    public int Total { get; set; }
+    public int ReviewRequired { get; set; }
+    public int Approved { get; set; }
+    public int Rejected { get; set; }
+    public int Blocking { get; set; }
+}
+
 internal sealed record InventoryFieldEvidenceRow
 {
+    public Guid CandidateId { get; set; }
     public string FieldName { get; set; } = string.Empty;
     public string? RawValue { get; set; }
     public string? NormalizedValue { get; set; }

@@ -20,12 +20,13 @@ public sealed class MarketplaceReader(
     {
         await EnsureAllowedAsync(actorId, tenantId,
             MasterDataReferences.Permissions.MarketplaceView, cancellationToken);
-        var pageSize = ValidatePageSize(query.PageSize);
+        var filters = MarketplacePolicy.ValidateSearch(query);
+        var pageSize = MarketplacePolicy.ValidatePageSize(query.PageSize);
         var cursor = MarketplaceCursor.Decode(query.Cursor);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
         var rows = await SearchListingRowsAsync(
-            query, cursor, pageSize + 1, cancellationToken);
+            filters, cursor, pageSize + 1, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         var page = rows.Take(pageSize).ToArray();
         var next = rows.Count > pageSize
@@ -41,7 +42,7 @@ public sealed class MarketplaceReader(
             MasterDataReferences.Permissions.MarketplaceView, cancellationToken);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
-        var row = await store.FindListingAsync(listingId, cancellationToken)
+        var row = await store.FindListingAsync(listingId, false, cancellationToken)
             ?? throw new UnauthorizedAccessException("Marketplace listing access denied.");
         await transaction.CommitAsync(cancellationToken);
         return row.ToView();
@@ -52,18 +53,17 @@ public sealed class MarketplaceReader(
         CancellationToken cancellationToken)
     {
         await EnsureRfqReadAllowedAsync(actorId, tenantId, cancellationToken);
-        var pageSize = ValidatePageSize(query.PageSize);
+        var pageSize = MarketplacePolicy.ValidatePageSize(query.PageSize);
+        var status = MarketplacePolicy.ValidateRfqStatus(query.Status);
         var cursor = MarketplaceCursor.Decode(query.Cursor);
         var now = timeProvider.GetUtcNow();
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
-        var rows = await ListRfqRowsAsync(now, cursor, pageSize + 1, cancellationToken);
+        var rows = await ListRfqRowsAsync(
+            now, status, cursor, pageSize + 1, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        var filtered = string.IsNullOrWhiteSpace(query.Status)
-            ? rows : rows.Where(item => string.Equals(
-                item.Status, query.Status.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
-        var page = filtered.Take(pageSize).ToArray();
-        var next = rows.Count > pageSize && page.Length > 0
+        var page = rows.Take(pageSize).ToArray();
+        var next = rows.Count > pageSize
             ? MarketplaceCursor.Encode(page[^1].UpdatedAtUtc, page[^1].Id) : null;
         return new MarketplaceRfqPage(page.Select(item => item.ToView()).ToArray(), next);
     }
@@ -83,12 +83,9 @@ public sealed class MarketplaceReader(
     }
 
     private Task<List<MarketplaceListingRow>> SearchListingRowsAsync(
-        MarketplaceSearchQuery query, MarketplaceCursorValue? cursor, int take,
+        MarketplaceSearchFilters filters, MarketplaceCursorValue? cursor, int take,
         CancellationToken cancellationToken)
     {
-        var search = Normalize(query.Search);
-        var channel = Normalize(query.Channel)?.ToUpperInvariant();
-        var geography = Normalize(query.Geography);
         var suffix = cursor is null
             ? """
                 WHERE listing.status_code = {3}
@@ -108,9 +105,9 @@ public sealed class MarketplaceReader(
                 ORDER BY listing.updated_at_utc DESC, listing.id DESC LIMIT {6}
                 """;
         var args = cursor is null
-            ? new object?[] { search, channel, geography,
+            ? new object?[] { filters.Search, filters.Channel, filters.Geography,
                 MasterDataCodes.MarketplaceListingStatuses.Published, take }
-            : [search, channel, geography,
+            : [filters.Search, filters.Channel, filters.Geography,
                 MasterDataCodes.MarketplaceListingStatuses.Published,
                 cursor.UpdatedAtUtc, cursor.Id, take];
         return store.DbContext.Database.SqlQuery<MarketplaceListingRow>(
@@ -120,19 +117,22 @@ public sealed class MarketplaceReader(
     }
 
     private Task<List<MarketplaceRfqRow>> ListRfqRowsAsync(
-        DateTimeOffset now, MarketplaceCursorValue? cursor, int take,
+        DateTimeOffset now, string? status, MarketplaceCursorValue? cursor, int take,
         CancellationToken cancellationToken)
     {
+        var projection = "SELECT * FROM (" + MarketplaceRecordStore.RfqSelect + ") projected";
         var suffix = cursor is null
-            ? " ORDER BY rfq.updated_at_utc DESC, rfq.id DESC LIMIT {6}"
-            : " WHERE (rfq.updated_at_utc, rfq.id) < ({6}, {7}) " +
-              "ORDER BY rfq.updated_at_utc DESC, rfq.id DESC LIMIT {8}";
+            ? " WHERE ({6}::text IS NULL OR projected.\"Status\" = {6}) " +
+              "ORDER BY projected.\"UpdatedAtUtc\" DESC, projected.\"Id\" DESC LIMIT {7}"
+            : " WHERE ({6}::text IS NULL OR projected.\"Status\" = {6}) " +
+              "AND (projected.\"UpdatedAtUtc\", projected.\"Id\") < ({7}, {8}) " +
+              "ORDER BY projected.\"UpdatedAtUtc\" DESC, projected.\"Id\" DESC LIMIT {9}";
         var args = cursor is null
-            ? MarketplaceRecordStore.RfqParameters(now, take)
+            ? MarketplaceRecordStore.RfqParameters(now, status, take)
             : MarketplaceRecordStore.RfqParameters(
-                now, cursor.UpdatedAtUtc, cursor.Id, take);
+                now, status, cursor.UpdatedAtUtc, cursor.Id, take);
         return store.DbContext.Database.SqlQuery<MarketplaceRfqRow>(
-            FormattableStringFactory.Create(MarketplaceRecordStore.RfqSelect + suffix, args))
+            FormattableStringFactory.Create(projection + suffix, args))
             .ToListAsync(cancellationToken);
     }
 
@@ -158,17 +158,14 @@ public sealed class MarketplaceReader(
         }
     }
 
-    private static int ValidatePageSize(int value) => value is >= 1 and <= 100
-        ? value : throw new ArgumentOutOfRangeException(nameof(value));
-
-    private static string? Normalize(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
 internal sealed record MarketplaceCursorValue(DateTimeOffset UpdatedAtUtc, Guid Id);
 
 internal static class MarketplaceCursor
 {
+    private const int MaximumEncodedLength = 256;
+
     internal static string Encode(DateTimeOffset updatedAtUtc, Guid id) =>
         Convert.ToBase64String(Encoding.UTF8.GetBytes(
             $"{updatedAtUtc.UtcTicks.ToString(CultureInfo.InvariantCulture)}|{id:D}"));
@@ -176,18 +173,21 @@ internal static class MarketplaceCursor
     internal static MarketplaceCursorValue? Decode(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
+        if (value.Length > MaximumEncodedLength) throw InvalidCursor();
         try
         {
             var parts = Encoding.UTF8.GetString(Convert.FromBase64String(value)).Split('|');
             if (parts.Length != 2 ||
                 !long.TryParse(parts[0], CultureInfo.InvariantCulture, out var ticks) ||
                 !Guid.TryParse(parts[1], out var id)) throw new FormatException();
-            return new MarketplaceCursorValue(
-                new DateTimeOffset(ticks, TimeSpan.Zero), id);
+            return new MarketplaceCursorValue(new DateTimeOffset(ticks, TimeSpan.Zero), id);
         }
-        catch (FormatException)
+        catch (Exception exception) when (exception is FormatException or ArgumentOutOfRangeException)
         {
-            throw new ArgumentException("The marketplace cursor is invalid.", nameof(value));
+            throw InvalidCursor(exception);
         }
     }
+
+    private static ArgumentException InvalidCursor(Exception? inner = null) =>
+        new("The marketplace cursor is invalid.", inner);
 }

@@ -134,7 +134,7 @@ public static class ProposalEndpoints
         return Results.File(document.Content, document.MediaType, document.FileName);
     }
 
-    private static async Task<IResult> ExecuteAsync<TCommand>(
+    private static Task<IResult> ExecuteAsync<TCommand>(
         Guid tenantId,
         TCommand command,
         HttpContext context,
@@ -144,12 +144,7 @@ public static class ProposalEndpoints
         Func<CommandEnvelope<TCommand>, CancellationToken,
             Task<Advertified.Commercial.Application.Foundation.CommandResult<ProposalVersionView>>> execute,
         CancellationToken cancellationToken)
-        where TCommand : notnull
-    {
-        var envelope = CommandEnvelopeFactory.Create(
-            context, new TenantId(tenantId), identity.ActorId, command, clock, requireVersion);
-        var result = await execute(envelope, cancellationToken);
-        CommandEnvelopeFactory.SetEntityHeaders(context, result.Version, result.Replayed);
-        return Results.Ok(result.Data);
-    }
+        where TCommand : notnull => CommandEndpointExecutor.ExecuteOkAsync(
+            tenantId, command, context, identity, clock,
+            requireVersion, execute, cancellationToken);
 }

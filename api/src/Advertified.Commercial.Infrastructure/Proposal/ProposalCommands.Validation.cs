@@ -1,6 +1,7 @@
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Opportunity;
 
 namespace Advertified.Commercial.Infrastructure.Proposal;
@@ -28,24 +29,31 @@ public sealed partial class ProposalCommands
         Guid proposalVersionId,
         CancellationToken cancellationToken)
     {
-        var options = await store.ListOptionsAsync(tenantId, proposalVersionId, cancellationToken);
-        var plans = new List<ProposalPlanSnapshot>(options.Count);
-        foreach (var option in options)
+        var options = await store.ListOptionsAsync(
+            tenantId, proposalVersionId, cancellationToken);
+        var planIds = options.Select(item => item.PlanVersionId).Distinct().ToArray();
+        var rows = await planningStore.ListPlansAsync(
+            tenantId, planIds, cancellationToken);
+        if (rows.Count != planIds.Length)
         {
-            var plan = await planningStore.FindPlanAsync(tenantId, option.PlanVersionId, cancellationToken)
-                ?? throw new ProposalStaleException();
-            if (plan.Status != Advertified.Commercial.Domain.MasterData.MasterDataCodes.LifecycleStatuses.Approved ||
-                plan.VersionNumber != option.PlanVersionNumber)
-            {
-                throw new ProposalStaleException();
-            }
-            var view = await planningStore.BuildPlanViewAsync(tenantId, plan, cancellationToken);
-            var snapshot = ToSnapshot(view);
-            if (!string.Equals(snapshot.Signature, option.PlanSignature, StringComparison.Ordinal))
-            {
-                throw new ProposalStaleException();
-            }
-            plans.Add(snapshot);
+            throw new ProposalStaleException();
+        }
+        var byId = rows.ToDictionary(item => item.Id);
+        var ordered = options.Select(option => byId[option.PlanVersionId]).ToArray();
+        if (ordered.Zip(options).Any(item =>
+                item.First.Status != MasterDataCodes.LifecycleStatuses.Approved ||
+                item.First.VersionNumber != item.Second.PlanVersionNumber))
+        {
+            throw new ProposalStaleException();
+        }
+        var views = await planningStore.BuildPlanViewsAsync(
+            tenantId, ordered, cancellationToken);
+        var plans = views.Select(ToSnapshot).ToArray();
+        if (plans.Zip(options).Any(item => !string.Equals(
+                item.First.Signature, item.Second.PlanSignature,
+                StringComparison.Ordinal)))
+        {
+            throw new ProposalStaleException();
         }
         await EnsurePlanInputsCurrentAsync(tenantId, plans, cancellationToken);
     }
@@ -60,6 +68,6 @@ public sealed partial class ProposalCommands
         DateTimeOffset now)
         where TCommand : notnull => OpportunityCommandSupport.Outcome(
             envelope, view, resourceId, version,
-            Advertified.Commercial.Domain.MasterData.MasterDataReferences.CommercialResourceTypes.ProposalVersion,
+            MasterDataReferences.CommercialResourceTypes.ProposalVersion,
             action, eventType, now);
 }

@@ -1,6 +1,7 @@
 import type { ProposalOption } from '../api/proposal-schemas'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { mediaVisual } from '../planning/media-visuals'
+import { formatMoney } from '../presentation/format'
 
 export function ProposalOptionCard({ option, selected, decisionMode, busy, onSelect }: {
   option: ProposalOption
@@ -11,7 +12,7 @@ export function ProposalOptionCard({ option, selected, decisionMode, busy, onSel
 }) {
   return <article className={`proposal-option-card ${selected ? 'is-selected' : ''}`}>
     <header><div><span className="proposal-option-number">Option {option.displayOrder}</span>
-      <h2>{option.label}</h2></div><strong>{money(option.budgetMinor, option.currency)}</strong></header>
+      <h2>{option.label}</h2></div><strong>{formatMoney(option.budgetMinor, option.currency)}</strong></header>
     <p className="proposal-option-outcome">{option.outcome}</p>
     <div className="proposal-option-channels">{option.channels.map(channel =>
       <span key={channel}><MediaTypeIcon channel={channel} />{mediaVisual(channel).label}</span>)}</div>
@@ -41,9 +42,4 @@ function groupPeriods(option: ProposalOption) {
 function date(value: string) {
   return new Intl.DateTimeFormat('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
     .format(new Date(`${value}T00:00:00`))
-}
-
-function money(amountMinor: number, currency: string) {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency, maximumFractionDigits: 0 })
-    .format(amountMinor / 100)
 }

@@ -27,6 +27,8 @@ public sealed partial class InventoryAcceptanceTests
 
         await AssertProtectionBoundariesAsync(importer);
         await AssertDocumentCorpusAsync(importer);
+        await AssertCandidatePagingAsync(importer);
+        await AssertRejectedBlockingCandidateDoesNotBlockPublicationAsync(importer, reviewer);
         var imported = await CreateAndExecuteAsync(importer, CsvFixture());
         var importId = imported.GetProperty("id").GetGuid();
         await AssertExtractionCheckpointAsync(connectionString, importId);
@@ -138,6 +140,43 @@ public sealed partial class InventoryAcceptanceTests
     private static void AssertCriticalText(JsonElement values, string name) =>
         Assert.False(string.IsNullOrWhiteSpace(values.GetProperty(name).GetString()));
 
+    private static async Task AssertCandidatePagingAsync(HttpClient importer)
+    {
+        using var upload = await UploadAsync(
+            importer, "inventory-candidate-page-upload", "Paging Supplier",
+            CandidatePageFixture());
+        using var created = await ReadJsonAsync(upload);
+        var importId = created.RootElement.GetProperty("id").GetGuid();
+        using var execute = await CommandAsync(
+            importer, $"/api/v1/tenants/{TenantId}/inventory-imports/{importId}:execute",
+            "inventory-candidate-page-execute", 1, new { });
+        execute.EnsureSuccessStatusCode();
+
+        using var firstResponse = await importer.GetAsync(
+            $"/api/v1/tenants/{TenantId}/inventory-imports/{importId}?pageSize=2");
+        using var first = await ReadJsonAsync(firstResponse);
+        Assert.Equal(3, first.RootElement.GetProperty("candidateCounts")
+            .GetProperty("total").GetInt32());
+        Assert.Equal(2, first.RootElement.GetProperty("candidates").GetArrayLength());
+        var firstId = first.RootElement.GetProperty("candidates")[0]
+            .GetProperty("id").GetGuid();
+        var cursor = Uri.EscapeDataString(first.RootElement
+            .GetProperty("nextCandidateCursor").GetString()!);
+
+        using var secondResponse = await importer.GetAsync(
+            $"/api/v1/tenants/{TenantId}/inventory-imports/{importId}?pageSize=2&cursor={cursor}");
+        using var second = await ReadJsonAsync(secondResponse);
+        Assert.Single(second.RootElement.GetProperty("candidates").EnumerateArray());
+        Assert.NotEqual(firstId, second.RootElement.GetProperty("candidates")[0]
+            .GetProperty("id").GetGuid());
+        Assert.Equal(JsonValueKind.Null,
+            second.RootElement.GetProperty("nextCandidateCursor").ValueKind);
+
+        using var invalid = await importer.GetAsync(
+            $"/api/v1/tenants/{TenantId}/inventory-imports/{importId}?pageSize=101");
+        await AssertProblemAsync(invalid, HttpStatusCode.BadRequest, "VALIDATION_FAILED");
+    }
+
     private static async Task<JsonElement> CreateAndExecuteAsync(
         HttpClient importer,
         FileFixture fixture)
@@ -151,6 +190,53 @@ public sealed partial class InventoryAcceptanceTests
             "inventory-main-execute", 1, new { });
         using var executed = await ReadJsonAsync(execute);
         return executed.RootElement.Clone();
+    }
+
+    private static async Task AssertRejectedBlockingCandidateDoesNotBlockPublicationAsync(
+        HttpClient importer,
+        HttpClient reviewer)
+    {
+        using var upload = await UploadAsync(
+            importer, "inventory-mixed-review-upload", "Mixed Review Supplier",
+            RejectedBlockingCandidateFixture());
+        using var created = await ReadJsonAsync(upload);
+        var importId = created.RootElement.GetProperty("id").GetGuid();
+        using var execute = await CommandAsync(
+            importer, $"/api/v1/tenants/{TenantId}/inventory-imports/{importId}:execute",
+            "inventory-mixed-review-execute", 1, new { });
+        using var extracted = await ReadJsonAsync(execute);
+        var candidates = extracted.RootElement.GetProperty("candidates")
+            .EnumerateArray().ToArray();
+        var valid = candidates.Single(item => !item.GetProperty("validation")
+            .EnumerateArray().Any(issue => issue.GetProperty("isBlocking").GetBoolean()));
+        var invalid = candidates.Single(item => item.GetProperty("validation")
+            .EnumerateArray().Any(issue => issue.GetProperty("isBlocking").GetBoolean()));
+        using var approved = await CommandAsync(
+            reviewer, $"/api/v1/tenants/{TenantId}/inventory-candidates/" +
+                $"{valid.GetProperty("id").GetGuid()}:review",
+            "inventory-mixed-review-approve", 1,
+            new { decision = "APPROVE", rejectionReason = (string?)null,
+                notes = "Valid row confirmed.", correctedValues = (object?)null });
+        approved.EnsureSuccessStatusCode();
+        using var rejected = await CommandAsync(
+            reviewer, $"/api/v1/tenants/{TenantId}/inventory-candidates/" +
+                $"{invalid.GetProperty("id").GetGuid()}:review",
+            "inventory-mixed-review-reject", 1,
+            new { decision = "REJECT", rejectionReason = "MISSING_INFO",
+                notes = "Coordinates were not supplied.", correctedValues = (object?)null });
+        rejected.EnsureSuccessStatusCode();
+        using var reviewedResponse = await reviewer.GetAsync(
+            $"/api/v1/tenants/{TenantId}/inventory-imports/{importId}");
+        using var reviewed = await ReadJsonAsync(reviewedResponse);
+        var counts = reviewed.RootElement.GetProperty("candidateCounts");
+        Assert.Equal(1, counts.GetProperty("approved").GetInt32());
+        Assert.Equal(1, counts.GetProperty("rejected").GetInt32());
+        Assert.Equal(0, counts.GetProperty("blocking").GetInt32());
+        using var publish = await CommandAsync(
+            reviewer, $"/api/v1/tenants/{TenantId}/inventory-imports/{importId}:publish",
+            "inventory-mixed-review-publish", 2, new { });
+        using var published = await ReadJsonAsync(publish);
+        Assert.Equal("COMPLETED", published.RootElement.GetProperty("status").GetString());
     }
 
     private static async Task AssertSearchDetailAndScaleAsync(

@@ -105,21 +105,15 @@ public sealed partial class BriefCommands(
             command.SourceContent, 262_144, nameof(command.SourceContent));
         var id = Guid.NewGuid();
         var sourceId = Guid.NewGuid();
-        await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO commercial.campaign_briefs (
-                id, tenant_id, client_account_id, title, owner_user_id, status_code,
-                version, created_at_utc, updated_at_utc)
-            VALUES (
-                {id}, {envelope.TenantId.Value}, {client.Id}, {title},
-                {command.OwnerUserId}, {MasterDataCodes.LifecycleStatuses.Created}, 1, {now}, {now});
-            INSERT INTO commercial.brief_sources (
-                id, tenant_id, brief_id, source_type_code, locator, title, content,
-                content_hash, created_by, created_at_utc)
-            VALUES (
-                {sourceId}, {envelope.TenantId.Value}, {id}, {sourceType},
-                {locator}, {sourceTitle}, {content}, {OpportunityCommandSupport.Hash(content)},
-                {envelope.ActorId.Value}, {now});
-            """, cancellationToken);
+        await BriefPersistence.InsertAggregateAndSourceAsync(
+            store.DbContext,
+            new BriefAggregateWrite(
+                id, envelope.TenantId, client.Id, null, title, command.OwnerUserId,
+                MasterDataCodes.LifecycleStatuses.Created, 1, now),
+            new BriefSourceWrite(
+                sourceId, sourceType, locator, sourceTitle, content,
+                OpportunityCommandSupport.Hash(content), envelope.ActorId.Value, now),
+            cancellationToken);
         var view = new CampaignBriefSummaryView(
             id, envelope.TenantId.Value, client.Id, null, title, command.OwnerUserId,
             MasterDataCodes.LifecycleStatuses.Created, null, null, 1, now);

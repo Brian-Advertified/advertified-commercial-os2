@@ -7,6 +7,7 @@ import type { OpportunityDetail } from '../api/schemas'
 import { useWorkspace } from '../auth/workspace-state'
 import { LoadingState, MessageState } from '../components/PageState'
 import { OpportunityActions } from '../components/OpportunityActions'
+import { humanizeCode } from '../presentation/format'
 
 export function OpportunityDetailPage() {
   const { selected, loading } = useWorkspace()
@@ -48,7 +49,7 @@ function OpportunityRecord({ tenantId, opportunityId }: { tenantId: string; oppo
         <div><p className="eyebrow">Opportunity qualification</p>
           <h1 id="opportunity-title">{opportunity.title}</h1>
           <p>{opportunity.objectiveSummary ?? 'Objective not supplied'}</p></div>
-        <span className="status-chip">{humanize(opportunity.stage)}</span>
+        <span className="status-chip">{humanizeCode(opportunity.stage)}</span>
       </header>
       {error && <p className="inline-alert" role="alert">{error}</p>}
       <article className="next-action-card opportunity-next">
@@ -139,7 +140,7 @@ function RunSection({ detail }: { detail: OpportunityDetail }) {
     <article className="detail-card run-card"><p className="eyebrow">Durable agent runs</p>
       <div className="run-list">{detail.runs.map((run) => (
         <div key={run.id}><strong><Link to={`/runs/${run.id}`}>
-          {humanize(run.runKind)}
+          {humanizeCode(run.runKind)}
         </Link></strong>
           <span>{run.status} · {run.attempts} attempt(s) · cost {run.incrementalCostMinor}</span>
           {run.recoveryAction && <small>{run.recoveryAction}</small>}</div>
@@ -152,8 +153,4 @@ function Artifact({ value }: { value: string }) {
   let formatted = value
   try { formatted = JSON.stringify(JSON.parse(value), null, 2) } catch { /* validated by API */ }
   return <pre className="artifact-json">{formatted}</pre>
-}
-
-function humanize(code: string): string {
-  return code.toLowerCase().replaceAll('_', ' ')
 }

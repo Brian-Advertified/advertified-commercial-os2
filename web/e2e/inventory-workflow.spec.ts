@@ -100,6 +100,15 @@ function importFixture(state: State) {
     steps: [{ stepType: 'UPLOAD_PROTECTION', status: 'COMPLETED',
       startedAtUtc: now, completedAtUtc: now }],
     candidates: state.importStatus === 'UPLOADED' ? [] : [candidateFixture(state)],
+    candidateCounts: {
+      total: state.importStatus === 'UPLOADED' ? 0 : 1,
+      reviewRequired: state.candidateStatus === 'REVIEW_REQUIRED' &&
+        state.importStatus !== 'UPLOADED' ? 1 : 0,
+      approved: state.candidateStatus === 'APPROVED' ? 1 : 0,
+      rejected: 0,
+      blocking: 0,
+    },
+    nextCandidateCursor: null,
     version: state.importStatus === 'UPLOADED' ? 1 : state.importStatus === 'COMPLETED' ? 3 : 2,
     updatedAtUtc: now,
   }

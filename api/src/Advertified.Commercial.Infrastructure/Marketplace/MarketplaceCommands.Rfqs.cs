@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Marketplace;
@@ -18,7 +17,7 @@ public sealed partial class MarketplaceCommands
         CommandEnvelope<CreateMarketplaceRfqCommand> envelope,
         CancellationToken cancellationToken)
     {
-        ValidateRfq(envelope.Command);
+        MarketplacePolicy.ValidateRfq(envelope.Command, timeProvider.GetUtcNow());
         var listing = await FindPublishedListingVersionAsync(
             envelope.Command.ListingVersionId, cancellationToken)
             ?? throw new MarketplaceListingUnavailableException();
@@ -35,7 +34,7 @@ public sealed partial class MarketplaceCommands
                 created_by, version, created_at_utc, updated_at_utc)
             VALUES ({id}, {envelope.TenantId.Value}, {listing.SupplierTenantId},
                 {envelope.Command.ListingVersionId},
-                {Required(envelope.Command.Subject, 500, nameof(envelope.Command.Subject))},
+                {MarketplacePolicy.RequiredSubject(envelope.Command.Subject)},
                 {envelope.Command.RequestedStart}, {envelope.Command.RequestedEnd},
                 {envelope.Command.Quantity}, {envelope.Command.DueAtUtc},
                 {envelope.ActorId.Value}, 1, {now}, {now})
@@ -52,7 +51,7 @@ public sealed partial class MarketplaceCommands
         Guid rfqId, CommandEnvelope<SendMarketplaceRfqCommand> envelope,
         CancellationToken cancellationToken)
     {
-        _ = Required(envelope.Command.Reason, 1_000, nameof(envelope.Command.Reason));
+        _ = MarketplacePolicy.RequiredReason(envelope.Command.Reason);
         var rfq = await store.FindRfqAsync(
             rfqId, timeProvider.GetUtcNow(), cancellationToken)
             ?? throw new UnauthorizedAccessException("Marketplace request access denied.");
@@ -83,9 +82,9 @@ public sealed partial class MarketplaceCommands
         Guid rfqId, CommandEnvelope<SubmitMarketplaceResponseCommand> envelope,
         CancellationToken cancellationToken)
     {
-        ValidateResponse(envelope.Command);
-        await LockExchangeAsync(rfqId, cancellationToken);
         var now = timeProvider.GetUtcNow();
+        var response = MarketplacePolicy.ValidateResponse(envelope.Command, now);
+        await LockExchangeAsync(rfqId, cancellationToken);
         var rfq = await store.FindRfqAsync(rfqId, now, cancellationToken)
             ?? throw new UnauthorizedAccessException("Marketplace request access denied.");
         if (rfq.SupplierTenantId != envelope.TenantId.Value ||
@@ -94,18 +93,14 @@ public sealed partial class MarketplaceCommands
             throw new InvalidLifecycleTransitionException();
         }
         var responseId = Guid.NewGuid();
-        var evidence = JsonSerializer.Serialize(
-            envelope.Command.EvidenceReferences.Select(item => item.Trim()).ToArray());
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.marketplace_supplier_responses (
                 id, rfq_id, buyer_tenant_id, supplier_tenant_id, response_version,
                 amount_minor, currency_code, availability_code, terms,
                 valid_until_utc, evidence_references_json, submitted_by, submitted_at_utc)
             VALUES ({responseId}, {rfq.Id}, {rfq.BuyerTenantId}, {rfq.SupplierTenantId}, 1,
-                {envelope.Command.AmountMinor}, {envelope.Command.Currency.Trim().ToUpperInvariant()},
-                {envelope.Command.Availability.Trim().ToUpperInvariant()},
-                {Required(envelope.Command.Terms, 5_000, nameof(envelope.Command.Terms))},
-                {envelope.Command.ValidUntilUtc}, {evidence}::jsonb,
+                {envelope.Command.AmountMinor}, {response.Currency}, {response.Availability},
+                {response.Terms}, {envelope.Command.ValidUntilUtc}, {response.EvidenceJson}::jsonb,
                 {envelope.ActorId.Value}, {now})
             """, cancellationToken);
         var view = await LoadRfqViewAsync(rfqId, cancellationToken);
@@ -137,7 +132,7 @@ public sealed partial class MarketplaceCommands
         {
             throw new InvalidLifecycleTransitionException();
         }
-        var reason = Required(envelope.Command.Reason, 1_000, nameof(envelope.Command.Reason));
+        var reason = MarketplacePolicy.RequiredReason(envelope.Command.Reason);
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.marketplace_response_acceptances (
                 id, response_id, buyer_tenant_id, supplier_tenant_id,
@@ -173,25 +168,4 @@ public sealed partial class MarketplaceCommands
             $"SELECT pg_advisory_xact_lock(hashtextextended({rfqId.ToString("N")}, 0))",
             cancellationToken);
 
-    private void ValidateRfq(CreateMarketplaceRfqCommand command)
-    {
-        var now = timeProvider.GetUtcNow();
-        if (command.Quantity <= 0 || command.RequestedEnd < command.RequestedStart ||
-            command.DueAtUtc <= now)
-        {
-            throw new ArgumentException("The marketplace request dates or quantity are invalid.");
-        }
-    }
-
-    private void ValidateResponse(SubmitMarketplaceResponseCommand command)
-    {
-        if (command.AmountMinor < 0 || command.ValidUntilUtc <= timeProvider.GetUtcNow() ||
-            command.EvidenceReferences.Count > 20 ||
-            command.EvidenceReferences.Any(item => string.IsNullOrWhiteSpace(item) || item.Length > 1_000))
-        {
-            throw new ArgumentException("The supplier response is invalid.");
-        }
-        _ = Required(command.Currency, 3, nameof(command.Currency));
-        _ = Required(command.Availability, 100, nameof(command.Availability));
-    }
 }

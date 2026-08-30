@@ -41,28 +41,18 @@ public sealed partial class BriefCommands
             {
                 new { fieldPath = "brief.materialFields", evidenceItemIds = evidenceIds },
             });
-        await InsertVersionAsync(
-            versionId, sourceId, versionNumber, value, evidenceBindings,
-            brief, envelope, now, cancellationToken);
-        foreach (var evidenceId in evidenceIds)
-        {
-            await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-                INSERT INTO commercial.brief_version_evidence_items (
-                    tenant_id, brief_version_id, evidence_item_id)
-                VALUES ({envelope.TenantId.Value}, {versionId}, {evidenceId})
-                """, cancellationToken);
-        }
-        var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            UPDATE commercial.campaign_briefs
-            SET status_code = {MasterDataCodes.LifecycleStatuses.Draft}, current_draft_version_id = {versionId},
-                version = version + 1, updated_at_utc = {now}
-            WHERE tenant_id = {envelope.TenantId.Value} AND id = {brief.Id}
-              AND version = {brief.Version}
-            """, cancellationToken);
-        if (changed != 1)
-        {
-            throw new VersionConflictException();
-        }
+        await BriefPersistence.InsertVersionAsync(
+            store.DbContext,
+            new BriefVersionWrite(
+                versionId, envelope.TenantId, brief.Id, envelope.Command.BaseVersionId,
+                sourceId, versionNumber, envelope.Command, value, evidenceBindings,
+                MasterDataCodes.LifecycleStatuses.Draft, envelope.ActorId.Value, 1, now),
+            cancellationToken);
+        await BriefPersistence.BindEvidenceAsync(
+            store.DbContext, envelope.TenantId, versionId, evidenceIds, cancellationToken);
+        await BriefPersistence.SetCurrentDraftAsync(
+            store.DbContext, envelope.TenantId, brief.Id, versionId, brief.Version,
+            MasterDataCodes.LifecycleStatuses.Draft, now, cancellationToken);
         var row = await store.FindVersionAsync(
             envelope.TenantId, versionId, cancellationToken)
             ?? throw new InvalidOperationException("The Brief version was not retained.");
@@ -142,44 +132,6 @@ public sealed partial class BriefCommands
             FROM commercial.brief_versions
             WHERE tenant_id = {tenantId} AND brief_id = {briefId}
             """).SingleAsync(cancellationToken);
-
-    private Task<int> InsertVersionAsync(
-        Guid id,
-        Guid sourceId,
-        int versionNumber,
-        ValidatedBriefVersion value,
-        string evidenceBindings,
-        CampaignBriefRow brief,
-        CommandEnvelope<CreateBriefVersionCommand> envelope,
-        DateTimeOffset now,
-        CancellationToken cancellationToken)
-    {
-        var command = envelope.Command;
-        return store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO commercial.brief_versions (
-                id, tenant_id, brief_id, base_version_id, source_id, version_no,
-                business_problem, objective, audiences_json, geographies_json, timing,
-                budget_minor, budget_unknown, currency_code, vat_status_code, fees_minor,
-                constraints_json, measurement_json, facts_json, unknowns_json,
-                assumptions_json, conflicts_json, evidence_bindings_json, status_code,
-                created_by, version, created_at_utc)
-            VALUES (
-                {id}, {envelope.TenantId.Value}, {brief.Id}, {command.BaseVersionId}, {sourceId},
-                {versionNumber}, {value.BusinessProblem}, {value.Objective},
-                {BriefCommandSupport.Json(value.Audiences)}::jsonb,
-                {BriefCommandSupport.Json(value.Geographies)}::jsonb, {value.Timing},
-                {command.BudgetMinor}, {command.BudgetUnknown}, {value.Currency},
-                {value.VatStatus}, {command.FeesMinor},
-                {BriefCommandSupport.Json(value.Constraints)}::jsonb,
-                {BriefCommandSupport.Json(value.Measurement)}::jsonb,
-                {BriefCommandSupport.Json(value.Facts)}::jsonb,
-                {BriefCommandSupport.Json(value.Unknowns)}::jsonb,
-                {BriefCommandSupport.Json(value.Assumptions)}::jsonb,
-                {BriefCommandSupport.Json(value.Conflicts)}::jsonb,
-                {evidenceBindings}::jsonb, {MasterDataCodes.LifecycleStatuses.Draft},
-                {envelope.ActorId.Value}, 1, {now})
-            """, cancellationToken);
-    }
 
     private static void EnsureOwner(CampaignBriefRow brief, Guid actorId)
     {

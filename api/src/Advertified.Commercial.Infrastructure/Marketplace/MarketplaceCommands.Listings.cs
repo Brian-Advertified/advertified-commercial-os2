@@ -16,29 +16,26 @@ public sealed partial class MarketplaceCommands
         CommandEnvelope<CreateMarketplaceListingCommand> envelope,
         CancellationToken cancellationToken)
     {
-        var snapshot = await store.FindProductSnapshotAsync(
-            envelope.TenantId, envelope.Command.ProductId, cancellationToken)
-            ?? throw new UnauthorizedAccessException("Inventory product access denied.");
-        var existing = await store.DbContext.Database.SqlQuery<Guid>($"""
-            SELECT id AS "Value" FROM commercial.marketplace_listings
-            WHERE supplier_tenant_id = {envelope.TenantId.Value}
-              AND product_id = {envelope.Command.ProductId}
-            """).SingleOrDefaultAsync(cancellationToken);
-        if (existing != Guid.Empty)
-        {
-            throw new InvalidLifecycleTransitionException();
-        }
-        var terms = Required(envelope.Command.Terms, 5_000, nameof(envelope.Command.Terms));
-        var id = Guid.NewGuid();
         var now = timeProvider.GetUtcNow();
-        await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+        var snapshot = await store.FindProductSnapshotAsync(
+            envelope.TenantId, envelope.Command.ProductId,
+            DateOnly.FromDateTime(now.UtcDateTime), now, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Inventory product access denied.");
+        var terms = MarketplacePolicy.RequiredTerms(envelope.Command.Terms);
+        var id = Guid.NewGuid();
+        var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.marketplace_listings (
                 id, supplier_tenant_id, product_id, status_code, terms,
                 created_by, version, created_at_utc, updated_at_utc)
             VALUES ({id}, {envelope.TenantId.Value}, {snapshot.ProductId},
                 {MasterDataCodes.MarketplaceListingStatuses.Draft}, {terms},
                 {envelope.ActorId.Value}, 1, {now}, {now})
+            ON CONFLICT (supplier_tenant_id, product_id) DO NOTHING
             """, cancellationToken);
+        if (changed != 1)
+        {
+            throw new InvalidLifecycleTransitionException();
+        }
         var view = await LoadListingViewAsync(id, cancellationToken);
         return CommandOutcomeFactory.Create(
             envelope, view, id, view.Version,
@@ -51,17 +48,19 @@ public sealed partial class MarketplaceCommands
         Guid listingId, CommandEnvelope<PublishMarketplaceListingCommand> envelope,
         CancellationToken cancellationToken)
     {
-        var listing = await store.FindListingAsync(listingId, cancellationToken)
+        var listing = await store.FindListingAsync(listingId, true, cancellationToken)
             ?? throw new UnauthorizedAccessException("Marketplace listing access denied.");
         if (listing.SupplierTenantId != envelope.TenantId.Value ||
             listing.Status == MasterDataCodes.MarketplaceListingStatuses.Archived)
         {
             throw new InvalidLifecycleTransitionException();
         }
+        var now = timeProvider.GetUtcNow();
         var snapshot = await store.FindProductSnapshotAsync(
-            envelope.TenantId, listing.ProductId, cancellationToken)
+            envelope.TenantId, listing.ProductId,
+            DateOnly.FromDateTime(now.UtcDateTime), now, cancellationToken)
             ?? throw new MarketplaceListingUnavailableException();
-        EnsureFresh(snapshot);
+        EnsureFresh(snapshot, now);
         var versionNumber = await store.DbContext.Database.SqlQuery<int>($"""
             SELECT (COALESCE(MAX(version_number), 0) + 1)::integer AS "Value"
             FROM commercial.marketplace_listing_versions
@@ -69,7 +68,6 @@ public sealed partial class MarketplaceCommands
               AND listing_id = {listingId}
             """).SingleAsync(cancellationToken);
         var versionId = Guid.NewGuid();
-        var now = timeProvider.GetUtcNow();
         await InsertListingVersionAsync(
             envelope, listing, snapshot, versionId, versionNumber, now, cancellationToken);
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
@@ -94,7 +92,7 @@ public sealed partial class MarketplaceCommands
         Guid listingId, CommandEnvelope<ArchiveMarketplaceListingCommand> envelope,
         CancellationToken cancellationToken)
     {
-        var reason = Required(envelope.Command.Reason, 1_000, nameof(envelope.Command.Reason));
+        var reason = MarketplacePolicy.RequiredReason(envelope.Command.Reason);
         var now = timeProvider.GetUtcNow();
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.marketplace_listings
@@ -139,17 +137,22 @@ public sealed partial class MarketplaceCommands
 
     private async Task<MarketplaceListingView> LoadListingViewAsync(
         Guid listingId, CancellationToken cancellationToken) =>
-        (await store.FindListingAsync(listingId, cancellationToken)
+        (await store.FindListingAsync(listingId, false, cancellationToken)
             ?? throw new InvalidOperationException("Marketplace listing was not persisted."))
         .ToView();
 
-    private void EnsureFresh(MarketplaceProductSnapshotRow snapshot)
+    private static void EnsureFresh(
+        MarketplaceProductSnapshotRow snapshot,
+        DateTimeOffset now)
     {
-        var now = timeProvider.GetUtcNow();
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
         if (snapshot.Availability != MasterDataCodes.AvailabilityStatuses.Available ||
+            snapshot.AvailabilityObservedAtUtc.HasValue &&
+            snapshot.AvailabilityObservedAtUtc.Value > now ||
             snapshot.AvailabilityValidUntilUtc.HasValue &&
             snapshot.AvailabilityValidUntilUtc.Value <= now ||
-            snapshot.RateEffectiveTo.HasValue && snapshot.RateEffectiveTo.Value < DateOnly.FromDateTime(now.UtcDateTime))
+            snapshot.RateEffectiveFrom.HasValue && snapshot.RateEffectiveFrom.Value > today ||
+            snapshot.RateEffectiveTo.HasValue && snapshot.RateEffectiveTo.Value < today)
         {
             throw new MarketplaceListingUnavailableException();
         }

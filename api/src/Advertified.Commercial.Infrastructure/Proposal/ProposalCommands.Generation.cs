@@ -56,11 +56,9 @@ public sealed partial class ProposalCommands
                 {envelope.Command.ExpiryAtUtc}, {MasterDataCodes.LifecycleStatuses.Draft},
                 {inputHash}, {envelope.ActorId.Value}, 1, {now})
             """, cancellationToken);
-        foreach (var input in inputs)
-        {
-            await InsertOptionAsync(
-                envelope.TenantId, proposalId, input, cancellationToken);
-        }
+        await ProposalOptionPersistence.InsertAsync(
+            store.DbContext, envelope.TenantId, proposalId, inputs, cancellationToken);
+
         var row = await store.FindProposalAsync(envelope.TenantId, proposalId, cancellationToken)
             ?? throw new InvalidOperationException("The proposal was not persisted.");
         var view = await store.BuildViewAsync(envelope.TenantId, row, cancellationToken);
@@ -91,21 +89,25 @@ public sealed partial class ProposalCommands
         Guid[] planIds,
         CancellationToken cancellationToken)
     {
-        var plans = new List<ProposalPlanSnapshot>(planIds.Length);
-        foreach (var planId in planIds)
+        var uniquePlanIds = planIds.Distinct().ToArray();
+        var rows = await planningStore.ListPlansAsync(
+            tenantId, uniquePlanIds, cancellationToken);
+        if (rows.Count != uniquePlanIds.Length)
         {
-            var plan = await planningStore.FindPlanAsync(tenantId, planId, cancellationToken)
-                ?? throw new ArgumentException("A selected media plan is unavailable.");
-            if (plan.BriefVersionId != briefVersionId ||
-                plan.Status != MasterDataCodes.LifecycleStatuses.Approved)
-            {
-                throw new InvalidLifecycleTransitionException();
-            }
-            var view = await planningStore.BuildPlanViewAsync(tenantId, plan, cancellationToken);
-            plans.Add(ToSnapshot(view));
+            throw new ArgumentException("A selected media plan is unavailable.");
         }
+        var byId = rows.ToDictionary(item => item.Id);
+        var ordered = planIds.Select(id => byId[id]).ToArray();
+        if (ordered.Any(plan => plan.BriefVersionId != briefVersionId ||
+                plan.Status != MasterDataCodes.LifecycleStatuses.Approved))
+        {
+            throw new InvalidLifecycleTransitionException();
+        }
+        var views = await planningStore.BuildPlanViewsAsync(
+            tenantId, ordered, cancellationToken);
+        var plans = views.Select(ToSnapshot).ToArray();
         await EnsurePlanInputsCurrentAsync(tenantId, plans, cancellationToken);
-        return plans.ToArray();
+        return plans;
     }
 
     private static ProposalPlanSnapshot ToSnapshot(Advertified.Commercial.Application.Planning.MediaPlanVersionView plan)
@@ -162,23 +164,6 @@ public sealed partial class ProposalCommands
         }
     }
 
-    private Task<int> InsertOptionAsync(
-        TenantId tenantId,
-        Guid proposalId,
-        ProposalOptionSnapshot option,
-        CancellationToken cancellationToken) =>
-        store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO commercial.proposal_options (
-                id, tenant_id, proposal_version_id, plan_version_id, plan_version_no,
-                label, outcome, budget_minor, currency_code, display_order, plan_signature,
-                channels_json, running_periods_json, inventory_json)
-            VALUES ({Guid.NewGuid()}, {tenantId.Value}, {proposalId}, {option.Plan.Id},
-                {option.Plan.VersionNumber}, {option.Label}, {option.Outcome},
-                {option.Plan.TotalMinor}, {option.Plan.Currency}, {option.DisplayOrder},
-                {option.Plan.Signature}, {ProposalRecordStore.Write(option.Plan.Channels)}::jsonb,
-                {ProposalRecordStore.Write(option.Plan.Periods)}::jsonb,
-                {ProposalRecordStore.Write(option.Plan.InventoryNames)}::jsonb)
-            """, cancellationToken);
 
     private static string BuildProposalHash(
         Guid briefVersionId,

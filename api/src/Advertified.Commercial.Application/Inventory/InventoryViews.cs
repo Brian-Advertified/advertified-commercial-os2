@@ -35,6 +35,13 @@ public sealed record InventoryImportStepView(
     DateTimeOffset StartedAtUtc,
     DateTimeOffset? CompletedAtUtc);
 
+public sealed record InventoryCandidateCountsView(
+    int Total,
+    int ReviewRequired,
+    int Approved,
+    int Rejected,
+    int Blocking);
+
 public sealed record InventoryImportView(
     Guid Id,
     Guid SupplierId,
@@ -49,6 +56,8 @@ public sealed record InventoryImportView(
     string? FailureCode,
     IReadOnlyList<InventoryImportStepView> Steps,
     IReadOnlyList<InventoryCandidateView> Candidates,
+    InventoryCandidateCountsView CandidateCounts,
+    string? NextCandidateCursor,
     long Version,
     DateTimeOffset UpdatedAtUtc);
 
@@ -116,6 +125,8 @@ public interface IInventoryReader
         ActorId actorId,
         TenantId tenantId,
         Guid importId,
+        int pageSize,
+        string? cursor,
         CancellationToken cancellationToken);
 
     Task<InventoryProductPage> SearchAsync(

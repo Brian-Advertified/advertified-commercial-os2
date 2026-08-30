@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Proposal, ProposalOption, ProposalUpdateInput } from '../api/proposal-schemas'
 import { proposalUpdateInputSchema } from '../api/proposal-schemas'
+import { formatMoney } from '../presentation/format'
 
 export function ProposalEditor({ proposal, busy, onSave }: {
   proposal: Proposal
@@ -81,7 +82,7 @@ function OptionEditor({ option, index, onChange }: {
     <label className="field-group">Client outcome<textarea value={option.outcome} required maxLength={2000}
       onChange={event => onChange({ outcome: event.target.value })} /></label>
     <div className="proposal-locked-total"><span>Approved plan total</span>
-      <strong>{money(option.budgetMinor, option.currency)}</strong></div>
+      <strong>{formatMoney(option.budgetMinor, option.currency)}</strong></div>
   </article>
 }
 
@@ -93,9 +94,4 @@ function toInput(core: CoreDraft, options: ProposalOption[]): ProposalUpdateInpu
     expiryAtUtc: new Date(`${core.expiry}T23:59:59`).toISOString(),
     options: options.map(item => ({ id: item.id, label: item.label, outcome: item.outcome })),
   }
-}
-
-function money(amountMinor: number, currency: string) {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency, maximumFractionDigits: 0 })
-    .format(amountMinor / 100)
 }

@@ -18,6 +18,21 @@ public sealed partial class InventoryAcceptanceTests
             $"rate_minor,availability\n{code},Bree Street Gantry,OOH,Johannesburg," +
             "-26.2041,28.0473,MONTH_RATE,ZAR,125000,UNKNOWN\n"));
 
+    private static FileFixture CandidatePageFixture() => new(
+        "CSV", "candidate-pages.csv", "text/csv", Encoding.UTF8.GetBytes(
+            "product_code,name,channel,geography,latitude,longitude,rate_type,currency," +
+            "rate_minor,availability\n" +
+            "PAGE-001,Page Site One,OOH,Johannesburg,-26.2041,28.0473,MONTH_RATE,ZAR,100000,UNKNOWN\n" +
+            "PAGE-002,Page Site Two,OOH,Johannesburg,-26.2042,28.0474,MONTH_RATE,ZAR,110000,UNKNOWN\n" +
+            "PAGE-003,Page Site Three,OOH,Johannesburg,-26.2043,28.0475,MONTH_RATE,ZAR,120000,UNKNOWN\n"));
+
+    private static FileFixture RejectedBlockingCandidateFixture() => new(
+        "CSV", "mixed-review-sites.csv", "text/csv", Encoding.UTF8.GetBytes(
+            "product_code,name,channel,geography,latitude,longitude,rate_type,currency," +
+            "rate_minor,availability\n" +
+            "MIXED-001,Valid Site,OOH,Johannesburg,-26.2041,28.0473,MONTH_RATE,ZAR,100000,UNKNOWN\n" +
+            "MIXED-002,Incomplete Site,OOH,Johannesburg,,,MONTH_RATE,ZAR,110000,UNKNOWN\n"));
+
     private static IReadOnlyList<FileFixture> CorpusFixtures() =>
     [
         CsvFixture("CSV-001"),

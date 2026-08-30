@@ -1,5 +1,6 @@
 import type { MarketplaceListing, MarketplaceRfq } from '../api/marketplace-schemas'
 import { masterDataCodes } from '../generated/master-data-codes'
+import { formatMoney } from '../presentation/format'
 
 export function MarketplaceListings({ listings, tenantId, canBuy, canSupply,
   request, archive }: {
@@ -20,7 +21,7 @@ export function MarketplaceListings({ listings, tenantId, canBuy, canSupply,
           <span className="subtle-copy">{version.availability.replaceAll('_', ' ')}</span></div>
         <h2>{version.productName}</h2><p>{version.supplierName}</p>
         <dl className="marketplace-facts"><div><dt>Geography</dt><dd>{version.geography}</dd></div>
-          <div><dt>Current rate</dt><dd>{money(version.amountMinor, version.currency)}</dd></div>
+          <div><dt>Current rate</dt><dd>{formatMoney(version.amountMinor, version.currency, 2)}</dd></div>
           <div><dt>Rate type</dt><dd>{version.rateType.replaceAll('_', ' ')}</dd></div></dl>
         <p className="field-note">{version.terms}</p>
         <div className="button-row">
@@ -54,7 +55,7 @@ export function MarketplaceRequests({ items, tenantId, busy, send, respond, acce
         <p><strong>{rfq.productName}</strong> · {rfq.supplierName}</p>
         <p>{rfq.requestedStart} to {rfq.requestedEnd} · quantity {rfq.quantity}</p>
         {rfq.response && <div className="marketplace-response"><strong>
-          Supplier response: {money(rfq.response.amountMinor, rfq.response.currency)}</strong>
+          Supplier response: {formatMoney(rfq.response.amountMinor, rfq.response.currency, 2)}</strong>
           <p>{rfq.response.availability.replaceAll('_', ' ')} · valid until
             {' '}{date(rfq.response.validUntilUtc)}</p><p>{rfq.response.terms}</p></div>}
         <div className="button-row">
@@ -73,10 +74,6 @@ export function MarketplaceRequests({ items, tenantId, busy, send, respond, acce
   </section>
 }
 
-function money(amountMinor: number, currency: string): string {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency })
-    .format(amountMinor / 100)
-}
 
 function date(value: string): string {
   return new Intl.DateTimeFormat('en-ZA', { dateStyle: 'medium', timeStyle: 'short' })

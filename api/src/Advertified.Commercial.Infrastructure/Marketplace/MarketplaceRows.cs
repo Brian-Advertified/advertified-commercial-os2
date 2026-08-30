@@ -46,8 +46,10 @@ internal sealed record MarketplaceProductSnapshotRow
     public string RateType { get; set; } = string.Empty;
     public long AmountMinor { get; set; }
     public string Currency { get; set; } = string.Empty;
+    public DateOnly? RateEffectiveFrom { get; set; }
     public DateOnly? RateEffectiveTo { get; set; }
     public string Availability { get; set; } = string.Empty;
+    public DateTimeOffset? AvailabilityObservedAtUtc { get; set; }
     public DateTimeOffset? AvailabilityValidUntilUtc { get; set; }
 }
 

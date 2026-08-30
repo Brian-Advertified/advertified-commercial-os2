@@ -9,6 +9,35 @@ namespace Advertified.Commercial.Infrastructure.EmailAutomation;
 
 public sealed partial class EmailAutomationRecordStore(GovernanceDbContext dbContext)
 {
+    private const string RunSelect = """
+        SELECT id AS "Id", tenant_id AS "TenantId",
+            inbound_email_id AS "InboundEmailId", policy_version AS "PolicyVersion",
+            campaign_mode_code AS "CampaignMode", status_code AS "Status",
+            checkpoint_code AS "Checkpoint", client_account_id AS "ClientAccountId",
+            brief_id AS "BriefId", brief_version_id AS "BriefVersionId",
+            stp_version_id AS "StpVersionId",
+            media_mix_version_id AS "MediaMixVersionId",
+            shortlist_version_id AS "ShortlistVersionId",
+            media_plan_version_id AS "MediaPlanVersionId",
+            proposal_version_id AS "ProposalVersionId", document_id AS "DocumentId",
+            input_hash AS "InputHash", understanding_json::text AS "UnderstandingJson",
+            clarifications_json::text AS "ClarificationsJson",
+            failure_code AS "FailureCode", failure_message AS "FailureMessage",
+            delivery_idempotency_key AS "DeliveryIdempotencyKey",
+            delivery_provider_id AS "DeliveryProviderId",
+            incremental_ai_cost_minor AS "IncrementalAiCostMinor",
+            version AS "Version", created_at_utc AS "CreatedAtUtc",
+            updated_at_utc AS "UpdatedAtUtc"
+        FROM commercial.email_proposal_automation_runs
+        """;
+
+    private const string AttachmentSelect = """
+        SELECT id AS "Id", inbound_email_id AS "InboundEmailId",
+            provider_attachment_id AS "ProviderAttachmentId", file_name AS "FileName",
+            media_type AS "MediaType", size_bytes AS "SizeBytes"
+        FROM commercial.inbound_email_attachments
+        """;
+
     internal GovernanceDbContext DbContext => dbContext;
 
     internal async Task<IDbContextTransaction> BeginSessionAsync(
@@ -107,29 +136,21 @@ public sealed partial class EmailAutomationRecordStore(GovernanceDbContext dbCon
         TenantId tenantId,
         Guid inboundEmailId,
         CancellationToken cancellationToken) =>
-        dbContext.Database.SqlQuery<EmailAutomationRunRow>($"""
-            SELECT id AS "Id", tenant_id AS "TenantId",
-                inbound_email_id AS "InboundEmailId", policy_version AS "PolicyVersion",
-                campaign_mode_code AS "CampaignMode", status_code AS "Status",
-                checkpoint_code AS "Checkpoint", client_account_id AS "ClientAccountId",
-                brief_id AS "BriefId", brief_version_id AS "BriefVersionId",
-                stp_version_id AS "StpVersionId",
-                media_mix_version_id AS "MediaMixVersionId",
-                shortlist_version_id AS "ShortlistVersionId",
-                media_plan_version_id AS "MediaPlanVersionId",
-                proposal_version_id AS "ProposalVersionId", document_id AS "DocumentId",
-                input_hash AS "InputHash", understanding_json::text AS "UnderstandingJson",
-                clarifications_json::text AS "ClarificationsJson",
-                failure_code AS "FailureCode",
-                failure_message AS "FailureMessage",
-                delivery_idempotency_key AS "DeliveryIdempotencyKey",
-                delivery_provider_id AS "DeliveryProviderId",
-                incremental_ai_cost_minor AS "IncrementalAiCostMinor",
-                version AS "Version", created_at_utc AS "CreatedAtUtc",
-                updated_at_utc AS "UpdatedAtUtc"
-            FROM commercial.email_proposal_automation_runs
-            WHERE tenant_id = {tenantId.Value} AND inbound_email_id = {inboundEmailId}
-            """).SingleOrDefaultAsync(cancellationToken);
+        dbContext.Database.SqlQuery<EmailAutomationRunRow>(
+            FormattableStringFactory.Create(
+                RunSelect + " WHERE tenant_id = {0} AND inbound_email_id = {1}",
+                tenantId.Value, inboundEmailId))
+            .SingleOrDefaultAsync(cancellationToken);
+
+    internal Task<List<EmailAutomationRunRow>> ListRunsAsync(
+        TenantId tenantId,
+        Guid[] inboundEmailIds,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<EmailAutomationRunRow>(
+            FormattableStringFactory.Create(
+                RunSelect + " WHERE tenant_id = {0} AND inbound_email_id = ANY({1})",
+                tenantId.Value, inboundEmailIds))
+            .ToListAsync(cancellationToken);
 
     internal Task<EmailAutomationContextRow?> FindContextAsync(
         TenantId tenantId,
@@ -181,24 +202,32 @@ public sealed partial class EmailAutomationRecordStore(GovernanceDbContext dbCon
         TenantId tenantId,
         Guid inboundEmailId,
         CancellationToken cancellationToken) =>
-        dbContext.Database.SqlQuery<InboundAttachmentRow>($"""
-            SELECT id AS "Id", inbound_email_id AS "InboundEmailId",
-                provider_attachment_id AS "ProviderAttachmentId",
-                file_name AS "FileName", media_type AS "MediaType",
-                size_bytes AS "SizeBytes"
-            FROM commercial.inbound_email_attachments
-            WHERE tenant_id = {tenantId.Value} AND inbound_email_id = {inboundEmailId}
-            ORDER BY file_name, id
-            """).ToListAsync(cancellationToken);
+        dbContext.Database.SqlQuery<InboundAttachmentRow>(
+            FormattableStringFactory.Create(
+                AttachmentSelect +
+                " WHERE tenant_id = {0} AND inbound_email_id = {1} ORDER BY file_name, id",
+                tenantId.Value, inboundEmailId))
+            .ToListAsync(cancellationToken);
+
+    internal Task<List<InboundAttachmentRow>> ListAttachmentsAsync(
+        TenantId tenantId,
+        Guid[] inboundEmailIds,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<InboundAttachmentRow>(
+            FormattableStringFactory.Create(
+                AttachmentSelect +
+                " WHERE tenant_id = {0} AND inbound_email_id = ANY({1}) " +
+                "ORDER BY inbound_email_id, file_name, id",
+                tenantId.Value, inboundEmailIds))
+            .ToListAsync(cancellationToken);
 
     internal Task<List<InboundCampaignEmailRow>> ListEmailsAsync(
         TenantId tenantId,
         int pageSize,
-        DateTimeOffset? before,
+        EmailAutomationCursorValue? before,
         CancellationToken cancellationToken)
     {
-        var statement = FormattableStringFactory.Create(
-            """
+        const string select = """
             SELECT id AS "Id", tenant_id AS "TenantId", mailbox_id AS "MailboxId",
                 provider_event_id AS "ProviderEventId",
                 provider_email_id AS "ProviderEmailId",
@@ -209,11 +238,16 @@ public sealed partial class EmailAutomationRecordStore(GovernanceDbContext dbCon
                 raw_metadata_json::text AS "RawMetadataJson",
                 received_at_utc AS "ReceivedAtUtc", created_at_utc AS "CreatedAtUtc"
             FROM commercial.inbound_campaign_emails
-            WHERE tenant_id = {0} AND ({1}::timestamptz IS NULL OR received_at_utc < {1})
-            ORDER BY received_at_utc DESC, id DESC LIMIT {2}
-            """,
-            tenantId.Value, before, pageSize + 1);
-        return dbContext.Database.SqlQuery<InboundCampaignEmailRow>(statement)
+            """;
+        var suffix = before is null
+            ? " WHERE tenant_id = {0} ORDER BY received_at_utc DESC, id DESC LIMIT {1}"
+            : " WHERE tenant_id = {0} AND (received_at_utc, id) < ({1}, {2}) " +
+              "ORDER BY received_at_utc DESC, id DESC LIMIT {3}";
+        var arguments = before is null
+            ? new object[] { tenantId.Value, pageSize + 1 }
+            : [tenantId.Value, before.ReceivedAtUtc, before.Id, pageSize + 1];
+        return dbContext.Database.SqlQuery<InboundCampaignEmailRow>(
+                FormattableStringFactory.Create(select + suffix, arguments))
             .ToListAsync(cancellationToken);
     }
 }

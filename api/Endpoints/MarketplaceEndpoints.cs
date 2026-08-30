@@ -169,16 +169,12 @@ public static class MarketplaceEndpoints
         return Results.Ok(result.Data);
     }
 
-    private static async Task<CommandResult<TResult>> ExecuteAsync<TCommand, TResult>(
+    private static Task<CommandResult<TResult>> ExecuteAsync<TCommand, TResult>(
         Guid tenantId, TCommand command, HttpContext context, ICurrentIdentity identity,
         Func<CommandEnvelope<TCommand>, CancellationToken, Task<CommandResult<TResult>>> action,
         TimeProvider clock, bool requireVersion, CancellationToken cancellationToken)
-        where TCommand : notnull where TResult : notnull
-    {
-        var envelope = CommandEnvelopeFactory.Create(
-            context, new TenantId(tenantId), identity.ActorId, command, clock, requireVersion);
-        var result = await action(envelope, cancellationToken);
-        CommandEnvelopeFactory.SetEntityHeaders(context, result.Version, result.Replayed);
-        return result;
-    }
+        where TCommand : notnull where TResult : notnull =>
+        CommandEndpointExecutor.ExecuteResultAsync(
+            tenantId, command, context, identity, clock,
+            requireVersion, action, cancellationToken);
 }

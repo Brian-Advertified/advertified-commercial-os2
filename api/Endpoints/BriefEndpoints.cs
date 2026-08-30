@@ -158,7 +158,7 @@ public static class BriefEndpoints
         Func<CommandResult<TResult>, IResult> response,
         CancellationToken cancellationToken)
         where TCommand : notnull
-        where TResult : notnull => OpportunityCommandEndpoints.ExecuteAsync(
+        where TResult : notnull => CommandEndpointExecutor.ExecuteAsync(
             tenantId, command, context, identity, clock, requiresVersion,
             execute, response, cancellationToken);
 }

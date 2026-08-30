@@ -11,6 +11,7 @@ import { masterDataCodes } from '../generated/master-data-codes'
 import { ProposalAgencyActions } from '../proposal/ProposalAgencyActions'
 import { ProposalClientDecision } from '../proposal/ProposalClientDecision'
 import { ProposalEditor } from '../proposal/ProposalEditor'
+import { humanizeCode } from '../presentation/format'
 import { ProposalOptionCard } from '../proposal/ProposalOptionCard'
 
 const preparationRoles = new Set<string>([
@@ -130,7 +131,7 @@ function ProposalHero({ proposal }: { proposal: Proposal }) {
   return <header className="proposal-hero proposal-record-hero"><div>
     <p className="eyebrow eyebrow-light">Media proposal</p>
     <h1 id="proposal-title">{proposal.title}</h1><p>{proposal.executiveSummary}</p></div>
-    <div className="proposal-status-block"><span className="status-chip">{humanize(proposal.status)}</span>
+    <div className="proposal-status-block"><span className="status-chip">{humanizeCode(proposal.status, true)}</span>
       <small>Valid until {formatDateTime(proposal.expiryAtUtc)}</small></div>
   </header>
 }
@@ -162,8 +163,4 @@ function ProposalPreview({ proposal, busy }: { proposal: Proposal; busy: boolean
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
     .format(new Date(value))
-}
-
-function humanize(value: string) {
-  return value.toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase())
 }

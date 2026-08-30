@@ -58,12 +58,8 @@ public sealed partial class PlanningCommands
                 {positioningStatement}, {inputHash},
                 {MasterDataCodes.LifecycleStatuses.Approved}, {envelope.ActorId.Value}, {now})
             """, cancellationToken);
-        foreach (var audience in audienceRecords)
-        {
-            await InsertAudienceAsync(
-                envelope.TenantId, id, audience.Id, audience.Proposal,
-                now, cancellationToken);
-        }
+        await PlanningAudiencePersistence.InsertAsync(
+            store.DbContext, envelope.TenantId, id, audienceRecords, cancellationToken);
         var row = await store.FindLatestAudienceAsync(
             envelope.TenantId, briefVersionId, cancellationToken)
             ?? throw new InvalidOperationException("The audience set was not persisted.");
@@ -272,27 +268,6 @@ public sealed partial class PlanningCommands
             brief.BudgetMinor!.Value, brief.Currency!, Read<Guid[]>(brief.EvidenceIdsJson),
             channels), cancellationToken);
     }
-
-    private Task<int> InsertAudienceAsync(
-        TenantId tenantId,
-        Guid setId,
-        Guid audienceId,
-        AudienceDefinitionProposal audience,
-        DateTimeOffset now,
-        CancellationToken cancellationToken) =>
-        store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO commercial.audience_definitions (
-                id, tenant_id, audience_set_id, name, description, need_state,
-                buying_context, geography_json, language, life_stage, lsm_sem,
-                classification_code, exclusions_json, evidence_item_ids_json,
-                confidence, status_code)
-            VALUES ({audienceId}, {tenantId.Value}, {setId}, {audience.Name},
-                {audience.Description}, {audience.NeedState}, {audience.BuyingContext},
-                {Write(audience.Geographies)}::jsonb, {audience.Language}, {audience.LifeStage},
-                {audience.LsmSem}, {audience.Classification},
-                {Write(audience.Exclusions)}::jsonb, {Write(audience.EvidenceItemIds)}::jsonb,
-                {audience.Confidence}, {MasterDataCodes.LifecycleStatuses.Approved})
-            """, cancellationToken);
 
     private static void EnsureAllocations(PlanningAgentProposal proposal, long budget) =>
         EnsureAllocations(proposal.Allocations.Select(item => new MediaAllocationView(

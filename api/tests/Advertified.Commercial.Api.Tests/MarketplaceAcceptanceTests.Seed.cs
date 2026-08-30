@@ -16,6 +16,14 @@ public sealed partial class MarketplaceAcceptanceTests
         Guid.Parse("95000000-0000-0000-0000-000000000005");
     private static readonly Guid AvailabilityId =
         Guid.Parse("95000000-0000-0000-0000-000000000006");
+    private static readonly Guid HistoricalRateId =
+        Guid.Parse("95000000-0000-0000-0000-000000000007");
+    private static readonly Guid HistoricalAvailabilityId =
+        Guid.Parse("95000000-0000-0000-0000-000000000008");
+    private static readonly Guid FutureRateId =
+        Guid.Parse("95000000-0000-0000-0000-000000000009");
+    private static readonly Guid FutureAvailabilityId =
+        Guid.Parse("95000000-0000-0000-0000-000000000010");
 
     private static async Task SeedInventoryAsync(string connectionString)
     {
@@ -69,9 +77,30 @@ public sealed partial class MarketplaceAcceptanceTests
             INSERT INTO commercial.inventory_rates (
                 id, tenant_id, product_version_id, rate_type_code, currency_code,
                 amount_minor, effective_from, effective_to, source_locator)
+            VALUES ($1, $2, $3, 'MONTH_RATE', 'ZAR', 900000,
+                '2025-01-01', '2025-12-31', 'historical-rate-card.csv#row=2')
+            """, HistoricalRateId, SupplierTenantId, ProductVersionId);
+        Add(batch, """
+            INSERT INTO commercial.inventory_rates (
+                id, tenant_id, product_version_id, rate_type_code, currency_code,
+                amount_minor, effective_from, effective_to, source_locator)
             VALUES ($1, $2, $3, 'MONTH_RATE', 'ZAR', 1250000,
                 '2026-01-01', '2027-12-31', 'private-rate-card.csv#row=2')
             """, RateId, SupplierTenantId, ProductVersionId);
+        Add(batch, """
+            INSERT INTO commercial.inventory_rates (
+                id, tenant_id, product_version_id, rate_type_code, currency_code,
+                amount_minor, effective_from, effective_to, source_locator)
+            VALUES ($1, $2, $3, 'MONTH_RATE', 'ZAR', 9900000,
+                '2028-01-01', '2028-12-31', 'scheduled-rate-card.csv#row=2')
+            """, FutureRateId, SupplierTenantId, ProductVersionId);
+        Add(batch, """
+            INSERT INTO commercial.inventory_availability (
+                id, tenant_id, product_version_id, availability_code,
+                observed_at_utc, valid_until_utc, source_locator)
+            VALUES ($1, $2, $3, 'UNAVAILABLE', $4, $5, 'historical-confirmation')
+            """, HistoricalAvailabilityId, SupplierTenantId, ProductVersionId,
+            InitialTime.AddDays(-30), InitialTime.AddDays(-1));
         Add(batch, """
             INSERT INTO commercial.inventory_availability (
                 id, tenant_id, product_version_id, availability_code,
@@ -79,6 +108,13 @@ public sealed partial class MarketplaceAcceptanceTests
             VALUES ($1, $2, $3, 'AVAILABLE', $4, $5, 'private-confirmation')
             """, AvailabilityId, SupplierTenantId, ProductVersionId,
             InitialTime, InitialTime.AddYears(1));
+        Add(batch, """
+            INSERT INTO commercial.inventory_availability (
+                id, tenant_id, product_version_id, availability_code,
+                observed_at_utc, valid_until_utc, source_locator)
+            VALUES ($1, $2, $3, 'UNAVAILABLE', $4, $5, 'scheduled-confirmation')
+            """, FutureAvailabilityId, SupplierTenantId, ProductVersionId,
+            InitialTime.AddYears(1), InitialTime.AddYears(2));
         await batch.ExecuteNonQueryAsync();
     }
 

@@ -75,10 +75,8 @@ public sealed partial class OpportunityRunProcessor
                 {context.Run.Id}, {interpretation.Id}, {version}, {MasterDataCodes.LifecycleStatuses.Draft},
                 {context.ActorId.Value}, 1, {now})
             """, cancellationToken);
-        foreach (var angle in angles)
-        {
-            await InsertAngleAsync(context, angleSetId, angle, cancellationToken);
-        }
+        await OpportunityArtifactBatchPersistence.InsertAnglesAsync(
+            store.DbContext, context, angleSetId, angles, cancellationToken);
         await OpportunityCommandSupport.CreateTaskAsync(
             store.DbContext,
             context.TenantId,
@@ -156,65 +154,11 @@ public sealed partial class OpportunityRunProcessor
                 {reportId}, {context.TenantId.Value}, {context.Run.Id}, {strategy.Id},
                 {execution.Output.Artifact.GetRawText()}::jsonb, {now})
             """, cancellationToken);
-        foreach (var objection in execution.Output.Objections)
-        {
-            await InsertObjectionAsync(
-                context, strategy, reportId, objection, now, cancellationToken);
-        }
+        await OpportunityArtifactBatchPersistence.InsertObjectionsAsync(
+            store.DbContext, context, reportId, execution.Output.Objections,
+            now, cancellationToken);
         await CompleteRunCoreAsync(context, execution.StepCode, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-    }
-
-    private async Task InsertAngleAsync(
-        RunExecutionContext context,
-        Guid angleSetId,
-        GeneratedAngle angle,
-        CancellationToken cancellationToken)
-    {
-        await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO commercial.opportunity_angles (
-                id, tenant_id, angle_set_id, rank, title, rationale,
-                evidence_item_ids_json, confidence, status_code, version)
-            VALUES (
-                {Guid.NewGuid()}, {context.TenantId.Value}, {angleSetId}, {angle.Rank},
-                {angle.Title}, {angle.Rationale}, {angle.EvidenceIdsJson}::jsonb,
-                {angle.Confidence}, {MasterDataCodes.OpportunityAngleStatuses.Proposed}, 1)
-            """, cancellationToken);
-    }
-
-    private async Task InsertObjectionAsync(
-        RunExecutionContext context,
-        RunStrategyRow strategy,
-        Guid reportId,
-        AgentObjectionOutput objection,
-        DateTimeOffset now,
-        CancellationToken cancellationToken)
-    {
-        await OpportunityCommandSupport.EnsureCodeAsync(
-            store.DbContext, MasterDataCodes.CriticSeverities.Collection, objection.Severity, cancellationToken);
-        var objectionId = Guid.NewGuid();
-        await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO commercial.critic_objections (
-                id, tenant_id, critic_report_id, severity_code, field_path,
-                evidence_gap, recommended_resolution, version)
-            VALUES (
-                {objectionId}, {context.TenantId.Value}, {reportId}, {objection.Severity},
-                {objection.FieldPath}, {objection.EvidenceGap},
-                {objection.RecommendedResolution}, 1)
-            """, cancellationToken);
-        await OpportunityCommandSupport.CreateTaskAsync(
-            store.DbContext,
-            context.TenantId,
-            context.Run.OpportunityId,
-            MasterDataCodes.HumanTaskTypes.CriticResolution,
-            "Resolve a strategy objection",
-            "Every critic objection must be explicitly resolved before submission.",
-            MasterDataReferences.CommercialResourceTypes.Strategy,
-            objectionId,
-            1,
-            context.ActorId.Value,
-            now,
-            cancellationToken);
     }
 
     private Task<int> NextVersionAsync(

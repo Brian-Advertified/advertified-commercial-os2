@@ -108,26 +108,34 @@ public sealed partial class PlanningRecordStore
         MediaPlanRow plan,
         CancellationToken cancellationToken)
     {
-        var lineRows = await ListPlanLinesAsync(tenantId, plan.Id, cancellationToken);
-        var lines = lineRows.Select(ToPlanLineView).ToArray();
-        var resolutions = await ListResolutionsAsync(tenantId, plan.Id, cancellationToken);
-        var byCode = resolutions.ToDictionary(row => row.ObjectionCode, StringComparer.Ordinal);
-        var objections = Read<CriticObjection[]>(plan.CriticReportJson)
-            .Select(item => ToObjectionView(item, byCode)).ToArray();
-        return new MediaPlanVersionView(
-            plan.Id, plan.BriefVersionId, plan.MixVersionId, plan.ShortlistVersionId,
-            plan.VersionNumber, plan.SubtotalMinor, plan.FeesMinor, plan.VatMinor,
-            plan.TotalMinor, plan.Currency, plan.SupplyConfidence, plan.InputHash, plan.Status,
-            Read<string[]>(plan.AssumptionsJson), lines, objections, plan.CreatedBy,
-            plan.ApprovedBy, plan.Version, plan.CreatedAtUtc);
+        var views = await BuildPlanViewsAsync(
+            tenantId, [plan], cancellationToken);
+        return views[0];
+    }
+
+    internal async Task<IReadOnlyList<MediaPlanVersionView>> BuildPlanViewsAsync(
+        TenantId tenantId,
+        IReadOnlyList<MediaPlanRow> plans,
+        CancellationToken cancellationToken)
+    {
+        if (plans.Count == 0) return [];
+        var planIds = plans.Select(item => item.Id).ToArray();
+        var lineRows = await ListPlanLinesAsync(tenantId, planIds, cancellationToken);
+        var resolutionRows = await ListResolutionsAsync(
+            tenantId, planIds, cancellationToken);
+        var lines = lineRows.ToLookup(item => item.PlanVersionId);
+        var resolutions = resolutionRows.ToLookup(item => item.PlanVersionId);
+        return plans.Select(plan => BuildPlanView(
+            plan, lines[plan.Id], resolutions[plan.Id])).ToArray();
     }
 
     private Task<List<MediaPlanLineRow>> ListPlanLinesAsync(
         TenantId tenantId,
-        Guid planId,
+        Guid[] planIds,
         CancellationToken cancellationToken) =>
         DbContext.Database.SqlQuery<MediaPlanLineRow>($"""
-            SELECT line.id AS "Id", line.inventory_product_id AS "InventoryProductId",
+            SELECT line.plan_version_id AS "PlanVersionId", line.id AS "Id",
+                line.inventory_product_id AS "InventoryProductId",
                 line.product_version_id AS "ProductVersionId", line.rate_id AS "RateId",
                 line.availability_id AS "AvailabilityId", version.name AS "Name",
                 version.channel_code AS "Channel", version.geography AS "Geography",
@@ -148,21 +156,41 @@ public sealed partial class PlanningRecordStore
               ON version.tenant_id = line.tenant_id AND version.id = line.product_version_id
             JOIN commercial.supply_coordination supply
               ON supply.tenant_id = line.tenant_id AND supply.media_plan_line_id = line.id
-            WHERE line.tenant_id = {tenantId.Value} AND line.plan_version_id = {planId}
-            ORDER BY line.id
+            WHERE line.tenant_id = {tenantId.Value}
+              AND line.plan_version_id = ANY({planIds})
+            ORDER BY line.plan_version_id, line.id
             """).ToListAsync(cancellationToken);
 
     private Task<List<ObjectionResolutionRow>> ListResolutionsAsync(
         TenantId tenantId,
-        Guid planId,
+        Guid[] planIds,
         CancellationToken cancellationToken) =>
         DbContext.Database.SqlQuery<ObjectionResolutionRow>($"""
-            SELECT objection_code AS "ObjectionCode", resolution_code AS "Resolution",
-                reason AS "Reason", resolved_by AS "ResolvedBy"
+            SELECT plan_version_id AS "PlanVersionId", objection_code AS "ObjectionCode",
+                resolution_code AS "Resolution", reason AS "Reason",
+                resolved_by AS "ResolvedBy"
             FROM commercial.planning_objection_resolutions
-            WHERE tenant_id = {tenantId.Value} AND plan_version_id = {planId}
-            ORDER BY objection_code
+            WHERE tenant_id = {tenantId.Value} AND plan_version_id = ANY({planIds})
+            ORDER BY plan_version_id, objection_code
             """).ToListAsync(cancellationToken);
+
+    private static MediaPlanVersionView BuildPlanView(
+        MediaPlanRow plan,
+        IEnumerable<MediaPlanLineRow> lineRows,
+        IEnumerable<ObjectionResolutionRow> resolutionRows)
+    {
+        var lines = lineRows.Select(ToPlanLineView).ToArray();
+        var resolutions = resolutionRows.ToDictionary(
+            row => row.ObjectionCode, StringComparer.Ordinal);
+        var objections = Read<CriticObjection[]>(plan.CriticReportJson)
+            .Select(item => ToObjectionView(item, resolutions)).ToArray();
+        return new MediaPlanVersionView(
+            plan.Id, plan.BriefVersionId, plan.MixVersionId, plan.ShortlistVersionId,
+            plan.VersionNumber, plan.SubtotalMinor, plan.FeesMinor, plan.VatMinor,
+            plan.TotalMinor, plan.Currency, plan.SupplyConfidence, plan.InputHash, plan.Status,
+            Read<string[]>(plan.AssumptionsJson), lines, objections, plan.CreatedBy,
+            plan.ApprovedBy, plan.Version, plan.CreatedAtUtc);
+    }
 
     private static InventoryShortlistCandidateView ToCandidateView(ShortlistCandidateRow row)
     {

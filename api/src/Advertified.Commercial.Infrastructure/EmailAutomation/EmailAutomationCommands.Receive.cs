@@ -42,7 +42,7 @@ public sealed partial class EmailAutomationCommands
             throw new ArgumentException("The inbound request is too large to process safely.");
         }
         ValidateJsonObject(command.RawMetadataJson);
-        ValidateAttachments(command.Attachments);
+        var attachments = PrepareAttachments(command.Attachments);
         var duplicate = await store.FindDuplicateAsync(
             envelope.TenantId,
             mailbox.Id,
@@ -95,11 +95,8 @@ public sealed partial class EmailAutomationCommands
                 {mailbox.DefaultClientAccountId}, {NormalizeHash(command.SourceHash)},
                 0, 1, {now}, {now})
             """, cancellationToken);
-        foreach (var attachment in command.Attachments)
-        {
-            await InsertAttachmentAsync(
-                envelope.TenantId, emailId, attachment, now, cancellationToken);
-        }
+        await InsertAttachmentsAsync(
+            envelope.TenantId, emailId, attachments, now, cancellationToken);
         var view = new InboundEmailReceiptView(
             emailId,
             runId,
@@ -116,36 +113,49 @@ public sealed partial class EmailAutomationCommands
             now);
     }
 
-    private Task<int> InsertAttachmentAsync(
+    private Task<int> InsertAttachmentsAsync(
         TenantId tenantId,
         Guid emailId,
-        InboundAttachmentReference attachment,
+        PreparedInboundAttachment[] attachments,
         DateTimeOffset now,
-        CancellationToken cancellationToken) =>
-        store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+        CancellationToken cancellationToken)
+    {
+        if (attachments.Length == 0) return Task.FromResult(0);
+        var payload = EmailAutomationRecordStore.Write(attachments);
+        return store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.inbound_email_attachments (
                 id, tenant_id, inbound_email_id, provider_attachment_id,
                 file_name, media_type, size_bytes, created_at_utc)
-            VALUES ({Guid.NewGuid()}, {tenantId.Value}, {emailId},
-                {Required(attachment.ProviderAttachmentId, 300,
-                    nameof(attachment.ProviderAttachmentId))},
-                {Required(attachment.FileName, 500, nameof(attachment.FileName))},
-                {Required(attachment.MediaType, 200, nameof(attachment.MediaType))},
-                {attachment.SizeBytes}, {now})
+            SELECT value."id", {tenantId.Value}, {emailId},
+                value."providerAttachmentId", value."fileName", value."mediaType",
+                value."sizeBytes", {now}
+            FROM jsonb_to_recordset({payload}::jsonb) AS value(
+                "id" uuid, "providerAttachmentId" text, "fileName" text,
+                "mediaType" text, "sizeBytes" bigint)
             """, cancellationToken);
+    }
 
-    private void ValidateAttachments(IReadOnlyList<InboundAttachmentReference> attachments)
+    private PreparedInboundAttachment[] PrepareAttachments(
+        IReadOnlyList<InboundAttachmentReference> attachments)
     {
-        if (attachments.Any(item => item.SizeBytes < 0) ||
+        if (!policy.AllowAttachments && attachments.Count > 0 || attachments.Count > 50 ||
+            attachments.Any(item => item.SizeBytes < 0) ||
             attachments.Sum(item => item.SizeBytes) > policy.MaximumSourceBytes)
         {
             throw new ArgumentException("Inbound email attachments exceed the automation limit.");
         }
-        if (attachments.Select(item => item.ProviderAttachmentId)
-            .Distinct(StringComparer.Ordinal).Count() != attachments.Count)
+        var prepared = attachments.Select(item => new PreparedInboundAttachment(
+            Guid.NewGuid(),
+            Required(item.ProviderAttachmentId, 300, nameof(item.ProviderAttachmentId)),
+            Required(item.FileName, 500, nameof(item.FileName)),
+            Required(item.MediaType, 200, nameof(item.MediaType)),
+            item.SizeBytes)).ToArray();
+        if (prepared.Select(item => item.ProviderAttachmentId)
+            .Distinct(StringComparer.Ordinal).Count() != prepared.Length)
         {
             throw new ArgumentException("Inbound email attachment identifiers must be unique.");
         }
+        return prepared;
     }
 
     private static void EnsureSenderAllowed(InboundMailboxRow mailbox, string sender)
@@ -185,3 +195,10 @@ public sealed partial class EmailAutomationCommands
                 : throw new ArgumentException("An inbound email value is too long.");
     }
 }
+
+internal sealed record PreparedInboundAttachment(
+    Guid Id,
+    string ProviderAttachmentId,
+    string FileName,
+    string MediaType,
+    long SizeBytes);

@@ -25,11 +25,15 @@ public sealed class MarketplaceRecordStore(GovernanceDbContext dbContext)
 
     internal Task<MarketplaceListingRow?> FindListingAsync(
         Guid listingId,
-        CancellationToken cancellationToken) =>
-        dbContext.Database.SqlQuery<MarketplaceListingRow>(
-            FormattableStringFactory.Create(
-                ListingSelect + " WHERE listing.id = {0}", listingId))
+        bool forUpdate,
+        CancellationToken cancellationToken)
+    {
+        var locking = forUpdate ? " FOR UPDATE OF listing" : string.Empty;
+        return dbContext.Database.SqlQuery<MarketplaceListingRow>(
+                FormattableStringFactory.Create(
+                    ListingSelect + " WHERE listing.id = {0}" + locking, listingId))
             .SingleOrDefaultAsync(cancellationToken);
+    }
 
     internal Task<MarketplaceRfqRow?> FindRfqAsync(
         Guid rfqId,
@@ -52,6 +56,8 @@ public sealed class MarketplaceRecordStore(GovernanceDbContext dbContext)
     internal Task<MarketplaceProductSnapshotRow?> FindProductSnapshotAsync(
         TenantId tenantId,
         Guid productId,
+        DateOnly today,
+        DateTimeOffset now,
         CancellationToken cancellationToken) =>
         dbContext.Database.SqlQuery<MarketplaceProductSnapshotRow>($"""
             SELECT product.id AS "ProductId", version.id AS "ProductVersionId",
@@ -60,19 +66,34 @@ public sealed class MarketplaceRecordStore(GovernanceDbContext dbContext)
                 version.channel_code AS "Channel", version.product_type_code AS "ProductType",
                 version.geography AS "Geography", rate.rate_type_code AS "RateType",
                 rate.amount_minor AS "AmountMinor", rate.currency_code AS "Currency",
+                rate.effective_from AS "RateEffectiveFrom",
                 rate.effective_to AS "RateEffectiveTo",
                 availability.availability_code AS "Availability",
+                availability.observed_at_utc AS "AvailabilityObservedAtUtc",
                 availability.valid_until_utc AS "AvailabilityValidUntilUtc"
             FROM commercial.inventory_products product
             JOIN commercial.inventory_suppliers supplier
               ON supplier.tenant_id = product.tenant_id AND supplier.id = product.supplier_id
             JOIN commercial.inventory_product_versions version
               ON version.tenant_id = product.tenant_id AND version.id = product.current_version_id
-            JOIN commercial.inventory_rates rate
-              ON rate.tenant_id = version.tenant_id AND rate.product_version_id = version.id
-            JOIN commercial.inventory_availability availability
-              ON availability.tenant_id = version.tenant_id
-             AND availability.product_version_id = version.id
+            JOIN LATERAL (
+                SELECT item.*
+                FROM commercial.inventory_rates item
+                WHERE item.tenant_id = version.tenant_id
+                  AND item.product_version_id = version.id
+                ORDER BY ((item.effective_from IS NULL OR item.effective_from <= {today})
+                    AND (item.effective_to IS NULL OR item.effective_to >= {today})) DESC,
+                    item.effective_from DESC NULLS LAST, item.id DESC
+                LIMIT 1) rate ON TRUE
+            JOIN LATERAL (
+                SELECT item.*
+                FROM commercial.inventory_availability item
+                WHERE item.tenant_id = version.tenant_id
+                  AND item.product_version_id = version.id
+                ORDER BY (item.observed_at_utc IS NULL OR
+                    item.observed_at_utc <= {now}) DESC,
+                    item.observed_at_utc DESC NULLS LAST, item.id DESC
+                LIMIT 1) availability ON TRUE
             WHERE product.tenant_id = {tenantId.Value} AND product.id = {productId}
               AND product.status_code = {MasterDataCodes.LifecycleStatuses.Active}
             """).SingleOrDefaultAsync(cancellationToken);

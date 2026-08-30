@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import type { MediaAllocation, MediaMix, RunningPeriod } from '../api/planning-schemas'
 import { masterDataCodes } from '../generated/master-data-codes'
+import { formatMoney } from '../presentation/format'
 import { mediaVisual } from './media-visuals'
 
 const periodSchema = z.object({ start: z.iso.date(), end: z.iso.date() })
@@ -71,7 +72,7 @@ function AllocationBars({ allocations, total, currency }: {
           <span>{visual.label}</span></div>
         <div className="allocation-bar-track"><span className={`allocation-bar media-tone-${visual.tone}`}
           style={{ width: `${width}%` }} /></div>
-        <strong>{money(item.budgetMinor, currency)}</strong>
+        <strong>{formatMoney(item.budgetMinor, currency)}</strong>
       </div>
     })}
   </div>
@@ -116,17 +117,12 @@ function AllocationCard({ allocation, currency, editable, onChange }: {
 function BudgetTotal({ allocated, total, currency }: { allocated: number; total: number; currency: string }) {
   const difference = total - allocated
   return <div className={`budget-total ${difference === 0 ? 'is-balanced' : 'is-unbalanced'}`}>
-    <span>Allocated</span><strong>{money(allocated, currency)}</strong>
-    <small>{difference === 0 ? 'Budget balanced' : `${money(Math.abs(difference), currency)} ${difference > 0 ? 'left' : 'over'}`}</small>
+    <span>Allocated</span><strong>{formatMoney(allocated, currency)}</strong>
+    <small>{difference === 0 ? 'Budget balanced' : `${formatMoney(Math.abs(difference), currency)} ${difference > 0 ? 'left' : 'over'}`}</small>
   </div>
 }
 
 function emptyPeriod(periods: RunningPeriod[]): RunningPeriod {
   const previous = periods.at(-1)
   return previous ? { start: previous.end, end: previous.end } : { start: '', end: '' }
-}
-
-function money(amountMinor: number, currency: string) {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency, maximumFractionDigits: 0 })
-    .format(amountMinor / 100)
 }

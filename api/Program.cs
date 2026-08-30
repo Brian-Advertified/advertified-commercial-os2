@@ -34,6 +34,7 @@ using Microsoft.OpenApi;
 using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 var authenticationMode = builder.Configuration["Authentication:Mode"];
 var agentRuntime = builder.Configuration
     .GetSection(AgentRuntimeOptions.SectionName)
@@ -217,6 +218,13 @@ builder.Services
         BrowserSessionAuthenticationHandler.AuthenticationScheme,
         _ => { });
 builder.Services.AddAuthorization();
+builder.Services.AddTrustedProxyHeaders(builder.Configuration);
+builder.Services.AddAdvertifiedRateLimits();
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+});
 
 builder.Services.AddExceptionHandler<HumanSafeExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -233,9 +241,16 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
 app.UseMiddleware<CorrelationMiddleware>();
+app.UseMiddleware<SecurityHeadersMiddleware>();
+if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Test"))
+{
+    app.UseHsts();
+}
 app.UseExceptionHandler();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseMiddleware<BrowserSessionProtectionMiddleware>();
 app.UseAuthorization();
 

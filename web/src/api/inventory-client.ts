@@ -42,9 +42,15 @@ export const inventoryApi = {
     )).data
   },
 
-  async getImport(tenantId: string, importId: string): Promise<InventoryImport> {
+  async getImport(
+    tenantId: string,
+    importId: string,
+    cursor?: string,
+  ): Promise<InventoryImport> {
+    const query = new URLSearchParams({ pageSize: '100' })
+    if (cursor) query.set('cursor', cursor)
     return (await request(
-      `/api/v1/tenants/${tenantId}/inventory-imports/${importId}`,
+      `/api/v1/tenants/${tenantId}/inventory-imports/${importId}?${query}`,
       inventoryImportSchema,
     )).data
   },

@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text.Json;
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Opportunity;
@@ -46,15 +45,14 @@ public sealed partial class InventoryCommands
             envelope.TenantId, source.Id, extraction, cancellationToken);
         var rows = extraction.Rows;
         var codes = await InventoryCodeSets.LoadAsync(store.DbContext, cancellationToken);
+        var candidates = rows.Select(row => PrepareCandidate(
+            InventoryCandidateNormalizer.Normalize(row, source.SourceHash), codes)).ToArray();
         var now = timeProvider.GetUtcNow();
-        foreach (var row in rows)
-        {
-            var extracted = InventoryCandidateNormalizer.Normalize(row, source.SourceHash);
-            await InsertCandidateAsync(
-                envelope.TenantId, source, extracted, codes, reviewer, now, cancellationToken);
-        }
+        await InventoryCandidateBatchPersistence.PersistAsync(
+            store.DbContext, envelope.TenantId, source.Id, reviewer, now,
+            candidates, cancellationToken);
         await CompleteExecutionAsync(
-            envelope.TenantId, importId, source.Version, rows.Count, now, cancellationToken);
+            envelope.TenantId, importId, source.Version, now, cancellationToken);
         var updated = await store.FindImportAsync(
             envelope.TenantId, importId, false, cancellationToken)
             ?? throw new InvalidOperationException("The inventory import was not persisted.");
@@ -124,76 +122,21 @@ public sealed partial class InventoryCommands
                 {extraction.OutputHash}, {timeProvider.GetUtcNow()})
             """, cancellationToken);
 
-    private async Task InsertCandidateAsync(
-        TenantId tenantId,
-        InventoryImportRow source,
+    private static PreparedInventoryCandidate PrepareCandidate(
         ExtractedInventoryCandidate extracted,
-        InventoryCodeSets codes,
-        Guid reviewer,
-        DateTimeOffset now,
-        CancellationToken cancellationToken)
-    {
-        var id = Guid.NewGuid();
-        var valuesJson = JsonSerializer.Serialize(
-            extracted.Values, InventoryRowMapper.StoredJson);
-        var validation = InventoryCandidateValidator.Validate(extracted.Values, codes);
-        var validationJson = JsonSerializer.Serialize(validation, InventoryRowMapper.StoredJson);
-        await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO commercial.inventory_candidates (
-                id, tenant_id, import_id, row_number, status_code,
-                proposed_values_json, canonical_values_json, validation_json,
-                source_locator, version, created_at_utc, updated_at_utc)
-            VALUES ({id}, {tenantId.Value}, {source.Id}, {extracted.RowNumber},
-                {MasterDataCodes.LifecycleStatuses.ReviewRequired}, {valuesJson}::jsonb,
-                {valuesJson}::jsonb, {validationJson}::jsonb, {extracted.Locator},
-                1, {now}, {now})
-            """, cancellationToken);
-        await InsertEvidenceAsync(tenantId, id, extracted.Evidence, cancellationToken);
-        await CreateReviewTaskAsync(tenantId, id, reviewer, now, cancellationToken);
-    }
-
-    private async Task InsertEvidenceAsync(
-        TenantId tenantId,
-        Guid candidateId,
-        IReadOnlyList<InventoryFieldEvidenceView> evidence,
-        CancellationToken cancellationToken)
-    {
-        foreach (var field in evidence)
-        {
-            await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-                INSERT INTO commercial.inventory_candidate_fields (
-                    id, tenant_id, candidate_id, field_name, raw_value, normalized_value,
-                    transformation_code, source_locator, source_hash)
-                VALUES ({Guid.NewGuid()}, {tenantId.Value}, {candidateId}, {field.FieldName},
-                    {field.RawValue}, {field.NormalizedValue}, {field.Transformation},
-                    {field.SourceLocator}, {field.SourceHash})
-                """, cancellationToken);
-        }
-    }
-
-    private Task<int> CreateReviewTaskAsync(
-        TenantId tenantId,
-        Guid candidateId,
-        Guid reviewer,
-        DateTimeOffset now,
-        CancellationToken cancellationToken) =>
-        store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO commercial.human_tasks (
-                id, tenant_id, opportunity_id, task_type_code, status_code, title,
-                why_it_matters, resource_type_code, resource_id, resource_version,
-                assignee_user_id, action_schema_json, version, created_at_utc)
-            VALUES ({Guid.NewGuid()}, {tenantId.Value}, NULL,
-                {MasterDataCodes.HumanTaskTypes.InventoryCandidateReview}, {MasterDataCodes.LifecycleStatuses.Pending}, {"Review inventory candidate"},
-                {"Verify source-linked fields before inventory publication."},
-                {MasterDataReferences.CommercialResourceTypes.InventoryCandidate.Value}, {candidateId}, 1,
-                {reviewer}, {"{}"}::jsonb, 1, {now})
-            """, cancellationToken);
+        InventoryCodeSets codes) => new(
+        Guid.NewGuid(),
+        extracted.RowNumber,
+        extracted.Values,
+        InventoryCandidateValidator.Validate(extracted.Values, codes),
+        extracted.Locator,
+        extracted.Evidence,
+        Guid.NewGuid());
 
     private async Task CompleteExecutionAsync(
         TenantId tenantId,
         Guid importId,
         long expectedVersion,
-        int candidateCount,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {

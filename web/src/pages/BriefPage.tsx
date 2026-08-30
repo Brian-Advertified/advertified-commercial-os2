@@ -7,6 +7,7 @@ import type { BriefVersion, CampaignBrief } from '../api/schemas'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
 import { LoadingState, MessageState } from '../components/PageState'
+import { formatMoney } from '../presentation/format'
 
 const briefConfirmerRoles: readonly string[] =
   Object.values(opportunityCodes.briefConfirmerRole)
@@ -88,7 +89,8 @@ function BriefOverview({ version, busy, confirm, allowed }: {
         <Link className="primary-button" to={`/planning/${version.id}`}>Start planning</Link>}</div>
     <p><strong>Business problem:</strong> {version.businessProblem}</p>
     <p><strong>Timing:</strong> {version.timing}</p>
-    <p><strong>Budget:</strong> {version.budgetUnknown ? 'Not supplied' : money(version)}</p>
+    <p><strong>Budget:</strong> {version.budgetUnknown ? 'Not supplied' : formatMoney(
+      version.budgetMinor ?? 0, version.currency ?? opportunityCodes.currency.zar, 2)}</p>
     <TagList label="Audience direction" values={version.audiences} />
     <TagList label="Geographies" values={version.geographies} />
     {version.unknowns.length > 0 && <div><h3>Still to confirm</h3><ul>
@@ -118,11 +120,4 @@ function VersionHistory({ versions }: { versions: BriefVersion[] }) {
 
 function TagList({ label, values }: { label: string; values: string[] }) {
   return <div><strong>{label}:</strong> {values.length ? values.join(', ') : 'Not supplied'}</div>
-}
-
-function money(version: BriefVersion): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency', currency: version.currency ?? opportunityCodes.currency.zar,
-  })
-    .format((version.budgetMinor ?? 0) / 100)
 }

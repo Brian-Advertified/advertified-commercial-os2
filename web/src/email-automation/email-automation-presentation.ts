@@ -1,4 +1,5 @@
 import { masterDataCodes } from '../generated/master-data-codes'
+import { humanizeCode } from '../presentation/format'
 
 const statusLabels: Record<string, string> = {
   [masterDataCodes.emailAutomationStatuses.received]: 'Received',
@@ -51,18 +52,14 @@ export const automationCheckpoints = [
 ] as const
 
 export function automationStatusLabel(status: string) {
-  return statusLabels[status] ?? humanize(status)
+  return statusLabels[status] ?? humanizeCode(status, true)
 }
 
 export function automationFailureLabel(code: string | null, detail?: string | null) {
   if (!code) return detail ?? 'Review the message and its latest completed stage.'
-  return failureLabels[code] ?? detail ?? humanize(code)
+  return failureLabels[code] ?? detail ?? humanizeCode(code, true)
 }
 
 export function checkpointIndex(checkpoint: string) {
   return Math.max(0, automationCheckpoints.findIndex(([code]) => code === checkpoint))
-}
-
-export function humanize(value: string) {
-  return value.toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase())
 }

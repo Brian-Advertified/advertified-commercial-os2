@@ -6480,6 +6480,21 @@
             }
           },
           {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "X-Correlation-ID",
             "in": "header",
             "description": "Optional UUID request correlation identifier.",
@@ -17397,6 +17412,32 @@
         },
         "additionalProperties": false
       },
+      "InventoryCandidateCountsView": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reviewRequired": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "approved": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rejected": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "blocking": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "InventoryCandidateValues": {
         "type": "object",
         "properties": {
@@ -17664,6 +17705,13 @@
             "items": {
               "$ref": "#/components/schemas/InventoryCandidateView"
             },
+            "nullable": true
+          },
+          "candidateCounts": {
+            "$ref": "#/components/schemas/InventoryCandidateCountsView"
+          },
+          "nextCandidateCursor": {
+            "type": "string",
             "nullable": true
           },
           "version": {

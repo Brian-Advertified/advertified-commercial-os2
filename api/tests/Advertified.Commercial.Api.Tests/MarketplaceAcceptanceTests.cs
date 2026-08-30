@@ -27,8 +27,11 @@ public sealed partial class MarketplaceAcceptanceTests
             buyer, supplier, other, listing.ListingVersionId, clock);
         await AssertExpiredResponseCannotBeAcceptedAsync(
             buyer, supplier, listing.ListingVersionId, clock);
+        await AssertFilteredRequestPagingAsync(
+            buyer, listing.ListingVersionId, clock);
+        await AssertInvalidMarketplaceFiltersAsync(buyer);
         await ArchiveListingAsync(supplier, buyer, listing.ListingId);
         await AssertRetainedEvidenceAsync(
-            connectionString, listing.ListingVersionId, expectedCommands: 10);
+            connectionString, listing.ListingVersionId, expectedCommands: 12);
     }
 }

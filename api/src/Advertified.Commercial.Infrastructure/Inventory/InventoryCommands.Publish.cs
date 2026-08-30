@@ -3,9 +3,8 @@ using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Commercial;
-using Advertified.Commercial.Domain.Constants;
-using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,6 +20,41 @@ public sealed partial class InventoryCommands
         var source = await store.FindImportAsync(
             envelope.TenantId, importId, true, cancellationToken)
             ?? throw new UnauthorizedAccessException("Inventory import access denied.");
+        EnsurePublicationAllowed(source, envelope);
+        var candidates = await store.ListCandidatesAsync(
+            envelope.TenantId, importId, cancellationToken);
+        var codes = await InventoryCodeSets.LoadAsync(store.DbContext, cancellationToken);
+        var approved = PrepareApprovedCandidates(candidates, codes);
+        await InventoryPublicationPersistence.LockSupplierAsync(
+            store.DbContext, envelope.TenantId, source.SupplierId, cancellationToken);
+        var products = await InventoryPublicationPersistence.LoadProductsAsync(
+            store.DbContext, envelope.TenantId, source.SupplierId,
+            approved.Select(item => item.ProductCode).ToArray(), cancellationToken);
+        var nextVersions = await InventoryPublicationPersistence.LoadNextVersionsAsync(
+            store.DbContext, envelope.TenantId,
+            products.Select(item => item.Id).ToArray(), cancellationToken);
+        var publications = PreparePublications(
+            source, approved, products, nextVersions);
+        var now = timeProvider.GetUtcNow();
+        await InventoryPublicationPersistence.PersistAsync(
+            store.DbContext, envelope.TenantId, source.SupplierId, source.Id,
+            envelope.ActorId.Value, now, publications, cancellationToken);
+        await CompletePublicationAsync(envelope, source, now, cancellationToken);
+        var updated = await store.FindImportAsync(
+            envelope.TenantId, importId, false, cancellationToken)
+            ?? throw new InvalidOperationException("The inventory import was not persisted.");
+        var view = await store.BuildImportViewAsync(updated, cancellationToken);
+        return OpportunityCommandSupport.Outcome(
+            envelope, view, importId, updated.Version,
+            MasterDataReferences.CommercialResourceTypes.InventoryImport,
+            MasterDataReferences.CommercialActions.InventoryPublished,
+            MasterDataReferences.CommercialEventTypes.InventoryPublished, now);
+    }
+
+    private static void EnsurePublicationAllowed(
+        InventoryImportRow source,
+        CommandEnvelope<PublishInventoryImportCommand> envelope)
+    {
         if (source.CreatedBy == envelope.ActorId.Value)
         {
             throw new ApprovalRequiredException();
@@ -30,189 +64,96 @@ public sealed partial class InventoryCommands
         {
             throw new InvalidLifecycleTransitionException();
         }
-        var candidates = await store.ListCandidatesAsync(
-            envelope.TenantId, importId, cancellationToken);
-        EnsurePublishable(candidates);
-        var now = timeProvider.GetUtcNow();
-        foreach (var candidate in candidates.Where(
-            item => item.Status == MasterDataCodes.LifecycleStatuses.Approved))
+        if (source.Version != envelope.ExpectedVersion)
         {
-            await PublishCandidateAsync(
-                envelope, source, candidate, now, cancellationToken);
+            throw new VersionConflictException();
         }
-        await CompletePublicationAsync(
-            envelope, source, now, cancellationToken);
-        var updated = await store.FindImportAsync(
-            envelope.TenantId, importId, false, cancellationToken)
-            ?? throw new InvalidOperationException("The inventory import was not persisted.");
-        var view = await store.BuildImportViewAsync(updated, cancellationToken);
-        return OpportunityCommandSupport.Outcome(
-            envelope, view, importId, updated.Version,
-            MasterDataReferences.CommercialResourceTypes.InventoryImport, MasterDataReferences.CommercialActions.InventoryPublished,
-            MasterDataReferences.CommercialEventTypes.InventoryPublished, now);
     }
 
-    private static void EnsurePublishable(List<InventoryCandidateRow> candidates)
+    private static ApprovedInventoryCandidate[] PrepareApprovedCandidates(
+        List<InventoryCandidateRow> candidates,
+        InventoryCodeSets codes)
     {
         if (candidates.Count == 0 || candidates.Any(
-                item => item.Status == MasterDataCodes.LifecycleStatuses.ReviewRequired) ||
-            candidates.All(item => item.Status != MasterDataCodes.LifecycleStatuses.Approved))
+                item => item.Status == MasterDataCodes.LifecycleStatuses.ReviewRequired))
         {
             throw new InventoryPublishBlockedException();
         }
-        foreach (var candidate in candidates.Where(
-            item => item.Status == MasterDataCodes.LifecycleStatuses.Approved))
+        var approved = candidates
+            .Where(item => item.Status == MasterDataCodes.LifecycleStatuses.Approved)
+            .Select(item => PrepareApprovedCandidate(item, codes))
+            .ToArray();
+        if (approved.Length == 0 || approved
+            .GroupBy(item => item.ProductCode, StringComparer.Ordinal)
+            .Any(group => group.Count() > 1))
         {
-            var validation = JsonSerializer.Deserialize<InventoryValidationIssueView[]>(
-                candidate.ValidationJson, InventoryRowMapper.StoredJson) ?? [];
-            if (validation.Any(issue => issue.IsBlocking))
-            {
-                throw new InventoryPublishBlockedException();
-            }
+            throw new InventoryPublishBlockedException();
         }
+        return approved;
     }
 
-    private async Task PublishCandidateAsync(
-        CommandEnvelope<PublishInventoryImportCommand> envelope,
-        InventoryImportRow source,
+    private static ApprovedInventoryCandidate PrepareApprovedCandidate(
         InventoryCandidateRow candidate,
-        DateTimeOffset now,
-        CancellationToken cancellationToken)
+        InventoryCodeSets codes)
     {
         var values = JsonSerializer.Deserialize<InventoryCandidateValues>(
             candidate.ValuesJson, InventoryRowMapper.StoredJson)
             ?? throw new InvalidOperationException("Stored inventory values are invalid.");
-        var productCode = values.ProductCode
-            ?? throw new InventoryPublishBlockedException();
-        var product = await FindProductAsync(
-            envelope.TenantId, source.SupplierId, productCode, cancellationToken);
-        var productId = product?.Id ?? Guid.NewGuid();
-        if (product is null)
+        if (InventoryCandidateValidator.Validate(values, codes).Any(issue => issue.IsBlocking))
         {
-            await InsertProductAsync(
-                envelope.TenantId, source.SupplierId, productId, productCode, now,
-                cancellationToken);
+            throw new InventoryPublishBlockedException();
         }
-        var versionNumber = await NextVersionNumberAsync(
-            envelope.TenantId, productId, cancellationToken);
-        var versionId = Guid.NewGuid();
-        await InsertProductVersionAsync(
-            envelope, source, candidate, values, productId, versionId, versionNumber,
-            now, cancellationToken);
-        await InsertProductFactsAsync(
-            envelope.TenantId, source, candidate, values, versionId, now, cancellationToken);
-        await SetCurrentVersionAsync(
-            envelope.TenantId, productId, versionId, product is not null, now,
-            cancellationToken);
+        return new ApprovedInventoryCandidate(
+            candidate, values, Required(values.ProductCode));
     }
 
-    private Task<InventoryProductIdentityRow?> FindProductAsync(
-        TenantId tenantId,
-        Guid supplierId,
-        string productCode,
-        CancellationToken cancellationToken) =>
-        store.DbContext.Database.SqlQuery<InventoryProductIdentityRow>($"""
-            SELECT id AS "Id", version AS "Version"
-            FROM commercial.inventory_products
-            WHERE tenant_id = {tenantId.Value} AND supplier_id = {supplierId}
-              AND supplier_product_code = {productCode}
-            FOR UPDATE
-            """).SingleOrDefaultAsync(cancellationToken);
-
-    private Task<int> InsertProductAsync(
-        TenantId tenantId, Guid supplierId, Guid productId, string productCode,
-        DateTimeOffset now, CancellationToken cancellationToken) =>
-        store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO commercial.inventory_products (
-                id, tenant_id, supplier_id, supplier_product_code, status_code,
-                version, created_at_utc, updated_at_utc)
-            VALUES ({productId}, {tenantId.Value}, {supplierId}, {productCode},
-                {MasterDataCodes.LifecycleStatuses.Active}, 1, {now}, {now})
-            """, cancellationToken);
-
-    private Task<int> NextVersionNumberAsync(
-        TenantId tenantId, Guid productId, CancellationToken cancellationToken) =>
-        store.DbContext.Database.SqlQuery<int>($"""
-            SELECT (COALESCE(MAX(version_number), 0) + 1)::integer AS "Value"
-            FROM commercial.inventory_product_versions
-            WHERE tenant_id = {tenantId.Value} AND product_id = {productId}
-            """).SingleAsync(cancellationToken);
-
-    private Task<int> InsertProductVersionAsync(
-        CommandEnvelope<PublishInventoryImportCommand> envelope,
+    private static PreparedInventoryPublication[] PreparePublications(
         InventoryImportRow source,
-        InventoryCandidateRow candidate,
-        InventoryCandidateValues values,
-        Guid productId,
-        Guid versionId,
-        int versionNumber,
-        DateTimeOffset now,
-        CancellationToken cancellationToken)
+        IReadOnlyList<ApprovedInventoryCandidate> candidates,
+        IReadOnlyList<ExistingInventoryProductRow> products,
+        IReadOnlyList<InventoryProductVersionNumberRow> nextVersions)
     {
-        var extension = JsonSerializer.Serialize(
-            values.Extension ?? new Dictionary<string, string>(), InventoryRowMapper.StoredJson);
-        return store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO commercial.inventory_product_versions (
-                id, tenant_id, product_id, version_number, name, channel_code,
-                product_type_code, geography, address, latitude, longitude, extension_json,
-                verification_code, source_import_id, source_candidate_id,
-                published_by, published_at_utc)
-            VALUES ({versionId}, {envelope.TenantId.Value}, {productId}, {versionNumber},
-                {values.Name}, {values.Channel}, {values.ProductType}, {values.Geography},
-                {values.Address}, {values.Latitude}, {values.Longitude}, {extension}::jsonb,
-                {MasterDataCodes.VerificationLevels.HumanVerified}, {source.Id}, {candidate.Id},
-                {envelope.ActorId.Value}, {now})
-            """, cancellationToken);
-    }
-
-    private async Task InsertProductFactsAsync(
-        TenantId tenantId,
-        InventoryImportRow source,
-        InventoryCandidateRow candidate,
-        InventoryCandidateValues values,
-        Guid versionId,
-        DateTimeOffset now,
-        CancellationToken cancellationToken)
-    {
-        await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO commercial.inventory_rates (
-                id, tenant_id, product_version_id, rate_type_code, currency_code,
-                amount_minor, source_locator)
-            VALUES ({Guid.NewGuid()}, {tenantId.Value}, {versionId}, {values.RateType},
-                {values.Currency}, {values.RateAmountMinor}, {candidate.SourceLocator});
-            INSERT INTO commercial.inventory_availability (
-                id, tenant_id, product_version_id, availability_code,
-                observed_at_utc, source_locator)
-            VALUES ({Guid.NewGuid()}, {tenantId.Value}, {versionId}, {values.Availability},
-                {now}, {candidate.SourceLocator});
-            INSERT INTO commercial.inventory_assets (
-                id, tenant_id, product_version_id, asset_type_code, object_key,
-                content_hash, media_type, source_import_id)
-            VALUES ({Guid.NewGuid()}, {tenantId.Value}, {versionId},
-                {AssetType(source, values)}, {source.ProtectedObjectKey}, {source.SourceHash},
-                {source.DeclaredMediaType}, {source.Id})
-            """, cancellationToken);
+        var byCode = products.ToDictionary(item => item.ProductCode, StringComparer.Ordinal);
+        var versions = nextVersions.ToDictionary(item => item.ProductId);
+        return candidates.Select(item =>
+        {
+            var exists = byCode.TryGetValue(item.ProductCode, out var product);
+            var productId = exists ? product!.Id : Guid.NewGuid();
+            var versionNumber = exists && versions.TryGetValue(productId, out var number)
+                ? number.NextVersionNumber : 1;
+            var values = item.Values;
+            return new PreparedInventoryPublication(
+                productId, item.ProductCode, !exists, Guid.NewGuid(), versionNumber,
+                item.Candidate.Id, Required(values.Name), Required(values.Channel),
+                Required(values.ProductType), Required(values.Geography), values.Address,
+                values.Latitude, values.Longitude,
+                JsonSerializer.Serialize(
+                    values.Extension ?? new Dictionary<string, string>(),
+                    InventoryRowMapper.StoredJson),
+                Guid.NewGuid(), Required(values.RateType), Required(values.Currency),
+                values.RateAmountMinor ?? throw new InventoryPublishBlockedException(),
+                Guid.NewGuid(), Required(values.Availability), Guid.NewGuid(),
+                AssetType(source, values), Required(source.ProtectedObjectKey),
+                source.SourceHash, source.DeclaredMediaType, item.Candidate.SourceLocator);
+        }).ToArray();
     }
 
     private static string AssetType(
         InventoryImportRow source,
         InventoryCandidateValues values) => source.DocumentClass switch
     {
-        MasterDataCodes.DocumentClasses.Png or MasterDataCodes.DocumentClasses.Jpeg when values.Channel == MasterDataCodes.Channels.Ooh =>
+        MasterDataCodes.DocumentClasses.Png or MasterDataCodes.DocumentClasses.Jpeg
+            when values.Channel == MasterDataCodes.Channels.Ooh =>
             MasterDataCodes.AssetTypes.OohPhoto,
-        MasterDataCodes.DocumentClasses.Png or MasterDataCodes.DocumentClasses.Jpeg => MasterDataCodes.AssetTypes.ProductImage,
+        MasterDataCodes.DocumentClasses.Png or MasterDataCodes.DocumentClasses.Jpeg =>
+            MasterDataCodes.AssetTypes.ProductImage,
         _ => MasterDataCodes.AssetTypes.RateCard,
     };
 
-    private Task<int> SetCurrentVersionAsync(
-        TenantId tenantId, Guid productId, Guid versionId, bool advanceVersion,
-        DateTimeOffset now, CancellationToken cancellationToken) =>
-        store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            UPDATE commercial.inventory_products
-            SET current_version_id = {versionId},
-                version = version + {(advanceVersion ? 1 : 0)}, updated_at_utc = {now}
-            WHERE tenant_id = {tenantId.Value} AND id = {productId}
-            """, cancellationToken);
+    private static string Required(string? value) =>
+        !string.IsNullOrWhiteSpace(value)
+            ? value
+            : throw new InventoryPublishBlockedException();
 
     private async Task CompletePublicationAsync(
         CommandEnvelope<PublishInventoryImportCommand> envelope,
@@ -222,8 +163,8 @@ public sealed partial class InventoryCommands
     {
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.inventory_imports
-            SET status_code = {MasterDataCodes.LifecycleStatuses.Completed}, version = version + 1,
-                updated_at_utc = {now}
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Completed},
+                version = version + 1, updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {source.Id}
               AND status_code = {MasterDataCodes.LifecycleStatuses.ReviewRequired}
               AND version = {envelope.ExpectedVersion}
@@ -232,7 +173,14 @@ public sealed partial class InventoryCommands
         {
             throw new VersionConflictException();
         }
-        await RecordStepAsync(envelope.TenantId, source.Id, MasterDataCodes.InventoryImportStepTypes.Publication,
+        await RecordStepAsync(
+            envelope.TenantId, source.Id,
+            MasterDataCodes.InventoryImportStepTypes.Publication,
             MasterDataCodes.LifecycleStatuses.Completed, now, cancellationToken);
     }
 }
+
+internal sealed record ApprovedInventoryCandidate(
+    InventoryCandidateRow Candidate,
+    InventoryCandidateValues Values,
+    string ProductCode);

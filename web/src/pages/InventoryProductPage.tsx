@@ -8,6 +8,7 @@ import type { InventoryProduct } from '../api/inventory-schemas'
 import { useWorkspace } from '../auth/workspace-state'
 import { InventoryBenchmarkSection } from '../components/InventoryBenchmarkSection'
 import { LoadingState, MessageState } from '../components/PageState'
+import { formatMoney } from '../presentation/format'
 
 export function InventoryProductPage() {
   const route = z.guid().safeParse(useParams().productId)
@@ -37,8 +38,9 @@ function ProductRecord({ tenantId, productId }: { tenantId: string; productId: s
       <Fact label="Address" value={record.address ?? 'Not supplied'} />
       <Fact label="Coordinates" value={record.latitude === null ? 'Not supplied' : `${record.latitude}, ${record.longitude}`} />
     </article><article className="detail-card"><h2>Commercial facts</h2>
-      <Fact label="Rate" value={new Intl.NumberFormat('en-ZA', { style: 'currency', currency: record.rate.currency })
-        .format(record.rate.amountMinor / 100)} /><Fact label="Rate type" value={record.rate.rateType} />
+      <Fact label="Rate" value={formatMoney(
+        record.rate.amountMinor, record.rate.currency, 2)} />
+      <Fact label="Rate type" value={record.rate.rateType} />
       <Fact label="Availability" value={record.availability.status} />
       {record.availability.status === inventoryCodes.availability.unknown &&
       <p className="inline-alert">Confirm availability before booking.</p>}

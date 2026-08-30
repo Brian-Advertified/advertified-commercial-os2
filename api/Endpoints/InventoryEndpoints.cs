@@ -1,3 +1,4 @@
+using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Planning;
@@ -13,6 +14,7 @@ public static class InventoryEndpoints
             .WithTags("Inventory truth").RequireAuthorization();
         group.MapPost("/inventory-imports", CreateImportAsync)
             .WithName("CreateInventoryImport")
+            .RequireRateLimiting(RequestRateLimitPolicies.InventoryUpload)
             .Accepts<IFormFile>("multipart/form-data")
             .Produces<InventoryImportView>(StatusCodes.Status201Created)
             .WithCommandProblems(requiresVersion: false);
@@ -53,12 +55,13 @@ public static class InventoryEndpoints
         var command = new CreateInventoryImportCommand(
             form["supplierName"].ToString(),
             new InventorySourceFile(file.FileName, file.ContentType, stream.ToArray()));
-        var envelope = CommandEnvelopeFactory.Create(
-            context, new TenantId(tenantId), identity.ActorId, command, clock, false);
-        var result = await commands.CreateAsync(envelope, cancellationToken);
-        CommandEnvelopeFactory.SetEntityHeaders(context, result.Version, result.Replayed);
-        return Results.Created(
-            $"/api/v1/tenants/{tenantId}/inventory-imports/{result.Data.Id}", result.Data);
+        return await CommandEndpointExecutor.ExecuteAsync(
+            tenantId, command, context, identity, clock, requireVersion: false,
+            commands.CreateAsync,
+            result => Results.Created(
+                $"/api/v1/tenants/{tenantId}/inventory-imports/{result.Data.Id}",
+                result.Data),
+            cancellationToken);
     }
 
     private static Task<IResult> ExecuteImportAsync(
@@ -69,11 +72,13 @@ public static class InventoryEndpoints
             cancellationToken);
 
     private static async Task<IResult> GetImportAsync(
-        Guid tenantId, Guid importId, HttpContext context, ICurrentIdentity identity,
+        Guid tenantId, Guid importId, int? pageSize, string? cursor,
+        HttpContext context, ICurrentIdentity identity,
         IInventoryReader reader, CancellationToken cancellationToken)
     {
         var result = await reader.GetImportAsync(
-            identity.ActorId, new TenantId(tenantId), importId, cancellationToken);
+            identity.ActorId, new TenantId(tenantId), importId,
+            pageSize ?? 100, cursor, cancellationToken);
         CommandEnvelopeFactory.SetEntityHeaders(context, result.Version);
         return Results.Ok(result);
     }
@@ -112,18 +117,14 @@ public static class InventoryEndpoints
         Results.Ok(await reader.GetBenchmarkAsync(
             identity.ActorId, new TenantId(tenantId), productId, cancellationToken));
 
-    private static async Task<IResult> ExecuteAsync<TCommand, TResult>(
+    private static Task<IResult> ExecuteAsync<TCommand, TResult>(
         Guid tenantId, TCommand command, HttpContext context, ICurrentIdentity identity,
         TimeProvider clock, bool requireVersion,
         Func<CommandEnvelope<TCommand>, CancellationToken,
             Task<Advertified.Commercial.Application.Foundation.CommandResult<TResult>>> action,
         CancellationToken cancellationToken)
-        where TCommand : notnull where TResult : notnull
-    {
-        var envelope = CommandEnvelopeFactory.Create(
-            context, new TenantId(tenantId), identity.ActorId, command, clock, requireVersion);
-        var result = await action(envelope, cancellationToken);
-        CommandEnvelopeFactory.SetEntityHeaders(context, result.Version, result.Replayed);
-        return Results.Ok(result.Data);
-    }
+        where TCommand : notnull where TResult : notnull =>
+        CommandEndpointExecutor.ExecuteOkAsync(
+            tenantId, command, context, identity, clock,
+            requireVersion, action, cancellationToken);
 }

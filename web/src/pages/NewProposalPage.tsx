@@ -13,6 +13,7 @@ import { useWorkspace } from '../auth/workspace-state'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { LoadingState, MessageState } from '../components/PageState'
 import { mediaVisual } from '../planning/media-visuals'
+import { formatMoney } from '../presentation/format'
 import { proposalPolicy } from '../proposal/proposal-policy'
 
 const maximumChoices = proposalPolicy.maximumOptions
@@ -147,7 +148,7 @@ function PlanChoiceCard({ plan, selected, disabled, onToggle }: {
   return <button type="button" className={`approved-plan-card ${selected ? 'is-selected' : ''}`}
     aria-pressed={selected} disabled={disabled} onClick={onToggle}>
     <div className="approved-plan-head"><div><span>Plan {plan.versionNumber}</span>
-      <strong>{money(plan.totalMinor, plan.currency)}</strong></div>
+      <strong>{formatMoney(plan.totalMinor, plan.currency)}</strong></div>
       <span className="plan-choice-indicator">{selected ? 'Selected' : 'Select'}</span></div>
     <div className="proposal-media-icons">{plan.channels.map(channel =>
       <span key={channel} title={mediaVisual(channel).label}><MediaTypeIcon channel={channel} /></span>)}</div>
@@ -167,7 +168,7 @@ function ChoiceEditor({ choice, index, onUpdate }: {
       <label className="field-group field-wide">Client outcome<textarea value={choice.outcome} required maxLength={2000}
         onChange={event => onUpdate({ outcome: event.target.value })} /></label>
       <div className="proposal-plan-lock"><span>Approved plan</span>
-        <strong>{money(choice.plan.totalMinor, choice.plan.currency)}</strong>
+        <strong>{formatMoney(choice.plan.totalMinor, choice.plan.currency)}</strong>
         <small>{choice.plan.channels.map(channel => mediaVisual(channel).label).join(', ')}</small></div>
     </div>
   </article>
@@ -229,9 +230,4 @@ function formatPeriodSummary(plan: ApprovedPlanChoice) {
 function shortDate(value: string) {
   return new Intl.DateTimeFormat('en-ZA', { day: 'numeric', month: 'short' })
     .format(new Date(`${value}T00:00:00`))
-}
-
-function money(amountMinor: number, currency: string) {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency, maximumFractionDigits: 0 })
-    .format(amountMinor / 100)
 }

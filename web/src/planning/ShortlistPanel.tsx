@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Shortlist, ShortlistCandidate } from '../api/planning-schemas'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { masterDataCodes } from '../generated/master-data-codes'
+import { formatMoney } from '../presentation/format'
 import { mediaVisual } from './media-visuals'
 
 export function ShortlistPanel({ shortlist, busy, onConfirm }: {
@@ -37,7 +38,7 @@ function CandidateCard({ candidate, editable, selected, onToggle }: {
 }) {
   const visual = mediaVisual(candidate.channel)
   const rate = candidate.rateAmountMinor === null || !candidate.currency
-    ? 'Rate unavailable' : money(candidate.rateAmountMinor, candidate.currency)
+    ? 'Rate unavailable' : formatMoney(candidate.rateAmountMinor, candidate.currency)
   const eligibility = candidate.isEligible
     ? 'Eligible' : candidate.rejectionReason?.replaceAll('_', ' ')
   return <article className={`shortlist-card media-tone-${visual.tone} ${candidate.isEligible ? '' : 'is-rejected'}`}>
@@ -68,9 +69,4 @@ function BenchmarkDetail({ candidate }: { candidate: ShortlistCandidate }) {
       <span><strong>{benchmark.percentile ?? '—'}</strong> price percentile</span>
       <span><strong>{Math.round(benchmark.confidence * 100)}%</strong> benchmark confidence</span></div>
     <p>{benchmark.geographyBasis.replaceAll('_', ' ')}</p></details>
-}
-
-function money(amountMinor: number, currency: string) {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency, maximumFractionDigits: 0 })
-    .format(amountMinor / 100)
 }

@@ -7,9 +7,18 @@ namespace Advertified.Commercial.Api.Tests;
 
 public sealed partial class MarketplaceAcceptanceTests
 {
+    private static readonly string[] HumanVerifiedEvidence =
+        ["inventory:human-verified"];
+
     private static async Task<ListingFixture> CreateAndPublishListingAsync(
         HttpClient supplier, HttpClient buyer)
     {
+        using var inventory = await ReadAsync(
+            supplier, SupplierTenantId, $"inventory-products/{ProductId}");
+        Assert.Equal(1_250_000, inventory.RootElement.GetProperty("rate")
+            .GetProperty("amountMinor").GetInt64());
+        Assert.Equal("AVAILABLE", inventory.RootElement.GetProperty("availability")
+            .GetProperty("status").GetString());
         using var hidden = await ReadAsync(buyer, BuyerTenantId, "marketplace-listings");
         Assert.Empty(hidden.RootElement.GetProperty("items").EnumerateArray());
         using var draft = await CommandAsync(
@@ -20,8 +29,12 @@ public sealed partial class MarketplaceAcceptanceTests
         using var published = await CommandAsync(
             supplier, SupplierTenantId, $"marketplace-listings/{listingId}:publish",
             "marketplace-listing-publish", 1, new { });
-        var listingVersionId = published.RootElement.GetProperty("currentVersion")
-            .GetProperty("id").GetGuid();
+        var currentVersion = published.RootElement.GetProperty("currentVersion");
+        var listingVersionId = currentVersion.GetProperty("id").GetGuid();
+        Assert.Equal(RateId, currentVersion.GetProperty("rateId").GetGuid());
+        Assert.Equal(AvailabilityId, currentVersion.GetProperty("availabilityId").GetGuid());
+        Assert.Equal(1_250_000, currentVersion.GetProperty("amountMinor").GetInt64());
+        Assert.Equal("AVAILABLE", currentVersion.GetProperty("availability").GetString());
 
         using var visible = await ReadAsync(
             buyer, BuyerTenantId, "marketplace-listings?channel=OOH&geography=Johannesburg");
@@ -54,6 +67,19 @@ public sealed partial class MarketplaceAcceptanceTests
             other, OtherTenantId, $"marketplace-rfqs/{rfqId}/responses",
             "marketplace-other-response", null, ResponseBody(clock.GetUtcNow().AddDays(1)));
         await AssertProblemAsync(unrelatedWrite, HttpStatusCode.Forbidden, "TENANT_FORBIDDEN");
+        using var invalidResponse = await RawCommandAsync(
+            supplier, SupplierTenantId, $"marketplace-rfqs/{rfqId}/responses",
+            "marketplace-invalid-response", null,
+            new
+            {
+                amountMinor = 1_250_000,
+                currency = "ZAR",
+                availability = "NOT_A_STATUS",
+                terms = "Invalid governed status must fail before persistence.",
+                validUntilUtc = clock.GetUtcNow().AddDays(1),
+                evidenceReferences = HumanVerifiedEvidence,
+            });
+        await AssertProblemAsync(invalidResponse, HttpStatusCode.BadRequest, "VALIDATION_FAILED");
 
         using var response = await CommandAsync(
             supplier, SupplierTenantId, $"marketplace-rfqs/{rfqId}/responses",
@@ -90,6 +116,39 @@ public sealed partial class MarketplaceAcceptanceTests
             acceptance, HttpStatusCode.Conflict, "MARKETPLACE_RESPONSE_EXPIRED");
     }
 
+    private static async Task AssertFilteredRequestPagingAsync(
+        HttpClient buyer,
+        Guid listingVersionId,
+        AdjustableMarketplaceClock clock)
+    {
+        using var newerDraftOne = await CreateRfqAsync(
+            buyer, listingVersionId, "Newer draft one",
+            "marketplace-filter-draft-one", clock.GetUtcNow().AddDays(3));
+        using var newerDraftTwo = await CreateRfqAsync(
+            buyer, listingVersionId, "Newer draft two",
+            "marketplace-filter-draft-two", clock.GetUtcNow().AddDays(3));
+
+        using var accepted = await ReadAsync(
+            buyer, BuyerTenantId, "marketplace-rfqs?status=ACCEPTED&pageSize=1");
+        var items = accepted.RootElement.GetProperty("items").EnumerateArray().ToArray();
+        Assert.Single(items);
+        Assert.Equal("ACCEPTED", items[0].GetProperty("status").GetString());
+        Assert.Equal(JsonValueKind.Null,
+            accepted.RootElement.GetProperty("nextCursor").ValueKind);
+    }
+
+    private static async Task AssertInvalidMarketplaceFiltersAsync(HttpClient buyer)
+    {
+        using var invalidChannel = await buyer.GetAsync(
+            $"/api/v1/tenants/{BuyerTenantId}/marketplace-listings?channel=NOT_A_CHANNEL");
+        await AssertProblemAsync(
+            invalidChannel, HttpStatusCode.BadRequest, "VALIDATION_FAILED");
+        using var invalidStatus = await buyer.GetAsync(
+            $"/api/v1/tenants/{BuyerTenantId}/marketplace-rfqs?status=NOT_A_STATUS");
+        await AssertProblemAsync(
+            invalidStatus, HttpStatusCode.BadRequest, "VALIDATION_FAILED");
+    }
+
     private static Task<JsonDocument> CreateRfqAsync(
         HttpClient buyer, Guid listingVersionId, string subject, string key,
         DateTimeOffset dueAtUtc) => CommandAsync(
@@ -111,7 +170,7 @@ public sealed partial class MarketplaceAcceptanceTests
         availability = "AVAILABLE",
         terms = "Rate remains subject to a separate human-approved booking.",
         validUntilUtc,
-        evidenceReferences = new[] { "inventory:human-verified" },
+        evidenceReferences = HumanVerifiedEvidence,
     };
 
     private static async Task ArchiveListingAsync(

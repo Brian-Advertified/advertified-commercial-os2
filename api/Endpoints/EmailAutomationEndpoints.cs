@@ -1,4 +1,5 @@
 using System.Text;
+using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Application.EmailAutomation;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Domain.Governance;
@@ -53,6 +54,7 @@ public static class EmailAutomationEndpoints
                 "/api/v1/tenants/{tenantId:guid}/email-automation/webhooks/{provider}",
                 ReceiveWebhookAsync)
             .AllowAnonymous()
+            .RequireRateLimiting(RequestRateLimitPolicies.ProviderCallback)
             .WithTags("Inbound OOH proposal automation")
             .WithName("ReceiveInboundProposalWebhook")
             .Produces<InboundEmailReceiptView>()
@@ -84,7 +86,7 @@ public static class EmailAutomationEndpoints
             tenantId, command, context, identity, commands, timeProvider,
             requireVersion: true, StatusCodes.Status200OK, cancellationToken);
 
-    private static async Task<IResult> ConfigureMailboxAsync(
+    private static Task<IResult> ConfigureMailboxAsync(
         Guid tenantId,
         ConfigureInboundMailboxCommand command,
         HttpContext context,
@@ -94,14 +96,11 @@ public static class EmailAutomationEndpoints
         bool requireVersion,
         int statusCode,
         CancellationToken cancellationToken)
-    {
-        var envelope = CommandEnvelopeFactory.Create(
-            context, new TenantId(tenantId), identity.ActorId, command,
-            timeProvider, requireVersion);
-        var result = await commands.ConfigureMailboxAsync(envelope, cancellationToken);
-        CommandEnvelopeFactory.SetEntityHeaders(context, result.Version, result.Replayed);
-        return Results.Json(result.Data, statusCode: statusCode);
-    }
+        => CommandEndpointExecutor.ExecuteAsync(
+            tenantId, command, context, identity, timeProvider, requireVersion,
+            commands.ConfigureMailboxAsync,
+            result => Results.Json(result.Data, statusCode: statusCode),
+            cancellationToken);
 
     private static async Task<IResult> GetMailboxAsync(
         Guid tenantId,
@@ -177,7 +176,7 @@ public static class EmailAutomationEndpoints
             (service, id, envelope, token) => service.RetryAsync(id, envelope, token),
             cancellationToken);
 
-    private static async Task<IResult> ExecuteAsync<TCommand>(
+    private static Task<IResult> ExecuteAsync<TCommand>(
         Guid tenantId,
         Guid inboundEmailId,
         TCommand command,
@@ -190,15 +189,10 @@ public static class EmailAutomationEndpoints
             CancellationToken,
             Task<Advertified.Commercial.Application.Foundation.CommandResult<EmailAutomationRunView>>> execute,
         CancellationToken cancellationToken)
-        where TCommand : notnull
-    {
-        var envelope = CommandEnvelopeFactory.Create(
-            context, new TenantId(tenantId), identity.ActorId, command,
-            timeProvider, requireVersion);
-        var result = await execute(commands, inboundEmailId, envelope, cancellationToken);
-        CommandEnvelopeFactory.SetEntityHeaders(context, result.Version, result.Replayed);
-        return Results.Ok(result.Data);
-    }
+        where TCommand : notnull => CommandEndpointExecutor.ExecuteOkAsync(
+            tenantId, command, context, identity, timeProvider, requireVersion,
+            (envelope, token) => execute(commands, inboundEmailId, envelope, token),
+            cancellationToken);
 
     private static async Task<IResult> ReceiveWebhookAsync(
         Guid tenantId,

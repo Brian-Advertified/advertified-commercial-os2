@@ -155,13 +155,12 @@ public sealed partial class OpportunityCommands
                 {setId}, {envelope.TenantId.Value}, {opportunityId}, {versionNumber},
                 {gapsJson}::jsonb, {MasterDataCodes.LifecycleStatuses.InReview}, {envelope.ActorId.Value}, 1, {now})
             """, cancellationToken);
-        foreach (var itemId in approvedIds)
-        {
-            await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-                INSERT INTO commercial.evidence_set_items (tenant_id, evidence_set_id, evidence_item_id)
-                VALUES ({envelope.TenantId.Value}, {setId}, {itemId})
-                """, cancellationToken);
-        }
+        await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO commercial.evidence_set_items (
+                tenant_id, evidence_set_id, evidence_item_id)
+            SELECT {envelope.TenantId.Value}, {setId}, evidence_item_id
+            FROM unnest({approvedIds}) AS evidence_item_id
+            """, cancellationToken);
         await AdvanceOpportunityAsync(
             envelope, opportunityId, MasterDataCodes.LifecycleStatuses.EvidenceReview, now, cancellationToken);
         await OpportunityCommandSupport.CreateTaskAsync(

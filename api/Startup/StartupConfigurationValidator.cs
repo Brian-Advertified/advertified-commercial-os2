@@ -14,6 +14,24 @@ internal static class StartupConfigurationValidator
     {
         var localEnvironment = builder.Environment.IsDevelopment() ||
             builder.Environment.IsEnvironment("Test");
+        EnsureProductionBoundaries(
+            builder.Configuration, authenticationMode, agentRuntime,
+            inventoryProtection, localEnvironment);
+
+        var connectionString = builder.Configuration.GetConnectionString("CommercialDatabase");
+        return string.IsNullOrWhiteSpace(connectionString)
+            ? throw new InvalidOperationException(
+                "The commercial database connection is not configured.")
+            : connectionString;
+    }
+
+    private static void EnsureProductionBoundaries(
+        ConfigurationManager configuration,
+        string? authenticationMode,
+        AgentRuntimeOptions agentRuntime,
+        InventoryProtectionOptions inventoryProtection,
+        bool localEnvironment)
+    {
         if ((authenticationMode is LocalIdentityDefaults.DeterministicMode or
                 LocalIdentityDefaults.DeterministicSessionMode) && !localEnvironment)
         {
@@ -32,11 +50,20 @@ internal static class StartupConfigurationValidator
             throw new InvalidOperationException(
                 "Deterministic inventory protection is restricted to development and test.");
         }
-
-        var connectionString = builder.Configuration.GetConnectionString("CommercialDatabase");
-        return string.IsNullOrWhiteSpace(connectionString)
-            ? throw new InvalidOperationException(
-                "The commercial database connection is not configured.")
-            : connectionString;
+        var allowedHosts = configuration["AllowedHosts"];
+        if (!localEnvironment && (string.IsNullOrWhiteSpace(allowedHosts) ||
+                allowedHosts.Split(';', StringSplitOptions.RemoveEmptyEntries |
+                        StringSplitOptions.TrimEntries)
+                    .Any(host => host == "*")))
+        {
+            throw new InvalidOperationException(
+                "Production must configure an explicit AllowedHosts allow-list.");
+        }
+        if (!localEnvironment &&
+            !TrustedProxyConfiguration.HasExplicitTrustBoundary(configuration))
+        {
+            throw new InvalidOperationException(
+                "Production must configure an explicit trusted reverse-proxy boundary.");
+        }
     }
 }

@@ -10,7 +10,6 @@ public sealed class BrowserSessionProtectionMiddleware(RequestDelegate next)
             HttpMethods.Get,
             HttpMethods.Head,
             HttpMethods.Options,
-            HttpMethods.Trace,
         };
 
     public async Task InvokeAsync(

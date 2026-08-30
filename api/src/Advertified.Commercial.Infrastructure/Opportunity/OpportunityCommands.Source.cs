@@ -57,51 +57,15 @@ public sealed partial class OpportunityCommands
         return changed == 1;
     }
 
-    private async Task InsertClaimsAsync(
+    private Task InsertClaimsAsync(
         CommandEnvelope<RegisterEvidenceSourceCommand> envelope,
         RegisterEvidenceSourceCommand command,
         CapturedSource captured,
         Guid sourceId,
         DateTimeOffset now,
-        CancellationToken cancellationToken)
-    {
-        if (captured.Claims.Count == 0)
-        {
-            throw new ArgumentException("At least one candidate evidence claim is required.");
-        }
-
-        foreach (var claim in captured.Claims)
-        {
-            var claimType = OpportunityCommandSupport.Required(
-                claim.ClaimType, 100, nameof(claim.ClaimType)).ToUpperInvariant();
-            await OpportunityCommandSupport.EnsureCodeAsync(
-                store.DbContext, MasterDataCodes.EvidenceClaimTypes.Collection, claimType, cancellationToken);
-            if (claim.Confidence is < 0 or > 1)
-            {
-                throw new ArgumentOutOfRangeException(nameof(captured));
-            }
-            var itemId = Guid.NewGuid();
-            var value = OpportunityCommandSupport.Json(
-                claim.StructuredValueJson, nameof(claim.StructuredValueJson));
-            await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-                INSERT INTO commercial.evidence_items (
-                    id, tenant_id, opportunity_id, source_id, locator, claim_type_code,
-                    original_value_json, excerpt, confidence, review_status_code,
-                    created_by, version, created_at_utc, updated_at_utc)
-                VALUES (
-                    {itemId}, {envelope.TenantId.Value}, {command.OpportunityId}, {sourceId},
-                    {OpportunityCommandSupport.Required(claim.Locator, 500, nameof(claim.Locator))},
-                    {claimType}, {value}::jsonb,
-                    {OpportunityCommandSupport.Required(claim.Excerpt, 2000, nameof(claim.Excerpt))},
-                    {claim.Confidence}, {MasterDataCodes.LifecycleStatuses.Pending}, {envelope.ActorId.Value},
-                    1, {now}, {now})
-                """, cancellationToken);
-            await OpportunityCommandSupport.CreateTaskAsync(
-                store.DbContext, envelope.TenantId, command.OpportunityId,
-                MasterDataCodes.HumanTaskTypes.EvidenceItemReview, "Review captured evidence",
-                "Only reviewed source claims can support opportunity recommendations.",
-                MasterDataReferences.CommercialResourceTypes.EvidenceItem, itemId, 1, command.ReviewerUserId,
-                now, cancellationToken);
-        }
-    }
+        CancellationToken cancellationToken) =>
+        OpportunityEvidenceBatchPersistence.InsertClaimsAsync(
+            store.DbContext, envelope.TenantId, command.OpportunityId, sourceId,
+            envelope.ActorId.Value, command.ReviewerUserId, captured.Claims, now,
+            cancellationToken);
 }

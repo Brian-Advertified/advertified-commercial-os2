@@ -31,24 +31,34 @@ public sealed class EmailAutomationReader(
         CancellationToken cancellationToken)
     {
         await EnsureAllowedAsync(actorId, tenantId, cancellationToken);
-        var limit = pageSize is >= 1 and <= 100 ? pageSize : 25;
+        var limit = pageSize is >= 1 and <= 100
+            ? pageSize
+            : throw new ArgumentOutOfRangeException(nameof(pageSize));
         var before = EmailAutomationRecordStore.DecodeCursor(cursor);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
         var rows = await store.ListEmailsAsync(
             tenantId, limit, before, cancellationToken);
         var selected = rows.Take(limit).ToArray();
-        var views = new List<InboundCampaignEmailView>(selected.Length);
-        foreach (var row in selected)
+        var ids = selected.Select(item => item.Id).ToArray();
+        var runs = (await store.ListRunsAsync(tenantId, ids, cancellationToken))
+            .ToDictionary(item => item.InboundEmailId);
+        var attachments = (await store.ListAttachmentsAsync(
+                tenantId, ids, cancellationToken))
+            .ToLookup(item => item.InboundEmailId);
+        var views = selected.Select(row =>
         {
-            var run = await store.FindRunAsync(tenantId, row.Id, cancellationToken)
-                ?? throw new InvalidOperationException("The inbound email has no automation run.");
-            views.Add(await store.BuildEmailViewAsync(
-                tenantId, row, run.Status, run.FailureCode, cancellationToken));
-        }
+            if (!runs.TryGetValue(row.Id, out var run))
+            {
+                throw new InvalidOperationException("The inbound email has no automation run.");
+            }
+            return EmailAutomationRecordStore.BuildEmailView(
+                row, run.Status, run.FailureCode, attachments[row.Id].ToArray());
+        }).ToArray();
         await transaction.CommitAsync(cancellationToken);
         var next = rows.Count > limit
-            ? EmailAutomationRecordStore.EncodeCursor(selected[^1].ReceivedAtUtc)
+            ? EmailAutomationRecordStore.EncodeCursor(
+                selected[^1].ReceivedAtUtc, selected[^1].Id)
             : null;
         return new InboundEmailPage(views, next);
     }

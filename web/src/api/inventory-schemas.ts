@@ -70,6 +70,14 @@ export const inventoryImportSchema = z.object({
   failureCode: nullableText,
   steps: z.array(inventoryStepSchema),
   candidates: z.array(inventoryCandidateSchema),
+  candidateCounts: z.object({
+    total: z.number().int().nonnegative(),
+    reviewRequired: z.number().int().nonnegative(),
+    approved: z.number().int().nonnegative(),
+    rejected: z.number().int().nonnegative(),
+    blocking: z.number().int().nonnegative(),
+  }).strict(),
+  nextCandidateCursor: z.string().nullable(),
   version: z.number().int().positive(),
   updatedAtUtc: z.iso.datetime({ offset: true }),
 }).strict()

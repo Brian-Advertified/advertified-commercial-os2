@@ -1,10 +1,11 @@
+using System.Runtime.CompilerServices;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using System.Runtime.CompilerServices;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
@@ -58,16 +59,33 @@ public sealed partial class InventoryRecordStore(
         TenantId tenantId,
         Guid importId,
         CancellationToken cancellationToken) =>
-        dbContext.Database.SqlQuery<InventoryCandidateRow>($"""
-            SELECT id AS "Id", import_id AS "ImportId", row_number AS "RowNumber",
-                status_code AS "Status", canonical_values_json::text AS "ValuesJson",
-                validation_json::text AS "ValidationJson", source_locator AS "SourceLocator",
-                reviewed_by AS "ReviewedBy", version AS "Version",
-                updated_at_utc AS "UpdatedAtUtc"
-            FROM commercial.inventory_candidates
-            WHERE tenant_id = {tenantId.Value} AND import_id = {importId}
-            ORDER BY row_number, id
-            """).ToListAsync(cancellationToken);
+        dbContext.Database.SqlQuery<InventoryCandidateRow>(
+            FormattableStringFactory.Create(
+                CandidateSelect +
+                " WHERE tenant_id = {0} AND import_id = {1} ORDER BY row_number, id",
+                tenantId.Value, importId))
+            .ToListAsync(cancellationToken);
+
+    internal Task<List<InventoryCandidateRow>> ListCandidatePageAsync(
+        TenantId tenantId,
+        Guid importId,
+        InventoryCandidateCursorValue? cursor,
+        int take,
+        CancellationToken cancellationToken)
+    {
+        var suffix = cursor is null
+            ? " WHERE tenant_id = {0} AND import_id = {1} " +
+              "ORDER BY row_number, id LIMIT {2}"
+            : " WHERE tenant_id = {0} AND import_id = {1} " +
+              "AND (row_number, id) > ({2}, {3}) " +
+              "ORDER BY row_number, id LIMIT {4}";
+        var arguments = cursor is null
+            ? new object[] { tenantId.Value, importId, take }
+            : [tenantId.Value, importId, cursor.RowNumber, cursor.Id, take];
+        return dbContext.Database.SqlQuery<InventoryCandidateRow>(
+            FormattableStringFactory.Create(CandidateSelect + suffix, arguments))
+            .ToListAsync(cancellationToken);
+    }
 
     internal Task<InventoryCandidateRow?> FindCandidateAsync(
         TenantId tenantId,
@@ -87,35 +105,89 @@ public sealed partial class InventoryRecordStore(
         TenantId tenantId,
         Guid candidateId,
         CancellationToken cancellationToken) =>
-        dbContext.Database.SqlQuery<InventoryFieldEvidenceRow>($"""
-            SELECT field_name AS "FieldName", raw_value AS "RawValue",
-                normalized_value AS "NormalizedValue",
-                transformation_code AS "Transformation", source_locator AS "SourceLocator",
-                source_hash AS "SourceHash"
-            FROM commercial.inventory_candidate_fields
-            WHERE tenant_id = {tenantId.Value} AND candidate_id = {candidateId}
-            ORDER BY field_name
-            """).ToListAsync(cancellationToken);
+        dbContext.Database.SqlQuery<InventoryFieldEvidenceRow>(
+            FormattableStringFactory.Create(
+                EvidenceSelect +
+                " WHERE tenant_id = {0} AND candidate_id = {1} ORDER BY field_name",
+                tenantId.Value, candidateId))
+            .ToListAsync(cancellationToken);
+
+    internal Task<List<InventoryFieldEvidenceRow>> ListEvidenceAsync(
+        TenantId tenantId,
+        Guid[] candidateIds,
+        CancellationToken cancellationToken)
+    {
+        if (candidateIds.Length == 0)
+        {
+            return Task.FromResult(new List<InventoryFieldEvidenceRow>());
+        }
+        return dbContext.Database.SqlQuery<InventoryFieldEvidenceRow>(
+            FormattableStringFactory.Create(
+                EvidenceSelect +
+                " WHERE tenant_id = {0} AND candidate_id = ANY({1}) " +
+                "ORDER BY candidate_id, field_name",
+                tenantId.Value, candidateIds))
+            .ToListAsync(cancellationToken);
+    }
+
+    internal Task<InventoryCandidateCountsRow> GetCandidateCountsAsync(
+        TenantId tenantId,
+        Guid importId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<InventoryCandidateCountsRow>($"""
+            SELECT count(*)::integer AS "Total",
+                count(*) FILTER (WHERE status_code =
+                    {MasterDataCodes.LifecycleStatuses.ReviewRequired})::integer
+                    AS "ReviewRequired",
+                count(*) FILTER (WHERE status_code =
+                    {MasterDataCodes.LifecycleStatuses.Approved})::integer AS "Approved",
+                count(*) FILTER (WHERE status_code =
+                    {MasterDataCodes.LifecycleStatuses.Rejected})::integer AS "Rejected",
+                count(*) FILTER (WHERE status_code <>
+                    {MasterDataCodes.LifecycleStatuses.Rejected} AND jsonb_path_exists(
+                    validation_json, '$[*] ? (@.isBlocking == true)'))::integer AS "Blocking"
+            FROM commercial.inventory_candidates
+            WHERE tenant_id = {tenantId.Value} AND import_id = {importId}
+            """).SingleAsync(cancellationToken);
+
+    internal Task<InventoryImportView> BuildImportViewAsync(
+        InventoryImportRow row,
+        CancellationToken cancellationToken) =>
+        BuildImportViewAsync(row, 100, null, cancellationToken);
 
     internal async Task<InventoryImportView> BuildImportViewAsync(
         InventoryImportRow row,
+        int pageSize,
+        string? cursor,
         CancellationToken cancellationToken)
     {
-        var steps = await ListStepsAsync(new(row.TenantId), row.Id, cancellationToken);
-        var candidates = await ListCandidatesAsync(new(row.TenantId), row.Id, cancellationToken);
-        var views = new List<InventoryCandidateView>(candidates.Count);
-        foreach (var candidate in candidates)
+        if (pageSize is < 1 or > 100)
         {
-            var evidence = await ListEvidenceAsync(
-                new(row.TenantId), candidate.Id, cancellationToken);
-            views.Add(candidate.ToView(evidence));
+            throw new ArgumentOutOfRangeException(nameof(pageSize));
         }
+        var tenantId = new TenantId(row.TenantId);
+        var decoded = InventoryCandidateCursor.Decode(cursor);
+        var steps = await ListStepsAsync(tenantId, row.Id, cancellationToken);
+        var rows = await ListCandidatePageAsync(
+            tenantId, row.Id, decoded, pageSize + 1, cancellationToken);
+        var selected = rows.Take(pageSize).ToArray();
+        var evidence = await ListEvidenceAsync(
+            tenantId, selected.Select(item => item.Id).ToArray(), cancellationToken);
+        var byCandidate = evidence.ToLookup(item => item.CandidateId);
+        var counts = await GetCandidateCountsAsync(tenantId, row.Id, cancellationToken);
+        var next = rows.Count > pageSize
+            ? InventoryCandidateCursor.Encode(selected[^1].RowNumber, selected[^1].Id)
+            : null;
         return new InventoryImportView(
             row.Id, row.SupplierId, row.SupplierName, row.FileName, row.DeclaredMediaType,
             row.DocumentClass, row.Status, row.ScanStatus, row.SourceHash, row.SourceSize,
             row.FailureCode, steps.Select(item => new InventoryImportStepView(
                 item.StepType, item.Status, item.StartedAtUtc, item.CompletedAtUtc)).ToArray(),
-            views, row.Version, row.UpdatedAtUtc);
+            selected.Select(item => item.ToView(byCandidate[item.Id].ToArray())).ToArray(),
+            new InventoryCandidateCountsView(
+                counts.Total, counts.ReviewRequired, counts.Approved,
+                counts.Rejected, counts.Blocking),
+            next, row.Version, row.UpdatedAtUtc);
     }
 
     private const string ImportSelect = """
@@ -142,5 +214,13 @@ public sealed partial class InventoryRecordStore(
             reviewed_by AS "ReviewedBy", version AS "Version",
             updated_at_utc AS "UpdatedAtUtc"
         FROM commercial.inventory_candidates
+        """;
+
+    private const string EvidenceSelect = """
+        SELECT candidate_id AS "CandidateId", field_name AS "FieldName",
+            raw_value AS "RawValue", normalized_value AS "NormalizedValue",
+            transformation_code AS "Transformation", source_locator AS "SourceLocator",
+            source_hash AS "SourceHash"
+        FROM commercial.inventory_candidate_fields
         """;
 }

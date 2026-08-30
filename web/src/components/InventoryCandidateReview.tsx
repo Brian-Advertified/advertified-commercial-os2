@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { inventoryCodes, type InventoryDecision } from '../api/inventory-constants'
 import type { InventoryCandidate, InventoryValues } from '../api/inventory-schemas'
+import { formatMoney } from '../presentation/format'
 
 export function InventoryCandidateReview({ candidate, canReview, busy, review }: {
   candidate: InventoryCandidate
@@ -94,8 +95,7 @@ function Fact({ label, value }: { label: string; value: string | null }) {
 
 function money(values: InventoryValues): string | null {
   if (values.rateAmountMinor === null || !values.currency) return null
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: values.currency })
-    .format(values.rateAmountMinor / 100)
+  return formatMoney(values.rateAmountMinor, values.currency, 2)
 }
 
 function valuesFrom(form: FormData, original: InventoryValues): InventoryValues {

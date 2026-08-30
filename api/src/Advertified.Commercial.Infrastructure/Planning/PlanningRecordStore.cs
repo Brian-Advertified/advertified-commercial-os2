@@ -148,11 +148,25 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
         TenantId tenantId,
         Guid targetProductVersionId,
         decimal maximumRadiusKilometres,
+        CancellationToken cancellationToken) =>
+        ListSpatialPeersAsync(
+            tenantId, [targetProductVersionId], maximumRadiusKilometres,
+            cancellationToken);
+
+    internal Task<List<PlanningSpatialPeerRow>> ListSpatialPeersAsync(
+        TenantId tenantId,
+        Guid[] targetProductVersionIds,
+        decimal maximumRadiusKilometres,
         CancellationToken cancellationToken)
     {
+        if (targetProductVersionIds.Length == 0)
+        {
+            return Task.FromResult(new List<PlanningSpatialPeerRow>());
+        }
         var maximumRadiusMetres = maximumRadiusKilometres * 1000m;
         return dbContext.Database.SqlQuery<PlanningSpatialPeerRow>($"""
-            SELECT peer.id AS "ProductVersionId",
+            SELECT target.id AS "TargetProductVersionId",
+                peer.id AS "ProductVersionId",
                 (ST_Distance(peer.spatial_location, target.spatial_location) / 1000.0)::numeric
                     AS "DistanceKilometres"
             FROM commercial.inventory_product_versions target
@@ -161,7 +175,7 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
             JOIN commercial.inventory_products product
               ON product.tenant_id = peer.tenant_id AND product.current_version_id = peer.id
             WHERE target.tenant_id = {tenantId.Value}
-              AND target.id = {targetProductVersionId}
+              AND target.id = ANY({targetProductVersionIds})
               AND target.spatial_location IS NOT NULL
               AND peer.spatial_location IS NOT NULL
               AND product.status_code = {MasterDataCodes.LifecycleStatuses.Active}
@@ -169,7 +183,7 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
                     peer.spatial_location,
                     target.spatial_location,
                     {maximumRadiusMetres})
-            ORDER BY "DistanceKilometres", peer.id
+            ORDER BY target.id, "DistanceKilometres", peer.id
             """).ToListAsync(cancellationToken);
     }
 
@@ -283,6 +297,19 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
             "AND status_code = {2}\nORDER BY version_no DESC",
             tenantId.Value, briefVersionId, MasterDataCodes.LifecycleStatuses.Approved);
         return dbContext.Database.SqlQuery<MediaPlanRow>(statement).ToListAsync(cancellationToken);
+    }
+
+    internal Task<List<MediaPlanRow>> ListPlansAsync(
+        TenantId tenantId,
+        Guid[] planIds,
+        CancellationToken cancellationToken)
+    {
+        if (planIds.Length == 0) return Task.FromResult(new List<MediaPlanRow>());
+        var statement = FormattableStringFactory.Create(
+            MediaPlanSelect + "\nWHERE tenant_id = {0} AND id = ANY({1})",
+            tenantId.Value, planIds);
+        return dbContext.Database.SqlQuery<MediaPlanRow>(statement)
+            .ToListAsync(cancellationToken);
     }
 
     private const string PlanningInventorySelect = """

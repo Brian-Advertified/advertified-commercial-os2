@@ -130,6 +130,7 @@ internal sealed record MediaPlanRow(
     DateTimeOffset CreatedAtUtc);
 
 internal sealed record MediaPlanLineRow(
+    Guid PlanVersionId,
     Guid Id,
     Guid InventoryProductId,
     Guid ProductVersionId,
@@ -154,6 +155,7 @@ internal sealed record MediaPlanLineRow(
     string SupplyConfidence);
 
 internal sealed record ObjectionResolutionRow(
+    Guid PlanVersionId,
     string ObjectionCode,
     string Resolution,
     string Reason,
@@ -182,6 +184,7 @@ internal sealed record PlanningInventoryRow(
     string? AvailabilitySource);
 
 internal sealed record PlanningSpatialPeerRow(
+    Guid TargetProductVersionId,
     Guid ProductVersionId,
     decimal DistanceKilometres);
 

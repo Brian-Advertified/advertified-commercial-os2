@@ -131,6 +131,24 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         Assert.Contains(incompleteDetail.RootElement.GetProperty("questions").EnumerateArray(),
             question => question.GetProperty("fieldPath").GetString() == AudienceFieldPath);
 
+        using var firstPage = await GetJsonAsync(
+            client, Path("email-automation/messages?pageSize=2"));
+        var firstItems = firstPage.RootElement.GetProperty("items")
+            .EnumerateArray().ToArray();
+        Assert.Equal(2, firstItems.Length);
+        var nextCursor = firstPage.RootElement.GetProperty("nextCursor").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(nextCursor));
+        using var secondPage = await GetJsonAsync(client, Path(
+            $"email-automation/messages?pageSize=2&cursor={Uri.EscapeDataString(nextCursor!)}"));
+        var messageIds = firstItems.Select(item => item.GetProperty("id").GetGuid())
+            .Concat(secondPage.RootElement.GetProperty("items").EnumerateArray()
+                .Select(item => item.GetProperty("id").GetGuid()))
+            .ToHashSet();
+        Assert.Equal(3, messageIds.Count);
+        Assert.Contains(inboundEmailId, messageIds);
+        Assert.Contains(rejectedId, messageIds);
+        Assert.Contains(incompleteId, messageIds);
+
         using var corrected = await RetryWithClarificationAsync(
             client,
             incompleteId,

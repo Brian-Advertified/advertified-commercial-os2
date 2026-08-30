@@ -134,7 +134,7 @@ public static class OpportunityWorkflowEndpoints
         ICurrentIdentity identity,
         IOpportunityWorkflowCommands commands,
         TimeProvider timeProvider,
-        CancellationToken cancellationToken) => OpportunityCommandEndpoints.ExecuteAsync(
+        CancellationToken cancellationToken) => CommandEndpointExecutor.ExecuteAsync(
             tenantId, command, context, identity, timeProvider, false,
             (envelope, token) => commands.QueueRunAsync(
                 opportunityId, runKind, envelope, token),
@@ -264,7 +264,7 @@ public static class OpportunityWorkflowEndpoints
         where TCommand : notnull
         where TResult : notnull
     {
-        return OpportunityCommandEndpoints.ExecuteAsync(
+        return CommandEndpointExecutor.ExecuteAsync(
             tenantId, command, context, identity, timeProvider, true,
             (envelope, token) => execute(resourceId, envelope, token),
             result => Results.Ok(result.Data),

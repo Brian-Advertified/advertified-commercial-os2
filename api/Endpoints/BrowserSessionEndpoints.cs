@@ -18,15 +18,18 @@ public static class BrowserSessionEndpoints
         group.MapGet("", GetStatus)
             .WithName("GetBrowserSession")
             .AllowAnonymous()
+            .RequireRateLimiting(RequestRateLimitPolicies.BrowserSessionStatus)
             .Produces<BrowserSessionView>();
         group.MapPost("", StartAsync)
             .WithName("StartLocalBrowserSession")
             .AllowAnonymous()
+            .RequireRateLimiting(RequestRateLimitPolicies.BrowserSession)
             .Produces<BrowserSessionView>()
             .WithBrowserProblems();
         group.MapDelete("", EndAsync)
             .WithName("EndBrowserSession")
             .AllowAnonymous()
+            .RequireRateLimiting(RequestRateLimitPolicies.BrowserSession)
             .Produces(StatusCodes.Status204NoContent)
             .WithBrowserProblems();
         return endpoints;

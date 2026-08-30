@@ -13,6 +13,7 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 public sealed class InventoryReader(
     InventoryRecordStore store,
     ITenantAuthorizer authorizer,
+    TimeProvider timeProvider,
     IOptions<InventoryProtectionOptions> protectionOptions) : IInventoryReader
 {
     private readonly int maximumSourceBytes = protectionOptions.Value.MaximumSourceBytes;
@@ -21,6 +22,8 @@ public sealed class InventoryReader(
         ActorId actorId,
         TenantId tenantId,
         Guid importId,
+        int pageSize,
+        string? cursor,
         CancellationToken cancellationToken)
     {
         await EnsureAllowedAsync(
@@ -29,7 +32,8 @@ public sealed class InventoryReader(
             actorId, tenantId, cancellationToken);
         var row = await store.FindImportAsync(tenantId, importId, false, cancellationToken)
             ?? throw new UnauthorizedAccessException("Inventory import access denied.");
-        var view = await store.BuildImportViewAsync(row, cancellationToken);
+        var view = await store.BuildImportViewAsync(
+            row, pageSize, cursor, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return view;
     }
@@ -42,13 +46,13 @@ public sealed class InventoryReader(
     {
         await EnsureAllowedAsync(
             actorId, tenantId, MasterDataReferences.Permissions.InventoryView, cancellationToken);
-        var pageSize = query.PageSize is >= 1 and <= 100
-            ? query.PageSize : throw new ArgumentOutOfRangeException(nameof(query));
-        var cursor = InventoryCursor.Decode(query.Cursor);
+        var validated = InventoryQueryPolicy.Validate(query);
+        var pageSize = validated.PageSize;
+        var cursor = InventoryCursor.Decode(validated.Cursor);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
         var rows = await SearchRowsAsync(
-            tenantId, query, cursor, pageSize + 1, cancellationToken);
+            tenantId, validated, cursor, pageSize + 1, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         var page = rows.Take(pageSize).ToArray();
         var next = rows.Count > pageSize
@@ -69,7 +73,8 @@ public sealed class InventoryReader(
             actorId, tenantId, cancellationToken);
         var summary = await FindSummaryAsync(tenantId, productId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Inventory product access denied.");
-        var detail = await FindDetailAsync(tenantId, productId, cancellationToken)
+        var now = timeProvider.GetUtcNow();
+        var detail = await FindDetailAsync(tenantId, productId, now, cancellationToken)
             ?? throw new UnauthorizedAccessException("Inventory product access denied.");
         var assets = await ListAssetsAsync(tenantId, productId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -97,10 +102,10 @@ public sealed class InventoryReader(
         int take,
         CancellationToken cancellationToken)
     {
-        var search = NormalizeFilter(query.Search);
-        var channel = NormalizeCode(query.Channel);
-        var supplier = NormalizeFilter(query.Supplier);
-        var geography = NormalizeFilter(query.Geography);
+        var search = query.Search;
+        var channel = query.Channel;
+        var supplier = query.Supplier;
+        var geography = query.Geography;
         var format = SummarySelect + Environment.NewLine + (cursor is null
             ? """
                 WHERE product.tenant_id = {0}
@@ -146,6 +151,7 @@ public sealed class InventoryReader(
     private Task<InventoryProductDetailRow?> FindDetailAsync(
         TenantId tenantId,
         Guid productId,
+        DateTimeOffset now,
         CancellationToken cancellationToken) =>
         store.DbContext.Database.SqlQuery<InventoryProductDetailRow>($"""
             SELECT version.address AS "Address", version.latitude AS "Latitude",
@@ -163,11 +169,23 @@ public sealed class InventoryReader(
             FROM commercial.inventory_products product
             JOIN commercial.inventory_product_versions version
               ON version.tenant_id = product.tenant_id AND version.id = product.current_version_id
-            JOIN commercial.inventory_rates rate
-              ON rate.tenant_id = version.tenant_id AND rate.product_version_id = version.id
-            JOIN commercial.inventory_availability availability
-              ON availability.tenant_id = version.tenant_id
-             AND availability.product_version_id = version.id
+            JOIN LATERAL (
+                SELECT item.* FROM commercial.inventory_rates item
+                WHERE item.tenant_id = version.tenant_id
+                  AND item.product_version_id = version.id
+                  AND (item.effective_from IS NULL OR item.effective_from <=
+                    {DateOnly.FromDateTime(now.UtcDateTime)})
+                  AND (item.effective_to IS NULL OR item.effective_to >=
+                    {DateOnly.FromDateTime(now.UtcDateTime)})
+                ORDER BY item.effective_from DESC NULLS LAST, item.id DESC
+                LIMIT 1) rate ON TRUE
+            JOIN LATERAL (
+                SELECT item.* FROM commercial.inventory_availability item
+                WHERE item.tenant_id = version.tenant_id
+                  AND item.product_version_id = version.id
+                  AND (item.observed_at_utc IS NULL OR item.observed_at_utc <= {now})
+                ORDER BY item.observed_at_utc DESC NULLS LAST, item.id DESC
+                LIMIT 1) availability ON TRUE
             WHERE product.tenant_id = {tenantId.Value} AND product.id = {productId}
             """).SingleOrDefaultAsync(cancellationToken);
 
@@ -203,12 +221,6 @@ public sealed class InventoryReader(
             item.AssetType, item.MediaType, item.ContentHash, item.SourceReference)).ToArray(),
         detail.SourceImportId, detail.SourceCandidateId,
         detail.VersionNumber, detail.PublishedAtUtc);
-
-    private static string? NormalizeFilter(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-    private static string? NormalizeCode(string? value) =>
-        NormalizeFilter(value)?.ToUpperInvariant();
 
     private const string SummarySelect = """
         SELECT product.id AS "Id", product.supplier_id AS "SupplierId",

@@ -64,14 +64,4 @@ public sealed partial class MarketplaceCommands(
             envelope, permission, execute, cancellationToken);
         return CommandOutcomeFactory.ToResult<TView>(receipt);
     }
-
-    private static string Required(string value, int maximum, string parameter)
-    {
-        var normalized = value.Trim();
-        if (normalized.Length == 0 || normalized.Length > maximum)
-        {
-            throw new ArgumentException("A marketplace value is invalid.", parameter);
-        }
-        return normalized;
-    }
 }

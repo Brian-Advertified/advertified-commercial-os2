@@ -205,7 +205,7 @@ public static class PlanningEndpoints
         Func<CommandEnvelope<TCommand>, CancellationToken, Task<CommandResult<TView>>> execute,
         CancellationToken cancellationToken)
         where TCommand : notnull
-        where TView : notnull => OpportunityCommandEndpoints.ExecuteAsync(
+        where TView : notnull => CommandEndpointExecutor.ExecuteAsync(
             tenantId, command, context, identity, clock, requiresVersion, execute,
             result => Results.Ok(result.Data), cancellationToken);
 }

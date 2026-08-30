@@ -1,0 +1,56 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 10,
+  "evidenceDate": "2026-08-30",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "5744e333db4e56f089498663fac8c12aa1069d7f",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Release API build and complete suite",
+      "command": "cd api; dotnet build Advertified.Commercial.Api.csproj --configuration Release --no-restore; dotnet test tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release --no-build",
+      "outcome": "PASS",
+      "summary": "Build completed with zero warnings/errors and 46 of 46 tests passed."
+    },
+    {
+      "name": "Architecture and deterministic agent runtime",
+      "command": "python -m pytest tests/architecture -q; cd agent-runtime; python -m pytest tests -q",
+      "outcome": "PASS",
+      "summary": "23 of 23 architecture and 18 of 18 runtime tests passed."
+    },
+    {
+      "name": "Web static, unit and production build",
+      "command": "cd web; npm run lint; npm test -- --run; npm run type-check; npm run build",
+      "outcome": "PASS",
+      "summary": "Lint, type-check and production build passed; 4 of 4 unit tests passed."
+    },
+    {
+      "name": "Desktop and compact browser journeys",
+      "command": "cd web; npx playwright test",
+      "outcome": "PASS",
+      "summary": "20 of 20 browser journeys passed after correcting the inventory mock contract."
+    },
+    {
+      "name": "Local infrastructure and diff integrity",
+      "command": "docker compose -f infrastructure/docker-compose.yml config --quiet; docker compose -f infrastructure/docker-compose.yml up -d --build --wait; git diff --check",
+      "outcome": "PASS",
+      "summary": "Compose validates, all six local dependencies are healthy, and the diff has no whitespace errors."
+    }
+  ],
+  "unresolvedBlockers": [
+    "Remaining Gate 10/11 capabilities and the thirty-case production certification are not complete.",
+    "Staging, recovery, observability and production reverse-proxy/network configuration evidence is not present.",
+    "Named independent engineering, security, privacy and operations reviews remain pending.",
+    "No push or deployment is authorised by this work packet."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}

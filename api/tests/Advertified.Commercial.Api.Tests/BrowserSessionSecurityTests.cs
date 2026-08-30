@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,6 +42,11 @@ public sealed class BrowserSessionSecurityTests
         using var signIn = CreateRequest(HttpMethod.Post, requestToken, LocalOrigin);
         using var signInResponse = await client.SendAsync(signIn);
         Assert.Equal(HttpStatusCode.OK, signInResponse.StatusCode);
+        Assert.Equal("nosniff", signInResponse.Headers.GetValues(
+            "X-Content-Type-Options").Single());
+        Assert.Equal("DENY", signInResponse.Headers.GetValues("X-Frame-Options").Single());
+        Assert.Equal("no-referrer", signInResponse.Headers.GetValues("Referrer-Policy").Single());
+        Assert.True(signInResponse.Headers.CacheControl?.NoStore);
         Assert.Contains(
             signInResponse.Headers.GetValues("Set-Cookie"),
             value => value.Contains("advertified.session=", StringComparison.Ordinal)
@@ -54,6 +60,15 @@ public sealed class BrowserSessionSecurityTests
         using var unsafeResponse = await client.SendAsync(unsafeWithoutOrigin);
         await AssertProblemAsync(
             unsafeResponse,
+            HttpStatusCode.Forbidden,
+            "ORIGIN_NOT_ALLOWED");
+
+        using var traceWithoutOrigin = new HttpRequestMessage(
+            HttpMethod.Trace,
+            "/api/v1/session");
+        using var traceResponse = await client.SendAsync(traceWithoutOrigin);
+        await AssertProblemAsync(
+            traceResponse,
             HttpStatusCode.Forbidden,
             "ORIGIN_NOT_ALLOWED");
 
@@ -88,8 +103,107 @@ public sealed class BrowserSessionSecurityTests
             "AUTHENTICATION_REQUIRED");
     }
 
+    [Fact]
+    public async Task RepeatedSessionMutationsReturnHumanSafeRateLimitProblem()
+    {
+        await using var factory = CreateFactory();
+        using var client = CreateClient(factory);
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            using var denied = new HttpRequestMessage(HttpMethod.Post, "/api/v1/session");
+            denied.Headers.Add("Origin", LocalOrigin);
+            using var response = await client.SendAsync(denied);
+            await AssertProblemAsync(
+                response, HttpStatusCode.Forbidden, "CSRF_VALIDATION_FAILED");
+        }
+
+        using var limited = new HttpRequestMessage(HttpMethod.Post, "/api/v1/session");
+        limited.Headers.Add("Origin", LocalOrigin);
+        using var limitedResponse = await client.SendAsync(limited);
+        await AssertProblemAsync(
+            limitedResponse, HttpStatusCode.TooManyRequests, "RATE_LIMITED");
+    }
+
+    [Fact]
+    public async Task TrustedForwardedClientAddressSeparatesRateLimitPartitions()
+    {
+        await using var factory = CreateFactory(useTrustedProxy: true);
+        using var client = CreateClient(factory);
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            using var denied = new HttpRequestMessage(HttpMethod.Post, "/api/v1/session");
+            denied.Headers.Add("Origin", LocalOrigin);
+            denied.Headers.Add("X-Forwarded-For", "203.0.113.10");
+            using var response = await client.SendAsync(denied);
+            await AssertProblemAsync(
+                response, HttpStatusCode.Forbidden, "CSRF_VALIDATION_FAILED");
+        }
+
+        using var otherClient = new HttpRequestMessage(HttpMethod.Post, "/api/v1/session");
+        otherClient.Headers.Add("Origin", LocalOrigin);
+        otherClient.Headers.Add("X-Forwarded-For", "203.0.113.11");
+        using var otherResponse = await client.SendAsync(otherClient);
+        await AssertProblemAsync(
+            otherResponse, HttpStatusCode.Forbidden, "CSRF_VALIDATION_FAILED");
+    }
+
+    [Fact]
+    public void ProductionRejectsWildcardAllowedHosts()
+    {
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Production");
+            builder.UseSetting("AllowedHosts", "*");
+            builder.UseSetting(
+                "ConnectionStrings:CommercialDatabase",
+                "Host=localhost;Database=closed;Username=closed");
+            builder.UseSetting("Authentication:Mode", "Disabled");
+            builder.UseSetting("AgentRuntime:Mode", "Disabled");
+            builder.UseSetting("InventoryProtection:ObjectStoreMode", "Minio");
+            builder.UseSetting("InventoryProtection:ScannerMode", "ClamAv");
+            builder.UseSetting("InventoryProtection:Endpoint", "localhost:9000");
+            builder.UseSetting("InventoryProtection:AccessKey", "test-access");
+            builder.UseSetting("InventoryProtection:SecretKey", "test-secret");
+            builder.UseSetting("InventoryProtection:ClamAvHost", "localhost");
+        });
+
+        var exception = Assert.Throws<InvalidOperationException>(factory.CreateClient);
+        Assert.Contains("AllowedHosts", exception.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProductionRejectsMissingTrustedProxyBoundary()
+    {
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            ConfigureClosedProduction(builder);
+            builder.UseSetting("AllowedHosts", "api.advertified.example");
+        });
+
+        var exception = Assert.Throws<InvalidOperationException>(factory.CreateClient);
+        Assert.Contains("trusted reverse-proxy", exception.ToString(),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void ConfigureClosedProduction(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Production");
+        builder.UseSetting(
+            "ConnectionStrings:CommercialDatabase",
+            "Host=localhost;Database=closed;Username=closed");
+        builder.UseSetting("Authentication:Mode", "Disabled");
+        builder.UseSetting("AgentRuntime:Mode", "Disabled");
+        builder.UseSetting("InventoryProtection:ObjectStoreMode", "Minio");
+        builder.UseSetting("InventoryProtection:ScannerMode", "ClamAv");
+        builder.UseSetting("InventoryProtection:Endpoint", "localhost:9000");
+        builder.UseSetting("InventoryProtection:AccessKey", "test-access");
+        builder.UseSetting("InventoryProtection:SecretKey", "test-secret");
+        builder.UseSetting("InventoryProtection:ClamAvHost", "localhost");
+    }
+
     private static WebApplicationFactory<Program> CreateFactory(
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        bool useTrustedProxy = false)
     {
         return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
@@ -108,6 +222,12 @@ public sealed class BrowserSessionSecurityTests
             builder.UseSetting("Authentication:BrowserSession:LifetimeMinutes", "5");
             builder.UseSetting("Authentication:BrowserSession:SecureCookie", "false");
             builder.UseSetting("Authentication:BrowserSession:AllowedOrigins:0", LocalOrigin);
+            if (useTrustedProxy)
+            {
+                builder.UseSetting("ReverseProxy:KnownProxies:0", "127.0.0.1");
+                builder.ConfigureServices(services =>
+                    services.AddSingleton<IStartupFilter, LoopbackRemoteAddressStartupFilter>());
+            }
             if (timeProvider is not null)
             {
                 builder.ConfigureServices(services =>
@@ -175,5 +295,18 @@ public sealed class BrowserSessionSecurityTests
         public override DateTimeOffset GetUtcNow() => current;
 
         public void Advance(TimeSpan duration) => current = current.Add(duration);
+    }
+
+    private sealed class LoopbackRemoteAddressStartupFilter : IStartupFilter
+    {
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
+        {
+            app.Use(async (context, continuation) =>
+            {
+                context.Connection.RemoteIpAddress = IPAddress.Loopback;
+                await continuation();
+            });
+            next(app);
+        };
     }
 }

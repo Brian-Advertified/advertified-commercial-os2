@@ -31,7 +31,7 @@ public static class FoundationCommandEndpoints
         return group;
     }
 
-    private static async Task<IResult> UpdateTenantAsync(
+    private static Task<IResult> UpdateTenantAsync(
         Guid tenantId,
         UpdateTenantCommand command,
         HttpContext context,
@@ -39,19 +39,11 @@ public static class FoundationCommandEndpoints
         IIdentityFoundationCommands commands,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
-    {
-        var envelope = CommandEnvelopeFactory.Create(
-            context,
-            new TenantId(tenantId),
-            identity.ActorId,
-            command,
-            timeProvider,
-            requireVersion: true);
-        var result = await commands.UpdateTenantAsync(envelope, cancellationToken);
-        return Ok(context, result);
-    }
+        => CommandEndpointExecutor.ExecuteOkAsync(
+            tenantId, command, context, identity, timeProvider,
+            requireVersion: true, commands.UpdateTenantAsync, cancellationToken);
 
-    private static async Task<IResult> UpdateUserAsync(
+    private static Task<IResult> UpdateUserAsync(
         Guid tenantId,
         UpdateUserCommand command,
         HttpContext context,
@@ -59,17 +51,9 @@ public static class FoundationCommandEndpoints
         IIdentityFoundationCommands commands,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
-    {
-        var envelope = CommandEnvelopeFactory.Create(
-            context,
-            new TenantId(tenantId),
-            identity.ActorId,
-            command,
-            timeProvider,
-            requireVersion: true);
-        var result = await commands.UpdateUserAsync(envelope, cancellationToken);
-        return Ok(context, result);
-    }
+        => CommandEndpointExecutor.ExecuteOkAsync(
+            tenantId, command, context, identity, timeProvider,
+            requireVersion: true, commands.UpdateUserAsync, cancellationToken);
 
     private static Task<IResult> CreateClientAccountAsync(
         Guid tenantId,
@@ -125,7 +109,7 @@ public static class FoundationCommandEndpoints
             view => $"/api/v1/tenants/{tenantId}/contacts/{view.Id}",
             cancellationToken);
 
-    private static async Task<IResult> CreateAsync<TCommand, TResult>(
+    private static Task<IResult> CreateAsync<TCommand, TResult>(
         Guid tenantId,
         TCommand command,
         HttpContext context,
@@ -136,22 +120,9 @@ public static class FoundationCommandEndpoints
         CancellationToken cancellationToken)
         where TCommand : notnull
         where TResult : notnull
-    {
-        var envelope = CommandEnvelopeFactory.Create(
-            context,
-            new TenantId(tenantId),
-            identity.ActorId,
-            command,
-            timeProvider,
-            requireVersion: false);
-        var result = await execute(envelope, cancellationToken);
-        CommandEnvelopeFactory.SetEntityHeaders(context, result.Version, result.Replayed);
-        return Results.Created(location(result.Data), result.Data);
-    }
-
-    private static IResult Ok<TResult>(HttpContext context, CommandResult<TResult> result)
-    {
-        CommandEnvelopeFactory.SetEntityHeaders(context, result.Version, result.Replayed);
-        return Results.Ok(result.Data);
-    }
+        => CommandEndpointExecutor.ExecuteAsync(
+            tenantId, command, context, identity, timeProvider,
+            requireVersion: false, execute,
+            result => Results.Created(location(result.Data), result.Data),
+            cancellationToken);
 }

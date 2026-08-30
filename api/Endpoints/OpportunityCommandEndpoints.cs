@@ -1,8 +1,5 @@
-using Advertified.Commercial.Application.Commands;
-using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Opportunity;
-using Advertified.Commercial.Domain.Governance;
 
 namespace Advertified.Commercial.Api.Endpoints;
 
@@ -48,7 +45,7 @@ public static class OpportunityCommandEndpoints
         ICurrentIdentity identity,
         IOpportunityCommands commands,
         TimeProvider timeProvider,
-        CancellationToken cancellationToken) => ExecuteAsync(
+        CancellationToken cancellationToken) => CommandEndpointExecutor.ExecuteAsync(
             tenantId, command, context, identity, timeProvider, false,
             commands.CreateAsync,
             result => Results.Created(
@@ -70,7 +67,7 @@ public static class OpportunityCommandEndpoints
         {
             throw new ArgumentException("The route and source opportunity must match.");
         }
-        return ExecuteAsync(
+        return CommandEndpointExecutor.ExecuteAsync(
             tenantId, command, context, identity, timeProvider, false,
             commands.RegisterEvidenceSourceAsync,
             result => Results.Created(
@@ -86,7 +83,7 @@ public static class OpportunityCommandEndpoints
         ICurrentIdentity identity,
         IOpportunityCommands commands,
         TimeProvider timeProvider,
-        CancellationToken cancellationToken) => ExecuteAsync(
+        CancellationToken cancellationToken) => CommandEndpointExecutor.ExecuteAsync(
             tenantId, command, context, identity, timeProvider, true,
             (envelope, token) => commands.UpdateAsync(opportunityId, envelope, token),
             result => Results.Ok(result.Data),
@@ -100,7 +97,7 @@ public static class OpportunityCommandEndpoints
         ICurrentIdentity identity,
         IOpportunityCommands commands,
         TimeProvider timeProvider,
-        CancellationToken cancellationToken) => ExecuteAsync(
+        CancellationToken cancellationToken) => CommandEndpointExecutor.ExecuteAsync(
             tenantId, command, context, identity, timeProvider, true,
             (envelope, token) => commands.StartQualificationAsync(
                 opportunityId, envelope, token),
@@ -115,7 +112,7 @@ public static class OpportunityCommandEndpoints
         ICurrentIdentity identity,
         IOpportunityCommands commands,
         TimeProvider timeProvider,
-        CancellationToken cancellationToken) => ExecuteAsync(
+        CancellationToken cancellationToken) => CommandEndpointExecutor.ExecuteAsync(
             tenantId, command, context, identity, timeProvider, true,
             (envelope, token) => commands.ReviewEvidenceItemAsync(itemId, envelope, token),
             result => Results.Ok(result.Data),
@@ -129,7 +126,7 @@ public static class OpportunityCommandEndpoints
         ICurrentIdentity identity,
         IOpportunityCommands commands,
         TimeProvider timeProvider,
-        CancellationToken cancellationToken) => ExecuteAsync(
+        CancellationToken cancellationToken) => CommandEndpointExecutor.ExecuteAsync(
             tenantId, command, context, identity, timeProvider, true,
             (envelope, token) => commands.SubmitEvidenceAsync(
                 opportunityId, envelope, token),
@@ -144,35 +141,11 @@ public static class OpportunityCommandEndpoints
         ICurrentIdentity identity,
         IOpportunityCommands commands,
         TimeProvider timeProvider,
-        CancellationToken cancellationToken) => ExecuteAsync(
+        CancellationToken cancellationToken) => CommandEndpointExecutor.ExecuteAsync(
             tenantId, command, context, identity, timeProvider, true,
             (envelope, token) => commands.ApproveEvidenceSetAsync(
                 evidenceSetId, envelope, token),
             result => Results.Ok(result.Data),
             cancellationToken);
 
-    internal static async Task<IResult> ExecuteAsync<TCommand, TResult>(
-        Guid tenantId,
-        TCommand command,
-        HttpContext context,
-        ICurrentIdentity identity,
-        TimeProvider timeProvider,
-        bool requireVersion,
-        Func<CommandEnvelope<TCommand>, CancellationToken, Task<CommandResult<TResult>>> execute,
-        Func<CommandResult<TResult>, IResult> response,
-        CancellationToken cancellationToken)
-        where TCommand : notnull
-        where TResult : notnull
-    {
-        var envelope = CommandEnvelopeFactory.Create(
-            context,
-            new TenantId(tenantId),
-            identity.ActorId,
-            command,
-            timeProvider,
-            requireVersion);
-        var result = await execute(envelope, cancellationToken);
-        CommandEnvelopeFactory.SetEntityHeaders(context, result.Version, result.Replayed);
-        return response(result);
-    }
 }
