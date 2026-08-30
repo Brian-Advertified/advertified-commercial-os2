@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: fa92eeed2563be89283da04ea53c3cdd52da92f5d798b00e55395bc42d16294b
+# source-sha256: ead0d8947abef109e38ac7899bc63c5dccd356902a2e222f411440c0b148c16d
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.7.0"
+REGISTRY_VERSION = "2.8.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -115,6 +115,9 @@ class Permissions(StrEnum):
     DELIVERY_PROOF_VIEW = "delivery_proof_view"
     DELIVERY_PROOF_SUBMIT = "delivery_proof_submit"
     DELIVERY_PROOF_REVIEW = "delivery_proof_review"
+    PERFORMANCE_FACT_VIEW = "performance_fact_view"
+    PERFORMANCE_FACT_SUBMIT = "performance_fact_submit"
+    PERFORMANCE_FACT_REVIEW = "performance_fact_review"
 
 class BriefSourceTypes(StrEnum):
     SUPPLIED_TEXT = "SUPPLIED_TEXT"
@@ -178,6 +181,7 @@ class HumanTaskTypes(StrEnum):
     PLAN_CRITIC_RESOLUTION = "PLAN_CRITIC_RESOLUTION"
     MEDIA_PLAN_APPROVAL = "MEDIA_PLAN_APPROVAL"
     DELIVERY_PROOF_REVIEW = "DELIVERY_PROOF_REVIEW"
+    PERFORMANCE_FACT_REVIEW = "PERFORMANCE_FACT_REVIEW"
 
 class EvidenceClassifications(StrEnum):
     FACT = "FACT"
@@ -451,6 +455,7 @@ class CommercialResourceTypes(StrEnum):
     CAMPAIGN = "campaign"
     CREATIVE_ASSET = "creative_asset"
     DELIVERY_PROOF = "delivery_proof"
+    PERFORMANCE_EVIDENCE = "performance_evidence"
 
 class CommercialActions(StrEnum):
     TENANT_UPDATED = "tenant.updated"
@@ -533,6 +538,8 @@ class CommercialActions(StrEnum):
     CAMPAIGN_COMPLETED = "campaign.completed"
     DELIVERY_PROOF_SUBMITTED = "delivery_proof.submitted"
     DELIVERY_PROOF_REVIEWED = "delivery_proof.reviewed"
+    PERFORMANCE_EVIDENCE_SUBMITTED = "performance_evidence.submitted"
+    PERFORMANCE_EVIDENCE_REVIEWED = "performance_evidence.reviewed"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -615,6 +622,8 @@ class CommercialEventTypes(StrEnum):
     CAMPAIGN_COMPLETED = "CampaignCompleted"
     DELIVERY_PROOF_SUBMITTED = "DeliveryProofSubmitted"
     DELIVERY_PROOF_REVIEWED = "DeliveryProofReviewed"
+    PERFORMANCE_EVIDENCE_SUBMITTED = "PerformanceEvidenceSubmitted"
+    PERFORMANCE_EVIDENCE_REVIEWED = "PerformanceEvidenceReviewed"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"
@@ -642,6 +651,25 @@ class DeliveryProofTypes(StrEnum):
     PHOTO = "PHOTO"
     PLAYLOG = "PLAYLOG"
     DELIVERY_REPORT = "DELIVERY_REPORT"
+
+class PerformanceMetricTypes(StrEnum):
+    IMPRESSIONS = "IMPRESSIONS"
+    REACH = "REACH"
+    CLICKS = "CLICKS"
+    CONVERSIONS = "CONVERSIONS"
+    FOOTFALL = "FOOTFALL"
+    CLICK_THROUGH_RATE = "CLICK_THROUGH_RATE"
+    CONVERSION_RATE = "CONVERSION_RATE"
+
+class MeasurementUnits(StrEnum):
+    COUNT = "COUNT"
+    PEOPLE = "PEOPLE"
+    PERCENT = "PERCENT"
+
+class MeasurementQualityStatuses(StrEnum):
+    VERIFIED = "VERIFIED"
+    LIMITED = "LIMITED"
+    UNUSABLE = "UNUSABLE"
 
 class TenantTypes(StrEnum):
     PLATFORM = "PLATFORM"

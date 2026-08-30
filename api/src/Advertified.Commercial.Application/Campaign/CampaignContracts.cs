@@ -1,6 +1,7 @@
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Creative;
 using Advertified.Commercial.Application.Delivery;
+using Advertified.Commercial.Application.Measurement;
 using Advertified.Commercial.Domain.Governance;
 
 namespace Advertified.Commercial.Application.Campaign;
@@ -53,6 +54,7 @@ public sealed record CampaignView(
 {
     public CreativeWorkspaceView? Creative { get; init; }
     public IReadOnlyList<DeliveryProofView> DeliveryProofs { get; init; } = [];
+    public IReadOnlyList<PerformanceEvidenceView> PerformanceEvidence { get; init; } = [];
 }
 
 public interface ICampaignCommands

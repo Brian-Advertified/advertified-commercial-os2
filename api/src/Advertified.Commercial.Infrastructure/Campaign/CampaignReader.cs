@@ -4,6 +4,7 @@ using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Creative;
 using Advertified.Commercial.Infrastructure.Delivery;
+using Advertified.Commercial.Infrastructure.Measurement;
 
 namespace Advertified.Commercial.Infrastructure.Campaign;
 
@@ -11,6 +12,7 @@ public sealed class CampaignReader(
     CampaignRecordStore store,
     CreativeRecordStore creativeStore,
     DeliveryProofRecordStore deliveryStore,
+    PerformanceEvidenceRecordStore measurementStore,
     ITenantAuthorizer authorizer) : ICampaignReader
 {
     public async Task<IReadOnlyList<CampaignView>> ListAsync(
@@ -41,8 +43,15 @@ public sealed class CampaignReader(
             await creativeStore.ListWorkspaceRowsAsync(campaignId, cancellationToken));
         var deliveryProofs = (await deliveryStore.ListCampaignAsync(
             campaignId, cancellationToken)).Select(proof => proof.ToView()).ToArray();
+        var performanceEvidence = await measurementStore.ListCampaignViewsAsync(
+            campaignId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return row.ToView() with { Creative = creative, DeliveryProofs = deliveryProofs };
+        return row.ToView() with
+        {
+            Creative = creative,
+            DeliveryProofs = deliveryProofs,
+            PerformanceEvidence = performanceEvidence,
+        };
     }
 
     private async Task EnsureAllowedAsync(

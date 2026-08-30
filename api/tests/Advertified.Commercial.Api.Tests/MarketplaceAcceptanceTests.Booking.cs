@@ -167,7 +167,7 @@ public sealed partial class MarketplaceAcceptanceTests
             buyer, client, supplier, other, campaignId, bookingId,
             bookedCampaign.RootElement.GetProperty("version").GetInt64(), connectionString);
         await AssertCampaignDeliveryProofAsync(
-            buyer, supplier, other, campaignId, bookingId, readyVersion,
+            buyer, client, supplier, other, campaignId, bookingId, readyVersion,
             clock, connectionString);
     }
 

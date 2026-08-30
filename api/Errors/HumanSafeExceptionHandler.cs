@@ -14,6 +14,7 @@ using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Marketplace;
+using Advertified.Commercial.Application.Measurement;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.MasterData;
@@ -113,6 +114,16 @@ public sealed class HumanSafeExceptionHandler(
                 "Delivery proof file was rejected",
                 "Upload a safe file whose type and contents match the selected proof type.",
                 "DELIVERY_PROOF_FILE_REJECTED"),
+            PerformanceEvidenceBlockedException => new(
+                StatusCodes.Status409Conflict,
+                "Performance evidence is blocked",
+                "Use completed Campaign evidence with exact source, method, period and limitations.",
+                "PERFORMANCE_EVIDENCE_BLOCKED"),
+            PerformanceEvidenceFileRejectedException => new(
+                StatusCodes.Status400BadRequest,
+                "Performance evidence file was rejected",
+                "Upload a safe PDF, JSON or CSV source that matches its declared file type.",
+                "PERFORMANCE_EVIDENCE_FILE_REJECTED"),
             FundingReviewRequiredException => new(
                 StatusCodes.Status409Conflict,
                 "Funding needs review",

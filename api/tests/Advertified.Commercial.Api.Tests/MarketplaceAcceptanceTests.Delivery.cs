@@ -9,6 +9,7 @@ public sealed partial class MarketplaceAcceptanceTests
 {
     private static async Task AssertCampaignDeliveryProofAsync(
         HttpClient buyer,
+        HttpClient client,
         HttpClient supplier,
         HttpClient other,
         Guid campaignId,
@@ -46,6 +47,7 @@ public sealed partial class MarketplaceAcceptanceTests
         Assert.Equal("LIVE", live.RootElement.GetProperty("status").GetString());
         Assert.Equal(BuyerUserId, live.RootElement.GetProperty("startedBy").GetGuid());
         var liveVersion = live.RootElement.GetProperty("version").GetInt64();
+        await AssertPerformanceBlockedBeforeCompletionAsync(buyer, campaignId);
 
         using var earlyCompletion = await RawCommandAsync(
             buyer, BuyerTenantId, $"campaigns/{campaignId}:complete",
@@ -158,6 +160,8 @@ public sealed partial class MarketplaceAcceptanceTests
         Assert.Equal("APPROVED", approved.RootElement.GetProperty("status").GetString());
         await AssertDeliveryEvidenceAsync(
             connectionString, firstProofId, replacementId, campaignId);
+        await AssertPerformanceEvidenceAsync(
+            buyer, client, other, campaignId, connectionString);
     }
 
     private static object ProofBody(

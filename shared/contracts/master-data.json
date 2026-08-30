@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.7.0",
+  "registryVersion": "2.8.0",
   "effectiveFrom": "2026-08-30",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
@@ -114,7 +114,10 @@
       {"code":"campaign_complete","displayLabel":"Complete a closed campaign delivery window","isActive":true,"sortOrder":760,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"delivery_proof_view","displayLabel":"View assigned campaign delivery proof","isActive":true,"sortOrder":770,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_admin","supplier_user"]}},
       {"code":"delivery_proof_submit","displayLabel":"Submit proof for an assigned supplier booking","isActive":true,"sortOrder":780,"metadata":{"roles":["platform_admin","inventory_ops","supplier_admin","supplier_user"]}},
-      {"code":"delivery_proof_review","displayLabel":"Review assigned campaign delivery proof","isActive":true,"sortOrder":790,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}}
+      {"code":"delivery_proof_review","displayLabel":"Review assigned campaign delivery proof","isActive":true,"sortOrder":790,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"performance_fact_view","displayLabel":"View reviewed campaign performance facts","isActive":true,"sortOrder":800,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
+      {"code":"performance_fact_submit","displayLabel":"Submit sourced campaign performance facts","isActive":true,"sortOrder":810,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"performance_fact_review","displayLabel":"Review sourced campaign performance facts","isActive":true,"sortOrder":820,"metadata":{"roles":["platform_admin","internal_planner","advertiser_admin","advertiser_approver"]}}
     ],
     "briefSourceTypes": [
       {"code":"SUPPLIED_TEXT","displayLabel":"Supplied Text","isActive":true,"sortOrder":10},
@@ -177,7 +180,8 @@
       {"code":"MEDIA_MIX_APPROVAL","displayLabel":"Approve Media Mix","isActive":true,"sortOrder":100},
       {"code":"PLAN_CRITIC_RESOLUTION","displayLabel":"Resolve Plan Critic Objection","isActive":true,"sortOrder":110},
       {"code":"MEDIA_PLAN_APPROVAL","displayLabel":"Approve Media Plan","isActive":true,"sortOrder":120},
-      {"code":"DELIVERY_PROOF_REVIEW","displayLabel":"Review Delivery Proof","isActive":true,"sortOrder":130}
+      {"code":"DELIVERY_PROOF_REVIEW","displayLabel":"Review Delivery Proof","isActive":true,"sortOrder":130},
+      {"code":"PERFORMANCE_FACT_REVIEW","displayLabel":"Review Performance Facts","isActive":true,"sortOrder":140}
     ],
     "evidenceClassifications": [
       {"code":"FACT","displayLabel":"Confirmed Fact","isActive":true,"sortOrder":10},
@@ -450,7 +454,8 @@
       {"code":"payment_intent","displayLabel":"Payment Intent","isActive":true,"sortOrder":390},
       {"code":"campaign","displayLabel":"Campaign","isActive":true,"sortOrder":400},
       {"code":"creative_asset","displayLabel":"Creative Asset","isActive":true,"sortOrder":410},
-      {"code":"delivery_proof","displayLabel":"Delivery Proof","isActive":true,"sortOrder":420}
+      {"code":"delivery_proof","displayLabel":"Delivery Proof","isActive":true,"sortOrder":420},
+      {"code":"performance_evidence","displayLabel":"Performance Evidence","isActive":true,"sortOrder":430}
     ],
     "commercialActions": [
       {"code":"tenant.updated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -532,7 +537,9 @@
       {"code":"campaign.started","displayLabel":"Campaign Started","isActive":true,"sortOrder":770},
       {"code":"campaign.completed","displayLabel":"Campaign Completed","isActive":true,"sortOrder":780},
       {"code":"delivery_proof.submitted","displayLabel":"Delivery Proof Submitted","isActive":true,"sortOrder":790},
-      {"code":"delivery_proof.reviewed","displayLabel":"Delivery Proof Reviewed","isActive":true,"sortOrder":800}
+      {"code":"delivery_proof.reviewed","displayLabel":"Delivery Proof Reviewed","isActive":true,"sortOrder":800},
+      {"code":"performance_evidence.submitted","displayLabel":"Performance Evidence Submitted","isActive":true,"sortOrder":810},
+      {"code":"performance_evidence.reviewed","displayLabel":"Performance Evidence Reviewed","isActive":true,"sortOrder":820}
     ],
     "commercialEventTypes": [
       {"code":"TenantUpdated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -614,7 +621,9 @@
       {"code":"CampaignStarted","displayLabel":"Campaign Started","isActive":true,"sortOrder":770},
       {"code":"CampaignCompleted","displayLabel":"Campaign Completed","isActive":true,"sortOrder":780},
       {"code":"DeliveryProofSubmitted","displayLabel":"Delivery Proof Submitted","isActive":true,"sortOrder":790},
-      {"code":"DeliveryProofReviewed","displayLabel":"Delivery Proof Reviewed","isActive":true,"sortOrder":800}
+      {"code":"DeliveryProofReviewed","displayLabel":"Delivery Proof Reviewed","isActive":true,"sortOrder":800},
+      {"code":"PerformanceEvidenceSubmitted","displayLabel":"Performance Evidence Submitted","isActive":true,"sortOrder":810},
+      {"code":"PerformanceEvidenceReviewed","displayLabel":"Performance Evidence Reviewed","isActive":true,"sortOrder":820}
     ],
     "creativeTextRoles": [
       {"code":"HEADLINE","displayLabel":"Headline","isActive":true,"sortOrder":10},
@@ -642,6 +651,25 @@
       {"code":"PHOTO","displayLabel":"Delivery Photo","isActive":true,"sortOrder":10},
       {"code":"PLAYLOG","displayLabel":"Digital Playlog","isActive":true,"sortOrder":20},
       {"code":"DELIVERY_REPORT","displayLabel":"Delivery Report","isActive":true,"sortOrder":30}
+    ],
+    "performanceMetricTypes": [
+      {"code":"IMPRESSIONS","displayLabel":"Impressions","isActive":true,"sortOrder":10},
+      {"code":"REACH","displayLabel":"Reach","isActive":true,"sortOrder":20},
+      {"code":"CLICKS","displayLabel":"Clicks","isActive":true,"sortOrder":30},
+      {"code":"CONVERSIONS","displayLabel":"Conversions","isActive":true,"sortOrder":40},
+      {"code":"FOOTFALL","displayLabel":"Footfall","isActive":true,"sortOrder":50},
+      {"code":"CLICK_THROUGH_RATE","displayLabel":"Click-through Rate","isActive":true,"sortOrder":60},
+      {"code":"CONVERSION_RATE","displayLabel":"Conversion Rate","isActive":true,"sortOrder":70}
+    ],
+    "measurementUnits": [
+      {"code":"COUNT","displayLabel":"Count","isActive":true,"sortOrder":10},
+      {"code":"PEOPLE","displayLabel":"People","isActive":true,"sortOrder":20},
+      {"code":"PERCENT","displayLabel":"Percent","isActive":true,"sortOrder":30}
+    ],
+    "measurementQualityStatuses": [
+      {"code":"VERIFIED","displayLabel":"Verified Measurement","isActive":true,"sortOrder":10},
+      {"code":"LIMITED","displayLabel":"Limited Measurement","isActive":true,"sortOrder":20},
+      {"code":"UNUSABLE","displayLabel":"Unusable Measurement","isActive":true,"sortOrder":30}
     ],
     "tenantTypes": [
       {"code":"PLATFORM","displayLabel":"Advertified Platform","isActive":true,"sortOrder":10},

@@ -64,6 +64,9 @@ REQUIRED_MASTER_COLLECTIONS = {
     "creativeWarningTypes",
     "creativeReviewTypes",
     "deliveryProofTypes",
+    "performanceMetricTypes",
+    "measurementUnits",
+    "measurementQualityStatuses",
     "assetRightsStatuses",
     "commercialResourceTypes",
     "commercialActions",
@@ -288,6 +291,16 @@ CAMPAIGN_PERMISSION_ROLES = {
     },
     "delivery_proof_review": {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "performance_fact_view": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+        "advertiser_admin", "advertiser_approver",
+    },
+    "performance_fact_submit": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "performance_fact_review": {
+        "platform_admin", "internal_planner", "advertiser_admin", "advertiser_approver",
     },
 }
 REQUIRED_PERMISSION_ROLES = (
