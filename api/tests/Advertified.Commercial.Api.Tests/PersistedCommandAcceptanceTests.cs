@@ -72,6 +72,13 @@ public sealed class PersistedCommandAcceptanceTests
         Assert.Equal(first.Outcome.Data.GetRawText(), replay.Outcome.Data.GetRawText());
         Assert.Equal(first.Outcome.Audit, replay.Outcome.Audit);
         Assert.Equal(first.Outcome.Outbox.EventId, replay.Outcome.Outbox.EventId);
+        var additionalAudit = Assert.Single(first.Outcome.AdditionalAudits);
+        var replayedAdditionalAudit = Assert.Single(replay.Outcome.AdditionalAudits);
+        Assert.Equal(additionalAudit, replayedAdditionalAudit);
+        var additionalOutbox = Assert.Single(first.Outcome.AdditionalOutbox);
+        Assert.Equal(
+            additionalOutbox.EventId,
+            Assert.Single(replay.Outcome.AdditionalOutbox).EventId);
         Assert.Equal(
             first.Outcome.Outbox.Payload.GetRawText(),
             replay.Outcome.Outbox.Payload.GetRawText());
@@ -82,8 +89,8 @@ public sealed class PersistedCommandAcceptanceTests
                 .Options);
         Assert.Equal(1, await verification.Agencies.CountAsync());
         Assert.Equal(1, await verification.IdempotencyRecords.CountAsync());
-        Assert.Equal(1, await verification.OutboxMessages.CountAsync());
-        Assert.Equal(2, await verification.AuditEvents.CountAsync());
+        Assert.Equal(2, await verification.OutboxMessages.CountAsync());
+        Assert.Equal(3, await verification.AuditEvents.CountAsync());
     }
 
     private static async Task SeedTenantAsync(string connectionString)
@@ -151,7 +158,25 @@ public sealed class PersistedCommandAcceptanceTests
                 new EventTypeCode("AgencyCreated"),
                 resource,
                 JsonSerializer.SerializeToElement(new { id = Agency.Value }),
-                Now));
+                Now),
+            [new AuditRecord(
+                Guid.Parse("d8000000-0000-0000-0000-000000000008"),
+                envelope.TenantId,
+                envelope.ActorId,
+                envelope.CommandId,
+                envelope.CorrelationId,
+                new ActionCode("agency.created"),
+                resource,
+                Now)],
+            [new OutboxMessage(
+                Guid.Parse("d9000000-0000-0000-0000-000000000009"),
+                envelope.TenantId,
+                envelope.CommandId,
+                envelope.CorrelationId,
+                new EventTypeCode("AgencyCreated"),
+                resource,
+                JsonSerializer.SerializeToElement(new { id = Agency.Value }),
+                Now)]);
     }
 
     private sealed record CreateAgencyFixture(string Name);

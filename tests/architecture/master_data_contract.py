@@ -242,10 +242,20 @@ FUNDING_PERMISSION_ROLES = {
     },
     "payment_reconcile": {"platform_admin"},
 }
+CAMPAIGN_PERMISSION_ROLES = {
+    "campaign_view": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+        "advertiser_admin", "advertiser_approver",
+    },
+    "campaign_confirm_bookings": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+}
 REQUIRED_PERMISSION_ROLES = (
     FOUNDATION_PERMISSION_ROLES | OPPORTUNITY_PERMISSION_ROLES | BRIEF_PERMISSION_ROLES
     | INVENTORY_PERMISSION_ROLES | PLANNING_PERMISSION_ROLES | PROPOSAL_PERMISSION_ROLES
     | EMAIL_AUTOMATION_PERMISSION_ROLES | MARKETPLACE_PERMISSION_ROLES
     | COMMERCIAL_PERMISSION_ROLES | BOOKING_PERMISSION_ROLES | FUNDING_PERMISSION_ROLES
+    | CAMPAIGN_PERMISSION_ROLES
 )
 

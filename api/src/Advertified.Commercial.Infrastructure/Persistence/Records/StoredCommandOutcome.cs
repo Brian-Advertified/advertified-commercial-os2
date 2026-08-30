@@ -7,7 +7,9 @@ internal sealed record StoredCommandOutcome(
     JsonElement Data,
     long AggregateVersion,
     StoredAuditRecord Audit,
-    StoredOutboxMessage Outbox)
+    StoredOutboxMessage Outbox,
+    IReadOnlyList<StoredAuditRecord>? AdditionalAudits = null,
+    IReadOnlyList<StoredOutboxMessage>? AdditionalOutbox = null)
 {
     public static StoredCommandOutcome FromDomain(CommandOutcome outcome)
     {
@@ -15,7 +17,9 @@ internal sealed record StoredCommandOutcome(
             outcome.Data.Clone(),
             outcome.AggregateVersion,
             StoredAuditRecord.FromDomain(outcome.Audit),
-            StoredOutboxMessage.FromDomain(outcome.Outbox));
+            StoredOutboxMessage.FromDomain(outcome.Outbox),
+            outcome.AdditionalAudits.Select(StoredAuditRecord.FromDomain).ToArray(),
+            outcome.AdditionalOutbox.Select(StoredOutboxMessage.FromDomain).ToArray());
     }
 
     public CommandOutcome ToDomain()
@@ -24,7 +28,9 @@ internal sealed record StoredCommandOutcome(
             Data.Clone(),
             AggregateVersion,
             Audit.ToDomain(),
-            Outbox.ToDomain());
+            Outbox.ToDomain(),
+            AdditionalAudits?.Select(item => item.ToDomain()),
+            AdditionalOutbox?.Select(item => item.ToDomain()));
     }
 }
 

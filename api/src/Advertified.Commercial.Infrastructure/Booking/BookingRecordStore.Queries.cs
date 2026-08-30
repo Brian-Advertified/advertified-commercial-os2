@@ -41,6 +41,13 @@ public sealed partial class BookingRecordStore
               ON plan.tenant_id = option.tenant_id AND plan.id = option.plan_version_id
             JOIN commercial.media_plan_lines line
               ON line.tenant_id = plan.tenant_id AND line.plan_version_id = plan.id
+            JOIN commercial.campaigns campaign
+              ON campaign.tenant_id = decision.tenant_id
+             AND campaign.proposal_decision_id = decision.id
+             AND campaign.plan_version_id = plan.id
+            JOIN commercial.payment_intents payment
+              ON payment.tenant_id = campaign.tenant_id
+             AND payment.id = campaign.payment_intent_id
             JOIN commercial.marketplace_listing_versions snapshot
               ON snapshot.supplier_tenant_id = line.inventory_tenant_id
              AND snapshot.id = line.marketplace_listing_version_id
@@ -58,6 +65,8 @@ public sealed partial class BookingRecordStore
               AND proposal.status_code = {MasterDataCodes.LifecycleStatuses.Selected}
               AND decision.decision_code = {MasterDataCodes.LifecycleStatuses.Selected}
               AND plan.status_code = {MasterDataCodes.LifecycleStatuses.Approved}
+              AND campaign.status_code = {MasterDataCodes.LifecycleStatuses.Planned}
+              AND payment.status_code = {MasterDataCodes.LifecycleStatuses.Confirmed}
               AND listing.status_code = {MasterDataCodes.MarketplaceListingStatuses.Published}
               AND snapshot.availability_code = {MasterDataCodes.AvailabilityStatuses.Available}
               AND (snapshot.availability_observed_at_utc IS NULL
@@ -111,6 +120,13 @@ public sealed partial class BookingRecordStore
               ON plan.tenant_id = option.tenant_id AND plan.id = option.plan_version_id
             JOIN commercial.media_plan_lines line
               ON line.tenant_id = plan.tenant_id AND line.plan_version_id = plan.id
+            JOIN commercial.campaigns campaign
+              ON campaign.tenant_id = decision.tenant_id
+             AND campaign.proposal_decision_id = decision.id
+             AND campaign.plan_version_id = plan.id
+            JOIN commercial.payment_intents payment
+              ON payment.tenant_id = campaign.tenant_id
+             AND payment.id = campaign.payment_intent_id
             JOIN commercial.marketplace_listing_versions snapshot
               ON snapshot.supplier_tenant_id = line.inventory_tenant_id
              AND snapshot.id = line.marketplace_listing_version_id
@@ -121,6 +137,8 @@ public sealed partial class BookingRecordStore
             WHERE proposal.tenant_id = {tenantId.Value}
               AND proposal.status_code = {MasterDataCodes.LifecycleStatuses.Selected}
               AND decision.decision_code = {MasterDataCodes.LifecycleStatuses.Selected}
+              AND campaign.status_code = {MasterDataCodes.LifecycleStatuses.Planned}
+              AND payment.status_code = {MasterDataCodes.LifecycleStatuses.Confirmed}
             ORDER BY decision.decided_at_utc DESC, line.id
             """).ToListAsync(cancellationToken);
 

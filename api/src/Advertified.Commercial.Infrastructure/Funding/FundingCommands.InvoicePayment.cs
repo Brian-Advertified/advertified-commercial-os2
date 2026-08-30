@@ -5,6 +5,7 @@ using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Foundation;
+using Advertified.Commercial.Infrastructure.Campaign;
 
 namespace Advertified.Commercial.Infrastructure.Funding;
 
@@ -84,10 +85,14 @@ public sealed partial class FundingCommands
         await objectStore.PutAsync(
             objectKey, receipt.Content, receipt.MediaType, cancellationToken);
         var view = (await store.FindPaymentAsync(id, false, cancellationToken))!.ToView();
-        return Outcome(
+        var campaign = await campaignStore.CreatePlannedAsync(
+            envelope, id, now, cancellationToken);
+        var outcome = Outcome(
             envelope, view, id, MasterDataReferences.CommercialResourceTypes.PaymentIntent,
             MasterDataReferences.CommercialActions.PaymentConfirmed,
             MasterDataReferences.CommercialEventTypes.PaymentConfirmed, now);
+        var consequence = CampaignConsequences.Planned(envelope, campaign, now);
+        return outcome.WithAdditional(consequence.Audit, consequence.Outbox);
     }
 
     private static CommandOutcome Outcome<TCommand, TView>(

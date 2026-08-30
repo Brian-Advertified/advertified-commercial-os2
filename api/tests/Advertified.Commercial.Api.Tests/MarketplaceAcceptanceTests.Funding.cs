@@ -97,6 +97,17 @@ public sealed partial class MarketplaceAcceptanceTests
             await reconciled.Content.ReadAsStringAsync());
         Assert.Equal("CONFIRMED", reconciledJson.RootElement.GetProperty("status").GetString());
 
+        using var campaigns = await ReadAsync(reviewer, BuyerTenantId, "campaigns");
+        var campaign = Assert.Single(campaigns.RootElement.EnumerateArray());
+        Assert.Equal("PLANNED", campaign.GetProperty("status").GetString());
+        Assert.Equal(selected.ProposalId, campaign.GetProperty("proposalVersionId").GetGuid());
+        Assert.NotEqual(Guid.Empty, campaign.GetProperty("planVersionId").GetGuid());
+        Assert.Equal("CONFIRMED", campaign.GetProperty("fundingStatus").GetString());
+        Assert.Equal(1, campaign.GetProperty("requiredBookingCount").GetInt32());
+        Assert.Equal(0, campaign.GetProperty("confirmedBookingCount").GetInt32());
+        Assert.Equal(JsonValueKind.Null,
+            campaign.GetProperty("nextActionPermission").ValueKind);
+
         using var unrelated = await other.GetAsync($"/api/v1/tenants/{OtherTenantId}/funding");
         await AssertProblemAsync(unrelated, HttpStatusCode.Forbidden, "TENANT_FORBIDDEN");
         using var workspace = await ReadAsync(reviewer, BuyerTenantId, "funding");
@@ -157,20 +168,52 @@ public sealed partial class MarketplaceAcceptanceTests
         return await client.SendAsync(request);
     }
 
+    private static async Task<Guid> FundSelectedProposalAsync(
+        HttpClient buyer,
+        HttpClient reviewer,
+        SelectedProposalFixture selected)
+    {
+        using var submitted = await SubmitPurchaseOrderAsync(
+            buyer, selected, 1_443_250, "booking-funding-po");
+        var submittedContent = await submitted.Content.ReadAsStringAsync();
+        Assert.True(submitted.IsSuccessStatusCode, submittedContent);
+        using var submittedJson = JsonDocument.Parse(submittedContent);
+        var purchaseOrderId = submittedJson.RootElement.GetProperty("id").GetGuid();
+        using var approved = await CommandAsync(
+            reviewer, BuyerTenantId, $"purchase-orders/{purchaseOrderId}:approve",
+            "booking-funding-po-approve", 1,
+            new { reconciliationReason = "Exact selected option reconciles." });
+        using var invoice = await CommandAsync(
+            reviewer, BuyerTenantId, "invoices:issue", "booking-funding-invoice", null,
+            new { purchaseOrderId, invoiceNumber = "INV-BOOKING-2026-0001" });
+        var invoiceId = invoice.RootElement.GetProperty("id").GetGuid();
+        using var payment = await CommandAsync(
+            buyer, BuyerTenantId, "payment-intents", "booking-funding-payment", null,
+            new { invoiceId, methodCode = "MANUAL_EFT" });
+        var paymentId = payment.RootElement.GetProperty("id").GetGuid();
+        using var reconciled = await ReconcilePaymentAsync(
+            reviewer, paymentId, "booking-funding-reconcile", 1);
+        var reconciliationContent = await reconciled.Content.ReadAsStringAsync();
+        Assert.True(reconciled.IsSuccessStatusCode, reconciliationContent);
+        using var campaigns = await ReadAsync(buyer, BuyerTenantId, "campaigns");
+        return Assert.Single(campaigns.RootElement.EnumerateArray())
+            .GetProperty("id").GetGuid();
+    }
+
     private static async Task AssertFundingEvidenceAsync(
         string connectionString,
         Guid invoiceId)
     {
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync();
-        Assert.Equal(5, await CountAsync(connection,
+        Assert.Equal(6, await CountAsync(connection,
             "SELECT count(*)::integer FROM commercial.audit_events WHERE action_code IN " +
             "('purchase_order.submitted','purchase_order.approved','invoice.issued'," +
-            "'payment.started','payment.confirmed')"));
-        Assert.Equal(5, await CountAsync(connection,
+            "'payment.started','payment.confirmed','campaign.planned')"));
+        Assert.Equal(6, await CountAsync(connection,
             "SELECT count(*)::integer FROM commercial.outbox_messages WHERE event_type_code IN " +
             "('PurchaseOrderSubmitted','PurchaseOrderApproved','InvoiceIssued'," +
-            "'PaymentStarted','PaymentConfirmed')"));
+            "'PaymentStarted','PaymentConfirmed','CampaignPlanned')"));
         await using var mutate = new NpgsqlCommand(
             "UPDATE commercial.invoices SET total_minor = 1 WHERE id = $1", connection);
         mutate.Parameters.AddWithValue(invoiceId);

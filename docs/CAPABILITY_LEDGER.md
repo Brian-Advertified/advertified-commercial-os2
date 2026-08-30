@@ -204,7 +204,7 @@ Gates 9–13 remain sequence-bound. A document, route label, container, contract
 | 8 Proposal and client decision | VERIFIED locally — implementation and evidence complete; non-local review pending |
 | 9 OOH-only campaign mode and proposal inbox | VERIFIED LOCALLY; OWNER/INDEPENDENT REVIEW PENDING |
 | 10 Supplier marketplace | VERIFIED LOCALLY — tenant-safe exchange, commercial policy, marketplace-to-plan lineage and selected-option booking confirmation are implemented; owner/independent review pending |
-| 11 Campaign delivery and learning | IN PROGRESS — bounded funding-first packet recorded in `docs/GATE11_DELIVERY_WORK_PACKET.md`; campaign activation remains blocked until funding evidence is implemented |
+| 11 Campaign delivery and learning | IN PROGRESS — funding governance and Campaign `PLANNED` to `BOOKED` readiness are verified locally; creative, live delivery, proof, measurement and learning remain unimplemented |
 | 12 Hardening and certification | BLOCKED by Gate 11 |
 | 13 Production launch | BLOCKED by Gate 12 and independent launch decisions |
 

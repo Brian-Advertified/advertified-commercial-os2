@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: 03ce6ca69596c5d856f07291dd9583932b46bc81d6675f994aaa651a19a54252
+# source-sha256: 11b8da9c08455293f401e7a7646da4f3f3663e849ce4882f52c05b29094aa355
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.4.0"
+REGISTRY_VERSION = "2.5.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -102,6 +102,8 @@ class Permissions(StrEnum):
     INVOICE_ISSUE = "invoice_issue"
     PAYMENT_CREATE = "payment_create"
     PAYMENT_RECONCILE = "payment_reconcile"
+    CAMPAIGN_VIEW = "campaign_view"
+    CAMPAIGN_CONFIRM_BOOKINGS = "campaign_confirm_bookings"
 
 class BriefSourceTypes(StrEnum):
     SUPPLIED_TEXT = "SUPPLIED_TEXT"
@@ -434,6 +436,7 @@ class CommercialResourceTypes(StrEnum):
     PURCHASE_ORDER = "purchase_order"
     INVOICE = "invoice"
     PAYMENT_INTENT = "payment_intent"
+    CAMPAIGN = "campaign"
 
 class CommercialActions(StrEnum):
     TENANT_UPDATED = "tenant.updated"
@@ -505,6 +508,8 @@ class CommercialActions(StrEnum):
     INVOICE_ISSUED = "invoice.issued"
     PAYMENT_STARTED = "payment.started"
     PAYMENT_CONFIRMED = "payment.confirmed"
+    CAMPAIGN_PLANNED = "campaign.planned"
+    CAMPAIGN_BOOKINGS_CONFIRMED = "campaign.bookings_confirmed"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -576,6 +581,8 @@ class CommercialEventTypes(StrEnum):
     INVOICE_ISSUED = "InvoiceIssued"
     PAYMENT_STARTED = "PaymentStarted"
     PAYMENT_CONFIRMED = "PaymentConfirmed"
+    CAMPAIGN_PLANNED = "CampaignPlanned"
+    CAMPAIGN_BOOKINGS_CONFIRMED = "CampaignBookingsConfirmed"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"

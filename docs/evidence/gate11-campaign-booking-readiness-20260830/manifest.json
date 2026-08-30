@@ -1,0 +1,55 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 11,
+  "evidenceDate": "2026-08-30",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "5f7655c354c4837d071ad34a3536f18d3ed93cbc",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Release Commercial API build and complete suite",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj -c Release",
+      "outcome": "PASS",
+      "summary": "Release build completed with zero warnings/errors and all 64 API/domain/database tests passed, including Campaign readiness and negative boundaries."
+    },
+    {
+      "name": "Architecture, master data and retained OpenAPI",
+      "command": "node tools/generate-master-data.mjs --check; node tools/generate-openapi.mjs; python -m pytest tests/architecture -q; git diff --check",
+      "outcome": "PASS",
+      "summary": "Registry 2.5.0 projections and retained OpenAPI match, all 23 architecture checks passed and the diff has no whitespace errors."
+    },
+    {
+      "name": "Deterministic agent runtime",
+      "command": "cd agent-runtime; ruff check .; python -m pytest tests -q",
+      "outcome": "PASS",
+      "summary": "Ruff and all 26 deterministic runtime tests passed without a provider call."
+    },
+    {
+      "name": "Web regression",
+      "command": "cd web; npm run master-data:check; npm run lint; npm test; npm run build; npm run test:e2e",
+      "outcome": "PASS",
+      "summary": "Master-data check, lint and build passed; all 4 unit tests and all 24 desktop/compact browser journeys passed."
+    },
+    {
+      "name": "Compose validation",
+      "command": "docker compose -f infrastructure/docker-compose.yml config --quiet",
+      "outcome": "PASS",
+      "summary": "The local Compose definition remains valid; no infrastructure resource was changed."
+    }
+  ],
+  "unresolvedBlockers": [
+    "Gate 11 creative, readiness, live delivery, proof, measurement, reporting and learning remain unimplemented.",
+    "Owner and independent finance, legal, security/privacy and operations review remain pending.",
+    "No push, deployment, live payment/provider or production mutation is authorised by this packet."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}

@@ -99,6 +99,10 @@ public sealed class PersistedCommandUnitOfWork(
             now.Add(RecordLifetime)));
         dbContext.AuditEvents.Add(new AuditEventRow(outcome.Audit, EmptyMetadata));
         dbContext.OutboxMessages.Add(new OutboxMessageRow(outcome.Outbox));
+        dbContext.AuditEvents.AddRange(
+            outcome.AdditionalAudits.Select(item => new AuditEventRow(item, EmptyMetadata)));
+        dbContext.OutboxMessages.AddRange(
+            outcome.AdditionalOutbox.Select(item => new OutboxMessageRow(item)));
     }
 
     private Task<int> AcquireCommandLockAsync<TCommand>(

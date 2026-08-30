@@ -162,6 +162,12 @@ public sealed class OpenApiContractTests
         var reconcilePayment = paths[
             "/api/v1/tenants/{tenantId}/payment-intents/{paymentIntentId}:reconcile"]!["post"]!;
         AssertHeaderParameter(reconcilePayment["parameters"]!.AsArray(), "If-Match", true);
+        Assert.NotNull(paths["/api/v1/tenants/{tenantId}/campaigns"]!["get"]);
+        Assert.NotNull(paths["/api/v1/tenants/{tenantId}/campaigns/{campaignId}"]!["get"]);
+        var confirmCampaignBookings = paths[
+            "/api/v1/tenants/{tenantId}/campaigns/{campaignId}:confirm-bookings"]!["post"]!;
+        AssertHeaderParameter(
+            confirmCampaignBookings["parameters"]!.AsArray(), "If-Match", true);
     }
 
     private static void AssertHeaderParameter(

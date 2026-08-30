@@ -137,7 +137,8 @@ public sealed partial class MarketplaceAcceptanceTests
                 });
             version = resolved.RootElement.GetProperty("version").GetInt64();
         }
-        return new PlanFixture(planId, version);
+        return new PlanFixture(
+            planId, line.GetProperty("id").GetGuid(), version);
     }
 
     private static async Task AssertArchivedListingInvalidatesPlanAsync(
@@ -152,5 +153,5 @@ public sealed partial class MarketplaceAcceptanceTests
             approval, HttpStatusCode.Conflict, "PLANNING_INPUT_STALE");
     }
 
-    private sealed record PlanFixture(Guid Id, long Version);
+    private sealed record PlanFixture(Guid Id, Guid LineId, long Version);
 }

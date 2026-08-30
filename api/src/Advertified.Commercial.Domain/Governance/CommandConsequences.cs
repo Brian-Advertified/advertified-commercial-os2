@@ -121,7 +121,9 @@ public sealed record CommandOutcome
         JsonElement data,
         long aggregateVersion,
         AuditRecord audit,
-        OutboxMessage outbox)
+        OutboxMessage outbox,
+        IEnumerable<AuditRecord>? additionalAudits = null,
+        IEnumerable<OutboxMessage>? additionalOutbox = null)
     {
         if (data.ValueKind == JsonValueKind.Undefined)
         {
@@ -132,10 +134,16 @@ public sealed record CommandOutcome
         ArgumentNullException.ThrowIfNull(audit);
         ArgumentNullException.ThrowIfNull(outbox);
 
+        var audits = additionalAudits?.ToArray() ?? [];
+        var messages = additionalOutbox?.ToArray() ?? [];
+        ValidateAdditionalConsequences(audit, outbox, audits, messages);
+
         Data = data.Clone();
         AggregateVersion = aggregateVersion;
         Audit = audit;
         Outbox = outbox;
+        AdditionalAudits = audits;
+        AdditionalOutbox = messages;
     }
 
     public JsonElement Data { get; }
@@ -145,6 +153,47 @@ public sealed record CommandOutcome
     public AuditRecord Audit { get; }
 
     public OutboxMessage Outbox { get; }
+
+    public IReadOnlyList<AuditRecord> AdditionalAudits { get; }
+
+    public IReadOnlyList<OutboxMessage> AdditionalOutbox { get; }
+
+    public CommandOutcome WithAdditional(AuditRecord audit, OutboxMessage outbox) => new(
+        Data,
+        AggregateVersion,
+        Audit,
+        Outbox,
+        AdditionalAudits.Append(audit),
+        AdditionalOutbox.Append(outbox));
+
+    private static void ValidateAdditionalConsequences(
+        AuditRecord primaryAudit,
+        OutboxMessage primaryOutbox,
+        AuditRecord[] audits,
+        OutboxMessage[] messages)
+    {
+        if (audits.Any(item =>
+                item.TenantId != primaryAudit.TenantId ||
+                item.ActorId != primaryAudit.ActorId ||
+                item.CommandId != primaryAudit.CommandId ||
+                item.CorrelationId != primaryAudit.CorrelationId) ||
+            messages.Any(item =>
+                item.TenantId != primaryOutbox.TenantId ||
+                item.CausationId != primaryOutbox.CausationId ||
+                item.CorrelationId != primaryOutbox.CorrelationId))
+        {
+            throw new ArgumentException(
+                "Additional consequences must share the command tenant, actor and correlation.");
+        }
+
+        if (audits.Prepend(primaryAudit).Select(item => item.AuditId).Distinct().Count()
+                != audits.Length + 1 ||
+            messages.Prepend(primaryOutbox).Select(item => item.EventId).Distinct().Count()
+                != messages.Length + 1)
+        {
+            throw new ArgumentException("Consequence identifiers must be unique.");
+        }
+    }
 }
 
 public enum CommandDisposition

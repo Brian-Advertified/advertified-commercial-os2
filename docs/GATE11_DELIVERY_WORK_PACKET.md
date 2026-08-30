@@ -10,6 +10,12 @@ Gate 10 remains subject to owner and independent review; local evidence is not a
 retained under `docs/evidence/gate11-funding-governance-20260830/`. Campaign activation remains
 blocked until the later Gate 11 packets are implemented and verified.
 
+**Packet B result:** implemented and verified locally on 2026-08-30; reproducible evidence is
+retained under `docs/evidence/gate11-campaign-booking-readiness-20260830/`. Confirmed funding now
+creates the exact planned Campaign, booking cannot precede it, and only complete confirmed booking
+coverage permits the buyer-side transition to `BOOKED`. Creative and live delivery remain blocked
+until the later Gate 11 packets are implemented and verified.
+
 ## Bounded requirement
 
 Implement the normative Gate 11 lifecycle in sequential local-only packets. The C# Commercial API
@@ -37,19 +43,38 @@ tenant access fail closed without mutation.
 
 ## Later packets
 
-1. Campaign creation and `PLANNED → BOOKED` only when funding is confirmed and all required bookings
-   for the selected option are confirmed.
-2. Versioned creative requirements/assets and human approval through `CREATIVE_PENDING → READY`.
-3. Human-authorised `READY → LIVE → COMPLETED`, immutable delivery proof, sourced performance facts,
+### Packet B — campaign creation and booking readiness
+
+- confirmed payment deterministically creates one `PLANNED` Campaign for the exact selected option;
+- booking creation now requires that confirmed funding and planned Campaign, preserving the canonical
+  Funding → Booking order;
+- supplier booking confirmation remains isolated to the supplier tenant and emits its canonical
+  event; it never obtains buyer-tenant mutation rights;
+- an authorised buyer-side `ConfirmBookings` command advances `PLANNED → BOOKED` only when every
+  MediaPlanLine in the selected option has one exact `CONFIRMED` Booking;
+- campaign creation and booking readiness have their own audit/outbox consequences even when campaign
+  creation is an atomic consequence of payment confirmation;
+- list/detail projections show exact source versions, funding state, required/confirmed counts,
+  delivery dates and next action without exposing evidence object keys.
+
+**Packet B exit evidence:** payment confirmation creates exactly one planned Campaign; booking is
+impossible before confirmed funding; partial, draft or pending bookings cannot advance it; all exact
+confirmed bookings allow one idempotent buyer-side transition to `BOOKED`; unrelated tenants and
+suppliers cannot enumerate or mutate the Campaign.
+
+### Later Gate 11 packets
+
+1. Versioned creative requirements/assets and human approval through `CREATIVE_PENDING → READY`.
+2. Human-authorised `READY → LIVE → COMPLETED`, immutable delivery proof, sourced performance facts,
    measurement interpretation and client report.
-4. Desktop and compact E2E-08 journey plus hardening/certification hand-off.
+3. Desktop and compact E2E-08 journey plus hardening/certification hand-off.
 
 ## Explicitly blocked or out of scope
 
 - live VodaPay, pay-later credit decisions, bank verification, payment collection, refund or settlement;
 - supplier/client communication, autonomous commercial approval, booking or campaign launch;
 - production data, credentials, deployment, cloud mutation or live/paid AI calls;
-- campaign activation before Packet A evidence exists;
+- creative production or campaign launch before the later Gate 11 evidence exists;
 - legal, finance, security, privacy, operations or production-readiness approval by the implementing AI.
 
 ## Acceptance evidence

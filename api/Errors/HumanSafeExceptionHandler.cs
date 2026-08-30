@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Booking;
+using Advertified.Commercial.Application.Campaign;
 using Advertified.Commercial.Application.CommercialSettings;
 using Advertified.Commercial.Application.EmailAutomation;
 using Advertified.Commercial.Application.Funding;
@@ -80,6 +81,11 @@ public sealed class HumanSafeExceptionHandler(
                 "Booking needs review",
                 "The selected price, policy, rate, or availability changed. Create a new plan and client-confirmed proposal before booking.",
                 "BOOKING_REVIEW_REQUIRED"),
+            CampaignReadinessBlockedException => new(
+                StatusCodes.Status409Conflict,
+                "Campaign is not ready",
+                "Complete confirmed funding and every required booking before advancing the campaign.",
+                "CAMPAIGN_READINESS_BLOCKED"),
             FundingReviewRequiredException => new(
                 StatusCodes.Status409Conflict,
                 "Funding needs review",

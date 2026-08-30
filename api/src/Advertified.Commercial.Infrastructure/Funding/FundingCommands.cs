@@ -5,6 +5,7 @@ using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Foundation;
+using Advertified.Commercial.Infrastructure.Campaign;
 
 namespace Advertified.Commercial.Infrastructure.Funding;
 
@@ -12,6 +13,7 @@ public sealed partial class FundingCommands(
     FundingRecordStore store,
     IInventoryObjectStore objectStore,
     IInventoryMalwareScanner malwareScanner,
+    CampaignRecordStore campaignStore,
     CommandDispatcher dispatcher,
     TimeProvider timeProvider) : IFundingCommands
 {

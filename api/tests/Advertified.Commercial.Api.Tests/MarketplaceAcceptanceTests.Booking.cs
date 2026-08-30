@@ -22,10 +22,12 @@ public sealed partial class MarketplaceAcceptanceTests
             connectionString, SupplierUserId, clock);
         await using var buyerFactory = CreateFactory(connectionString, BuyerUserId, clock);
         await using var clientFactory = CreateFactory(connectionString, ClientUserId, clock);
+        await using var reviewerFactory = CreateFactory(connectionString, ReviewerUserId, clock);
         await using var otherFactory = CreateFactory(connectionString, OtherUserId, clock);
         using var supplier = supplierFactory.CreateClient();
         using var buyer = buyerFactory.CreateClient();
         using var client = clientFactory.CreateClient();
+        using var reviewer = reviewerFactory.CreateClient();
         using var other = otherFactory.CreateClient();
 
         var listing = await CreateAndPublishListingAsync(supplier, buyer);
@@ -35,6 +37,25 @@ public sealed partial class MarketplaceAcceptanceTests
             "booking-plan-approve", plan.Version,
             new { reason = "Buyer approved the exact marketplace placement." });
         var selected = await CreateSelectedProposalAsync(buyer, client, plan.Id, clock);
+        using var unfundedBooking = await RawCommandAsync(
+            buyer, BuyerTenantId, "bookings", "booking-before-funding", null,
+            new
+            {
+                proposalVersionId = selected.ProposalId,
+                proposalOptionId = selected.OptionId,
+                mediaPlanLineId = plan.LineId,
+                terms = "Funding must be confirmed before this can become a booking.",
+            });
+        await AssertProblemAsync(
+            unfundedBooking, HttpStatusCode.Conflict, "BOOKING_REVIEW_REQUIRED");
+        using var beforeFunding = await ReadAsync(
+            buyer, BuyerTenantId, "bookings/bookable-lines");
+        Assert.Empty(beforeFunding.RootElement.EnumerateArray());
+        var campaignId = await FundSelectedProposalAsync(buyer, reviewer, selected);
+        using var supplierCampaign = await supplier.GetAsync(
+            $"/api/v1/tenants/{SupplierTenantId}/campaigns/{campaignId}");
+        await AssertProblemAsync(
+            supplierCampaign, HttpStatusCode.Forbidden, "TENANT_FORBIDDEN");
 
         using var bookable = await ReadAsync(buyer, BuyerTenantId, "bookings/bookable-lines");
         var line = Assert.Single(bookable.RootElement.EnumerateArray());
@@ -80,6 +101,12 @@ public sealed partial class MarketplaceAcceptanceTests
             "booking-request", 1,
             new { reason = "Buyer explicitly requests confirmation of this frozen line." });
         Assert.Equal("PENDING_SUPPLIER", requested.RootElement.GetProperty("status").GetString());
+        using var prematureCampaign = await RawCommandAsync(
+            buyer, BuyerTenantId, $"campaigns/{campaignId}:confirm-bookings",
+            "campaign-confirm-premature", 1,
+            new { reason = "Pending supplier confirmation must not be enough." });
+        await AssertProblemAsync(
+            prematureCampaign, HttpStatusCode.Conflict, "CAMPAIGN_READINESS_BLOCKED");
 
         using var rejected = await RawCommandAsync(
             supplier, SupplierTenantId, $"bookings/{bookingId}:confirm",
@@ -98,6 +125,25 @@ public sealed partial class MarketplaceAcceptanceTests
         Assert.Equal("CONFIRMED", confirmed.RootElement.GetProperty("status").GetString());
         Assert.Equal(JsonValueKind.Null,
             confirmed.RootElement.GetProperty("clientPriceMinor").ValueKind);
+        using var campaignReady = await ReadAsync(
+            buyer, BuyerTenantId, $"campaigns/{campaignId}");
+        Assert.Equal("campaign_confirm_bookings", campaignReady.RootElement
+            .GetProperty("nextActionPermission").GetString());
+        using var bookedCampaign = await CommandAsync(
+            buyer, BuyerTenantId, $"campaigns/{campaignId}:confirm-bookings",
+            "campaign-confirm-bookings", 1,
+            new { reason = "Every exact selected line has a confirmed supplier booking." });
+        Assert.Equal("BOOKED", bookedCampaign.RootElement.GetProperty("status").GetString());
+        Assert.Equal(1, bookedCampaign.RootElement
+            .GetProperty("confirmedBookingCount").GetInt32());
+        Assert.Equal(JsonValueKind.Null,
+            bookedCampaign.RootElement.GetProperty("nextActionPermission").ValueKind);
+        using var duplicateCampaign = await RawCommandAsync(
+            buyer, BuyerTenantId, $"campaigns/{campaignId}:confirm-bookings",
+            "campaign-confirm-bookings-duplicate", 2,
+            new { reason = "A booked campaign cannot repeat readiness." });
+        await AssertProblemAsync(
+            duplicateCampaign, HttpStatusCode.Conflict, "INVALID_LIFECYCLE_TRANSITION");
         using var wrongSupplier = await RawCommandAsync(
             other, OtherTenantId, $"bookings/{bookingId}:confirm",
             "booking-wrong-supplier-confirm", 2,
@@ -116,7 +162,7 @@ public sealed partial class MarketplaceAcceptanceTests
             buyerView.RootElement.GetProperty("clientPriceMinor").GetInt64());
         Assert.Equal(5_000, buyerView.RootElement.GetProperty("feesMinor").GetInt64());
         Assert.Equal(188_250, buyerView.RootElement.GetProperty("vatMinor").GetInt64());
-        await AssertBookingEvidenceAsync(connectionString, bookingId);
+        await AssertBookingEvidenceAsync(connectionString, bookingId, campaignId);
     }
 
     [Fact]
@@ -133,9 +179,11 @@ public sealed partial class MarketplaceAcceptanceTests
             connectionString, SupplierUserId, clock);
         await using var buyerFactory = CreateFactory(connectionString, BuyerUserId, clock);
         await using var clientFactory = CreateFactory(connectionString, ClientUserId, clock);
+        await using var reviewerFactory = CreateFactory(connectionString, ReviewerUserId, clock);
         using var supplier = supplierFactory.CreateClient();
         using var buyer = buyerFactory.CreateClient();
         using var client = clientFactory.CreateClient();
+        using var reviewer = reviewerFactory.CreateClient();
 
         var listing = await CreateAndPublishListingAsync(supplier, buyer);
         var plan = await BuildBuyerPlanAsync(buyer, listing.ListingVersionId);
@@ -145,6 +193,7 @@ public sealed partial class MarketplaceAcceptanceTests
             new { reason = "Approve before booking preparation." });
         await ConfigureMatchingCommercialPolicyAsync(buyer);
         var selected = await CreateSelectedProposalAsync(buyer, client, plan.Id, clock);
+        await FundSelectedProposalAsync(buyer, reviewer, selected);
         using var bookable = await ReadAsync(buyer, BuyerTenantId, "bookings/bookable-lines");
         var line = Assert.Single(bookable.RootElement.EnumerateArray());
         using var draft = await CommandAsync(
@@ -243,7 +292,8 @@ public sealed partial class MarketplaceAcceptanceTests
 
     private static async Task AssertBookingEvidenceAsync(
         string connectionString,
-        Guid bookingId)
+        Guid bookingId,
+        Guid campaignId)
     {
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync();
@@ -251,11 +301,24 @@ public sealed partial class MarketplaceAcceptanceTests
             "SELECT count(*)::integer FROM commercial.audit_events WHERE action_code LIKE 'booking.%'"));
         Assert.Equal(3, await CountAsync(connection,
             "SELECT count(*)::integer FROM commercial.outbox_messages WHERE event_type_code LIKE 'Booking%'"));
+        Assert.Equal(2, await CountAsync(connection,
+            "SELECT count(*)::integer FROM commercial.audit_events WHERE action_code LIKE 'campaign.%'"));
+        Assert.Equal(2, await CountAsync(connection,
+            """
+            SELECT count(*)::integer FROM commercial.outbox_messages
+            WHERE event_type_code IN ('CampaignPlanned', 'CampaignBookingsConfirmed')
+            """));
         await using var mutate = new NpgsqlCommand(
             "UPDATE commercial.bookings SET client_price_minor = 1 WHERE id = $1", connection);
         mutate.Parameters.AddWithValue(bookingId);
         var exception = await Assert.ThrowsAsync<PostgresException>(mutate.ExecuteNonQueryAsync);
         Assert.Equal(PostgresErrorCodes.RaiseException, exception.SqlState);
+        await using var mutateCampaign = new NpgsqlCommand(
+            "UPDATE commercial.campaigns SET status_code = 'LIVE' WHERE id = $1", connection);
+        mutateCampaign.Parameters.AddWithValue(campaignId);
+        var campaignException = await Assert.ThrowsAsync<PostgresException>(
+            mutateCampaign.ExecuteNonQueryAsync);
+        Assert.Equal(PostgresErrorCodes.RaiseException, campaignException.SqlState);
     }
 
     private sealed record SelectedProposalFixture(Guid ProposalId, Guid OptionId);

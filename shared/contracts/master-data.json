@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.4.0",
+  "registryVersion": "2.5.0",
   "effectiveFrom": "2026-08-30",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
@@ -101,7 +101,9 @@
       {"code":"purchase_order_approve","displayLabel":"Approve reconciled purchase orders","isActive":true,"sortOrder":630,"metadata":{"roles":["platform_admin"]}},
       {"code":"invoice_issue","displayLabel":"Issue reconciled invoices","isActive":true,"sortOrder":640,"metadata":{"roles":["platform_admin"]}},
       {"code":"payment_create","displayLabel":"Start supported payment records","isActive":true,"sortOrder":650,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
-      {"code":"payment_reconcile","displayLabel":"Reconcile payment evidence","isActive":true,"sortOrder":660,"metadata":{"roles":["platform_admin"]}}
+      {"code":"payment_reconcile","displayLabel":"Reconcile payment evidence","isActive":true,"sortOrder":660,"metadata":{"roles":["platform_admin"]}},
+      {"code":"campaign_view","displayLabel":"View assigned campaign delivery","isActive":true,"sortOrder":670,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
+      {"code":"campaign_confirm_bookings","displayLabel":"Confirm campaign booking readiness","isActive":true,"sortOrder":680,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}}
     ],
     "briefSourceTypes": [
       {"code":"SUPPLIED_TEXT","displayLabel":"Supplied Text","isActive":true,"sortOrder":10},
@@ -433,7 +435,8 @@
       {"code":"booking","displayLabel":"Booking","isActive":true,"sortOrder":360},
       {"code":"purchase_order","displayLabel":"Purchase Order","isActive":true,"sortOrder":370},
       {"code":"invoice","displayLabel":"Invoice","isActive":true,"sortOrder":380},
-      {"code":"payment_intent","displayLabel":"Payment Intent","isActive":true,"sortOrder":390}
+      {"code":"payment_intent","displayLabel":"Payment Intent","isActive":true,"sortOrder":390},
+      {"code":"campaign","displayLabel":"Campaign","isActive":true,"sortOrder":400}
     ],
     "commercialActions": [
       {"code":"tenant.updated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -504,7 +507,9 @@
       {"code":"purchase_order.approved","displayLabel":"Purchase Order Approved","isActive":true,"sortOrder":660},
       {"code":"invoice.issued","displayLabel":"Invoice Issued","isActive":true,"sortOrder":670},
       {"code":"payment.started","displayLabel":"Payment Started","isActive":true,"sortOrder":680},
-      {"code":"payment.confirmed","displayLabel":"Payment Confirmed","isActive":true,"sortOrder":690}
+      {"code":"payment.confirmed","displayLabel":"Payment Confirmed","isActive":true,"sortOrder":690},
+      {"code":"campaign.planned","displayLabel":"Campaign Planned","isActive":true,"sortOrder":700},
+      {"code":"campaign.bookings_confirmed","displayLabel":"Campaign Bookings Confirmed","isActive":true,"sortOrder":710}
     ],
     "commercialEventTypes": [
       {"code":"TenantUpdated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -575,7 +580,9 @@
       {"code":"PurchaseOrderApproved","displayLabel":"Purchase Order Approved","isActive":true,"sortOrder":660},
       {"code":"InvoiceIssued","displayLabel":"Invoice Issued","isActive":true,"sortOrder":670},
       {"code":"PaymentStarted","displayLabel":"Payment Started","isActive":true,"sortOrder":680},
-      {"code":"PaymentConfirmed","displayLabel":"Payment Confirmed","isActive":true,"sortOrder":690}
+      {"code":"PaymentConfirmed","displayLabel":"Payment Confirmed","isActive":true,"sortOrder":690},
+      {"code":"CampaignPlanned","displayLabel":"Campaign Planned","isActive":true,"sortOrder":700},
+      {"code":"CampaignBookingsConfirmed","displayLabel":"Campaign Bookings Confirmed","isActive":true,"sortOrder":710}
     ],
     "creativeTextRoles": [
       {"code":"HEADLINE","displayLabel":"Headline","isActive":true,"sortOrder":10},
