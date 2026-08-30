@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: 11b8da9c08455293f401e7a7646da4f3f3663e849ce4882f52c05b29094aa355
+# source-sha256: ffdc09114f80d12d0d8c855206ec78a0cd5e056f82f72d34c2ecdb15b8022076
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.5.0"
+REGISTRY_VERSION = "2.6.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -104,6 +104,12 @@ class Permissions(StrEnum):
     PAYMENT_RECONCILE = "payment_reconcile"
     CAMPAIGN_VIEW = "campaign_view"
     CAMPAIGN_CONFIRM_BOOKINGS = "campaign_confirm_bookings"
+    CAMPAIGN_REQUEST_CREATIVE = "campaign_request_creative"
+    CREATIVE_VIEW = "creative_view"
+    CREATIVE_UPLOAD = "creative_upload"
+    CREATIVE_BRAND_REVIEW = "creative_brand_review"
+    CREATIVE_SUPPLIER_REVIEW = "creative_supplier_review"
+    CAMPAIGN_APPROVE_CREATIVE = "campaign_approve_creative"
 
 class BriefSourceTypes(StrEnum):
     SUPPLIED_TEXT = "SUPPLIED_TEXT"
@@ -437,6 +443,7 @@ class CommercialResourceTypes(StrEnum):
     INVOICE = "invoice"
     PAYMENT_INTENT = "payment_intent"
     CAMPAIGN = "campaign"
+    CREATIVE_ASSET = "creative_asset"
 
 class CommercialActions(StrEnum):
     TENANT_UPDATED = "tenant.updated"
@@ -510,6 +517,11 @@ class CommercialActions(StrEnum):
     PAYMENT_CONFIRMED = "payment.confirmed"
     CAMPAIGN_PLANNED = "campaign.planned"
     CAMPAIGN_BOOKINGS_CONFIRMED = "campaign.bookings_confirmed"
+    CAMPAIGN_CREATIVE_REQUESTED = "campaign.creative_requested"
+    CREATIVE_ASSET_VERSION_UPLOADED = "creative_asset.version_uploaded"
+    CREATIVE_ASSET_BRAND_REVIEWED = "creative_asset.brand_reviewed"
+    CREATIVE_ASSET_SUPPLIER_REVIEWED = "creative_asset.supplier_reviewed"
+    CAMPAIGN_CREATIVE_APPROVED = "campaign.creative_approved"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -583,6 +595,11 @@ class CommercialEventTypes(StrEnum):
     PAYMENT_CONFIRMED = "PaymentConfirmed"
     CAMPAIGN_PLANNED = "CampaignPlanned"
     CAMPAIGN_BOOKINGS_CONFIRMED = "CampaignBookingsConfirmed"
+    CAMPAIGN_CREATIVE_REQUESTED = "CampaignCreativeRequested"
+    CREATIVE_ASSET_VERSION_UPLOADED = "CreativeAssetVersionUploaded"
+    CREATIVE_ASSET_BRAND_REVIEWED = "CreativeAssetBrandReviewed"
+    CREATIVE_ASSET_SUPPLIER_REVIEWED = "CreativeAssetSupplierReviewed"
+    CAMPAIGN_CREATIVE_APPROVED = "CampaignCreativeApproved"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"
@@ -601,6 +618,10 @@ class AssetRightsStatuses(StrEnum):
     APPROVED = "APPROVED"
     UNKNOWN = "UNKNOWN"
     RESTRICTED = "RESTRICTED"
+
+class CreativeReviewTypes(StrEnum):
+    BRAND_LEGAL_RIGHTS = "BRAND_LEGAL_RIGHTS"
+    SUPPLIER_TECHNICAL = "SUPPLIER_TECHNICAL"
 
 class TenantTypes(StrEnum):
     PLATFORM = "PLATFORM"

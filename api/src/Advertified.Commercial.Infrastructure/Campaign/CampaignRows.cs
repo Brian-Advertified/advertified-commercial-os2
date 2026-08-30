@@ -40,21 +40,34 @@ internal sealed record CampaignRow(
     Guid? BookingsConfirmedBy,
     DateTimeOffset? BookingsConfirmedAtUtc,
     string? BookingConfirmationReason,
+    Guid? CreativeRequestedBy,
+    DateTimeOffset? CreativeRequestedAtUtc,
+    string? CreativeRequestReason,
+    Guid? CreativeApprovedBy,
+    DateTimeOffset? CreativeApprovedAtUtc,
+    string? CreativeApprovalReason,
     long Version,
     DateTimeOffset UpdatedAtUtc)
 {
     internal CampaignView ToView()
     {
-        var nextAction = Status == MasterDataCodes.LifecycleStatuses.Planned &&
-            RequiredBookingCount > 0 && ConfirmedBookingCount == RequiredBookingCount
-                ? MasterDataCodes.Permissions.CampaignConfirmBookings
-                : null;
+        var nextAction = Status switch
+        {
+            MasterDataCodes.LifecycleStatuses.Planned when RequiredBookingCount > 0 &&
+                ConfirmedBookingCount == RequiredBookingCount =>
+                MasterDataCodes.Permissions.CampaignConfirmBookings,
+            MasterDataCodes.LifecycleStatuses.Booked =>
+                MasterDataCodes.Permissions.CampaignRequestCreative,
+            _ => null,
+        };
         return new(
             Id, BriefId, BriefVersionId, ProposalVersionId, ProposalOptionId,
             ProposalDecisionId, PlanVersionId, PaymentIntentId, FundingStatus,
             Title, StartDate, EndDate, OwnerUserId, MeasurementPlanJson, Status,
             RequiredBookingCount, ConfirmedBookingCount, nextAction, CreatedBy,
             CreatedAtUtc, BookingsConfirmedBy, BookingsConfirmedAtUtc,
-            BookingConfirmationReason, Version, UpdatedAtUtc);
+            BookingConfirmationReason, CreativeRequestedBy, CreativeRequestedAtUtc,
+            CreativeRequestReason, CreativeApprovedBy, CreativeApprovedAtUtc,
+            CreativeApprovalReason, Version, UpdatedAtUtc);
     }
 }

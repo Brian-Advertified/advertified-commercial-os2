@@ -1,30 +1,15 @@
-using Advertified.Commercial.Application.Campaign;
+using Advertified.Commercial.Application.Creative;
 using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
-using Advertified.Commercial.Infrastructure.Creative;
 
-namespace Advertified.Commercial.Infrastructure.Campaign;
+namespace Advertified.Commercial.Infrastructure.Creative;
 
-public sealed class CampaignReader(
-    CampaignRecordStore store,
-    CreativeRecordStore creativeStore,
-    ITenantAuthorizer authorizer) : ICampaignReader
+public sealed class CreativeReader(
+    CreativeRecordStore store,
+    ITenantAuthorizer authorizer) : ICreativeReader
 {
-    public async Task<IReadOnlyList<CampaignView>> ListAsync(
-        ActorId actorId,
-        TenantId tenantId,
-        CancellationToken cancellationToken)
-    {
-        await EnsureAllowedAsync(actorId, tenantId, cancellationToken);
-        await using var transaction = await store.BeginSessionAsync(
-            actorId, tenantId, cancellationToken);
-        var rows = await store.ListAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return rows.Select(row => row.ToView()).ToArray();
-    }
-
-    public async Task<CampaignView> GetAsync(
+    public async Task<CreativeWorkspaceView> GetWorkspaceAsync(
         ActorId actorId,
         TenantId tenantId,
         Guid campaignId,
@@ -33,12 +18,25 @@ public sealed class CampaignReader(
         await EnsureAllowedAsync(actorId, tenantId, cancellationToken);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
-        var row = await store.FindAsync(campaignId, false, cancellationToken)
-            ?? throw new UnauthorizedAccessException("Campaign access denied.");
-        var creative = CreativeRecordStore.ToWorkspace(
-            await creativeStore.ListWorkspaceRowsAsync(campaignId, cancellationToken));
+        var view = CreativeRecordStore.ToWorkspace(
+            await store.ListWorkspaceRowsAsync(campaignId, cancellationToken));
         await transaction.CommitAsync(cancellationToken);
-        return row.ToView() with { Creative = creative };
+        return view;
+    }
+
+    public async Task<SupplierCreativeAssetView> GetSupplierAssetAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        Guid assetId,
+        CancellationToken cancellationToken)
+    {
+        await EnsureAllowedAsync(actorId, tenantId, cancellationToken);
+        await using var transaction = await store.BeginSessionAsync(
+            actorId, tenantId, cancellationToken);
+        var view = (await store.FindSupplierViewAsync(assetId, cancellationToken))?.ToView()
+            ?? throw new UnauthorizedAccessException("Creative asset access denied.");
+        await transaction.CommitAsync(cancellationToken);
+        return view;
     }
 
     private async Task EnsureAllowedAsync(
@@ -47,9 +45,9 @@ public sealed class CampaignReader(
         CancellationToken cancellationToken)
     {
         var decision = await authorizer.AuthorizeAsync(
-            actorId, tenantId, MasterDataReferences.Permissions.CampaignView,
+            actorId, tenantId, MasterDataReferences.Permissions.CreativeView,
             cancellationToken);
         if (!decision.IsAllowed)
-            throw new UnauthorizedAccessException("Campaign access denied.");
+            throw new UnauthorizedAccessException("Creative asset access denied.");
     }
 }

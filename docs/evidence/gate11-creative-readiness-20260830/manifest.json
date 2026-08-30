@@ -1,0 +1,68 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 11,
+  "evidenceDate": "2026-08-30",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "00321faec3a3527cc88e516f2095655f6e4ab7ed",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Release Commercial API build and complete suite",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj -c Release --no-build",
+      "outcome": "PASS",
+      "summary": "Release build completed with zero warnings/errors and all 64 API/domain/database tests passed."
+    },
+    {
+      "name": "Creative production readiness journey",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj -c Release --no-build --filter FullyQualifiedName~ClientSelectedMarketplaceLineRequiresBuyerRequestAndSupplierConfirmation",
+      "outcome": "PASS",
+      "summary": "The booked Campaign progressed through exact creative requirements, versioned file replacement, buyer and supplier review, and client approval to READY with negative boundaries."
+    },
+    {
+      "name": "Master data, retained OpenAPI and packet architecture",
+      "command": "node tools/generate-master-data.mjs --check; node tools/generate-openapi.mjs; dotnet test ... --filter FullyQualifiedName~OpenApiContractTests; python -m pytest <14 focused architecture checks>",
+      "outcome": "PASS",
+      "summary": "Registry 2.6.0 projections and retained OpenAPI match; all 14 packet-relevant security, evidence and master-data checks passed."
+    },
+    {
+      "name": "Complete repository architecture suite",
+      "command": "python -m pytest tests/architecture -q",
+      "outcome": "PASS",
+      "summary": "All 23 repository architecture checks passed, including file limits, governed codes, evidence manifests and secret-shape checks."
+    },
+    {
+      "name": "Deterministic agent runtime",
+      "command": "cd agent-runtime; python -m ruff check .; python -m pytest tests -q",
+      "outcome": "PASS",
+      "summary": "Ruff and all 26 deterministic runtime tests passed without a provider call."
+    },
+    {
+      "name": "Web regression",
+      "command": "cd web; npm run master-data:check; npm run lint; npm test; npm run build; npm run test:e2e",
+      "outcome": "BLOCKED",
+      "summary": "Master-data, lint, 4/4 unit tests and build passed. Browser tests passed 20/24; four home/Brief selector failures occurred while another agent actively changed those screens."
+    },
+    {
+      "name": "Compose validation",
+      "command": "docker compose -f infrastructure/docker-compose.yml config --quiet",
+      "outcome": "PASS",
+      "summary": "The local Compose definition remains valid; no infrastructure resource was changed."
+    }
+  ],
+  "unresolvedBlockers": [
+    "Separately owned screen work must be integrated before the complete architecture and web suites can be certified.",
+    "Gate 11 live delivery, proof, measurement, reporting and learning remain unimplemented.",
+    "Owner and independent finance, legal, security/privacy and operations review remain pending.",
+    "No push, deployment, live payment/provider or production mutation is authorised by this packet."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}

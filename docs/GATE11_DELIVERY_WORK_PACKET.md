@@ -16,6 +16,12 @@ creates the exact planned Campaign, booking cannot precede it, and only complete
 coverage permits the buyer-side transition to `BOOKED`. Creative and live delivery remain blocked
 until the later Gate 11 packets are implemented and verified.
 
+**Packet C result:** implemented and API-verified locally on 2026-08-30; reproducible evidence is
+retained under `docs/evidence/gate11-creative-readiness-20260830/`. Exact booked-format requirements,
+protected versioned files, separate buyer and supplier review, and client readiness approval are
+implemented. Repository-wide architecture checks pass; web browser verification remains pending
+integration of separately owned screen work. Live delivery remains blocked until later Gate 11 packets.
+
 ## Bounded requirement
 
 Implement the normative Gate 11 lifecycle in sequential local-only packets. The C# Commercial API
@@ -62,12 +68,33 @@ impossible before confirmed funding; partial, draft or pending bookings cannot a
 confirmed bookings allow one idempotent buyer-side transition to `BOOKED`; unrelated tenants and
 suppliers cannot enumerate or mutate the Campaign.
 
+### Packet C — booked-format creative production and readiness
+
+- an authorised buyer request advances `BOOKED → CREATIVE_PENDING` only when it supplies exactly one
+  immutable format requirement for every confirmed Booking in the Campaign;
+- every requirement is bound to the exact Booking, MediaPlanLine, supplier, delivery dates and
+  Campaign source versions; proposal-stage concepts can never satisfy it;
+- creative files are signature-checked, malware-scanned, hashed and stored under tenant-scoped
+  protected object keys that are never returned by the API;
+- each replacement is a new immutable CreativeAsset version; the API derives the commercial snapshot
+  from the Booking and never accepts price truth from the browser;
+- buyer brand/legal/rights review and supplier technical review are separate, named, append-only human
+  decisions against the exact current file version;
+- only an authorised client approver may advance `CREATIVE_PENDING → READY`, and only when every exact
+  requirement has a current version with approved rights, brand/legal review and supplier review;
+- database triggers and forced RLS independently enforce lifecycle, tenant, current-version, actor and
+  review boundaries while supplier projections exclude buyer copy, commercial and storage details.
+
+**Packet C exit evidence:** missing/duplicate booking requirements, unsafe or mismatched files, old
+version approvals, unauthorised reviewers, supplier access to buyer Campaign data, incomplete reviews
+and direct invalid lifecycle changes fail closed without advancing readiness. A replacement version
+invalidates prior reviews; exact current-version approvals permit one idempotent transition to `READY`.
+
 ### Later Gate 11 packets
 
-1. Versioned creative requirements/assets and human approval through `CREATIVE_PENDING → READY`.
-2. Human-authorised `READY → LIVE → COMPLETED`, immutable delivery proof, sourced performance facts,
+1. Human-authorised `READY → LIVE → COMPLETED`, immutable delivery proof, sourced performance facts,
    measurement interpretation and client report.
-3. Desktop and compact E2E-08 journey plus hardening/certification hand-off.
+2. Desktop and compact E2E-08 journey plus hardening/certification hand-off.
 
 ## Explicitly blocked or out of scope
 

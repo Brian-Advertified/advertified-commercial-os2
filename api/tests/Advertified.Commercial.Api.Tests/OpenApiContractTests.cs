@@ -168,6 +168,30 @@ public sealed class OpenApiContractTests
             "/api/v1/tenants/{tenantId}/campaigns/{campaignId}:confirm-bookings"]!["post"]!;
         AssertHeaderParameter(
             confirmCampaignBookings["parameters"]!.AsArray(), "If-Match", true);
+        var requestCreative = paths[
+            "/api/v1/tenants/{tenantId}/campaigns/{campaignId}:request-creative"]!["post"]!;
+        AssertHeaderParameter(requestCreative["parameters"]!.AsArray(), "If-Match", true);
+        var createCreativeAsset = paths[
+            "/api/v1/tenants/{tenantId}/campaigns/{campaignId}/creative"]!["post"]!;
+        Assert.DoesNotContain(
+            createCreativeAsset["parameters"]!.AsArray(),
+            item => item?["name"]?.GetValue<string>() == "If-Match");
+        var uploadCreativeVersion = paths[
+            "/api/v1/tenants/{tenantId}/campaigns/{campaignId}/creative/{assetId}:upload-version"]!["post"]!;
+        AssertHeaderParameter(
+            uploadCreativeVersion["parameters"]!.AsArray(), "If-Match", true);
+        var brandReview = paths[
+            "/api/v1/tenants/{tenantId}/campaigns/{campaignId}/creative/{assetId}:brand-review"]!["post"]!;
+        AssertHeaderParameter(brandReview["parameters"]!.AsArray(), "If-Match", true);
+        var supplierCreative = paths[
+            "/api/v1/tenants/{tenantId}/creative-assets/{assetId}"]!;
+        Assert.NotNull(supplierCreative["get"]);
+        var supplierReview = paths[
+            "/api/v1/tenants/{tenantId}/creative-assets/{assetId}:supplier-review"]!["post"]!;
+        AssertHeaderParameter(supplierReview["parameters"]!.AsArray(), "If-Match", true);
+        var approveCreative = paths[
+            "/api/v1/tenants/{tenantId}/campaigns/{campaignId}:approve-creative"]!["post"]!;
+        AssertHeaderParameter(approveCreative["parameters"]!.AsArray(), "If-Match", true);
     }
 
     private static void AssertHeaderParameter(

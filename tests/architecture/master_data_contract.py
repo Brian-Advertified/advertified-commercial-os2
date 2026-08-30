@@ -62,6 +62,7 @@ REQUIRED_MASTER_COLLECTIONS = {
     "agentFailureReasons",
     "creativeTextRoles",
     "creativeWarningTypes",
+    "creativeReviewTypes",
     "assetRightsStatuses",
     "commercialResourceTypes",
     "commercialActions",
@@ -249,6 +250,26 @@ CAMPAIGN_PERMISSION_ROLES = {
     },
     "campaign_confirm_bookings": {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "campaign_request_creative": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "creative_view": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+        "advertiser_admin", "advertiser_approver", "inventory_ops", "supplier_admin",
+        "supplier_user",
+    },
+    "creative_upload": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "creative_brand_review": {
+        "platform_admin", "advertiser_admin", "advertiser_approver",
+    },
+    "creative_supplier_review": {
+        "platform_admin", "inventory_ops", "supplier_admin", "supplier_user",
+    },
+    "campaign_approve_creative": {
+        "platform_admin", "advertiser_admin", "advertiser_approver",
     },
 }
 REQUIRED_PERMISSION_ROLES = (

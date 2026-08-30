@@ -5,6 +5,7 @@ using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Booking;
 using Advertified.Commercial.Application.Campaign;
 using Advertified.Commercial.Application.CommercialSettings;
+using Advertified.Commercial.Application.Creative;
 using Advertified.Commercial.Application.EmailAutomation;
 using Advertified.Commercial.Application.Funding;
 using Advertified.Commercial.Api.Authentication;
@@ -86,6 +87,16 @@ public sealed class HumanSafeExceptionHandler(
                 "Campaign is not ready",
                 "Complete confirmed funding and every required booking before advancing the campaign.",
                 "CAMPAIGN_READINESS_BLOCKED"),
+            CreativeReadinessBlockedException => new(
+                StatusCodes.Status409Conflict,
+                "Creative is not ready",
+                "Complete every exact current-version creative review before advancing the campaign.",
+                "CREATIVE_READINESS_BLOCKED"),
+            CreativeFileRejectedException => new(
+                StatusCodes.Status400BadRequest,
+                "Creative file was rejected",
+                "Upload a safe file that matches the booked format requirement.",
+                "CREATIVE_FILE_REJECTED"),
             FundingReviewRequiredException => new(
                 StatusCodes.Status409Conflict,
                 "Funding needs review",

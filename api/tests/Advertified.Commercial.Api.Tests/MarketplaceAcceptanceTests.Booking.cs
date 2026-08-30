@@ -136,8 +136,8 @@ public sealed partial class MarketplaceAcceptanceTests
         Assert.Equal("BOOKED", bookedCampaign.RootElement.GetProperty("status").GetString());
         Assert.Equal(1, bookedCampaign.RootElement
             .GetProperty("confirmedBookingCount").GetInt32());
-        Assert.Equal(JsonValueKind.Null,
-            bookedCampaign.RootElement.GetProperty("nextActionPermission").ValueKind);
+        Assert.Equal("campaign_request_creative", bookedCampaign.RootElement
+            .GetProperty("nextActionPermission").GetString());
         using var duplicateCampaign = await RawCommandAsync(
             buyer, BuyerTenantId, $"campaigns/{campaignId}:confirm-bookings",
             "campaign-confirm-bookings-duplicate", 2,
@@ -163,6 +163,9 @@ public sealed partial class MarketplaceAcceptanceTests
         Assert.Equal(5_000, buyerView.RootElement.GetProperty("feesMinor").GetInt64());
         Assert.Equal(188_250, buyerView.RootElement.GetProperty("vatMinor").GetInt64());
         await AssertBookingEvidenceAsync(connectionString, bookingId, campaignId);
+        await AssertCreativeProductionReadinessAsync(
+            buyer, client, supplier, other, campaignId, bookingId,
+            bookedCampaign.RootElement.GetProperty("version").GetInt64(), connectionString);
     }
 
     [Fact]

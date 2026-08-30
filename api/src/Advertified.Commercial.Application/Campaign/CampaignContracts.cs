@@ -1,4 +1,5 @@
 using Advertified.Commercial.Application.Foundation;
+using Advertified.Commercial.Application.Creative;
 using Advertified.Commercial.Domain.Governance;
 
 namespace Advertified.Commercial.Application.Campaign;
@@ -29,8 +30,17 @@ public sealed record CampaignView(
     Guid? BookingsConfirmedBy,
     DateTimeOffset? BookingsConfirmedAtUtc,
     string? BookingConfirmationReason,
+    Guid? CreativeRequestedBy,
+    DateTimeOffset? CreativeRequestedAtUtc,
+    string? CreativeRequestReason,
+    Guid? CreativeApprovedBy,
+    DateTimeOffset? CreativeApprovedAtUtc,
+    string? CreativeApprovalReason,
     long Version,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc)
+{
+    public CreativeWorkspaceView? Creative { get; init; }
+}
 
 public interface ICampaignCommands
 {
