@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: fce9f7934e3fc804e6c6fe2abd9ae7cf362f050b4685a0fb7bafd5d8689c2332
+# source-sha256: 03ce6ca69596c5d856f07291dd9583932b46bc81d6675f994aaa651a19a54252
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.3.0"
+REGISTRY_VERSION = "2.4.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -96,6 +96,12 @@ class Permissions(StrEnum):
     BOOKING_CREATE = "booking_create"
     BOOKING_REQUEST = "booking_request"
     BOOKING_CONFIRM = "booking_confirm"
+    FUNDING_VIEW = "funding_view"
+    PURCHASE_ORDER_SUBMIT = "purchase_order_submit"
+    PURCHASE_ORDER_APPROVE = "purchase_order_approve"
+    INVOICE_ISSUE = "invoice_issue"
+    PAYMENT_CREATE = "payment_create"
+    PAYMENT_RECONCILE = "payment_reconcile"
 
 class BriefSourceTypes(StrEnum):
     SUPPLIED_TEXT = "SUPPLIED_TEXT"
@@ -425,6 +431,9 @@ class CommercialResourceTypes(StrEnum):
     MARKETPLACE_SUPPLIER_RESPONSE = "marketplace_supplier_response"
     COMMERCIAL_POLICY_VERSION = "commercial_policy_version"
     BOOKING = "booking"
+    PURCHASE_ORDER = "purchase_order"
+    INVOICE = "invoice"
+    PAYMENT_INTENT = "payment_intent"
 
 class CommercialActions(StrEnum):
     TENANT_UPDATED = "tenant.updated"
@@ -491,6 +500,11 @@ class CommercialActions(StrEnum):
     BOOKING_CREATED = "booking.created"
     BOOKING_CONFIRMATION_REQUESTED = "booking.confirmation_requested"
     BOOKING_CONFIRMED = "booking.confirmed"
+    PURCHASE_ORDER_SUBMITTED = "purchase_order.submitted"
+    PURCHASE_ORDER_APPROVED = "purchase_order.approved"
+    INVOICE_ISSUED = "invoice.issued"
+    PAYMENT_STARTED = "payment.started"
+    PAYMENT_CONFIRMED = "payment.confirmed"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -557,6 +571,11 @@ class CommercialEventTypes(StrEnum):
     BOOKING_CREATED = "BookingCreated"
     BOOKING_CONFIRMATION_REQUESTED = "BookingConfirmationRequested"
     BOOKING_CONFIRMED = "BookingConfirmed"
+    PURCHASE_ORDER_SUBMITTED = "PurchaseOrderSubmitted"
+    PURCHASE_ORDER_APPROVED = "PurchaseOrderApproved"
+    INVOICE_ISSUED = "InvoiceIssued"
+    PAYMENT_STARTED = "PaymentStarted"
+    PAYMENT_CONFIRMED = "PaymentConfirmed"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"

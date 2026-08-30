@@ -151,6 +151,17 @@ public sealed class OpenApiContractTests
         var accept = paths[
             "/api/v1/tenants/{tenantId}/marketplace-responses/{responseId}:accept"]!["post"]!;
         AssertHeaderParameter(accept["parameters"]!.AsArray(), "If-Match", true);
+        Assert.NotNull(paths["/api/v1/tenants/{tenantId}/funding"]!["get"]);
+        Assert.NotNull(paths["/api/v1/tenants/{tenantId}/purchase-orders"]!["post"]);
+        var approvePurchaseOrder = paths[
+            "/api/v1/tenants/{tenantId}/purchase-orders/{purchaseOrderId}:approve"]!["post"]!;
+        AssertHeaderParameter(
+            approvePurchaseOrder["parameters"]!.AsArray(), "If-Match", true);
+        Assert.NotNull(paths["/api/v1/tenants/{tenantId}/invoices:issue"]!["post"]);
+        Assert.NotNull(paths["/api/v1/tenants/{tenantId}/payment-intents"]!["post"]);
+        var reconcilePayment = paths[
+            "/api/v1/tenants/{tenantId}/payment-intents/{paymentIntentId}:reconcile"]!["post"]!;
+        AssertHeaderParameter(reconcilePayment["parameters"]!.AsArray(), "If-Match", true);
     }
 
     private static void AssertHeaderParameter(

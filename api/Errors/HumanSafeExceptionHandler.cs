@@ -5,6 +5,7 @@ using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Booking;
 using Advertified.Commercial.Application.CommercialSettings;
 using Advertified.Commercial.Application.EmailAutomation;
+using Advertified.Commercial.Application.Funding;
 using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Application.Opportunity;
@@ -79,6 +80,16 @@ public sealed class HumanSafeExceptionHandler(
                 "Booking needs review",
                 "The selected price, policy, rate, or availability changed. Create a new plan and client-confirmed proposal before booking.",
                 "BOOKING_REVIEW_REQUIRED"),
+            FundingReviewRequiredException => new(
+                StatusCodes.Status409Conflict,
+                "Funding needs review",
+                "The selected option, amount, currency, or funding evidence no longer reconciles.",
+                "FUNDING_REVIEW_REQUIRED"),
+            PaymentMethodUnavailableException => new(
+                StatusCodes.Status409Conflict,
+                "Payment method is unavailable",
+                "Use manual EFT locally. Provider and credit methods require separate approval and configuration.",
+                "PAYMENT_METHOD_UNAVAILABLE"),
             VersionConflictException or DbUpdateConcurrencyException => new(
                 StatusCodes.Status409Conflict,
                 "Changes could not be saved",
@@ -134,6 +145,11 @@ public sealed class HumanSafeExceptionHandler(
                 "File protection is unavailable",
                 "Try again after the local file protection services are available.",
                 "INVENTORY_PROTECTION_UNAVAILABLE"),
+            UnsafeInventorySourceException => new(
+                StatusCodes.Status409Conflict,
+                "File was rejected",
+                "Use a supported clean file and try again.",
+                "UNSAFE_FILE_REJECTED"),
             CampaignModeRequiredException => new(
                 StatusCodes.Status409Conflict,
                 "Choose the campaign mode",

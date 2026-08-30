@@ -5935,6 +5935,969 @@
         }
       }
     },
+    "/api/v1/tenants/{tenantId}/funding": {
+      "get": {
+        "tags": [
+          "Funding"
+        ],
+        "operationId": "GetFundingWorkspace",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "description": "Optional UUID request correlation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FundingWorkspaceView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{tenantId}/purchase-orders": {
+      "post": {
+        "tags": [
+          "Funding"
+        ],
+        "operationId": "SubmitPurchaseOrder",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "description": "Optional UUID request correlation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique key for safely retrying this command.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "description": "Required for unsafe cookie-authenticated browser requests.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitPurchaseOrderForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Strong optimistic-concurrency version for this entity.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Idempotency-Replayed": {
+                "description": "True when a prior canonical command result was replayed.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{tenantId}/purchase-orders/{purchaseOrderId}:approve": {
+      "post": {
+        "tags": [
+          "Funding"
+        ],
+        "operationId": "ApprovePurchaseOrder",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "purchaseOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "description": "Optional UUID request correlation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique key for safely retrying this command.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Strong ETag version returned by the latest read.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "description": "Required for unsafe cookie-authenticated browser requests.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovePurchaseOrderCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Strong optimistic-concurrency version for this entity.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Idempotency-Replayed": {
+                "description": "True when a prior canonical command result was replayed.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{tenantId}/invoices:issue": {
+      "post": {
+        "tags": [
+          "Funding"
+        ],
+        "operationId": "IssueInvoice",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "description": "Optional UUID request correlation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique key for safely retrying this command.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "description": "Required for unsafe cookie-authenticated browser requests.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueInvoiceCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Strong optimistic-concurrency version for this entity.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Idempotency-Replayed": {
+                "description": "True when a prior canonical command result was replayed.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{tenantId}/payment-intents": {
+      "post": {
+        "tags": [
+          "Funding"
+        ],
+        "operationId": "StartPayment",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "description": "Optional UUID request correlation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique key for safely retrying this command.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "description": "Required for unsafe cookie-authenticated browser requests.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartPaymentCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Strong optimistic-concurrency version for this entity.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Idempotency-Replayed": {
+                "description": "True when a prior canonical command result was replayed.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentIntentView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{tenantId}/payment-intents/{paymentIntentId}:reconcile": {
+      "post": {
+        "tags": [
+          "Funding"
+        ],
+        "operationId": "ReconcilePayment",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "paymentIntentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "description": "Optional UUID request correlation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique key for safely retrying this command.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Strong ETag version returned by the latest read.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "description": "Required for unsafe cookie-authenticated browser requests.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconcilePaymentForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Strong optimistic-concurrency version for this entity.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Idempotency-Replayed": {
+                "description": "True when a prior canonical command result was replayed.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentIntentView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health/live": {
       "get": {
         "tags": [
@@ -16432,6 +17395,16 @@
         },
         "additionalProperties": false
       },
+      "ApprovePurchaseOrderCommand": {
+        "type": "object",
+        "properties": {
+          "reconciliationReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ApproveStrategyCommand": {
         "type": "object",
         "properties": {
@@ -18400,6 +19373,33 @@
         },
         "additionalProperties": false
       },
+      "FundingWorkspaceView": {
+        "type": "object",
+        "properties": {
+          "purchaseOrders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseOrderView"
+            },
+            "nullable": true
+          },
+          "invoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvoiceView"
+            },
+            "nullable": true
+          },
+          "payments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentIntentView"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "GenerateAudiencesCommand": {
         "type": "object",
         "additionalProperties": false
@@ -19609,6 +20609,82 @@
         },
         "additionalProperties": false
       },
+      "InvoiceView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "proposalVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "proposalOptionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "purchaseOrderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoiceNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalMinor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "feesMinor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "vatMinor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalMinor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "issuedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "issuedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IssueInvoiceCommand": {
+        "type": "object",
+        "properties": {
+          "purchaseOrderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoiceNumber": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ManageAgentRunCommand": {
         "type": "object",
         "properties": {
@@ -20498,6 +21574,82 @@
         },
         "additionalProperties": false
       },
+      "PaymentIntentView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "proposalVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "proposalOptionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "purchaseOrderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoiceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "methodCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "amountMinor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "startedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reconciledBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "reconciledAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reconciliationReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "reconciliationReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiptSha256": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
       "PlanObjectionView": {
         "type": "object",
         "properties": {
@@ -20835,12 +21987,107 @@
         "type": "object",
         "additionalProperties": false
       },
+      "PurchaseOrderView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "proposalVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "proposalOptionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "proposalDecisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "purchaseOrderNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "contentSha256": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediaType": {
+            "type": "string",
+            "nullable": true
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "amountMinor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submittedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "approvedBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "approvedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reconciliationReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
       "QueueAgentRunCommand": {
         "type": "object",
         "properties": {
           "approverUserId": {
             "type": "string",
             "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconcilePaymentForm": {
+        "type": "object",
+        "properties": {
+          "reconciliationReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "receipt": {
+            "type": "string",
+            "format": "binary",
             "nullable": true
           }
         },
@@ -21134,6 +22381,20 @@
         },
         "additionalProperties": false
       },
+      "StartPaymentCommand": {
+        "type": "object",
+        "properties": {
+          "invoiceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "methodCode": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "StartQualificationCommand": {
         "type": "object",
         "properties": {
@@ -21276,6 +22537,37 @@
             "items": {
               "type": "string"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubmitPurchaseOrderForm": {
+        "type": "object",
+        "properties": {
+          "proposalVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "proposalOptionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "purchaseOrderNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "amountMinor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "document": {
+            "type": "string",
+            "format": "binary",
             "nullable": true
           }
         },
@@ -21761,6 +23053,9 @@
     },
     {
       "name": "Commercial settings"
+    },
+    {
+      "name": "Funding"
     },
     {
       "name": "Health"

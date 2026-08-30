@@ -227,10 +227,25 @@ BOOKING_PERMISSION_ROLES = {
         "platform_admin", "inventory_ops", "supplier_admin", "supplier_user",
     },
 }
+FUNDING_PERMISSION_ROLES = {
+    "funding_view": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+        "advertiser_admin", "advertiser_approver",
+    },
+    "purchase_order_submit": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "purchase_order_approve": {"platform_admin"},
+    "invoice_issue": {"platform_admin"},
+    "payment_create": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "payment_reconcile": {"platform_admin"},
+}
 REQUIRED_PERMISSION_ROLES = (
     FOUNDATION_PERMISSION_ROLES | OPPORTUNITY_PERMISSION_ROLES | BRIEF_PERMISSION_ROLES
     | INVENTORY_PERMISSION_ROLES | PLANNING_PERMISSION_ROLES | PROPOSAL_PERMISSION_ROLES
     | EMAIL_AUTOMATION_PERMISSION_ROLES | MARKETPLACE_PERMISSION_ROLES
-    | COMMERCIAL_PERMISSION_ROLES | BOOKING_PERMISSION_ROLES
+    | COMMERCIAL_PERMISSION_ROLES | BOOKING_PERMISSION_ROLES | FUNDING_PERMISSION_ROLES
 )
 

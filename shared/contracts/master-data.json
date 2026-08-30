@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.3.0",
+  "registryVersion": "2.4.0",
   "effectiveFrom": "2026-08-30",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
@@ -95,7 +95,13 @@
       {"code":"booking_view","displayLabel":"View assigned bookings","isActive":true,"sortOrder":570,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_admin","supplier_user"]}},
       {"code":"booking_create","displayLabel":"Create bookings from client-selected options","isActive":true,"sortOrder":580,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"booking_request","displayLabel":"Request supplier booking confirmation","isActive":true,"sortOrder":590,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
-      {"code":"booking_confirm","displayLabel":"Confirm own supplier bookings","isActive":true,"sortOrder":600,"metadata":{"roles":["platform_admin","inventory_ops","supplier_admin","supplier_user"]}}
+      {"code":"booking_confirm","displayLabel":"Confirm own supplier bookings","isActive":true,"sortOrder":600,"metadata":{"roles":["platform_admin","inventory_ops","supplier_admin","supplier_user"]}},
+      {"code":"funding_view","displayLabel":"View assigned funding records","isActive":true,"sortOrder":610,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
+      {"code":"purchase_order_submit","displayLabel":"Submit signed purchase orders","isActive":true,"sortOrder":620,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"purchase_order_approve","displayLabel":"Approve reconciled purchase orders","isActive":true,"sortOrder":630,"metadata":{"roles":["platform_admin"]}},
+      {"code":"invoice_issue","displayLabel":"Issue reconciled invoices","isActive":true,"sortOrder":640,"metadata":{"roles":["platform_admin"]}},
+      {"code":"payment_create","displayLabel":"Start supported payment records","isActive":true,"sortOrder":650,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"payment_reconcile","displayLabel":"Reconcile payment evidence","isActive":true,"sortOrder":660,"metadata":{"roles":["platform_admin"]}}
     ],
     "briefSourceTypes": [
       {"code":"SUPPLIED_TEXT","displayLabel":"Supplied Text","isActive":true,"sortOrder":10},
@@ -424,7 +430,10 @@
       {"code":"marketplace_rfq","displayLabel":"Marketplace RFQ","isActive":true,"sortOrder":330},
       {"code":"marketplace_supplier_response","displayLabel":"Marketplace Supplier Response","isActive":true,"sortOrder":340},
       {"code":"commercial_policy_version","displayLabel":"Commercial Policy Version","isActive":true,"sortOrder":350},
-      {"code":"booking","displayLabel":"Booking","isActive":true,"sortOrder":360}
+      {"code":"booking","displayLabel":"Booking","isActive":true,"sortOrder":360},
+      {"code":"purchase_order","displayLabel":"Purchase Order","isActive":true,"sortOrder":370},
+      {"code":"invoice","displayLabel":"Invoice","isActive":true,"sortOrder":380},
+      {"code":"payment_intent","displayLabel":"Payment Intent","isActive":true,"sortOrder":390}
     ],
     "commercialActions": [
       {"code":"tenant.updated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -490,7 +499,12 @@
       {"code":"commercial_policy.version_created","displayLabel":"Commercial Policy Version Created","isActive":true,"sortOrder":610},
       {"code":"booking.created","displayLabel":"Booking Draft Created","isActive":true,"sortOrder":620},
       {"code":"booking.confirmation_requested","displayLabel":"Booking Confirmation Requested","isActive":true,"sortOrder":630},
-      {"code":"booking.confirmed","displayLabel":"Booking Confirmed","isActive":true,"sortOrder":640}
+      {"code":"booking.confirmed","displayLabel":"Booking Confirmed","isActive":true,"sortOrder":640},
+      {"code":"purchase_order.submitted","displayLabel":"Purchase Order Submitted","isActive":true,"sortOrder":650},
+      {"code":"purchase_order.approved","displayLabel":"Purchase Order Approved","isActive":true,"sortOrder":660},
+      {"code":"invoice.issued","displayLabel":"Invoice Issued","isActive":true,"sortOrder":670},
+      {"code":"payment.started","displayLabel":"Payment Started","isActive":true,"sortOrder":680},
+      {"code":"payment.confirmed","displayLabel":"Payment Confirmed","isActive":true,"sortOrder":690}
     ],
     "commercialEventTypes": [
       {"code":"TenantUpdated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -556,7 +570,12 @@
       {"code":"CommercialPolicyVersionCreated","displayLabel":"Commercial Policy Version Created","isActive":true,"sortOrder":610},
       {"code":"BookingCreated","displayLabel":"Booking Draft Created","isActive":true,"sortOrder":620},
       {"code":"BookingConfirmationRequested","displayLabel":"Booking Confirmation Requested","isActive":true,"sortOrder":630},
-      {"code":"BookingConfirmed","displayLabel":"Booking Confirmed","isActive":true,"sortOrder":640}
+      {"code":"BookingConfirmed","displayLabel":"Booking Confirmed","isActive":true,"sortOrder":640},
+      {"code":"PurchaseOrderSubmitted","displayLabel":"Purchase Order Submitted","isActive":true,"sortOrder":650},
+      {"code":"PurchaseOrderApproved","displayLabel":"Purchase Order Approved","isActive":true,"sortOrder":660},
+      {"code":"InvoiceIssued","displayLabel":"Invoice Issued","isActive":true,"sortOrder":670},
+      {"code":"PaymentStarted","displayLabel":"Payment Started","isActive":true,"sortOrder":680},
+      {"code":"PaymentConfirmed","displayLabel":"Payment Confirmed","isActive":true,"sortOrder":690}
     ],
     "creativeTextRoles": [
       {"code":"HEADLINE","displayLabel":"Headline","isActive":true,"sortOrder":10},
