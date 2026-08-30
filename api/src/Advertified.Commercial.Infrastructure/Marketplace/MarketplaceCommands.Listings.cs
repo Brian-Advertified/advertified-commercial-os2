@@ -122,16 +122,21 @@ public sealed partial class MarketplaceCommands
         store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.marketplace_listing_versions (
                 id, supplier_tenant_id, listing_id, version_number,
-                product_version_id, rate_id, availability_id, supplier_name,
+                product_version_id, supplier_id, rate_id, availability_id, supplier_name,
                 product_name, channel_code, product_type_code, geography,
                 rate_type_code, amount_minor, currency_code, availability_code,
-                availability_valid_until_utc, terms, published_by, published_at_utc)
+                rate_effective_from, rate_effective_to,
+                availability_observed_at_utc, availability_valid_until_utc,
+                terms, published_by, published_at_utc)
             VALUES ({versionId}, {envelope.TenantId.Value}, {listing.Id}, {versionNumber},
-                {snapshot.ProductVersionId}, {snapshot.RateId}, {snapshot.AvailabilityId},
+                {snapshot.ProductVersionId}, {snapshot.SupplierId}, {snapshot.RateId},
+                {snapshot.AvailabilityId},
                 {snapshot.SupplierName}, {snapshot.ProductName}, {snapshot.Channel},
                 {snapshot.ProductType}, {snapshot.Geography}, {snapshot.RateType},
                 {snapshot.AmountMinor}, {snapshot.Currency}, {snapshot.Availability},
-                {snapshot.AvailabilityValidUntilUtc}, {listing.ListingTerms},
+                {snapshot.RateEffectiveFrom}, {snapshot.RateEffectiveTo},
+                {snapshot.AvailabilityObservedAtUtc}, {snapshot.AvailabilityValidUntilUtc},
+                {listing.ListingTerms},
                 {envelope.ActorId.Value}, {now})
             """, cancellationToken);
 

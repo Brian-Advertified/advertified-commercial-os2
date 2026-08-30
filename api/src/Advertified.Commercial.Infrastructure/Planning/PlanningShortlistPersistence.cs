@@ -34,19 +34,22 @@ internal static class PlanningShortlistPersistence
                 StoredJson);
             await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
                 INSERT INTO commercial.inventory_shortlist_candidates (
-                    id, tenant_id, shortlist_version_id, inventory_product_id,
-                    product_version_id, rate_id, availability_id, is_eligible,
+                    id, tenant_id, shortlist_version_id, inventory_tenant_id,
+                    marketplace_listing_version_id, inventory_product_id,
+                    product_version_id, rate_id, availability_id, product_name, is_eligible,
                     rejection_reason_collection_code, rejection_reason_code,
                     rejection_detail, score, rate_amount_minor, currency_code,
                     channel_code, geography, input_hash, created_at_utc)
-                SELECT value."id", {tenantId.Value}, {shortlistId}, value."productId",
-                    value."productVersionId", value."rateId", value."availabilityId",
+                SELECT value."id", {tenantId.Value}, {shortlistId}, value."inventoryTenantId",
+                    value."listingVersionId", value."productId", value."productVersionId",
+                    value."rateId", value."availabilityId", value."productName",
                     value."isEligible", value."rejectionCollection",
                     value."rejectionReason", value."rejectionDetail", value."score",
                     value."rateAmountMinor", value."currency", value."channel",
                     value."geography", value."inputHash", {now}
                 FROM jsonb_to_recordset({candidatePayload}::jsonb) AS value(
-                    "id" uuid, "recommendationId" uuid, "productId" uuid,
+                    "id" uuid, "recommendationId" uuid, "inventoryTenantId" uuid,
+                    "listingVersionId" uuid, "productId" uuid, "productName" text,
                     "productVersionId" uuid, "rateId" uuid, "availabilityId" uuid,
                     "isEligible" boolean, "rejectionCollection" text,
                     "rejectionReason" text, "rejectionDetail" text, "score" numeric,
@@ -55,23 +58,27 @@ internal static class PlanningShortlistPersistence
 
                 INSERT INTO commercial.recommendation_bindings (
                     id, tenant_id, brief_version_id, shortlist_version_id,
-                    shortlist_candidate_id, inventory_product_id, rationale, status_code)
+                    shortlist_candidate_id, inventory_tenant_id,
+                    inventory_product_id, rationale, status_code)
                 SELECT value."recommendationId", {tenantId.Value}, {briefVersionId},
-                    {shortlistId}, value."id", value."productId",
+                    {shortlistId}, value."id", value."inventoryTenantId", value."productId",
                     {"Eligible after governed hard constraints; score is decision support only."},
                     {MasterDataCodes.LifecycleStatuses.Draft}
                 FROM jsonb_to_recordset({candidatePayload}::jsonb) AS value(
-                    "id" uuid, "recommendationId" uuid, "productId" uuid,
+                    "id" uuid, "recommendationId" uuid, "inventoryTenantId" uuid,
+                    "productId" uuid,
                     "isEligible" boolean)
                 WHERE value."isEligible";
 
                 INSERT INTO commercial.inventory_benchmark_snapshots (
-                    id, tenant_id, shortlist_candidate_id, target_product_version_id,
+                    id, tenant_id, shortlist_candidate_id, inventory_tenant_id,
+                    target_product_version_id,
                     target_rate_id, policy_version, comparison_basis, geography_basis,
                     cohort_product_version_ids_json, cohort_rate_ids_json,
                     cohort_distances_json, exclusions_json, statistics_json,
                     confidence, position_code, created_at_utc)
                 SELECT value."id", {tenantId.Value}, value."candidateId",
+                    value."inventoryTenantId",
                     value."targetProductVersionId", value."targetRateId",
                     value."policyVersion", value."comparisonBasis",
                     value."geographyBasis", value."productIdsJson"::jsonb,
@@ -79,7 +86,8 @@ internal static class PlanningShortlistPersistence
                     value."exclusionsJson"::jsonb, value."statisticsJson"::jsonb,
                     value."confidence", value."position", {now}
                 FROM jsonb_to_recordset({benchmarkPayload}::jsonb) AS value(
-                    "id" uuid, "candidateId" uuid, "targetProductVersionId" uuid,
+                    "id" uuid, "candidateId" uuid, "inventoryTenantId" uuid,
+                    "targetProductVersionId" uuid,
                     "targetRateId" uuid, "policyVersion" text,
                     "comparisonBasis" text, "geographyBasis" text,
                     "productIdsJson" text, "rateIdsJson" text,
@@ -121,7 +129,10 @@ internal static class PlanningShortlistPersistence
         return new CandidatePayload(
             candidate.Id,
             Guid.NewGuid(),
+            inventory.InventoryTenantId,
+            inventory.MarketplaceListingVersionId,
             inventory.ProductId,
+            inventory.Name,
             inventory.ProductVersionId,
             inventory.RateId,
             inventory.AvailabilityId,
@@ -147,6 +158,7 @@ internal static class PlanningShortlistPersistence
         return new BenchmarkPayload(
             result.Id,
             candidate.Id,
+            inventory.InventoryTenantId,
             inventory.ProductVersionId,
             inventory.RateId!.Value,
             policyVersion,
@@ -164,7 +176,10 @@ internal static class PlanningShortlistPersistence
     private sealed record CandidatePayload(
         Guid Id,
         Guid RecommendationId,
+        Guid InventoryTenantId,
+        Guid? ListingVersionId,
         Guid ProductId,
+        string ProductName,
         Guid ProductVersionId,
         Guid? RateId,
         Guid? AvailabilityId,
@@ -182,6 +197,7 @@ internal static class PlanningShortlistPersistence
     private sealed record BenchmarkPayload(
         Guid Id,
         Guid CandidateId,
+        Guid InventoryTenantId,
         Guid TargetProductVersionId,
         Guid TargetRateId,
         string PolicyVersion,

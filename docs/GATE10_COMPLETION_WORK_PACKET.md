@@ -6,6 +6,10 @@
 
 **Packet A result:** implemented and verified locally on 2026-08-30; reproducible evidence is retained under `docs/evidence/gate10-commercial-policy-20260830/`. Packet B remains open.
 
+**Packet B0 result:** implemented and verified locally on 2026-08-30; reproducible evidence is
+retained under `docs/evidence/gate10-marketplace-planning-lineage-20260830/`. The selected-option
+booking and supplier-confirmation workflow remains open.
+
 ## Bounded requirement
 
 Complete the remaining local Gate 10 supplier-marketplace scope with one versioned tenant commercial policy and a booking-confirmation workflow derived only from a client-selected immutable ProposalOption/MediaPlan line. The Commercial API remains canonical. No command may create a supplier commitment from a marketplace response alone.
@@ -20,6 +24,26 @@ Complete the remaining local Gate 10 supplier-marketplace scope with one version
 - migration, RLS, master-data, OpenAPI, API and browser evidence.
 
 ## Packet B — selected-option booking
+
+### Packet B0 — canonical marketplace-to-plan lineage
+
+The post-Packet-A audit found that buyer planning rows can reference only buyer-tenant inventory,
+while every marketplace listing is supplier-tenant inventory. Before a supplier-addressed booking
+can be implemented, the canonical planning path must retain the inventory-owning tenant and exact
+published listing version.
+
+- include only the current `PUBLISHED` marketplace listing projection in buyer shortlist inputs;
+- retain `inventory_tenant_id` and `marketplace_listing_version_id` through shortlist candidate,
+  recommendation, benchmark, MediaPlanLine and supply-coordination records;
+- read product name/channel/geography from immutable buyer-owned planning snapshots, never by
+  granting the buyer access to the supplier's private inventory tables;
+- treat an archived/replaced listing, changed rate/availability or missing projection as stale;
+- preserve the existing local tenant inventory path and prevent duplicate own-listing candidates;
+- prove supplier-private source, review, address and coordinate fields do not cross the boundary.
+
+**B0 exit evidence:** a supplier publishes a reviewed listing; a different buyer tenant sees it in
+the canonical shortlist, selects it and generates an exact plan line carrying the supplier tenant
+and listing-version IDs; replacement/archival invalidates the line without mutation.
 
 - a booking draft can be created only from the exact selected ProposalOption and one of its frozen MediaPlanLines;
 - snapshot exact proposal/option/plan/line/product/rate/availability IDs, supplier tenant, dates, quantity, supplier amount, currency, VAT/fee terms and policy version;

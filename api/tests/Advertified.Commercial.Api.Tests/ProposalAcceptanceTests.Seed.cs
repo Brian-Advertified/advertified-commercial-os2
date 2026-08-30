@@ -149,13 +149,14 @@ public sealed partial class ProposalAcceptanceTests
             """, shortlistId, TenantId, BriefVersionId, mixId, route.Ordinal, OperatorId, Now);
         Add(batch, """
             INSERT INTO commercial.inventory_shortlist_candidates (
-                id, tenant_id, shortlist_version_id, inventory_product_id, product_version_id,
-                rate_id, availability_id, is_eligible, score, rate_amount_minor, currency_code,
+                id, tenant_id, shortlist_version_id, inventory_tenant_id,
+                inventory_product_id, product_version_id, rate_id, availability_id,
+                product_name, is_eligible, score, rate_amount_minor, currency_code,
                 channel_code, geography, input_hash, created_at_utc)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, true, 90, $8, 'ZAR', $9,
-                'Johannesburg', repeat('f', 64), $10)
+            VALUES ($1, $2, $3, $2, $4, $5, $6, $7, $8, true, 90, $9, 'ZAR', $10,
+                'Johannesburg', repeat('f', 64), $11)
             """, shortlistCandidateId, TenantId, shortlistId, productId, productVersionId,
-            rateId, availabilityId, route.AmountMinor, route.Channel, Now);
+            rateId, availabilityId, route.Name, route.AmountMinor, route.Channel, Now);
         Add(batch, """
             INSERT INTO commercial.media_plan_versions (
                 id, tenant_id, brief_version_id, mix_version_id, shortlist_version_id,
@@ -169,20 +170,24 @@ public sealed partial class ProposalAcceptanceTests
             route.AmountMinor, new string((char)('0' + route.Ordinal), 64), OperatorId, Now);
         Add(batch, """
             INSERT INTO commercial.media_plan_lines (
-                id, tenant_id, plan_version_id, shortlist_candidate_id, inventory_product_id,
-                product_version_id, rate_id, availability_id, flight_start, flight_end,
+                id, tenant_id, plan_version_id, shortlist_candidate_id, inventory_tenant_id,
+                inventory_product_id, product_version_id, rate_id, availability_id,
+                product_name, channel_code, geography, flight_start, flight_end,
                 running_periods_json, quantity, supplier_cost_minor, client_price_minor,
                 fees_minor, vat_minor, forecast_json, input_hash)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '2026-09-01', '2026-09-30',
-                '[{"start":"2026-09-01","end":"2026-09-30"}]', 1, $9, $9, 0, 0,
+            VALUES ($1, $2, $3, $4, $2, $5, $6, $7, $8, $9, $10, 'Johannesburg',
+                '2026-09-01', '2026-09-30',
+                '[{"start":"2026-09-01","end":"2026-09-30"}]', 1, $11, $11, 0, 0,
                 '{}', repeat('a', 64))
             """, planLineId, TenantId, planId, shortlistCandidateId, productId,
-            productVersionId, rateId, availabilityId, route.AmountMinor);
+            productVersionId, rateId, availabilityId, route.Name, route.Channel,
+            route.AmountMinor);
         Add(batch, """
             INSERT INTO commercial.supply_coordination (
-                id, tenant_id, media_plan_line_id, supplier_id, availability_code,
+                id, tenant_id, media_plan_line_id, supplier_tenant_id,
+                supplier_id, availability_code,
                 rate_freshness_code, last_confirmed_at_utc, source_locator, status_code)
-            VALUES ($1, $2, $3, $4, 'AVAILABLE', 'CURRENT', $5,
+            VALUES ($1, $2, $3, $2, $4, 'AVAILABLE', 'CURRENT', $5,
                 'supplier-confirmation', 'ACTIVE')
             """, Id("8b", route.Ordinal, 1), TenantId, planLineId, SupplierId, Now);
         await batch.ExecuteNonQueryAsync();

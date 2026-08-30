@@ -30,6 +30,14 @@ public sealed partial class MarketplaceAcceptanceTests
         Guid.Parse("92000000-0000-0000-0000-000000000003");
     private static readonly Guid ProductId =
         Guid.Parse("93000000-0000-0000-0000-000000000001");
+    private static readonly Guid BuyerClientId =
+        Guid.Parse("93000000-0000-0000-0000-000000000002");
+    private static readonly Guid BuyerBriefId =
+        Guid.Parse("93000000-0000-0000-0000-000000000003");
+    private static readonly Guid BuyerBriefVersionId =
+        Guid.Parse("93000000-0000-0000-0000-000000000004");
+    private static readonly Guid BuyerBriefSourceId =
+        Guid.Parse("93000000-0000-0000-0000-000000000005");
     private static readonly DateTimeOffset InitialTime =
         new(2026, 9, 1, 8, 0, 0, TimeSpan.Zero);
 
@@ -78,8 +86,14 @@ public sealed partial class MarketplaceAcceptanceTests
             CreateMembership(SupplierTenantId, SupplierUserId, "supplier_admin", 1),
             CreateMembership(BuyerTenantId, BuyerUserId, "agency_admin", 2),
             CreateMembership(OtherTenantId, OtherUserId, "supplier_admin", 3));
+        db.ClientAccounts.Add(new ClientAccount(
+            new ClientAccountId(BuyerClientId), new TenantId(BuyerTenantId),
+            "marketplace-planning-client", "Marketplace Planning Client",
+            "Marketplace Planning Client", null, null, "{}",
+            new LifecycleStatusCode("ACTIVE"), InitialTime));
         await db.SaveChangesAsync();
         await SeedInventoryAsync(connectionString);
+        await SeedBuyerPlanningAsync(connectionString);
     }
 
     private static Tenant CreateTenant(Guid id, string type, string slug) => new(

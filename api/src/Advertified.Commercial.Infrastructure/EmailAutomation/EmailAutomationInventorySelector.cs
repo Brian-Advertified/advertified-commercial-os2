@@ -21,8 +21,7 @@ public sealed class EmailAutomationInventorySelector(
             actorId, tenantId, cancellationToken);
         var currentInventory = await planningStore.ListInventoryAsync(
             tenantId, cancellationToken);
-        var inventoryByVersion = currentInventory.ToDictionary(
-            item => item.ProductVersionId);
+        var inventoryByVersion = currentInventory.ToDictionary(InventoryKey.For);
         var selected = new List<Guid>();
 
         foreach (var allocation in mix.Allocations.Where(item => item.BudgetMinor > 0))
@@ -33,7 +32,7 @@ public sealed class EmailAutomationInventorySelector(
                 .Select(item => new
                 {
                     Candidate = item,
-                    Inventory = inventoryByVersion.GetValueOrDefault(item.ProductVersionId),
+                    Inventory = inventoryByVersion.GetValueOrDefault(InventoryKey.For(item)),
                 })
                 .Where(item => item.Inventory is not null &&
                     item.Inventory.RateId == item.Candidate.RateId &&

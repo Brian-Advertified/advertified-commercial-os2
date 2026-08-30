@@ -233,10 +233,12 @@ internal static partial class PlanningHash
         MediaMixRow mix,
         IReadOnlyList<PlanningInventoryRow> inventory) => OpportunityCommandSupport.Hash(
             $"{mix.Id:N}|{mix.Version}|{mix.InputHash}|" + string.Join('|', inventory.Select(item =>
+                $"{item.InventoryTenantId:N}:{item.MarketplaceListingVersionId:N}:" +
                 $"{item.ProductVersionId:N}:{item.RateId:N}:{item.AvailabilityId:N}")));
 
     internal static string ForInventory(PlanningInventoryRow item, string shortlistHash) =>
         OpportunityCommandSupport.Hash(
-            $"{shortlistHash}|{item.ProductVersionId:N}|{item.RateId:N}|" +
+            $"{shortlistHash}|{item.InventoryTenantId:N}|" +
+            $"{item.MarketplaceListingVersionId:N}|{item.ProductVersionId:N}|{item.RateId:N}|" +
             $"{item.AvailabilityId:N}|{item.RateAmountMinor}|{item.Currency}");
 }

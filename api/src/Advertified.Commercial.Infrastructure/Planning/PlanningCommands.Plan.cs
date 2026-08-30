@@ -37,8 +37,11 @@ public sealed partial class PlanningCommands
             throw new InvalidLifecycleTransitionException();
         }
         var inventory = await store.ListInventoryAsync(envelope.TenantId, cancellationToken);
-        var byVersion = inventory.ToDictionary(item => item.ProductVersionId);
-        var inputs = selected.Select(item => byVersion[item.ProductVersionId]).ToArray();
+        var byVersion = inventory.ToDictionary(InventoryKey.For);
+        var inputs = selected.Select(item => byVersion.TryGetValue(
+                InventoryKey.For(item), out var value)
+                ? value
+                : throw new PlanningInputStaleException()).ToArray();
         EnsureSelectedInputsCurrent(selected, inputs);
         var allocations = Read<MediaAllocationView[]>(mix.AllocationsJson)
             .ToDictionary(item => item.Channel, StringComparer.Ordinal);
@@ -203,10 +206,11 @@ public sealed partial class PlanningCommands
         CancellationToken cancellationToken)
     {
         var current = await store.ListInventoryAsync(tenantId, cancellationToken);
-        var byProduct = current.ToDictionary(item => item.ProductId);
-        return plan.Lines.All(line => byProduct.TryGetValue(line.InventoryProductId, out var item) &&
+        var byProduct = current.ToDictionary(InventoryKey.For);
+        return plan.Lines.All(line => byProduct.TryGetValue(InventoryKey.For(line), out var item) &&
             item.ProductVersionId == line.ProductVersionId && item.RateId == line.RateId &&
-            item.AvailabilityId == line.AvailabilityId);
+            item.AvailabilityId == line.AvailabilityId &&
+            item.MarketplaceListingVersionId == line.MarketplaceListingVersionId);
     }
 
     private static void EnsureSelectedInputsCurrent(
@@ -214,6 +218,9 @@ public sealed partial class PlanningCommands
         IReadOnlyList<PlanningInventoryRow> current)
     {
         if (selected.Zip(current).Any(pair =>
+                pair.First.InventoryTenantId != pair.Second.InventoryTenantId ||
+                pair.First.MarketplaceListingVersionId !=
+                    pair.Second.MarketplaceListingVersionId ||
                 pair.First.ProductVersionId != pair.Second.ProductVersionId ||
                 pair.First.RateId != pair.Second.RateId ||
                 pair.First.AvailabilityId != pair.Second.AvailabilityId))
@@ -244,4 +251,19 @@ public sealed partial class PlanningCommands
         }
         return objections.ToArray();
     }
+}
+
+internal readonly record struct InventoryKey(
+    Guid InventoryTenantId,
+    Guid ProductId,
+    Guid? MarketplaceListingVersionId)
+{
+    internal static InventoryKey For(PlanningInventoryRow item) => new(
+        item.InventoryTenantId, item.ProductId, item.MarketplaceListingVersionId);
+
+    internal static InventoryKey For(InventoryShortlistCandidateView item) => new(
+        item.InventoryTenantId, item.InventoryProductId, item.MarketplaceListingVersionId);
+
+    internal static InventoryKey For(MediaPlanLineView item) => new(
+        item.InventoryTenantId, item.InventoryProductId, item.MarketplaceListingVersionId);
 }

@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.1.0",
+  "registryVersion": "2.2.0",
   "effectiveFrom": "2026-08-30",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
@@ -367,7 +367,8 @@
     "supplySourceTypes": [
       {"code":"NOT_SUPPLIED","displayLabel":"Not Supplied","isActive":true,"sortOrder":10},
       {"code":"PUBLISHED_INVENTORY","displayLabel":"Published Inventory","isActive":true,"sortOrder":20},
-      {"code":"SUPPLIER_CONFIRMATION","displayLabel":"Supplier Confirmation","isActive":true,"sortOrder":30}
+      {"code":"MARKETPLACE_LISTING","displayLabel":"Marketplace Listing","isActive":true,"sortOrder":30},
+      {"code":"SUPPLIER_CONFIRMATION","displayLabel":"Supplier Confirmation","isActive":true,"sortOrder":40}
     ],
     "validationIssueTypes": [
       {"code":"FIELD_REQUIRED","displayLabel":"Required Field Missing","isActive":true,"sortOrder":10},

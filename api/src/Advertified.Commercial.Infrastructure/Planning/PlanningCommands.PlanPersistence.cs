@@ -83,21 +83,28 @@ public sealed partial class PlanningCommands
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.media_plan_lines (
                 id, tenant_id, plan_version_id, shortlist_candidate_id,
+                inventory_tenant_id, marketplace_listing_version_id,
                 inventory_product_id, product_version_id, rate_id, availability_id,
+                product_name, channel_code, geography,
                 flight_start, flight_end, running_periods_json, quantity,
                 supplier_cost_minor, client_price_minor, fees_minor, vat_minor,
                 forecast_json, input_hash)
             VALUES ({lineId}, {tenantId.Value}, {planId}, {candidate.Id},
+                {candidate.InventoryTenantId}, {candidate.MarketplaceListingVersionId},
                 {candidate.InventoryProductId}, {candidate.ProductVersionId}, {candidate.RateId!.Value},
-                {candidate.AvailabilityId}, {firstStart}, {lastEnd}, {periodsJson}::jsonb,
+                {candidate.AvailabilityId}, {candidate.Name}, {candidate.Channel},
+                {candidate.Geography}, {firstStart}, {lastEnd}, {periodsJson}::jsonb,
                 {amounts.Quantity}, {amounts.SupplierCostMinor}, {amounts.ClientPriceMinor},
                 {amounts.FeesMinor}, {amounts.VatMinor}, {forecast}::jsonb, {lineHash})
             """, cancellationToken);
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.supply_coordination (
-                id, tenant_id, media_plan_line_id, supplier_id, availability_code,
+                id, tenant_id, media_plan_line_id, supplier_tenant_id,
+                marketplace_listing_version_id, supplier_id, availability_code,
                 rate_freshness_code, last_confirmed_at_utc, source_locator, status_code)
-            VALUES ({Guid.NewGuid()}, {tenantId.Value}, {lineId}, {inventory.SupplierId},
+            VALUES ({Guid.NewGuid()}, {tenantId.Value}, {lineId},
+                {inventory.InventoryTenantId}, {inventory.MarketplaceListingVersionId},
+                {inventory.SupplierId},
                 {inventory.Availability ?? MasterDataCodes.AvailabilityStatuses.Unknown},
                 {MasterDataCodes.RateFreshnessStatuses.Current},
                 {(confidence == MasterDataCodes.SupplyConfidenceStatuses.Confirmed
@@ -124,7 +131,9 @@ internal static partial class PlanningHash
     internal static string ForPlanLine(
         InventoryShortlistCandidateView candidate,
         IReadOnlyList<MediaRunningPeriodView> periods) => OpportunityCommandSupport.Hash(
-            $"{candidate.Id:N}|{candidate.ProductVersionId:N}|{candidate.RateId:N}|" +
+            $"{candidate.Id:N}|{candidate.InventoryTenantId:N}|" +
+            $"{candidate.MarketplaceListingVersionId:N}|" +
+            $"{candidate.ProductVersionId:N}|{candidate.RateId:N}|" +
             $"{candidate.AvailabilityId:N}|" + string.Join(',', periods.Select(period =>
                 $"{period.Start:O}-{period.End:O}")));
 }

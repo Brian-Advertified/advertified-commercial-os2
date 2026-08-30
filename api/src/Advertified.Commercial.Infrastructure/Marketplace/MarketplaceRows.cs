@@ -36,6 +36,7 @@ internal sealed record MarketplaceProductSnapshotRow
 {
     public Guid ProductId { get; set; }
     public Guid ProductVersionId { get; set; }
+    public Guid SupplierId { get; set; }
     public Guid RateId { get; set; }
     public Guid AvailabilityId { get; set; }
     public string SupplierName { get; set; } = string.Empty;

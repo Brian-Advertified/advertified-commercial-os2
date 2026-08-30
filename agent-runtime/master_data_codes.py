@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: a51bee0962c9f34c2d7b3ac56d2876954fb709d97669f789f2092bc83e9519dc
+# source-sha256: 093e97ae8ef3f8850b6e47293de5aad72332ea9eae9fee2af8a5c29a4d4d41bc
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.1.0"
+REGISTRY_VERSION = "2.2.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -367,6 +367,7 @@ class MarketplaceResponseStatuses(StrEnum):
 class SupplySourceTypes(StrEnum):
     NOT_SUPPLIED = "NOT_SUPPLIED"
     PUBLISHED_INVENTORY = "PUBLISHED_INVENTORY"
+    MARKETPLACE_LISTING = "MARKETPLACE_LISTING"
     SUPPLIER_CONFIRMATION = "SUPPLIER_CONFIRMATION"
 
 class ValidationIssueTypes(StrEnum):

@@ -86,6 +86,8 @@ internal sealed record ShortlistRow(
 
 internal sealed record ShortlistCandidateRow(
     Guid Id,
+    Guid InventoryTenantId,
+    Guid? MarketplaceListingVersionId,
     Guid InventoryProductId,
     Guid ProductVersionId,
     Guid? RateId,
@@ -132,6 +134,8 @@ internal sealed record MediaPlanRow(
 internal sealed record MediaPlanLineRow(
     Guid PlanVersionId,
     Guid Id,
+    Guid InventoryTenantId,
+    Guid? MarketplaceListingVersionId,
     Guid InventoryProductId,
     Guid ProductVersionId,
     Guid RateId,
@@ -162,6 +166,8 @@ internal sealed record ObjectionResolutionRow(
     Guid ResolvedBy);
 
 internal sealed record PlanningInventoryRow(
+    Guid InventoryTenantId,
+    Guid? MarketplaceListingVersionId,
     Guid ProductId,
     Guid ProductVersionId,
     Guid SupplierId,

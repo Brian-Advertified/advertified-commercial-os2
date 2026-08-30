@@ -18323,6 +18323,15 @@
             "type": "string",
             "format": "uuid"
           },
+          "inventoryTenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "marketplaceListingVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
           "inventoryProductId": {
             "type": "string",
             "format": "uuid"
@@ -18884,6 +18893,15 @@
           "id": {
             "type": "string",
             "format": "uuid"
+          },
+          "inventoryTenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "marketplaceListingVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           },
           "inventoryProductId": {
             "type": "string",

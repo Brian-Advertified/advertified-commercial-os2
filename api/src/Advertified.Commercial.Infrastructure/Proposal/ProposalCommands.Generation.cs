@@ -131,14 +131,17 @@ public sealed partial class ProposalCommands
         var signature = OpportunityCommandSupport.Hash(
             $"{plan.Id:N}|{plan.Version}|{plan.InputHash}|{plan.TotalMinor}|" +
             string.Join('|', plan.Lines.Select(line =>
-                $"{line.ProductVersionId:N}:{line.RateId:N}:{line.AvailabilityId:N}:{line.Quantity}:" +
+                $"{line.InventoryTenantId:N}:{line.MarketplaceListingVersionId:N}:" +
+                $"{line.ProductVersionId:N}:{line.RateId:N}:" +
+                $"{line.AvailabilityId:N}:{line.Quantity}:" +
                 string.Join(',', line.RunningPeriods.Select(period => $"{period.Start:O}-{period.End:O}")))));
         return new ProposalPlanSnapshot(
             plan.Id, plan.VersionNumber, plan.TotalMinor, plan.Currency, plan.InputHash,
             channels, periods, inventory, signature, plan.Lines.Select(line =>
                 new ProposalPlanLineReference(
-                    line.InventoryProductId, line.ProductVersionId, line.RateId,
-                    line.AvailabilityId)).ToArray());
+                    line.InventoryTenantId, line.MarketplaceListingVersionId,
+                    line.InventoryProductId, line.ProductVersionId,
+                    line.RateId, line.AvailabilityId)).ToArray());
     }
 
     private static ProposalOptionSnapshot BuildOptionInput(
@@ -198,6 +201,8 @@ internal sealed record ProposalPlanSnapshot(
     IReadOnlyList<ProposalPlanLineReference> Lines);
 
 internal sealed record ProposalPlanLineReference(
+    Guid InventoryTenantId,
+    Guid? MarketplaceListingVersionId,
     Guid InventoryProductId,
     Guid ProductVersionId,
     Guid RateId,

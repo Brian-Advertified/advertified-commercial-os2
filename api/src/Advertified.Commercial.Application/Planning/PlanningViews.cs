@@ -69,6 +69,8 @@ public sealed record InventoryBenchmarkView(
 
 public sealed record InventoryShortlistCandidateView(
     Guid Id,
+    Guid InventoryTenantId,
+    Guid? MarketplaceListingVersionId,
     Guid InventoryProductId,
     Guid ProductVersionId,
     Guid? RateId,
@@ -109,6 +111,8 @@ public sealed record PlanObjectionView(
 
 public sealed record MediaPlanLineView(
     Guid Id,
+    Guid InventoryTenantId,
+    Guid? MarketplaceListingVersionId,
     Guid InventoryProductId,
     Guid ProductVersionId,
     Guid RateId,

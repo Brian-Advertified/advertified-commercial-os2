@@ -61,7 +61,8 @@ public sealed class MarketplaceRecordStore(GovernanceDbContext dbContext)
         CancellationToken cancellationToken) =>
         dbContext.Database.SqlQuery<MarketplaceProductSnapshotRow>($"""
             SELECT product.id AS "ProductId", version.id AS "ProductVersionId",
-                rate.id AS "RateId", availability.id AS "AvailabilityId",
+                product.supplier_id AS "SupplierId", rate.id AS "RateId",
+                availability.id AS "AvailabilityId",
                 supplier.name AS "SupplierName", version.name AS "ProductName",
                 version.channel_code AS "Channel", version.product_type_code AS "ProductType",
                 version.geography AS "Geography", rate.rate_type_code AS "RateType",

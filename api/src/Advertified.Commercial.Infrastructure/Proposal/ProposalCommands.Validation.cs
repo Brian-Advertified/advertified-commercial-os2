@@ -3,6 +3,7 @@ using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Opportunity;
+using Advertified.Commercial.Infrastructure.Planning;
 
 namespace Advertified.Commercial.Infrastructure.Proposal;
 
@@ -14,11 +15,15 @@ public sealed partial class ProposalCommands
         CancellationToken cancellationToken)
     {
         var current = await planningStore.ListInventoryAsync(tenantId, cancellationToken);
-        var byProduct = current.ToDictionary(item => item.ProductId);
+        var byProduct = current.ToDictionary(InventoryKey.For);
         if (plans.SelectMany(item => item.Lines).Any(line =>
-                !byProduct.TryGetValue(line.InventoryProductId, out var item) ||
+                !byProduct.TryGetValue(new InventoryKey(
+                    line.InventoryTenantId, line.InventoryProductId,
+                    line.MarketplaceListingVersionId), out var item) ||
                 item.ProductVersionId != line.ProductVersionId ||
-                item.RateId != line.RateId || item.AvailabilityId != line.AvailabilityId))
+                item.RateId != line.RateId ||
+                item.AvailabilityId != line.AvailabilityId ||
+                item.MarketplaceListingVersionId != line.MarketplaceListingVersionId))
         {
             throw new ProposalStaleException();
         }

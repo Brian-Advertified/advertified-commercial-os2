@@ -66,10 +66,12 @@ public sealed partial class PlanningRecordStore
     {
         var rows = await DbContext.Database.SqlQuery<ShortlistCandidateRow>($"""
             SELECT candidate.id AS "Id",
+                candidate.inventory_tenant_id AS "InventoryTenantId",
+                candidate.marketplace_listing_version_id AS "MarketplaceListingVersionId",
                 candidate.inventory_product_id AS "InventoryProductId",
                 candidate.product_version_id AS "ProductVersionId",
                 candidate.rate_id AS "RateId", candidate.availability_id AS "AvailabilityId",
-                version.name AS "Name", candidate.channel_code AS "Channel",
+                candidate.product_name AS "Name", candidate.channel_code AS "Channel",
                 candidate.geography AS "Geography",
                 candidate.rate_amount_minor AS "RateAmountMinor",
                 candidate.currency_code AS "Currency", candidate.is_eligible AS "IsEligible",
@@ -83,9 +85,6 @@ public sealed partial class PlanningRecordStore
                 benchmark.confidence AS "BenchmarkConfidence",
                 benchmark.exclusions_json::text AS "BenchmarkExclusionsJson"
             FROM commercial.inventory_shortlist_candidates candidate
-            JOIN commercial.inventory_product_versions version
-              ON version.tenant_id = candidate.tenant_id
-             AND version.id = candidate.product_version_id
             LEFT JOIN commercial.shortlist_selections selection
               ON selection.tenant_id = candidate.tenant_id
              AND selection.shortlist_candidate_id = candidate.id
@@ -135,10 +134,12 @@ public sealed partial class PlanningRecordStore
         CancellationToken cancellationToken) =>
         DbContext.Database.SqlQuery<MediaPlanLineRow>($"""
             SELECT line.plan_version_id AS "PlanVersionId", line.id AS "Id",
+                line.inventory_tenant_id AS "InventoryTenantId",
+                line.marketplace_listing_version_id AS "MarketplaceListingVersionId",
                 line.inventory_product_id AS "InventoryProductId",
                 line.product_version_id AS "ProductVersionId", line.rate_id AS "RateId",
-                line.availability_id AS "AvailabilityId", version.name AS "Name",
-                version.channel_code AS "Channel", version.geography AS "Geography",
+                line.availability_id AS "AvailabilityId", line.product_name AS "Name",
+                line.channel_code AS "Channel", line.geography AS "Geography",
                 line.flight_start AS "FlightStart", line.flight_end AS "FlightEnd",
                 line.running_periods_json::text AS "RunningPeriodsJson",
                 line.quantity AS "Quantity", line.supplier_cost_minor AS "SupplierCostMinor",
@@ -152,8 +153,6 @@ public sealed partial class PlanningRecordStore
             FROM commercial.media_plan_lines line
             JOIN commercial.media_plan_versions plan
               ON plan.tenant_id = line.tenant_id AND plan.id = line.plan_version_id
-            JOIN commercial.inventory_product_versions version
-              ON version.tenant_id = line.tenant_id AND version.id = line.product_version_id
             JOIN commercial.supply_coordination supply
               ON supply.tenant_id = line.tenant_id AND supply.media_plan_line_id = line.id
             WHERE line.tenant_id = {tenantId.Value}
@@ -206,10 +205,11 @@ public sealed partial class PlanningRecordStore
                 Read<string[]>(row.BenchmarkExclusionsJson ?? "[]"));
         }
         return new InventoryShortlistCandidateView(
-            row.Id, row.InventoryProductId, row.ProductVersionId, row.RateId,
-            row.AvailabilityId, row.Name, row.Channel, row.Geography, row.RateAmountMinor,
-            row.Currency, row.IsEligible, row.RejectionReason, row.RejectionDetail,
-            row.Score, row.IsSelected, benchmark);
+            row.Id, row.InventoryTenantId, row.MarketplaceListingVersionId,
+            row.InventoryProductId, row.ProductVersionId, row.RateId, row.AvailabilityId,
+            row.Name, row.Channel, row.Geography, row.RateAmountMinor, row.Currency,
+            row.IsEligible, row.RejectionReason, row.RejectionDetail, row.Score,
+            row.IsSelected, benchmark);
     }
 
     private static PlanObjectionView ToObjectionView(
@@ -224,8 +224,9 @@ public sealed partial class PlanningRecordStore
     }
 
     private static MediaPlanLineView ToPlanLineView(MediaPlanLineRow row) => new(
-        row.Id, row.InventoryProductId, row.ProductVersionId, row.RateId,
-        row.AvailabilityId, row.Name, row.Channel, row.Geography,
+        row.Id, row.InventoryTenantId, row.MarketplaceListingVersionId,
+        row.InventoryProductId, row.ProductVersionId, row.RateId, row.AvailabilityId,
+        row.Name, row.Channel, row.Geography,
         Read<MediaRunningPeriodView[]>(row.RunningPeriodsJson),
         row.Quantity, row.SupplierCostMinor, row.ClientPriceMinor,
         row.FeesMinor, row.VatMinor, row.Availability, row.RateFreshness,

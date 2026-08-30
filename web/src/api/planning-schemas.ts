@@ -75,6 +75,8 @@ export const benchmarkSchema = z.object({
 
 export const shortlistCandidateSchema = z.object({
   id: z.guid(),
+  inventoryTenantId: z.guid(),
+  marketplaceListingVersionId: z.guid().nullable(),
   inventoryProductId: z.guid(),
   productVersionId: z.guid(),
   rateId: z.guid().nullable(),
@@ -107,6 +109,8 @@ export const shortlistSchema = z.object({
 
 export const planLineSchema = z.object({
   id: z.guid(),
+  inventoryTenantId: z.guid(),
+  marketplaceListingVersionId: z.guid().nullable(),
   inventoryProductId: z.guid(),
   productVersionId: z.guid(),
   rateId: z.guid(),
