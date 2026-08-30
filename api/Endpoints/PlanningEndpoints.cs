@@ -15,10 +15,18 @@ public static class PlanningEndpoints
         group.MapGet("/brief-versions/{briefVersionId:guid}/planning", GetWorkspaceAsync)
             .WithName("GetPlanningWorkspace").Produces<PlanningWorkspaceView>()
             .WithQueryProblems();
+        group.MapPost("/brief-versions/{briefVersionId:guid}/campaign-mode:select",
+                SelectCampaignModeAsync)
+            .WithName("SelectCampaignMode").Produces<CampaignModeSelectionView>()
+            .WithCommandProblems(requiresVersion: false);
         group.MapPost("/brief-versions/{briefVersionId:guid}/audiences:generate",
                 GenerateAudiencesAsync)
             .WithName("GenerateAudiences").Produces<AudienceDefinitionSetView>()
             .WithCommandProblems(requiresVersion: false);
+        group.MapPost("/audience-definition-sets/{audienceSetId:guid}:approve",
+                ApproveAudienceStrategyAsync)
+            .WithName("ApproveAudienceStrategy").Produces<AudienceDefinitionSetView>()
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/brief-versions/{briefVersionId:guid}/media-mixes:generate",
                 GenerateMixAsync)
             .WithName("GenerateMediaMix").Produces<MediaMixVersionView>()
@@ -86,6 +94,14 @@ public static class PlanningEndpoints
         return Results.Ok(view);
     }
 
+    private static Task<IResult> SelectCampaignModeAsync(
+        Guid tenantId, Guid briefVersionId, SelectCampaignModeCommand command,
+        HttpContext context, ICurrentIdentity identity, IPlanningCommands commands,
+        TimeProvider clock, CancellationToken cancellationToken) => ExecuteCreationAsync(
+            tenantId, command, context, identity, clock,
+            (envelope, token) => commands.SelectCampaignModeAsync(
+                briefVersionId, envelope, token), cancellationToken);
+
     private static Task<IResult> GenerateAudiencesAsync(
         Guid tenantId, Guid briefVersionId, GenerateAudiencesCommand command,
         HttpContext context, ICurrentIdentity identity, IPlanningCommands commands,
@@ -93,6 +109,14 @@ public static class PlanningEndpoints
             tenantId, command, context, identity, clock,
             (envelope, token) => commands.GenerateAudiencesAsync(
                 briefVersionId, envelope, token), cancellationToken);
+
+    private static Task<IResult> ApproveAudienceStrategyAsync(
+        Guid tenantId, Guid audienceSetId, ApproveAudienceStrategyCommand command,
+        HttpContext context, ICurrentIdentity identity, IAudienceStrategyCommands commands,
+        TimeProvider clock, CancellationToken cancellationToken) => ExecuteMutationAsync(
+            tenantId, command, context, identity, clock,
+            (envelope, token) => commands.ApproveAsync(
+                audienceSetId, envelope, token), cancellationToken);
 
     private static Task<IResult> GenerateMixAsync(
         Guid tenantId, Guid briefVersionId, GenerateMediaMixCommand command,
