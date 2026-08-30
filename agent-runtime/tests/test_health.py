@@ -1,8 +1,9 @@
 import asyncio
 
 import httpx
+import pytest
 
-from main import app
+from main import DETERMINISTIC_MODE, RUNTIME_MODE_KEY, app
 
 
 def get(path: str) -> httpx.Response:
@@ -37,3 +38,25 @@ def test_readiness_endpoint_does_not_claim_provider_readiness() -> None:
 
     assert response.status_code == 200
     assert "provider-disabled" in response.json()["checks"]
+
+
+def test_deterministic_description_lists_only_implemented_agents(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(RUNTIME_MODE_KEY, DETERMINISTIC_MODE)
+
+    response = get("/")
+
+    assert response.status_code == 200
+    implemented = set(response.json()["implemented_agents"])
+    assert implemented == {
+        "business_interpretation",
+        "opportunity_intelligence",
+        "strategy",
+        "critic_readiness",
+        "brief_drafting",
+        "audience",
+        "media_planning",
+        "proposal_narrative",
+        "creative",
+    }

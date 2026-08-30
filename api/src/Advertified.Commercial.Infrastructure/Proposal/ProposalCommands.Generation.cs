@@ -27,8 +27,16 @@ public sealed partial class ProposalCommands
             .ToArray();
         EnsureMateriallyDifferent(inputs);
         var narrative = await narrativeClient.CreateAsync(new ProposalNarrativeInput(
+            envelope.TenantId.Value,
+            envelope.ActorId.Value,
+            envelope.CommandId.Value,
+            envelope.CorrelationId.Value,
+            brief.BriefVersionId,
+            brief.BriefVersion,
             brief.Objective,
+            ProposalRecordStore.Read<Guid[]>(brief.EvidenceIdsJson),
             inputs.Select(item => new ProposalOptionNarrativeInput(
+                item.Plan.Id, item.Plan.VersionNumber,
                 item.Label, item.Outcome, item.Plan.TotalMinor, item.Plan.Currency,
                 item.Plan.Channels)).ToArray()), cancellationToken);
         if (narrative.IncrementalCostMinor != 0)

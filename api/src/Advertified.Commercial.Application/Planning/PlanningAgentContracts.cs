@@ -3,13 +3,19 @@ namespace Advertified.Commercial.Application.Planning;
 public sealed record PlanningBriefInput(
     Guid TenantId,
     Guid ActorId,
+    Guid RunId,
+    Guid CorrelationId,
     Guid BriefVersionId,
+    long BriefVersion,
     string Objective,
     IReadOnlyList<string> Audiences,
     IReadOnlyList<string> Geographies,
+    IReadOnlyList<Guid> EvidenceItemIds);
+
+public sealed record MediaPlanningInput(
+    PlanningBriefInput Brief,
     long BudgetMinor,
     string Currency,
-    IReadOnlyList<Guid> EvidenceItemIds,
     IReadOnlyList<string> AvailableChannels);
 
 public sealed record AudienceDefinitionProposal(
@@ -33,10 +39,17 @@ public sealed record MediaAllocationProposal(
     string Role,
     IReadOnlyList<MediaRunningPeriodInput> RunningPeriods);
 
-public sealed record PlanningAgentProposal(
+public sealed record AudienceAgentProposal(
     IReadOnlyList<AudienceDefinitionProposal> Audiences,
     string TargetingRationale,
     string PositioningStatement,
+    IReadOnlyList<string> Unknowns,
+    string Rationale,
+    string Provider,
+    string Model,
+    long IncrementalCostMinor);
+
+public sealed record MediaPlanningAgentProposal(
     IReadOnlyList<MediaAllocationProposal> Allocations,
     IReadOnlyList<string> Unknowns,
     IReadOnlyList<string> Assumptions,
@@ -47,7 +60,11 @@ public sealed record PlanningAgentProposal(
 
 public interface IPlanningAgentClient
 {
-    Task<PlanningAgentProposal> ProposeAsync(
+    Task<AudienceAgentProposal> ProposeAudiencesAsync(
         PlanningBriefInput input,
+        CancellationToken cancellationToken);
+
+    Task<MediaPlanningAgentProposal> ProposeMediaMixAsync(
+        MediaPlanningInput input,
         CancellationToken cancellationToken);
 }

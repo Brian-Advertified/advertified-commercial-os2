@@ -139,4 +139,8 @@ def test_creative_excludes_expired_price_and_uncleared_product_image(
     assert concept["source_asset_ids"] == []
     assert not any(item["role"] == "PRICE" for item in concept["text_elements"])
     codes = {warning["code"] for warning in output["artifact"]["warnings"]}
-    assert {"OFFER_OUTSIDE_CAMPAIGN", "NO_APPROVED_PRODUCT_IMAGE", "ASSET_RIGHTS_UNCONFIRMED"} <= codes
+    assert {
+        "OFFER_OUTSIDE_CAMPAIGN",
+        "NO_APPROVED_PRODUCT_IMAGE",
+        "ASSET_RIGHTS_UNCONFIRMED",
+    } <= codes

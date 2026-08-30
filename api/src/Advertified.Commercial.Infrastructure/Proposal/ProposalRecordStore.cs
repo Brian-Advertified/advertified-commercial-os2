@@ -29,7 +29,12 @@ public sealed partial class ProposalRecordStore(GovernanceDbContext dbContext)
         dbContext.Database.SqlQuery<ApprovedBriefReferenceRow>($"""
             SELECT brief.id AS "BriefId", version.id AS "BriefVersionId",
                 version.objective AS "Objective", brief.owner_user_id AS "OwnerUserId",
-                version.version AS "BriefVersion"
+                version.version AS "BriefVersion",
+                COALESCE((SELECT jsonb_agg(binding.evidence_item_id ORDER BY binding.evidence_item_id)
+                    FROM commercial.brief_version_evidence_items binding
+                    WHERE binding.tenant_id = version.tenant_id
+                      AND binding.brief_version_id = version.id), '[]'::jsonb)::text
+                    AS "EvidenceIdsJson"
             FROM commercial.campaign_briefs brief
             JOIN commercial.brief_versions version
               ON version.tenant_id = brief.tenant_id AND version.id = brief.approved_version_id

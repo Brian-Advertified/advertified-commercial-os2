@@ -1,11 +1,24 @@
 # Advertified capability ledger
 
-**Evidence date:** 2026-08-29  
+**Evidence date:** 2026-08-30
 **Clean parent recorded before remediation:** `0986f62ad0748289fdafe8f36f5f9a3dabaab4d8`  
-**Current change state:** Gates 2–6 delivered and committed locally
+**Current change state:** Gate 10 remains in progress; current cross-gate runtime parity is verified locally
 **Status vocabulary:** ABSENT, SCAFFOLDED, IMPLEMENTED, VERIFIED, BLOCKED
 
 A capability is VERIFIED only when repeatable evidence was observed. Documentation does not make a capability implemented.
+
+## Current cross-gate agent runtime parity
+
+| Capability | Status | Evidence / blocker |
+|---|---|---|
+| One Python/FastAPI runtime boundary | VERIFIED locally | Audience, Media Planning and Proposal Narrative now join the delivered Opportunity and Creative handlers behind the one typed runtime route; no parallel agent service was added |
+| Truthful closed-roster reporting | VERIFIED locally | Deterministic mode advertises exactly nine executable handlers; Inventory Intelligence and Measurement remain absent |
+| Commercial API adapters | VERIFIED locally | `HttpDeterministic` selects typed HTTP adapters for Opportunity, Audience, Media Planning and Proposal Narrative; disabled/in-process modes retain explicit zero-cost local adapters |
+| Untrusted-output validation | VERIFIED locally | Unknown response fields, unapproved evidence, non-zero cost, sensitive audience invention, disallowed channels, budget mismatch and altered proposal facts fail closed |
+| Exact resource lineage | VERIFIED locally | Audience and mix calls pin the approved BriefVersion; proposal calls pin the BriefVersion and every selected MediaPlanVersion |
+| Live AgentCore/Bedrock provider | BLOCKED | ADR-0001 remains proposed; named owner approval, security/privacy/legal, cost and operations evidence are absent. No SDK, credential, network call or production resource was used |
+
+**Current local evidence:** Runtime Ruff and 26/26 tests pass; Release API suite 56/56 passes; architecture 23/23 passes. See `docs/evidence/agent-runtime-parity-20260830/`.
 
 ## Gate 0 — repository baseline
 
@@ -151,7 +164,7 @@ See `docs/evidence/gate-5/` for commands and exact outcomes.
 
 | Capability | Status | Evidence / blocker |
 |---|---|---|
-| Audience and editable media mix | VERIFIED | Approved Brief produces evidence-labelled audience definitions; planner edits channel budget, role and multiple running periods before approval |
+| Audience and editable media mix | VERIFIED | Approved Brief produces evidence-labelled audience definitions without requiring inventory first; HTTP runtime output is constrained to supplied geographies, no invented sensitive fields, allowed channels and the exact budget; planner edits role and running periods before approval |
 | Schedule-aware eligibility and pricing | VERIFIED | The same governed billing-unit policy drives shortlist affordability and final media-plan quantity/pricing; stale planned-period rates fail closed |
 | OOH/DOOH comparative intelligence | VERIFIED | PostGIS geography projection + GiST index + adaptive `ST_DWithin`/`ST_Distance` cohorts; exact comparable IDs/rates/distances/exclusions/statistics retained |
 | Inventory product market comparison | VERIFIED | OOH/DOOH detail page exposes local median, percentile, above/below-market position, confidence and expandable comparable sites |
@@ -168,7 +181,7 @@ See `docs/evidence/gate-7/` for retained commands and exact outcomes.
 | Capability | Status | Evidence / blocker |
 |---|---|---|
 | Distinct approved-plan choices | VERIFIED | One to three client options bind different approved MediaPlanVersions; duplicate plan choices fail closed and platform package codes remain separate |
-| Proposal wording and version approval | VERIFIED | Assigned agency operator edits client-safe title, summary, terms and outcomes, then approves the exact plan-bound version |
+| Proposal wording and version approval | VERIFIED | Narrative input pins the exact BriefVersion and every selected MediaPlanVersion; the API rejects changed objective, outcome, channel or exact minor-unit totals before the assigned agency operator edits and approves wording |
 | Branded deterministic PDF | VERIFIED | Approved structured facts render to retained PDF bytes with filename, media type, SHA-256 and size; no browser or model-generated commercial truth |
 | Controlled client sharing | VERIFIED | Agency explicitly chooses an active same-tenant advertiser recipient; deterministic adapter records zero-cost local delivery and exposes no external side effect |
 | Client decision | VERIFIED | Only the assigned recipient can read and decide; exactly one option may be selected or the proposal declined; expiry and repeat decisions fail closed |

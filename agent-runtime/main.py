@@ -12,6 +12,10 @@ from creative_contracts import CreativeAgentRequest
 from creative_service import generate_creative_concepts
 from opportunity_contracts import OpportunityAgentRequest
 from opportunity_service import HANDLERS
+from planning_contracts import AudienceAgentRequest, MediaPlanningAgentRequest
+from planning_service import propose_audiences, propose_media_mix
+from proposal_contracts import ProposalNarrativeAgentRequest
+from proposal_service import propose_narrative
 
 RUNTIME_MODE_KEY = "ADVERTIFIED_AGENT_RUNTIME_MODE"
 SERVICE_KEY = "ADVERTIFIED_AGENT_RUNTIME_SERVICE_KEY"
@@ -42,8 +46,7 @@ app = FastAPI(
 def describe_runtime() -> RuntimeDescription:
     """Describe only capabilities that exist in this baseline."""
     enabled = _deterministic_enabled()
-    implemented = [code.value for code in HANDLERS]
-    implemented.append(AgentCode.CREATIVE.value)
+    implemented = [code.value for code in AgentCode if code in _implemented_agents()]
     return RuntimeDescription(
         service="Advertified Agent Runtime",
         status="deterministic_ready" if enabled else "provider_disabled",
@@ -84,6 +87,10 @@ async def invoke(
     body = await http_request.body()
     if agent_code == AgentCode.CREATIVE:
         return _invoke_creative(body)
+    if agent_code in (AgentCode.AUDIENCE, AgentCode.MEDIA_PLANNING):
+        return _invoke_planning(agent_code, body)
+    if agent_code == AgentCode.PROPOSAL_NARRATIVE:
+        return _invoke_proposal(body)
     return _invoke_opportunity(agent_code, body)
 
 
@@ -101,13 +108,46 @@ def _invoke_opportunity(agent_code: AgentCode, body: bytes) -> dict[str, object]
     return HANDLERS[agent_code](request).model_dump(mode="json")
 
 
+def _invoke_planning(agent_code: AgentCode, body: bytes) -> dict[str, object]:
+    model = (
+        AudienceAgentRequest
+        if agent_code == AgentCode.AUDIENCE
+        else MediaPlanningAgentRequest
+    )
+    request = _validate_json(model, body)
+    _require_agent_match(request.invocation.agent_code, agent_code)
+    handler = propose_audiences if agent_code == AgentCode.AUDIENCE else propose_media_mix
+    return handler(request).model_dump(mode="json")
+
+
+def _invoke_proposal(body: bytes) -> dict[str, object]:
+    request = _validate_json(ProposalNarrativeAgentRequest, body)
+    _require_agent_match(request.invocation.agent_code, AgentCode.PROPOSAL_NARRATIVE)
+    return propose_narrative(request).model_dump(mode="json")
+
+
+def _require_agent_match(contract_code: AgentCode, route_code: AgentCode) -> None:
+    if contract_code != route_code:
+        raise HTTPException(status_code=400, detail="Agent contract does not match the route.")
+
+
+def _implemented_agents() -> set[AgentCode]:
+    return {
+        *HANDLERS,
+        AgentCode.AUDIENCE,
+        AgentCode.MEDIA_PLANNING,
+        AgentCode.PROPOSAL_NARRATIVE,
+        AgentCode.CREATIVE,
+    }
+
+
 def _validate_json(model_type, body: bytes):
     try:
         return model_type.model_validate_json(body)
     except ValidationError as error:
         raise HTTPException(
             status_code=422,
-            detail=error.errors(include_input=False),
+            detail=error.errors(include_input=False, include_context=False),
         ) from error
 
 

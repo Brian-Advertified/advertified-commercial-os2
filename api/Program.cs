@@ -92,12 +92,12 @@ builder.Services.AddScoped<IInventoryBenchmarkReader, InventoryBenchmarkReader>(
 builder.Services.AddSingleton(PlanningPolicy.Load());
 builder.Services.AddSingleton(CampaignModePolicy.Load());
 builder.Services.AddScoped<IPlanningCommands, PlanningCommands>();
-builder.Services.AddScoped<IPlanningAgentClient, DeterministicPlanningAgentClient>();
+builder.Services.AddScoped<DeterministicPlanningAgentClient>();
 builder.Services.AddScoped<ProposalRecordStore>();
 builder.Services.AddSingleton(ProposalPolicy.Load());
 builder.Services.AddScoped<IProposalReader, ProposalReader>();
 builder.Services.AddScoped<IProposalCommands, ProposalCommands>();
-builder.Services.AddScoped<IProposalNarrativeClient, DeterministicProposalNarrativeClient>();
+builder.Services.AddScoped<DeterministicProposalNarrativeClient>();
 builder.Services.AddScoped<IProposalDeliveryClient, DeterministicProposalDeliveryClient>();
 builder.AddEmailAutomation(emailAutomation);
 builder.AddInventoryExtraction(inventoryExtraction);
@@ -148,12 +148,9 @@ builder.Services.AddOptions<AgentRuntimeOptions>()
              !string.IsNullOrWhiteSpace(options.ServiceKey)),
         "The HTTP agent runtime requires an absolute URL and service key.")
     .ValidateOnStart();
-builder.Services.AddHttpClient<HttpOpportunityAgentClient>((serviceProvider, client) =>
-{
-    var options = serviceProvider.GetRequiredService<
-        Microsoft.Extensions.Options.IOptions<AgentRuntimeOptions>>().Value;
-    client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
-});
+builder.Services.AddHttpClient<HttpOpportunityAgentClient>(ConfigureAgentRuntimeHttpClient);
+builder.Services.AddHttpClient<HttpPlanningAgentClient>(ConfigureAgentRuntimeHttpClient);
+builder.Services.AddHttpClient<HttpProposalNarrativeClient>(ConfigureAgentRuntimeHttpClient);
 builder.Services.AddScoped<IOpportunityAgentClient>(serviceProvider =>
     agentRuntime.Mode switch
     {
@@ -163,6 +160,14 @@ builder.Services.AddScoped<IOpportunityAgentClient>(serviceProvider =>
             serviceProvider.GetRequiredService<HttpOpportunityAgentClient>(),
         _ => ActivatorUtilities.CreateInstance<InProcessOpportunityAgentClient>(serviceProvider),
     });
+builder.Services.AddScoped<IPlanningAgentClient>(serviceProvider =>
+    agentRuntime.Mode == AgentRuntimeOptions.HttpMode
+        ? serviceProvider.GetRequiredService<HttpPlanningAgentClient>()
+        : serviceProvider.GetRequiredService<DeterministicPlanningAgentClient>());
+builder.Services.AddScoped<IProposalNarrativeClient>(serviceProvider =>
+    agentRuntime.Mode == AgentRuntimeOptions.HttpMode
+        ? serviceProvider.GetRequiredService<HttpProposalNarrativeClient>()
+        : serviceProvider.GetRequiredService<DeterministicProposalNarrativeClient>());
 if (agentRuntime.Mode != AgentRuntimeOptions.DisabledMode)
 {
     builder.Services.AddHostedService<OpportunityRunDispatcher>();
@@ -289,6 +294,15 @@ app.MapMarketplaceEndpoints();
 app.MapPlanningEndpoints();
 app.MapProposalEndpoints();
 app.MapEmailAutomationEndpoints();
+
+static void ConfigureAgentRuntimeHttpClient(
+    IServiceProvider serviceProvider,
+    HttpClient client)
+{
+    var options = serviceProvider.GetRequiredService<
+        Microsoft.Extensions.Options.IOptions<AgentRuntimeOptions>>().Value;
+    client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
+}
 
 app.Run();
 

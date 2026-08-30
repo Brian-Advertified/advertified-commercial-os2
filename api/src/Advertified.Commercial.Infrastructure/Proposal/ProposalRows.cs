@@ -52,7 +52,8 @@ internal sealed record ApprovedBriefReferenceRow(
     Guid BriefVersionId,
     string Objective,
     Guid OwnerUserId,
-    long BriefVersion);
+    long BriefVersion,
+    string EvidenceIdsJson);
 
 internal sealed record ProposalRecipientRow(
     Guid UserId,

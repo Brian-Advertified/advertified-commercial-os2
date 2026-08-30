@@ -64,14 +64,12 @@ def test_gate_evidence_manifests_match_the_closed_schema_contract() -> None:
     schema = json.loads(
         (evidence_root / "manifest.schema.json").read_text(encoding="utf-8")
     )
+    manifest_paths = [
+        evidence_root / "manifest.template.json",
+        *sorted(evidence_root.glob("*/manifest.json")),
+    ]
     manifests = [
-        json.loads((evidence_root / "manifest.template.json").read_text(encoding="utf-8")),
-        json.loads((evidence_root / "gate-1" / "manifest.json").read_text(encoding="utf-8")),
-        json.loads((evidence_root / "gate-2" / "manifest.json").read_text(encoding="utf-8")),
-        json.loads((evidence_root / "gate-3" / "manifest.json").read_text(encoding="utf-8")),
-        json.loads((evidence_root / "gate-4" / "manifest.json").read_text(encoding="utf-8")),
-        json.loads((evidence_root / "gate-5" / "manifest.json").read_text(encoding="utf-8")),
-        json.loads((evidence_root / "gate-6" / "manifest.json").read_text(encoding="utf-8")),
+        json.loads(path.read_text(encoding="utf-8")) for path in manifest_paths
     ]
     allowed_fields = set(schema["properties"])
     required_fields = set(schema["required"])
@@ -93,12 +91,14 @@ def test_gate_evidence_manifests_match_the_closed_schema_contract() -> None:
             assert set(check) <= allowed_check_fields
             assert check["outcome"] in allowed_outcomes
 
-    for expected_gate, gate_manifest in enumerate(manifests[1:], start=1):
-        assert gate_manifest["gate"] == expected_gate
-        assert gate_manifest["liveProviderUsed"] is False
-        assert gate_manifest["productionResourcesUsed"] is False
-        assert gate_manifest["incrementalAiCostMinor"] == 0
-        review = gate_manifest["ownerReview"]
+    for path, manifest in zip(manifest_paths[1:], manifests[1:], strict=True):
+        directory = path.parent.name
+        if directory.startswith("gate-"):
+            assert manifest["gate"] == int(directory.removeprefix("gate-"))
+        assert manifest["liveProviderUsed"] is False
+        assert manifest["productionResourcesUsed"] is False
+        assert manifest["incrementalAiCostMinor"] == 0
+        review = manifest["ownerReview"]
         assert review["status"] in allowed_review_statuses
         if review["status"] == "APPROVED":
             assert review["owner"]

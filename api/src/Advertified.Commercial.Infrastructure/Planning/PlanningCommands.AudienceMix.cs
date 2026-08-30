@@ -19,7 +19,8 @@ public sealed partial class PlanningCommands
     {
         var brief = await LoadApprovedBriefAsync(
             briefVersionId, envelope, cancellationToken);
-        var proposal = await GetProposalAsync(brief, envelope, cancellationToken);
+        var proposal = await planningAgent.ProposeAudiencesAsync(
+            BuildBriefInput(brief, envelope), cancellationToken);
         if (proposal.Audiences.Count == 0 || proposal.IncrementalCostMinor != 0)
         {
             throw new InvalidOperationException("The audience proposal is invalid.");
@@ -84,7 +85,9 @@ public sealed partial class PlanningCommands
         {
             throw new InvalidLifecycleTransitionException();
         }
-        var proposal = await GetProposalAsync(brief, envelope, cancellationToken);
+        var proposal = await planningAgent.ProposeMediaMixAsync(
+            await BuildMediaInputAsync(brief, envelope, cancellationToken),
+            cancellationToken);
         EnsureAllocations(proposal, brief.BudgetMinor!.Value);
         var latest = await store.FindLatestMixAsync(
             envelope.TenantId, briefVersionId, cancellationToken);
@@ -246,7 +249,7 @@ public sealed partial class PlanningCommands
         return brief;
     }
 
-    private async Task<PlanningAgentProposal> GetProposalAsync<TCommand>(
+    private async Task<MediaPlanningInput> BuildMediaInputAsync<TCommand>(
         PlanningBriefRow brief,
         CommandEnvelope<TCommand> envelope,
         CancellationToken cancellationToken)
@@ -262,14 +265,22 @@ public sealed partial class PlanningCommands
         {
             throw new InvalidLifecycleTransitionException();
         }
-        return await planningAgent.ProposeAsync(new PlanningBriefInput(
-            envelope.TenantId.Value, envelope.ActorId.Value, brief.Id, brief.Objective,
-            Read<string[]>(brief.AudiencesJson), Read<string[]>(brief.GeographiesJson),
-            brief.BudgetMinor!.Value, brief.Currency!, Read<Guid[]>(brief.EvidenceIdsJson),
-            channels), cancellationToken);
+        return new MediaPlanningInput(
+            BuildBriefInput(brief, envelope), brief.BudgetMinor!.Value,
+            brief.Currency!, channels);
     }
 
-    private static void EnsureAllocations(PlanningAgentProposal proposal, long budget) =>
+    private static PlanningBriefInput BuildBriefInput<TCommand>(
+        PlanningBriefRow brief,
+        CommandEnvelope<TCommand> envelope)
+        where TCommand : notnull => new(
+            envelope.TenantId.Value, envelope.ActorId.Value,
+            envelope.CommandId.Value, envelope.CorrelationId.Value,
+            brief.Id, brief.Version, brief.Objective,
+            Read<string[]>(brief.AudiencesJson), Read<string[]>(brief.GeographiesJson),
+            Read<Guid[]>(brief.EvidenceIdsJson));
+
+    private static void EnsureAllocations(MediaPlanningAgentProposal proposal, long budget) =>
         EnsureAllocations(proposal.Allocations.Select(item => new MediaAllocationView(
             item.Channel,
             item.BudgetMinor,

@@ -170,7 +170,9 @@ def _brand_only_concept(request: CreativeAgentRequest, media_format) -> Creative
         width=media_format.width,
         height=media_format.height,
         purpose="Present the approved campaign direction without inventing a product offer.",
-        visual_instruction="Use only approved brand assets; leave missing product imagery unresolved.",
+        visual_instruction=(
+            "Use only approved brand assets; leave missing product imagery unresolved."
+        ),
         source_asset_ids=logo_ids,
         preserve_supplied_products=True,
         text_elements=(

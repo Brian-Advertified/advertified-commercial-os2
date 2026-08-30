@@ -149,7 +149,7 @@ internal static class ProposalPdfRenderer
         .Replace("·", "-", StringComparison.Ordinal);
 
     private static string FormatMoney(long amountMinor, string currency) =>
-        $"{currency} {(decimal)amountMinor / 100m:N0}";
+        ProposalMoneyFormatter.Format(amountMinor, currency);
 
     private static string SafeFileName(string value)
     {

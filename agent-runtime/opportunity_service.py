@@ -16,6 +16,7 @@ from contracts import (
     SuggestedNextAction,
     UnknownItem,
 )
+from master_data_codes import LifecycleStatuses, WorkflowStepTypes
 from opportunity_contracts import (
     BriefDraftArtifact,
     BusinessInterpretationArtifact,
@@ -25,7 +26,6 @@ from opportunity_contracts import (
     OpportunityAngleSetArtifact,
     StrategyArtifact,
 )
-from master_data_codes import LifecycleStatuses, WorkflowStepTypes
 
 
 def _usage() -> ProviderUsage:

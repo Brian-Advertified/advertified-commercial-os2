@@ -189,10 +189,19 @@ public sealed record ProposalDocumentContent(
     byte[] Content);
 
 public sealed record ProposalNarrativeInput(
+    Guid TenantId,
+    Guid ActorId,
+    Guid RunId,
+    Guid CorrelationId,
+    Guid BriefVersionId,
+    long BriefVersion,
     string BriefObjective,
+    IReadOnlyList<Guid> EvidenceItemIds,
     IReadOnlyList<ProposalOptionNarrativeInput> Options);
 
 public sealed record ProposalOptionNarrativeInput(
+    Guid PlanVersionId,
+    int PlanVersion,
     string Label,
     string Outcome,
     long BudgetMinor,
