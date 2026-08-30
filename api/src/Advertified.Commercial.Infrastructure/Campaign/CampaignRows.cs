@@ -46,6 +46,15 @@ internal sealed record CampaignRow(
     Guid? CreativeApprovedBy,
     DateTimeOffset? CreativeApprovedAtUtc,
     string? CreativeApprovalReason,
+    Guid? StartedBy,
+    DateTimeOffset? StartedAtUtc,
+    string? StartReason,
+    Guid? CompletedBy,
+    DateTimeOffset? CompletedAtUtc,
+    string? CompletionReason,
+    Guid? ProofRequestedBy,
+    DateTimeOffset? ProofRequestedAtUtc,
+    string? ProofRequestReason,
     long Version,
     DateTimeOffset UpdatedAtUtc)
 {
@@ -58,6 +67,10 @@ internal sealed record CampaignRow(
                 MasterDataCodes.Permissions.CampaignConfirmBookings,
             MasterDataCodes.LifecycleStatuses.Booked =>
                 MasterDataCodes.Permissions.CampaignRequestCreative,
+            MasterDataCodes.LifecycleStatuses.Ready =>
+                MasterDataCodes.Permissions.CampaignStart,
+            MasterDataCodes.LifecycleStatuses.Live =>
+                MasterDataCodes.Permissions.CampaignComplete,
             _ => null,
         };
         return new(
@@ -68,6 +81,8 @@ internal sealed record CampaignRow(
             CreatedAtUtc, BookingsConfirmedBy, BookingsConfirmedAtUtc,
             BookingConfirmationReason, CreativeRequestedBy, CreativeRequestedAtUtc,
             CreativeRequestReason, CreativeApprovedBy, CreativeApprovedAtUtc,
-            CreativeApprovalReason, Version, UpdatedAtUtc);
+            CreativeApprovalReason, StartedBy, StartedAtUtc, StartReason, CompletedBy,
+            CompletedAtUtc, CompletionReason, ProofRequestedBy, ProofRequestedAtUtc,
+            ProofRequestReason, Version, UpdatedAtUtc);
     }
 }

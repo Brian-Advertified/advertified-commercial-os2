@@ -6,6 +6,7 @@ using Advertified.Commercial.Application.Booking;
 using Advertified.Commercial.Application.Campaign;
 using Advertified.Commercial.Application.CommercialSettings;
 using Advertified.Commercial.Application.Creative;
+using Advertified.Commercial.Application.Delivery;
 using Advertified.Commercial.Application.EmailAutomation;
 using Advertified.Commercial.Application.Funding;
 using Advertified.Commercial.Api.Authentication;
@@ -97,6 +98,21 @@ public sealed class HumanSafeExceptionHandler(
                 "Creative file was rejected",
                 "Upload a safe file that matches the booked format requirement.",
                 "CREATIVE_FILE_REJECTED"),
+            CampaignDeliveryBlockedException => new(
+                StatusCodes.Status409Conflict,
+                "Campaign delivery is blocked",
+                "Complete the required delivery conditions before advancing the campaign.",
+                "CAMPAIGN_DELIVERY_BLOCKED"),
+            DeliveryProofBlockedException => new(
+                StatusCodes.Status409Conflict,
+                "Delivery proof is blocked",
+                "Use the confirmed booking flight and an eligible campaign proof request.",
+                "DELIVERY_PROOF_BLOCKED"),
+            DeliveryProofFileRejectedException => new(
+                StatusCodes.Status400BadRequest,
+                "Delivery proof file was rejected",
+                "Upload a safe file whose type and contents match the selected proof type.",
+                "DELIVERY_PROOF_FILE_REJECTED"),
             FundingReviewRequiredException => new(
                 StatusCodes.Status409Conflict,
                 "Funding needs review",

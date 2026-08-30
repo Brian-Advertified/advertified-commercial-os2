@@ -1,10 +1,13 @@
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Creative;
+using Advertified.Commercial.Application.Delivery;
 using Advertified.Commercial.Domain.Governance;
 
 namespace Advertified.Commercial.Application.Campaign;
 
 public sealed record ConfirmCampaignBookingsCommand(string Reason);
+public sealed record StartCampaignCommand(string Reason);
+public sealed record CompleteCampaignCommand(string CompletionReason, string ProofRequestReason);
 
 public sealed record CampaignView(
     Guid Id,
@@ -36,10 +39,20 @@ public sealed record CampaignView(
     Guid? CreativeApprovedBy,
     DateTimeOffset? CreativeApprovedAtUtc,
     string? CreativeApprovalReason,
+    Guid? StartedBy,
+    DateTimeOffset? StartedAtUtc,
+    string? StartReason,
+    Guid? CompletedBy,
+    DateTimeOffset? CompletedAtUtc,
+    string? CompletionReason,
+    Guid? ProofRequestedBy,
+    DateTimeOffset? ProofRequestedAtUtc,
+    string? ProofRequestReason,
     long Version,
     DateTimeOffset UpdatedAtUtc)
 {
     public CreativeWorkspaceView? Creative { get; init; }
+    public IReadOnlyList<DeliveryProofView> DeliveryProofs { get; init; } = [];
 }
 
 public interface ICampaignCommands
@@ -47,6 +60,16 @@ public interface ICampaignCommands
     Task<CommandResult<CampaignView>> ConfirmBookingsAsync(
         Guid campaignId,
         CommandEnvelope<ConfirmCampaignBookingsCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<CampaignView>> StartAsync(
+        Guid campaignId,
+        CommandEnvelope<StartCampaignCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<CampaignView>> CompleteAsync(
+        Guid campaignId,
+        CommandEnvelope<CompleteCampaignCommand> envelope,
         CancellationToken cancellationToken);
 }
 
@@ -65,3 +88,4 @@ public interface ICampaignReader
 }
 
 public sealed class CampaignReadinessBlockedException : Exception;
+public sealed class CampaignDeliveryBlockedException : Exception;

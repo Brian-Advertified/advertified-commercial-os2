@@ -2,10 +2,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Advertified.Commercial.Infrastructure.Migrations;
 
-public sealed partial class CreativeProductionReadiness
+public sealed partial class CampaignDeliveryProof
 {
-    internal static void ReplaceCampaignTransitionBoundary(MigrationBuilder migrationBuilder) =>
-        migrationBuilder.Sql(
+    private static void ReplaceDeliveryCampaignTransitionBoundary(
+        MigrationBuilder migrationBuilder) => migrationBuilder.Sql(
             """
             CREATE OR REPLACE FUNCTION commercial.enforce_campaign_transition()
             RETURNS trigger LANGUAGE plpgsql AS $campaign_transition$
@@ -182,6 +182,86 @@ public sealed partial class CreativeProductionReadiness
                                    AND asset.requirement_id = requirement.id
                                    AND asset.current_version_id IS NOT NULL)) THEN
                         RAISE EXCEPTION 'campaign creative is not ready';
+                    END IF;
+                    RETURN NEW;
+                END IF;
+
+                IF OLD.status_code = 'READY' AND NEW.status_code = 'LIVE' THEN
+                    IF (NEW.bookings_confirmed_by, NEW.bookings_confirmed_at_utc,
+                        NEW.booking_confirmation_reason, NEW.creative_requested_by,
+                        NEW.creative_requested_at_utc, NEW.creative_request_reason,
+                        NEW.creative_approved_by, NEW.creative_approved_at_utc,
+                        NEW.creative_approval_reason) IS DISTINCT FROM
+                       (OLD.bookings_confirmed_by, OLD.bookings_confirmed_at_utc,
+                        OLD.booking_confirmation_reason, OLD.creative_requested_by,
+                        OLD.creative_requested_at_utc, OLD.creative_request_reason,
+                        OLD.creative_approved_by, OLD.creative_approved_at_utc,
+                        OLD.creative_approval_reason)
+                       OR NEW.started_by <> commercial.current_user_id()
+                       OR (NEW.started_at_utc AT TIME ZONE 'UTC')::date
+                            NOT BETWEEN OLD.start_date AND OLD.end_date
+                       OR NEW.version <> OLD.version + 1
+                       OR NEW.updated_at_utc <> NEW.started_at_utc
+                       OR NOT EXISTS (
+                           SELECT 1 FROM commercial.payment_intents payment
+                           WHERE payment.tenant_id = OLD.tenant_id
+                             AND payment.id = OLD.payment_intent_id
+                             AND payment.status_code = 'CONFIRMED')
+                       OR EXISTS (
+                           SELECT 1 FROM commercial.media_plan_lines line
+                           WHERE line.tenant_id = OLD.tenant_id
+                             AND line.plan_version_id = OLD.plan_version_id
+                             AND NOT EXISTS (
+                                 SELECT 1 FROM commercial.bookings booking
+                                 WHERE booking.buyer_tenant_id = OLD.tenant_id
+                                   AND booking.proposal_decision_id = OLD.proposal_decision_id
+                                   AND booking.media_plan_line_id = line.id
+                                   AND booking.status_code = 'CONFIRMED'))
+                       OR EXISTS (
+                           SELECT 1 FROM commercial.creative_requirements requirement
+                           WHERE requirement.buyer_tenant_id = OLD.tenant_id
+                             AND requirement.campaign_id = OLD.id
+                             AND NOT EXISTS (
+                                 SELECT 1 FROM commercial.creative_assets asset
+                                 JOIN commercial.creative_asset_reviews brand
+                                   ON brand.buyer_tenant_id = asset.buyer_tenant_id
+                                  AND brand.asset_version_id = asset.current_version_id
+                                  AND brand.review_type_code = 'BRAND_LEGAL_RIGHTS'
+                                  AND brand.decision_code = 'APPROVED'
+                                  AND brand.rights_status_code = 'APPROVED'
+                                 JOIN commercial.creative_asset_reviews supplier
+                                   ON supplier.buyer_tenant_id = asset.buyer_tenant_id
+                                  AND supplier.asset_version_id = asset.current_version_id
+                                  AND supplier.review_type_code = 'SUPPLIER_TECHNICAL'
+                                  AND supplier.decision_code = 'APPROVED'
+                                 WHERE asset.buyer_tenant_id = OLD.tenant_id
+                                   AND asset.requirement_id = requirement.id
+                                   AND asset.current_version_id IS NOT NULL)) THEN
+                        RAISE EXCEPTION 'campaign delivery dependencies are not ready';
+                    END IF;
+                    RETURN NEW;
+                END IF;
+
+                IF OLD.status_code = 'LIVE' AND NEW.status_code = 'COMPLETED' THEN
+                    IF (NEW.bookings_confirmed_by, NEW.bookings_confirmed_at_utc,
+                        NEW.booking_confirmation_reason, NEW.creative_requested_by,
+                        NEW.creative_requested_at_utc, NEW.creative_request_reason,
+                        NEW.creative_approved_by, NEW.creative_approved_at_utc,
+                        NEW.creative_approval_reason, NEW.started_by,
+                        NEW.started_at_utc, NEW.start_reason) IS DISTINCT FROM
+                       (OLD.bookings_confirmed_by, OLD.bookings_confirmed_at_utc,
+                        OLD.booking_confirmation_reason, OLD.creative_requested_by,
+                        OLD.creative_requested_at_utc, OLD.creative_request_reason,
+                        OLD.creative_approved_by, OLD.creative_approved_at_utc,
+                        OLD.creative_approval_reason, OLD.started_by,
+                        OLD.started_at_utc, OLD.start_reason)
+                       OR NEW.completed_by <> commercial.current_user_id()
+                       OR NEW.proof_requested_by <> commercial.current_user_id()
+                       OR NEW.proof_requested_at_utc <> NEW.completed_at_utc
+                       OR (NEW.completed_at_utc AT TIME ZONE 'UTC')::date <= OLD.end_date
+                       OR NEW.version <> OLD.version + 1
+                       OR NEW.updated_at_utc <> NEW.completed_at_utc THEN
+                        RAISE EXCEPTION 'campaign delivery is not complete';
                     END IF;
                     RETURN NEW;
                 END IF;

@@ -169,5 +169,7 @@ public sealed partial class MarketplaceAcceptanceTests
         public override DateTimeOffset GetUtcNow() => utcNow;
 
         internal void Advance(TimeSpan duration) => utcNow = utcNow.Add(duration);
+
+        internal void Set(DateTimeOffset value) => utcNow = value;
     }
 }

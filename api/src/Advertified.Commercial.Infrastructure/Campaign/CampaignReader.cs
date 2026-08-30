@@ -3,12 +3,14 @@ using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Creative;
+using Advertified.Commercial.Infrastructure.Delivery;
 
 namespace Advertified.Commercial.Infrastructure.Campaign;
 
 public sealed class CampaignReader(
     CampaignRecordStore store,
     CreativeRecordStore creativeStore,
+    DeliveryProofRecordStore deliveryStore,
     ITenantAuthorizer authorizer) : ICampaignReader
 {
     public async Task<IReadOnlyList<CampaignView>> ListAsync(
@@ -37,8 +39,10 @@ public sealed class CampaignReader(
             ?? throw new UnauthorizedAccessException("Campaign access denied.");
         var creative = CreativeRecordStore.ToWorkspace(
             await creativeStore.ListWorkspaceRowsAsync(campaignId, cancellationToken));
+        var deliveryProofs = (await deliveryStore.ListCampaignAsync(
+            campaignId, cancellationToken)).Select(proof => proof.ToView()).ToArray();
         await transaction.CommitAsync(cancellationToken);
-        return row.ToView() with { Creative = creative };
+        return row.ToView() with { Creative = creative, DeliveryProofs = deliveryProofs };
     }
 
     private async Task EnsureAllowedAsync(

@@ -163,9 +163,12 @@ public sealed partial class MarketplaceAcceptanceTests
         Assert.Equal(5_000, buyerView.RootElement.GetProperty("feesMinor").GetInt64());
         Assert.Equal(188_250, buyerView.RootElement.GetProperty("vatMinor").GetInt64());
         await AssertBookingEvidenceAsync(connectionString, bookingId, campaignId);
-        await AssertCreativeProductionReadinessAsync(
+        var readyVersion = await AssertCreativeProductionReadinessAsync(
             buyer, client, supplier, other, campaignId, bookingId,
             bookedCampaign.RootElement.GetProperty("version").GetInt64(), connectionString);
+        await AssertCampaignDeliveryProofAsync(
+            buyer, supplier, other, campaignId, bookingId, readyVersion,
+            clock, connectionString);
     }
 
     [Fact]

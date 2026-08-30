@@ -63,6 +63,7 @@ REQUIRED_MASTER_COLLECTIONS = {
     "creativeTextRoles",
     "creativeWarningTypes",
     "creativeReviewTypes",
+    "deliveryProofTypes",
     "assetRightsStatuses",
     "commercialResourceTypes",
     "commercialActions",
@@ -270,6 +271,23 @@ CAMPAIGN_PERMISSION_ROLES = {
     },
     "campaign_approve_creative": {
         "platform_admin", "advertiser_admin", "advertiser_approver",
+    },
+    "campaign_start": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "campaign_complete": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "delivery_proof_view": {
+        "platform_admin", "internal_planner", "inventory_ops", "agency_admin",
+        "agency_campaign_user", "advertiser_admin", "advertiser_approver",
+        "supplier_admin", "supplier_user",
+    },
+    "delivery_proof_submit": {
+        "platform_admin", "inventory_ops", "supplier_admin", "supplier_user",
+    },
+    "delivery_proof_review": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
     },
 }
 REQUIRED_PERMISSION_ROLES = (

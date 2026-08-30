@@ -1,4 +1,5 @@
 using Advertified.Commercial.Application.Campaign;
+using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Domain.Governance;
 
@@ -17,6 +18,12 @@ public static class CampaignEndpoints
             .WithName("GetCampaign").Produces<CampaignView>().WithQueryProblems();
         group.MapPost("/{campaignId:guid}:confirm-bookings", ConfirmBookingsAsync)
             .WithName("ConfirmCampaignBookings").Produces<CampaignView>()
+            .WithCommandProblems(requiresVersion: true);
+        group.MapPost("/{campaignId:guid}:start", StartAsync)
+            .WithName("StartCampaign").Produces<CampaignView>()
+            .WithCommandProblems(requiresVersion: true);
+        group.MapPost("/{campaignId:guid}:complete", CompleteAsync)
+            .WithName("CompleteCampaign").Produces<CampaignView>()
             .WithCommandProblems(requiresVersion: true);
         return endpoints;
     }
@@ -56,4 +63,43 @@ public static class CampaignEndpoints
             tenantId, command, context, identity, clock, true,
             (envelope, token) => commands.ConfirmBookingsAsync(
                 campaignId, envelope, token), cancellationToken);
+
+    private static Task<IResult> StartAsync(
+        Guid tenantId,
+        Guid campaignId,
+        StartCampaignCommand command,
+        HttpContext context,
+        ICurrentIdentity identity,
+        ICampaignCommands commands,
+        TimeProvider clock,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(tenantId, campaignId, command, context, identity, commands.StartAsync,
+            clock, cancellationToken);
+
+    private static Task<IResult> CompleteAsync(
+        Guid tenantId,
+        Guid campaignId,
+        CompleteCampaignCommand command,
+        HttpContext context,
+        ICurrentIdentity identity,
+        ICampaignCommands commands,
+        TimeProvider clock,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(tenantId, campaignId, command, context, identity, commands.CompleteAsync,
+            clock, cancellationToken);
+
+    private static Task<IResult> ExecuteAsync<TCommand>(
+        Guid tenantId,
+        Guid campaignId,
+        TCommand command,
+        HttpContext context,
+        ICurrentIdentity identity,
+        Func<Guid, CommandEnvelope<TCommand>, CancellationToken,
+            Task<CommandResult<CampaignView>>> execute,
+        TimeProvider clock,
+        CancellationToken cancellationToken)
+        where TCommand : notnull =>
+        CommandEndpointExecutor.ExecuteOkAsync(
+            tenantId, command, context, identity, clock, true,
+            (envelope, token) => execute(campaignId, envelope, token), cancellationToken);
 }

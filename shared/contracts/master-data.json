@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.6.0",
+  "registryVersion": "2.7.0",
   "effectiveFrom": "2026-08-30",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
@@ -109,7 +109,12 @@
       {"code":"creative_upload","displayLabel":"Upload booked-format creative versions","isActive":true,"sortOrder":710,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"creative_brand_review","displayLabel":"Review creative brand legal and rights state","isActive":true,"sortOrder":720,"metadata":{"roles":["platform_admin","advertiser_admin","advertiser_approver"]}},
       {"code":"creative_supplier_review","displayLabel":"Review assigned creative technical delivery","isActive":true,"sortOrder":730,"metadata":{"roles":["platform_admin","inventory_ops","supplier_admin","supplier_user"]}},
-      {"code":"campaign_approve_creative","displayLabel":"Approve complete campaign creative readiness","isActive":true,"sortOrder":740,"metadata":{"roles":["platform_admin","advertiser_admin","advertiser_approver"]}}
+      {"code":"campaign_approve_creative","displayLabel":"Approve complete campaign creative readiness","isActive":true,"sortOrder":740,"metadata":{"roles":["platform_admin","advertiser_admin","advertiser_approver"]}},
+      {"code":"campaign_start","displayLabel":"Start a delivery-ready campaign","isActive":true,"sortOrder":750,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"campaign_complete","displayLabel":"Complete a closed campaign delivery window","isActive":true,"sortOrder":760,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"delivery_proof_view","displayLabel":"View assigned campaign delivery proof","isActive":true,"sortOrder":770,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_admin","supplier_user"]}},
+      {"code":"delivery_proof_submit","displayLabel":"Submit proof for an assigned supplier booking","isActive":true,"sortOrder":780,"metadata":{"roles":["platform_admin","inventory_ops","supplier_admin","supplier_user"]}},
+      {"code":"delivery_proof_review","displayLabel":"Review assigned campaign delivery proof","isActive":true,"sortOrder":790,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}}
     ],
     "briefSourceTypes": [
       {"code":"SUPPLIED_TEXT","displayLabel":"Supplied Text","isActive":true,"sortOrder":10},
@@ -171,7 +176,8 @@
       {"code":"INVENTORY_CANDIDATE_REVIEW","displayLabel":"Review Inventory Candidate","isActive":true,"sortOrder":90},
       {"code":"MEDIA_MIX_APPROVAL","displayLabel":"Approve Media Mix","isActive":true,"sortOrder":100},
       {"code":"PLAN_CRITIC_RESOLUTION","displayLabel":"Resolve Plan Critic Objection","isActive":true,"sortOrder":110},
-      {"code":"MEDIA_PLAN_APPROVAL","displayLabel":"Approve Media Plan","isActive":true,"sortOrder":120}
+      {"code":"MEDIA_PLAN_APPROVAL","displayLabel":"Approve Media Plan","isActive":true,"sortOrder":120},
+      {"code":"DELIVERY_PROOF_REVIEW","displayLabel":"Review Delivery Proof","isActive":true,"sortOrder":130}
     ],
     "evidenceClassifications": [
       {"code":"FACT","displayLabel":"Confirmed Fact","isActive":true,"sortOrder":10},
@@ -443,7 +449,8 @@
       {"code":"invoice","displayLabel":"Invoice","isActive":true,"sortOrder":380},
       {"code":"payment_intent","displayLabel":"Payment Intent","isActive":true,"sortOrder":390},
       {"code":"campaign","displayLabel":"Campaign","isActive":true,"sortOrder":400},
-      {"code":"creative_asset","displayLabel":"Creative Asset","isActive":true,"sortOrder":410}
+      {"code":"creative_asset","displayLabel":"Creative Asset","isActive":true,"sortOrder":410},
+      {"code":"delivery_proof","displayLabel":"Delivery Proof","isActive":true,"sortOrder":420}
     ],
     "commercialActions": [
       {"code":"tenant.updated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -521,7 +528,11 @@
       {"code":"creative_asset.version_uploaded","displayLabel":"Creative Asset Version Uploaded","isActive":true,"sortOrder":730},
       {"code":"creative_asset.brand_reviewed","displayLabel":"Creative Asset Brand Reviewed","isActive":true,"sortOrder":740},
       {"code":"creative_asset.supplier_reviewed","displayLabel":"Creative Asset Supplier Reviewed","isActive":true,"sortOrder":750},
-      {"code":"campaign.creative_approved","displayLabel":"Campaign Creative Approved","isActive":true,"sortOrder":760}
+      {"code":"campaign.creative_approved","displayLabel":"Campaign Creative Approved","isActive":true,"sortOrder":760},
+      {"code":"campaign.started","displayLabel":"Campaign Started","isActive":true,"sortOrder":770},
+      {"code":"campaign.completed","displayLabel":"Campaign Completed","isActive":true,"sortOrder":780},
+      {"code":"delivery_proof.submitted","displayLabel":"Delivery Proof Submitted","isActive":true,"sortOrder":790},
+      {"code":"delivery_proof.reviewed","displayLabel":"Delivery Proof Reviewed","isActive":true,"sortOrder":800}
     ],
     "commercialEventTypes": [
       {"code":"TenantUpdated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -599,7 +610,11 @@
       {"code":"CreativeAssetVersionUploaded","displayLabel":"Creative Asset Version Uploaded","isActive":true,"sortOrder":730},
       {"code":"CreativeAssetBrandReviewed","displayLabel":"Creative Asset Brand Reviewed","isActive":true,"sortOrder":740},
       {"code":"CreativeAssetSupplierReviewed","displayLabel":"Creative Asset Supplier Reviewed","isActive":true,"sortOrder":750},
-      {"code":"CampaignCreativeApproved","displayLabel":"Campaign Creative Approved","isActive":true,"sortOrder":760}
+      {"code":"CampaignCreativeApproved","displayLabel":"Campaign Creative Approved","isActive":true,"sortOrder":760},
+      {"code":"CampaignStarted","displayLabel":"Campaign Started","isActive":true,"sortOrder":770},
+      {"code":"CampaignCompleted","displayLabel":"Campaign Completed","isActive":true,"sortOrder":780},
+      {"code":"DeliveryProofSubmitted","displayLabel":"Delivery Proof Submitted","isActive":true,"sortOrder":790},
+      {"code":"DeliveryProofReviewed","displayLabel":"Delivery Proof Reviewed","isActive":true,"sortOrder":800}
     ],
     "creativeTextRoles": [
       {"code":"HEADLINE","displayLabel":"Headline","isActive":true,"sortOrder":10},
@@ -622,6 +637,11 @@
     "creativeReviewTypes": [
       {"code":"BRAND_LEGAL_RIGHTS","displayLabel":"Brand Legal and Rights Review","isActive":true,"sortOrder":10},
       {"code":"SUPPLIER_TECHNICAL","displayLabel":"Supplier Technical Review","isActive":true,"sortOrder":20}
+    ],
+    "deliveryProofTypes": [
+      {"code":"PHOTO","displayLabel":"Delivery Photo","isActive":true,"sortOrder":10},
+      {"code":"PLAYLOG","displayLabel":"Digital Playlog","isActive":true,"sortOrder":20},
+      {"code":"DELIVERY_REPORT","displayLabel":"Delivery Report","isActive":true,"sortOrder":30}
     ],
     "tenantTypes": [
       {"code":"PLATFORM","displayLabel":"Advertified Platform","isActive":true,"sortOrder":10},

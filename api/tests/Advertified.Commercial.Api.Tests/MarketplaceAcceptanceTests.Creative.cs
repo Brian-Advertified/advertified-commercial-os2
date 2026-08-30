@@ -10,7 +10,7 @@ public sealed partial class MarketplaceAcceptanceTests
     private static readonly byte[] CreativePng =
         [137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82];
 
-    private static async Task AssertCreativeProductionReadinessAsync(
+    private static async Task<long> AssertCreativeProductionReadinessAsync(
         HttpClient buyer,
         HttpClient client,
         HttpClient supplier,
@@ -147,6 +147,7 @@ public sealed partial class MarketplaceAcceptanceTests
         await AssertProblemAsync(
             afterReady, HttpStatusCode.Conflict, "CREATIVE_READINESS_BLOCKED");
         await AssertCreativeEvidenceAsync(connectionString, campaignId, assetId);
+        return ready.RootElement.GetProperty("version").GetInt64();
     }
 
     private static async Task<Guid> GetRequirementIdAsync(HttpClient buyer, Guid campaignId)

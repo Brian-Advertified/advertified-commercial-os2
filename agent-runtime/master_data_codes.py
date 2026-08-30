@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: ffdc09114f80d12d0d8c855206ec78a0cd5e056f82f72d34c2ecdb15b8022076
+# source-sha256: fa92eeed2563be89283da04ea53c3cdd52da92f5d798b00e55395bc42d16294b
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.6.0"
+REGISTRY_VERSION = "2.7.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -110,6 +110,11 @@ class Permissions(StrEnum):
     CREATIVE_BRAND_REVIEW = "creative_brand_review"
     CREATIVE_SUPPLIER_REVIEW = "creative_supplier_review"
     CAMPAIGN_APPROVE_CREATIVE = "campaign_approve_creative"
+    CAMPAIGN_START = "campaign_start"
+    CAMPAIGN_COMPLETE = "campaign_complete"
+    DELIVERY_PROOF_VIEW = "delivery_proof_view"
+    DELIVERY_PROOF_SUBMIT = "delivery_proof_submit"
+    DELIVERY_PROOF_REVIEW = "delivery_proof_review"
 
 class BriefSourceTypes(StrEnum):
     SUPPLIED_TEXT = "SUPPLIED_TEXT"
@@ -172,6 +177,7 @@ class HumanTaskTypes(StrEnum):
     MEDIA_MIX_APPROVAL = "MEDIA_MIX_APPROVAL"
     PLAN_CRITIC_RESOLUTION = "PLAN_CRITIC_RESOLUTION"
     MEDIA_PLAN_APPROVAL = "MEDIA_PLAN_APPROVAL"
+    DELIVERY_PROOF_REVIEW = "DELIVERY_PROOF_REVIEW"
 
 class EvidenceClassifications(StrEnum):
     FACT = "FACT"
@@ -444,6 +450,7 @@ class CommercialResourceTypes(StrEnum):
     PAYMENT_INTENT = "payment_intent"
     CAMPAIGN = "campaign"
     CREATIVE_ASSET = "creative_asset"
+    DELIVERY_PROOF = "delivery_proof"
 
 class CommercialActions(StrEnum):
     TENANT_UPDATED = "tenant.updated"
@@ -522,6 +529,10 @@ class CommercialActions(StrEnum):
     CREATIVE_ASSET_BRAND_REVIEWED = "creative_asset.brand_reviewed"
     CREATIVE_ASSET_SUPPLIER_REVIEWED = "creative_asset.supplier_reviewed"
     CAMPAIGN_CREATIVE_APPROVED = "campaign.creative_approved"
+    CAMPAIGN_STARTED = "campaign.started"
+    CAMPAIGN_COMPLETED = "campaign.completed"
+    DELIVERY_PROOF_SUBMITTED = "delivery_proof.submitted"
+    DELIVERY_PROOF_REVIEWED = "delivery_proof.reviewed"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -600,6 +611,10 @@ class CommercialEventTypes(StrEnum):
     CREATIVE_ASSET_BRAND_REVIEWED = "CreativeAssetBrandReviewed"
     CREATIVE_ASSET_SUPPLIER_REVIEWED = "CreativeAssetSupplierReviewed"
     CAMPAIGN_CREATIVE_APPROVED = "CampaignCreativeApproved"
+    CAMPAIGN_STARTED = "CampaignStarted"
+    CAMPAIGN_COMPLETED = "CampaignCompleted"
+    DELIVERY_PROOF_SUBMITTED = "DeliveryProofSubmitted"
+    DELIVERY_PROOF_REVIEWED = "DeliveryProofReviewed"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"
@@ -622,6 +637,11 @@ class AssetRightsStatuses(StrEnum):
 class CreativeReviewTypes(StrEnum):
     BRAND_LEGAL_RIGHTS = "BRAND_LEGAL_RIGHTS"
     SUPPLIER_TECHNICAL = "SUPPLIER_TECHNICAL"
+
+class DeliveryProofTypes(StrEnum):
+    PHOTO = "PHOTO"
+    PLAYLOG = "PLAYLOG"
+    DELIVERY_REPORT = "DELIVERY_REPORT"
 
 class TenantTypes(StrEnum):
     PLATFORM = "PLATFORM"

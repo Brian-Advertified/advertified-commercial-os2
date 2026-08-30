@@ -192,6 +192,22 @@ public sealed class OpenApiContractTests
         var approveCreative = paths[
             "/api/v1/tenants/{tenantId}/campaigns/{campaignId}:approve-creative"]!["post"]!;
         AssertHeaderParameter(approveCreative["parameters"]!.AsArray(), "If-Match", true);
+        var startCampaign = paths[
+            "/api/v1/tenants/{tenantId}/campaigns/{campaignId}:start"]!["post"]!;
+        AssertHeaderParameter(startCampaign["parameters"]!.AsArray(), "If-Match", true);
+        var completeCampaign = paths[
+            "/api/v1/tenants/{tenantId}/campaigns/{campaignId}:complete"]!["post"]!;
+        AssertHeaderParameter(completeCampaign["parameters"]!.AsArray(), "If-Match", true);
+        var submitProof = paths[
+            "/api/v1/tenants/{tenantId}/campaigns/{campaignId}/delivery-proofs"]!["post"]!;
+        Assert.DoesNotContain(
+            submitProof["parameters"]!.AsArray(),
+            item => item?["name"]?.GetValue<string>() == "If-Match");
+        var reviewProof = paths[
+            "/api/v1/tenants/{tenantId}/campaigns/{campaignId}/delivery-proofs/{proofId}:review"]!["post"]!;
+        AssertHeaderParameter(reviewProof["parameters"]!.AsArray(), "If-Match", true);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/delivery-proofs/{proofId}"]!["get"]);
     }
 
     private static void AssertHeaderParameter(

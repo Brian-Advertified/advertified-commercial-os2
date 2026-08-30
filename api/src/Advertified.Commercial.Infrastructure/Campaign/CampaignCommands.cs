@@ -8,7 +8,7 @@ using Advertified.Commercial.Infrastructure.Foundation;
 
 namespace Advertified.Commercial.Infrastructure.Campaign;
 
-public sealed class CampaignCommands(
+public sealed partial class CampaignCommands(
     CampaignRecordStore store,
     CommandDispatcher dispatcher,
     TimeProvider timeProvider) : ICampaignCommands
@@ -21,6 +21,28 @@ public sealed class CampaignCommands(
         var receipt = await dispatcher.DispatchAsync(
             envelope, MasterDataReferences.Permissions.CampaignConfirmBookings,
             token => ConfirmOutcomeAsync(campaignId, envelope, token), cancellationToken);
+        return CommandOutcomeFactory.ToResult<CampaignView>(receipt);
+    }
+
+    public async Task<CommandResult<CampaignView>> StartAsync(
+        Guid campaignId,
+        CommandEnvelope<StartCampaignCommand> envelope,
+        CancellationToken cancellationToken)
+    {
+        var receipt = await dispatcher.DispatchAsync(
+            envelope, MasterDataReferences.Permissions.CampaignStart,
+            token => StartOutcomeAsync(campaignId, envelope, token), cancellationToken);
+        return CommandOutcomeFactory.ToResult<CampaignView>(receipt);
+    }
+
+    public async Task<CommandResult<CampaignView>> CompleteAsync(
+        Guid campaignId,
+        CommandEnvelope<CompleteCampaignCommand> envelope,
+        CancellationToken cancellationToken)
+    {
+        var receipt = await dispatcher.DispatchAsync(
+            envelope, MasterDataReferences.Permissions.CampaignComplete,
+            token => CompleteOutcomeAsync(campaignId, envelope, token), cancellationToken);
         return CommandOutcomeFactory.ToResult<CampaignView>(receipt);
     }
 

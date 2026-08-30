@@ -20,7 +20,13 @@ until the later Gate 11 packets are implemented and verified.
 retained under `docs/evidence/gate11-creative-readiness-20260830/`. Exact booked-format requirements,
 protected versioned files, separate buyer and supplier review, and client readiness approval are
 implemented. Repository-wide architecture checks pass; web browser verification remains pending
-integration of separately owned screen work. Live delivery remains blocked until later Gate 11 packets.
+integration of separately owned screen work.
+
+**Packet D result:** implemented and backend-verified locally on 2026-08-30; reproducible evidence is
+retained under `docs/evidence/gate11-delivery-proof-20260830/`. Human launch and completion, explicit
+proof request, exact-supplier protected proof, buyer review task and immutable approval/rejection are
+implemented. The complete architecture and web suites remain blocked by separately owned screen work;
+measurement, reporting and learning remain later Gate 11 work.
 
 ## Bounded requirement
 
@@ -90,10 +96,35 @@ version approvals, unauthorised reviewers, supplier access to buyer Campaign dat
 and direct invalid lifecycle changes fail closed without advancing readiness. A replacement version
 invalidates prior reviews; exact current-version approvals permit one idempotent transition to `READY`.
 
+### Packet D — human launch, completion and delivery proof
+
+- an authorised buyer-side human may advance `READY → LIVE` only when the booked start date has been
+  reached, the delivery window has not closed, funding and every exact Booking remain confirmed, and
+  every current production CreativeAsset still has its exact buyer and supplier approvals;
+- an authorised buyer-side human may advance `LIVE → COMPLETED` only after the delivery window closes;
+  the same command records an attributable proof request and does not imply that proof already exists;
+- after that request, the exact Booking supplier may submit an immutable proof file with governed proof
+  type, source reference, capture time inside the booked flight, location, signature, malware result,
+  object hash and protected tenant-scoped object key that is never returned by the API;
+- each submitted proof creates one buyer-tenant review task for the Campaign owner; only an authorised
+  buyer-side human may approve or reject the exact proof version, and the supplier cannot review its
+  own submission;
+- rejected proof remains immutable evidence and correction creates a separate proof; no proof status,
+  file, source, capture fact, location, actor or review is overwritten;
+- database triggers and forced RLS independently enforce the lifecycle, exact Campaign/Booking parties,
+  capture window, actor, current version and review-task consequences;
+- delivery proof is evidence of delivery only. Approval cannot fabricate a performance fact, metric,
+  attribution conclusion, client report or learning recommendation.
+
+**Packet D exit evidence:** early/late launch, completion before the delivery window closes, proof before
+the request, proof for another Booking/Campaign, capture outside the booked flight, unsafe files,
+cross-tenant reads, buyer submission, supplier review, stale/repeated review and direct SQL mutation all
+fail closed. Exact supplier proof creates one buyer review task; buyer approval preserves immutable proof
+and Campaign lineage without changing `COMPLETED` or creating measurement truth.
+
 ### Later Gate 11 packets
 
-1. Human-authorised `READY → LIVE → COMPLETED`, immutable delivery proof, sourced performance facts,
-   measurement interpretation and client report.
+1. Sourced performance facts, measurement interpretation and client report.
 2. Desktop and compact E2E-08 journey plus hardening/certification hand-off.
 
 ## Explicitly blocked or out of scope
@@ -101,7 +132,7 @@ invalidates prior reviews; exact current-version approvals permit one idempotent
 - live VodaPay, pay-later credit decisions, bank verification, payment collection, refund or settlement;
 - supplier/client communication, autonomous commercial approval, booking or campaign launch;
 - production data, credentials, deployment, cloud mutation or live/paid AI calls;
-- creative production or campaign launch before the later Gate 11 evidence exists;
+- performance facts, measurement interpretation, client reporting or learning without later Gate 11 evidence;
 - legal, finance, security, privacy, operations or production-readiness approval by the implementing AI.
 
 ## Acceptance evidence

@@ -50,6 +50,15 @@ public sealed partial class CampaignRecordStore(GovernanceDbContext dbContext)
             campaign.creative_approved_by AS "CreativeApprovedBy",
             campaign.creative_approved_at_utc AS "CreativeApprovedAtUtc",
             campaign.creative_approval_reason AS "CreativeApprovalReason",
+            campaign.started_by AS "StartedBy",
+            campaign.started_at_utc AS "StartedAtUtc",
+            campaign.start_reason AS "StartReason",
+            campaign.completed_by AS "CompletedBy",
+            campaign.completed_at_utc AS "CompletedAtUtc",
+            campaign.completion_reason AS "CompletionReason",
+            campaign.proof_requested_by AS "ProofRequestedBy",
+            campaign.proof_requested_at_utc AS "ProofRequestedAtUtc",
+            campaign.proof_request_reason AS "ProofRequestReason",
             campaign.version AS "Version", campaign.updated_at_utc AS "UpdatedAtUtc"
         FROM commercial.campaigns campaign
         JOIN commercial.payment_intents payment
