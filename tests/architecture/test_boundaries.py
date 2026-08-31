@@ -13,6 +13,7 @@ from tests.architecture.architecture_rules import python_import_violations
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GENERATED_PARTS = {
     ".git",
+    ".artifacts",
     ".pytest_cache",
     ".venv",
     "__pycache__",

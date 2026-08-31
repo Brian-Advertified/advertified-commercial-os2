@@ -99,8 +99,12 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: agent-runtime/requirements-dev.txt
-      - name: Install locked dependencies
+      - name: Install pinned dependencies
         run: python -m pip install -r requirements-dev.txt
+      - name: Audit pinned dependencies
+        run: |
+          python -m pip_audit -r requirements.txt --progress-spinner off
+          python -m pip_audit -r requirements-dev.txt --progress-spinner off
       - name: Lint
         run: python -m ruff check .
       - name: Test
