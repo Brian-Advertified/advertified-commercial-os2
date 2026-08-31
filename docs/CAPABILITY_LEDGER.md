@@ -204,8 +204,8 @@ Gates 9–13 remain sequence-bound. A document, route label, container, contract
 | 8 Proposal and client decision | VERIFIED locally — implementation and evidence complete; non-local review pending |
 | 9 OOH-only campaign mode and proposal inbox | VERIFIED LOCALLY; OWNER/INDEPENDENT REVIEW PENDING |
 | 10 Supplier marketplace | VERIFIED LOCALLY — tenant-safe exchange, commercial policy, marketplace-to-plan lineage and selected-option booking confirmation are implemented; owner/independent review pending |
-| 11 Campaign delivery and learning | IN PROGRESS — funding, Campaign booking readiness and booked-format creative readiness are implemented and API-verified locally; repository-wide screen integration, live delivery, proof, measurement and learning remain pending |
-| 12 Hardening and certification | BLOCKED by Gate 11 |
+| 11 Campaign delivery and learning | IMPLEMENTED AND API-VERIFIED LOCALLY — funding, booking, creative readiness, delivery proof, performance evidence and measurement reports are canonical; separately owned screen integration and owner/independent review remain pending |
+| 12 Hardening and certification | IN PROGRESS — the isolated PostgreSQL backup/restore proof and recovery/incident runbooks are implemented locally; staging recovery, object-byte restore, security/privacy, performance, observability and independent certification remain pending |
 | 13 Production launch | BLOCKED by Gate 12 and independent launch decisions |
 
 Local evidence is not remote CI evidence. No tests discovered is not a pass. A proposed ADR is not accepted. An AI cannot approve legal compliance, security, a gate, or production readiness.

@@ -1,0 +1,67 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 12,
+  "evidenceDate": "2026-08-31",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "8293aac83efd4b10051a553f82450a49deae1f5e",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Isolated PostgreSQL recovery and authenticated access",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release --artifacts-path .artifacts/gate12-recovery-test --filter FullyQualifiedName~DatabaseRecoveryAcceptanceTests --logger console;verbosity=minimal",
+      "outcome": "PASS",
+      "summary": "The final 1/1 run exercised a real PostgreSQL 16 custom backup/restore and verified authenticated access, exact workspace isolation, governed membership, canonical counts, migration/master-data state, pending outbox, object key/hash and 80 forced-RLS tables."
+    },
+    {
+      "name": "Focused C# formatting",
+      "command": "dotnet format api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --verify-no-changes --no-restore --include api/tests/Advertified.Commercial.Api.Tests/DatabaseRecoveryAcceptanceTests.cs --verbosity minimal",
+      "outcome": "PASS",
+      "summary": "The recovery acceptance source passes the repository formatter."
+    },
+    {
+      "name": "Governed master-data projections",
+      "command": "node tools/generate-master-data.mjs --check",
+      "outcome": "PASS",
+      "summary": "Registry 2.9.0 and its C#, Python and TypeScript projections are current."
+    },
+    {
+      "name": "Complete repository architecture suite",
+      "command": "python -m pytest tests/architecture -q",
+      "outcome": "BLOCKED",
+      "summary": "21 of 23 checks pass. Separately owned screen work has web/src/brief-intake.css at 521 lines and embeds governed PENDING inline in PlanningWorkbench.tsx."
+    },
+    {
+      "name": "Current complete Release Commercial API suite",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release --artifacts-path .artifacts/gate12-api-suite --logger console;verbosity=minimal",
+      "outcome": "PASS",
+      "summary": "All 71 current API, domain, migration, tenant, security and PostgreSQL acceptance tests passed in 2 minutes 30 seconds after competing Docker-heavy suites completed."
+    },
+    {
+      "name": "Compose, diff and artifact hygiene",
+      "command": "docker compose -f infrastructure/docker-compose.yml config --quiet; git diff --check; git ls-files .artifacts",
+      "outcome": "PASS",
+      "summary": "Compose is valid, the diff has no whitespace errors and .artifacts has zero tracked files."
+    },
+    {
+      "name": "Web regression",
+      "command": "not run while the separately owned screen work is active",
+      "outcome": "BLOCKED",
+      "summary": "No web result is claimed while another agent is changing the screen tree."
+    }
+  ],
+  "unresolvedBlockers": [
+    "The separately owned screens must clear their two architecture failures and pass the complete web/browser suite.",
+    "Managed PostgreSQL PITR, S3 object-byte restore, measured RPO/RTO, staging, monitoring, security/privacy, performance, rollback and named independent reviews remain pending.",
+    "No push, deployment, live provider call or production mutation is authorised by this packet."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}
