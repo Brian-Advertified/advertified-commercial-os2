@@ -1,0 +1,81 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 12,
+  "evidenceDate": "2026-08-31",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "27068aef7917d971db11edeb153b27ddb5b6104a",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Clean hash-verified development install",
+      "command": "python -m pip install --disable-pip-version-check --require-hashes --target .artifacts/gate12-python-lock-clean -r agent-runtime/requirements-dev.lock",
+      "outcome": "PASS",
+      "summary": "A previously absent ignored target installed all 58 exact development packages only from accepted lockfile hashes."
+    },
+    {
+      "name": "Deterministic runtime on locked graph",
+      "command": "set PYTHONPATH=.artifacts/gate12-python-lock-clean; cd agent-runtime; python -m ruff check .; python -m pytest -q",
+      "outcome": "PASS",
+      "summary": "Ruff and all 28 deterministic tests passed with FastAPI 0.141.1, Starlette 1.3.1, Pydantic 2.13.4 and pytest 9.1.1 imported from the isolated target."
+    },
+    {
+      "name": "Runtime lock dependency audit",
+      "command": "python -m pip_audit -r agent-runtime/requirements.lock --progress-spinner off",
+      "outcome": "PASS",
+      "summary": "No known vulnerabilities were found in the exact 19-package runtime lock."
+    },
+    {
+      "name": "Development lock dependency audit",
+      "command": "python -m pip_audit -r agent-runtime/requirements-dev.lock --progress-spinner off",
+      "outcome": "PASS",
+      "summary": "No known vulnerabilities were found in the exact 58-package development lock."
+    },
+    {
+      "name": "Deterministic lock regeneration",
+      "command": "python -m piptools compile --quiet --generate-hashes --allow-unsafe --strip-extras --resolver=backtracking --output-file=<lock> <direct-input>; compare SHA-256 before and after",
+      "outcome": "PASS",
+      "summary": "Runtime and development lock SHA-256 digests were byte-for-byte unchanged after regeneration."
+    },
+    {
+      "name": "Agent-runtime CI lock gate",
+      "command": "inspect and parse .github/workflows/ci.yml; remote workflow execution pending",
+      "outcome": "PENDING",
+      "summary": "CI uses the development lock as its cache/install input, enforces hashes, regenerates and diffs both locks, and audits both graphs before lint/tests."
+    },
+    {
+      "name": "Complete repository architecture suite",
+      "command": "python -m pytest tests/architecture -q",
+      "outcome": "BLOCKED",
+      "summary": "21 of 23 checks pass. Separately owned screen work has web/src/brief-intake.css at 521 lines and embeds governed PENDING inline in PlanningWorkbench.tsx."
+    },
+    {
+      "name": "Repository hygiene and Compose definition",
+      "command": "docker compose -f infrastructure/docker-compose.yml config --quiet; git diff --check; git ls-files .artifacts",
+      "outcome": "PASS",
+      "summary": "Compose remains valid, the packet diff has no whitespace errors and .artifacts has zero tracked files."
+    },
+    {
+      "name": "Web regression",
+      "command": "not run while the separately owned screen work is active",
+      "outcome": "BLOCKED",
+      "summary": "No web result is claimed while another agent is changing the screen tree."
+    }
+  ],
+  "unresolvedBlockers": [
+    "The lock gate must execute on remote CI; local implementation is not remote evidence.",
+    "The separately owned screens must clear their two architecture failures and pass the complete web/browser and dependency audit suite.",
+    "SBOM/provenance, container/image and secret scanning, controlled update policy and independent security review remain pending.",
+    "Staging recovery, object-byte restore, observability, performance and named production launch reviews remain pending.",
+    "No push, deployment, live provider call or production mutation is authorised by this packet."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}
