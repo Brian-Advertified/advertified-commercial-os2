@@ -59,4 +59,5 @@ def test_deterministic_description_lists_only_implemented_agents(
         "media_planning",
         "proposal_narrative",
         "creative",
+        "measurement",
     }

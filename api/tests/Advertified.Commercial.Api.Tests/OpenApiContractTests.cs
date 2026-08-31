@@ -218,6 +218,16 @@ public sealed class OpenApiContractTests
         AssertHeaderParameter(reviewPerformance["parameters"]!.AsArray(), "If-Match", true);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/performance-evidence/{evidenceId}"]!["get"]);
+        var generateMeasurement = paths[
+            "/api/v1/tenants/{tenantId}/campaigns/{campaignId}/measurement-reports:generate"]!["post"]!;
+        Assert.DoesNotContain(
+            generateMeasurement["parameters"]!.AsArray(),
+            item => item?["name"]?.GetValue<string>() == "If-Match");
+        var reviewMeasurement = paths[
+            "/api/v1/tenants/{tenantId}/campaigns/{campaignId}/measurement-reports/{reportId}:review"]!["post"]!;
+        AssertHeaderParameter(reviewMeasurement["parameters"]!.AsArray(), "If-Match", true);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/measurement-reports/{reportId}"]!["get"]);
     }
 
     private static void AssertHeaderParameter(

@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.8.0",
+  "registryVersion": "2.9.0",
   "effectiveFrom": "2026-08-30",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
@@ -117,7 +117,10 @@
       {"code":"delivery_proof_review","displayLabel":"Review assigned campaign delivery proof","isActive":true,"sortOrder":790,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"performance_fact_view","displayLabel":"View reviewed campaign performance facts","isActive":true,"sortOrder":800,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
       {"code":"performance_fact_submit","displayLabel":"Submit sourced campaign performance facts","isActive":true,"sortOrder":810,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
-      {"code":"performance_fact_review","displayLabel":"Review sourced campaign performance facts","isActive":true,"sortOrder":820,"metadata":{"roles":["platform_admin","internal_planner","advertiser_admin","advertiser_approver"]}}
+      {"code":"performance_fact_review","displayLabel":"Review sourced campaign performance facts","isActive":true,"sortOrder":820,"metadata":{"roles":["platform_admin","internal_planner","advertiser_admin","advertiser_approver"]}},
+      {"code":"measurement_report_view","displayLabel":"View campaign measurement reports","isActive":true,"sortOrder":830,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
+      {"code":"measurement_report_generate","displayLabel":"Generate a sourced measurement report","isActive":true,"sortOrder":840,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
+      {"code":"measurement_report_review","displayLabel":"Review a sourced measurement report","isActive":true,"sortOrder":850,"metadata":{"roles":["platform_admin","internal_planner","advertiser_admin","advertiser_approver"]}}
     ],
     "briefSourceTypes": [
       {"code":"SUPPLIED_TEXT","displayLabel":"Supplied Text","isActive":true,"sortOrder":10},
@@ -181,7 +184,8 @@
       {"code":"PLAN_CRITIC_RESOLUTION","displayLabel":"Resolve Plan Critic Objection","isActive":true,"sortOrder":110},
       {"code":"MEDIA_PLAN_APPROVAL","displayLabel":"Approve Media Plan","isActive":true,"sortOrder":120},
       {"code":"DELIVERY_PROOF_REVIEW","displayLabel":"Review Delivery Proof","isActive":true,"sortOrder":130},
-      {"code":"PERFORMANCE_FACT_REVIEW","displayLabel":"Review Performance Facts","isActive":true,"sortOrder":140}
+      {"code":"PERFORMANCE_FACT_REVIEW","displayLabel":"Review Performance Facts","isActive":true,"sortOrder":140},
+      {"code":"MEASUREMENT_REPORT_REVIEW","displayLabel":"Review Measurement Report","isActive":true,"sortOrder":150}
     ],
     "evidenceClassifications": [
       {"code":"FACT","displayLabel":"Confirmed Fact","isActive":true,"sortOrder":10},
@@ -264,7 +268,8 @@
       {"code":"INTERPRETATION","displayLabel":"Business Interpretation","isActive":true,"sortOrder":10},
       {"code":"ANGLES","displayLabel":"Opportunity Angles","isActive":true,"sortOrder":20},
       {"code":"STRATEGY_CRITIC","displayLabel":"Strategy and Critic","isActive":true,"sortOrder":30},
-      {"code":"BRIEF","displayLabel":"Brief Drafting","isActive":true,"sortOrder":40}
+      {"code":"BRIEF","displayLabel":"Brief Drafting","isActive":true,"sortOrder":40},
+      {"code":"MEASUREMENT","displayLabel":"Measurement Interpretation","isActive":true,"sortOrder":50}
     ],
     "agentTypes": [
       {"code":"business_interpretation","displayLabel":"Business Interpretation Agent","isActive":true,"sortOrder":10},
@@ -284,7 +289,8 @@
       {"code":"ANGLES","displayLabel":"Angles","isActive":true,"sortOrder":20},
       {"code":"STRATEGY","displayLabel":"Strategy","isActive":true,"sortOrder":30},
       {"code":"CRITIC","displayLabel":"Critic","isActive":true,"sortOrder":40},
-      {"code":"BRIEF","displayLabel":"Brief","isActive":true,"sortOrder":50}
+      {"code":"BRIEF","displayLabel":"Brief","isActive":true,"sortOrder":50},
+      {"code":"MEASUREMENT","displayLabel":"Measurement","isActive":true,"sortOrder":60}
     ],
     "inventoryTransformationTypes": [
       {"code":"TRIM","displayLabel":"Trim Whitespace","isActive":true,"sortOrder":10},
@@ -455,7 +461,8 @@
       {"code":"campaign","displayLabel":"Campaign","isActive":true,"sortOrder":400},
       {"code":"creative_asset","displayLabel":"Creative Asset","isActive":true,"sortOrder":410},
       {"code":"delivery_proof","displayLabel":"Delivery Proof","isActive":true,"sortOrder":420},
-      {"code":"performance_evidence","displayLabel":"Performance Evidence","isActive":true,"sortOrder":430}
+      {"code":"performance_evidence","displayLabel":"Performance Evidence","isActive":true,"sortOrder":430},
+      {"code":"measurement_report","displayLabel":"Measurement Report","isActive":true,"sortOrder":440}
     ],
     "commercialActions": [
       {"code":"tenant.updated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -539,7 +546,9 @@
       {"code":"delivery_proof.submitted","displayLabel":"Delivery Proof Submitted","isActive":true,"sortOrder":790},
       {"code":"delivery_proof.reviewed","displayLabel":"Delivery Proof Reviewed","isActive":true,"sortOrder":800},
       {"code":"performance_evidence.submitted","displayLabel":"Performance Evidence Submitted","isActive":true,"sortOrder":810},
-      {"code":"performance_evidence.reviewed","displayLabel":"Performance Evidence Reviewed","isActive":true,"sortOrder":820}
+      {"code":"performance_evidence.reviewed","displayLabel":"Performance Evidence Reviewed","isActive":true,"sortOrder":820},
+      {"code":"measurement_report.generated","displayLabel":"Measurement Report Generated","isActive":true,"sortOrder":830},
+      {"code":"measurement_report.reviewed","displayLabel":"Measurement Report Reviewed","isActive":true,"sortOrder":840}
     ],
     "commercialEventTypes": [
       {"code":"TenantUpdated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -623,7 +632,9 @@
       {"code":"DeliveryProofSubmitted","displayLabel":"Delivery Proof Submitted","isActive":true,"sortOrder":790},
       {"code":"DeliveryProofReviewed","displayLabel":"Delivery Proof Reviewed","isActive":true,"sortOrder":800},
       {"code":"PerformanceEvidenceSubmitted","displayLabel":"Performance Evidence Submitted","isActive":true,"sortOrder":810},
-      {"code":"PerformanceEvidenceReviewed","displayLabel":"Performance Evidence Reviewed","isActive":true,"sortOrder":820}
+      {"code":"PerformanceEvidenceReviewed","displayLabel":"Performance Evidence Reviewed","isActive":true,"sortOrder":820},
+      {"code":"MeasurementReportGenerated","displayLabel":"Measurement Report Generated","isActive":true,"sortOrder":830},
+      {"code":"MeasurementReportReviewed","displayLabel":"Measurement Report Reviewed","isActive":true,"sortOrder":840}
     ],
     "creativeTextRoles": [
       {"code":"HEADLINE","displayLabel":"Headline","isActive":true,"sortOrder":10},
@@ -670,6 +681,9 @@
       {"code":"VERIFIED","displayLabel":"Verified Measurement","isActive":true,"sortOrder":10},
       {"code":"LIMITED","displayLabel":"Limited Measurement","isActive":true,"sortOrder":20},
       {"code":"UNUSABLE","displayLabel":"Unusable Measurement","isActive":true,"sortOrder":30}
+    ],
+    "causalityStatuses": [
+      {"code":"NOT_ESTABLISHED","displayLabel":"Causality Not Established","isActive":true,"sortOrder":10}
     ],
     "tenantTypes": [
       {"code":"PLATFORM","displayLabel":"Advertified Platform","isActive":true,"sortOrder":10},

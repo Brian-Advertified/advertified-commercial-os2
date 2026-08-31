@@ -55,6 +55,7 @@ public sealed record CampaignView(
     public CreativeWorkspaceView? Creative { get; init; }
     public IReadOnlyList<DeliveryProofView> DeliveryProofs { get; init; } = [];
     public IReadOnlyList<PerformanceEvidenceView> PerformanceEvidence { get; init; } = [];
+    public IReadOnlyList<MeasurementReportView> MeasurementReports { get; init; } = [];
 }
 
 public interface ICampaignCommands

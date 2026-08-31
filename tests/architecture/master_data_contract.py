@@ -67,6 +67,7 @@ REQUIRED_MASTER_COLLECTIONS = {
     "performanceMetricTypes",
     "measurementUnits",
     "measurementQualityStatuses",
+    "causalityStatuses",
     "assetRightsStatuses",
     "commercialResourceTypes",
     "commercialActions",
@@ -300,6 +301,16 @@ CAMPAIGN_PERMISSION_ROLES = {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
     },
     "performance_fact_review": {
+        "platform_admin", "internal_planner", "advertiser_admin", "advertiser_approver",
+    },
+    "measurement_report_view": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+        "advertiser_admin", "advertiser_approver",
+    },
+    "measurement_report_generate": {
+        "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
+    },
+    "measurement_report_review": {
         "platform_admin", "internal_planner", "advertiser_admin", "advertiser_approver",
     },
 }

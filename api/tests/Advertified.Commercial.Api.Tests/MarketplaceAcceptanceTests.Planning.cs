@@ -36,7 +36,8 @@ public sealed partial class MarketplaceAcceptanceTests
             VALUES ($1, $2, $3, $4, 1, 'Build local awareness',
                 'Reach Johannesburg business decision makers',
                 '["Business decision makers"]', '["Johannesburg"]', 'September 2026',
-                2000000, false, 'ZAR', 'REGISTERED', 5000, '[]', '[]',
+                2000000, false, 'ZAR', 'REGISTERED', 5000, '[]',
+                '["Track sourced impressions for the booked flight."]',
                 '["Owner supplied objective"]', '[]', '[]', '[]', '[]',
                 'APPROVED', $5, $5, $6, 1, $6)
             """, BuyerBriefVersionId, BuyerTenantId, BuyerBriefId,

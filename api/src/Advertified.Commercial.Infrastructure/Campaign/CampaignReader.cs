@@ -13,6 +13,7 @@ public sealed class CampaignReader(
     CreativeRecordStore creativeStore,
     DeliveryProofRecordStore deliveryStore,
     PerformanceEvidenceRecordStore measurementStore,
+    MeasurementReportRecordStore reportStore,
     ITenantAuthorizer authorizer) : ICampaignReader
 {
     public async Task<IReadOnlyList<CampaignView>> ListAsync(
@@ -45,12 +46,15 @@ public sealed class CampaignReader(
             campaignId, cancellationToken)).Select(proof => proof.ToView()).ToArray();
         var performanceEvidence = await measurementStore.ListCampaignViewsAsync(
             campaignId, cancellationToken);
+        var measurementReports = await reportStore.ListApprovedCampaignAsync(
+            campaignId, measurementStore, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return row.ToView() with
         {
             Creative = creative,
             DeliveryProofs = deliveryProofs,
             PerformanceEvidence = performanceEvidence,
+            MeasurementReports = measurementReports,
         };
     }
 

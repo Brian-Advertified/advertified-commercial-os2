@@ -6,7 +6,7 @@
   "repository": "advertified-commercial-os2",
   "branch": "master",
   "baseCommit": "661434b0db7761c5f9fc92e93c41f4d993f1d453",
-  "workingTreeState": "COMMITTED_PACKET_WITH_SEPARATELY_OWNED_SCREEN_CHANGES",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
   "liveProviderUsed": false,
   "productionResourcesUsed": false,
   "incrementalAiCostMinor": 0,

@@ -10,6 +10,8 @@ from pydantic import BaseModel, ValidationError
 from agent_registry import AgentCode
 from creative_contracts import CreativeAgentRequest
 from creative_service import generate_creative_concepts
+from measurement_contracts import MeasurementAgentRequest
+from measurement_service import interpret_measurement
 from opportunity_contracts import OpportunityAgentRequest
 from opportunity_service import HANDLERS
 from planning_contracts import AudienceAgentRequest, MediaPlanningAgentRequest
@@ -91,6 +93,8 @@ async def invoke(
         return _invoke_planning(agent_code, body)
     if agent_code == AgentCode.PROPOSAL_NARRATIVE:
         return _invoke_proposal(body)
+    if agent_code == AgentCode.MEASUREMENT:
+        return _invoke_measurement(body)
     return _invoke_opportunity(agent_code, body)
 
 
@@ -126,6 +130,12 @@ def _invoke_proposal(body: bytes) -> dict[str, object]:
     return propose_narrative(request).model_dump(mode="json")
 
 
+def _invoke_measurement(body: bytes) -> dict[str, object]:
+    request = _validate_json(MeasurementAgentRequest, body)
+    _require_agent_match(request.invocation.agent_code, AgentCode.MEASUREMENT)
+    return interpret_measurement(request).model_dump(mode="json")
+
+
 def _require_agent_match(contract_code: AgentCode, route_code: AgentCode) -> None:
     if contract_code != route_code:
         raise HTTPException(status_code=400, detail="Agent contract does not match the route.")
@@ -138,6 +148,7 @@ def _implemented_agents() -> set[AgentCode]:
         AgentCode.MEDIA_PLANNING,
         AgentCode.PROPOSAL_NARRATIVE,
         AgentCode.CREATIVE,
+        AgentCode.MEASUREMENT,
     }
 
 

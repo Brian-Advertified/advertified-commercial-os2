@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: ead0d8947abef109e38ac7899bc63c5dccd356902a2e222f411440c0b148c16d
+# source-sha256: 9871ab9712e5f37ced5ec2f19d284001b198e10d1945cb0e8d7101bda9a10c1f
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.8.0"
+REGISTRY_VERSION = "2.9.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -118,6 +118,9 @@ class Permissions(StrEnum):
     PERFORMANCE_FACT_VIEW = "performance_fact_view"
     PERFORMANCE_FACT_SUBMIT = "performance_fact_submit"
     PERFORMANCE_FACT_REVIEW = "performance_fact_review"
+    MEASUREMENT_REPORT_VIEW = "measurement_report_view"
+    MEASUREMENT_REPORT_GENERATE = "measurement_report_generate"
+    MEASUREMENT_REPORT_REVIEW = "measurement_report_review"
 
 class BriefSourceTypes(StrEnum):
     SUPPLIED_TEXT = "SUPPLIED_TEXT"
@@ -182,6 +185,7 @@ class HumanTaskTypes(StrEnum):
     MEDIA_PLAN_APPROVAL = "MEDIA_PLAN_APPROVAL"
     DELIVERY_PROOF_REVIEW = "DELIVERY_PROOF_REVIEW"
     PERFORMANCE_FACT_REVIEW = "PERFORMANCE_FACT_REVIEW"
+    MEASUREMENT_REPORT_REVIEW = "MEASUREMENT_REPORT_REVIEW"
 
 class EvidenceClassifications(StrEnum):
     FACT = "FACT"
@@ -265,6 +269,7 @@ class AgentRunKinds(StrEnum):
     ANGLES = "ANGLES"
     STRATEGY_CRITIC = "STRATEGY_CRITIC"
     BRIEF = "BRIEF"
+    MEASUREMENT = "MEASUREMENT"
 
 class AgentTypes(StrEnum):
     BUSINESS_INTERPRETATION = "business_interpretation"
@@ -285,6 +290,7 @@ class WorkflowStepTypes(StrEnum):
     STRATEGY = "STRATEGY"
     CRITIC = "CRITIC"
     BRIEF = "BRIEF"
+    MEASUREMENT = "MEASUREMENT"
 
 class InventoryTransformationTypes(StrEnum):
     TRIM = "TRIM"
@@ -456,6 +462,7 @@ class CommercialResourceTypes(StrEnum):
     CREATIVE_ASSET = "creative_asset"
     DELIVERY_PROOF = "delivery_proof"
     PERFORMANCE_EVIDENCE = "performance_evidence"
+    MEASUREMENT_REPORT = "measurement_report"
 
 class CommercialActions(StrEnum):
     TENANT_UPDATED = "tenant.updated"
@@ -540,6 +547,8 @@ class CommercialActions(StrEnum):
     DELIVERY_PROOF_REVIEWED = "delivery_proof.reviewed"
     PERFORMANCE_EVIDENCE_SUBMITTED = "performance_evidence.submitted"
     PERFORMANCE_EVIDENCE_REVIEWED = "performance_evidence.reviewed"
+    MEASUREMENT_REPORT_GENERATED = "measurement_report.generated"
+    MEASUREMENT_REPORT_REVIEWED = "measurement_report.reviewed"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -624,6 +633,8 @@ class CommercialEventTypes(StrEnum):
     DELIVERY_PROOF_REVIEWED = "DeliveryProofReviewed"
     PERFORMANCE_EVIDENCE_SUBMITTED = "PerformanceEvidenceSubmitted"
     PERFORMANCE_EVIDENCE_REVIEWED = "PerformanceEvidenceReviewed"
+    MEASUREMENT_REPORT_GENERATED = "MeasurementReportGenerated"
+    MEASUREMENT_REPORT_REVIEWED = "MeasurementReportReviewed"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"
@@ -670,6 +681,9 @@ class MeasurementQualityStatuses(StrEnum):
     VERIFIED = "VERIFIED"
     LIMITED = "LIMITED"
     UNUSABLE = "UNUSABLE"
+
+class CausalityStatuses(StrEnum):
+    NOT_ESTABLISHED = "NOT_ESTABLISHED"
 
 class TenantTypes(StrEnum):
     PLATFORM = "PLATFORM"

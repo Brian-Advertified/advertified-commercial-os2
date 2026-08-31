@@ -61,6 +61,8 @@ public sealed partial class MarketplaceAcceptanceTests
             buyer, campaignId, evidenceId, rejectedEvidenceId);
         await AssertPerformancePersistenceAsync(connectionString, campaignId, evidenceId);
         await AssertUnauthorizedPerformanceInsertAsync(connectionString, campaignId);
+        await AssertMeasurementReportAsync(
+            buyer, client, other, campaignId, evidenceId, connectionString);
     }
 
     private static async Task AssertPerformanceInputGuardsAsync(

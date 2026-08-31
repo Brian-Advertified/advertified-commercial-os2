@@ -124,6 +124,16 @@ public sealed class HumanSafeExceptionHandler(
                 "Performance evidence file was rejected",
                 "Upload a safe PDF, JSON or CSV source that matches its declared file type.",
                 "PERFORMANCE_EVIDENCE_FILE_REJECTED"),
+            MeasurementReportBlockedException => new(
+                StatusCodes.Status409Conflict,
+                "Measurement report is blocked",
+                "Complete and approve the exact delivery proof and sourced performance facts first.",
+                "MEASUREMENT_REPORT_BLOCKED"),
+            MeasurementAgentOutputRejectedException => new(
+                StatusCodes.Status502BadGateway,
+                "Measurement output was rejected",
+                "The proposed interpretation did not satisfy the evidence and safety contract.",
+                "MEASUREMENT_AGENT_OUTPUT_REJECTED"),
             FundingReviewRequiredException => new(
                 StatusCodes.Status409Conflict,
                 "Funding needs review",

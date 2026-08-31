@@ -160,6 +160,7 @@ public sealed partial class MarketplaceAcceptanceTests
         Assert.Equal("APPROVED", approved.RootElement.GetProperty("status").GetString());
         await AssertDeliveryEvidenceAsync(
             connectionString, firstProofId, replacementId, campaignId);
+        await AssertMeasurementBlockedWithoutFactsAsync(buyer, campaignId);
         await AssertPerformanceEvidenceAsync(
             buyer, client, other, campaignId, connectionString);
     }

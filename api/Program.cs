@@ -97,6 +97,10 @@ builder.Services.AddScoped<IDeliveryProofCommands, DeliveryProofCommands>();
 builder.Services.AddScoped<PerformanceEvidenceRecordStore>();
 builder.Services.AddScoped<IPerformanceEvidenceReader, PerformanceEvidenceReader>();
 builder.Services.AddScoped<IPerformanceEvidenceCommands, PerformanceEvidenceCommands>();
+builder.Services.AddScoped<MeasurementReportRecordStore>();
+builder.Services.AddScoped<IMeasurementReportReader, MeasurementReportReader>();
+builder.Services.AddScoped<IMeasurementReportCommands, MeasurementReportCommands>();
+builder.Services.AddScoped<DeterministicMeasurementAgentClient>();
 builder.Services.AddScoped<FundingRecordStore>();
 builder.Services.AddScoped<IFundingReader, FundingReader>();
 builder.Services.AddScoped<IFundingCommands, FundingCommands>();
@@ -186,6 +190,7 @@ builder.Services.AddOptions<AgentRuntimeOptions>()
 builder.Services.AddHttpClient<HttpOpportunityAgentClient>(ConfigureAgentRuntimeHttpClient);
 builder.Services.AddHttpClient<HttpPlanningAgentClient>(ConfigureAgentRuntimeHttpClient);
 builder.Services.AddHttpClient<HttpProposalNarrativeClient>(ConfigureAgentRuntimeHttpClient);
+builder.Services.AddHttpClient<HttpMeasurementAgentClient>(ConfigureAgentRuntimeHttpClient);
 builder.Services.AddScoped<IOpportunityAgentClient>(serviceProvider =>
     agentRuntime.Mode switch
     {
@@ -203,6 +208,10 @@ builder.Services.AddScoped<IProposalNarrativeClient>(serviceProvider =>
     agentRuntime.Mode == AgentRuntimeOptions.HttpMode
         ? serviceProvider.GetRequiredService<HttpProposalNarrativeClient>()
         : serviceProvider.GetRequiredService<DeterministicProposalNarrativeClient>());
+builder.Services.AddScoped<IMeasurementAgentClient>(serviceProvider =>
+    agentRuntime.Mode == AgentRuntimeOptions.HttpMode
+        ? serviceProvider.GetRequiredService<HttpMeasurementAgentClient>()
+        : serviceProvider.GetRequiredService<DeterministicMeasurementAgentClient>());
 if (agentRuntime.Mode != AgentRuntimeOptions.DisabledMode)
 {
     builder.Services.AddHostedService<OpportunityRunDispatcher>();

@@ -1,0 +1,85 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 11,
+  "evidenceDate": "2026-08-31",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "9efb3a48611bf23faf83cda4f22ef2e95d9d6e39",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Complete Release Commercial API suite",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release --logger console;verbosity=minimal",
+      "outcome": "PASS",
+      "summary": "All 70 API, domain, migration, tenant, security and PostgreSQL acceptance tests passed in 2 minutes 52 seconds."
+    },
+    {
+      "name": "Canonical measurement report journey",
+      "command": "dotnet test Advertified.Commercial.Api.Tests.csproj --configuration Release --filter FullyQualifiedName~ClientSelectedMarketplaceLineRequiresBuyerRequestAndSupplierConfirmation",
+      "outcome": "PASS",
+      "summary": "The full commercial journey blocked missing facts, generated and rejected version one, generated and approved version two, and projected only the approval."
+    },
+    {
+      "name": "Measurement runtime adapter boundary",
+      "command": "dotnet test Advertified.Commercial.Api.Tests.csproj --configuration Release --filter FullyQualifiedName~AgentRuntimeHttpAdapterTests",
+      "outcome": "PASS",
+      "summary": "All 16 adapter tests passed, including exact evidence, strict schema, causality, limitations and zero-cost rejection cases."
+    },
+    {
+      "name": "Migration rollback, forced RLS and retained OpenAPI",
+      "command": "dotnet test Advertified.Commercial.Api.Tests.csproj --configuration Release --filter FullyQualifiedName~MasterDataMigrationTests|FullyQualifiedName~TenantIsolationMigrationTests|FullyQualifiedName~OpenApiContractTests",
+      "outcome": "PASS",
+      "summary": "Migration apply/rollback, 80-table forced RLS and the retained generated OpenAPI contract passed."
+    },
+    {
+      "name": "Deterministic agent runtime",
+      "command": "cd agent-runtime; python -m ruff check .; python -m pytest -q",
+      "outcome": "PASS",
+      "summary": "Ruff and all 28 deterministic tests passed without a live or paid provider."
+    },
+    {
+      "name": "Governed master-data projections",
+      "command": "node tools/generate-master-data.mjs --check",
+      "outcome": "PASS",
+      "summary": "Registry 2.9.0 and its C#, Python and TypeScript projections are current."
+    },
+    {
+      "name": "Focused C# formatting",
+      "command": "dotnet format api/Advertified.Commercial.Api.csproj --verify-no-changes --no-restore --include <affected backend files>",
+      "outcome": "PASS",
+      "summary": "All affected application, infrastructure, migration, endpoint and regression files pass formatting verification."
+    },
+    {
+      "name": "Complete repository architecture suite",
+      "command": "python -m pytest tests/architecture -q",
+      "outcome": "BLOCKED",
+      "summary": "21 of 23 checks pass. Separately owned screen work has web/src/brief-intake.css at 521 lines and embeds governed PENDING inline in PlanningWorkbench.tsx."
+    },
+    {
+      "name": "Compose, diff and artifact hygiene",
+      "command": "docker compose -f infrastructure/docker-compose.yml config --quiet; git diff --check; git ls-files .artifacts",
+      "outcome": "PASS",
+      "summary": "Compose is valid, the diff has no whitespace errors and .artifacts has zero tracked files."
+    },
+    {
+      "name": "Web regression",
+      "command": "not run while the separately owned screen work is active",
+      "outcome": "BLOCKED",
+      "summary": "No web result is claimed while another agent is changing the screen tree."
+    }
+  ],
+  "unresolvedBlockers": [
+    "The separate screen work must split web/src/brief-intake.css below 400 lines, replace the inline governed PENDING code, and pass the complete architecture and web/browser suites.",
+    "Gate 12 certification preparation and independent owner, security/privacy, legal, finance and operations review remain pending.",
+    "No push, deployment, live provider call or production mutation is authorised by this packet."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}

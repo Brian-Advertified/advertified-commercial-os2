@@ -19,12 +19,26 @@ public static class MeasurementEndpoints
                 "/{campaignId:guid}/performance-evidence/{evidenceId:guid}:review", ReviewAsync)
             .WithName("ReviewPerformanceEvidence").Produces<PerformanceEvidenceView>()
             .WithCommandProblems(requiresVersion: true);
+        campaigns.MapPost("/{campaignId:guid}/measurement-reports:generate", GenerateReportAsync)
+            .WithName("GenerateMeasurementReport").Produces<MeasurementReportView>()
+            .WithCommandProblems(requiresVersion: false);
+        campaigns.MapPost(
+                "/{campaignId:guid}/measurement-reports/{reportId:guid}:review",
+                ReviewReportAsync)
+            .WithName("ReviewMeasurementReport").Produces<MeasurementReportView>()
+            .WithCommandProblems(requiresVersion: true);
 
         var evidence = endpoints.MapGroup(
                 "/api/v1/tenants/{tenantId:guid}/performance-evidence")
             .WithTags("Campaign measurement").RequireAuthorization();
         evidence.MapGet("/{evidenceId:guid}", GetAsync)
             .WithName("GetPerformanceEvidence").Produces<PerformanceEvidenceView>()
+            .WithQueryProblems();
+        var reports = endpoints.MapGroup(
+                "/api/v1/tenants/{tenantId:guid}/measurement-reports")
+            .WithTags("Campaign measurement").RequireAuthorization();
+        reports.MapGet("/{reportId:guid}", GetReportAsync)
+            .WithName("GetMeasurementReport").Produces<MeasurementReportView>()
             .WithQueryProblems();
         return endpoints;
     }
@@ -54,6 +68,35 @@ public static class MeasurementEndpoints
     {
         var view = await reader.GetAsync(
             identity.ActorId, new TenantId(tenantId), evidenceId, cancellationToken);
+        CommandEnvelopeFactory.SetEntityHeaders(context, view.Version);
+        return Results.Ok(view);
+    }
+
+    private static Task<IResult> GenerateReportAsync(
+        Guid tenantId, Guid campaignId, GenerateMeasurementReportCommand command,
+        HttpContext context, ICurrentIdentity identity, IMeasurementReportCommands commands,
+        TimeProvider clock, CancellationToken cancellationToken) =>
+        CommandEndpointExecutor.ExecuteOkAsync(
+            tenantId, command, context, identity, clock, false,
+            (envelope, token) => commands.GenerateAsync(campaignId, envelope, token),
+            cancellationToken);
+
+    private static Task<IResult> ReviewReportAsync(
+        Guid tenantId, Guid campaignId, Guid reportId,
+        ReviewMeasurementReportCommand command, HttpContext context,
+        ICurrentIdentity identity, IMeasurementReportCommands commands,
+        TimeProvider clock, CancellationToken cancellationToken) =>
+        CommandEndpointExecutor.ExecuteOkAsync(
+            tenantId, command, context, identity, clock, true,
+            (envelope, token) => commands.ReviewAsync(
+                campaignId, reportId, envelope, token), cancellationToken);
+
+    private static async Task<IResult> GetReportAsync(
+        Guid tenantId, Guid reportId, HttpContext context, ICurrentIdentity identity,
+        IMeasurementReportReader reader, CancellationToken cancellationToken)
+    {
+        var view = await reader.GetAsync(
+            identity.ActorId, new TenantId(tenantId), reportId, cancellationToken);
         CommandEnvelopeFactory.SetEntityHeaders(context, view.Version);
         return Results.Ok(view);
     }
