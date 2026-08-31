@@ -316,18 +316,7 @@ app.MapGet("/", () => Results.Ok(new ServiceDescription(
     "Tenant-safe commercial operations with a local browser-session boundary.")))
     .WithTags("Service");
 
-app.MapGet("/health/live", () => Results.Ok(new HealthResponse(
-    "healthy",
-    "advertified-commercial-api",
-    ["process"])))
-    .WithTags("Health");
-
-app.MapGet("/health/ready", () => Results.Ok(new HealthResponse(
-    "ready",
-    "advertified-commercial-api",
-    ["process"])))
-    .WithTags("Health");
-
+app.MapHealthEndpoints();
 app.MapBrowserSessionEndpoints();
 app.MapIdentityEndpoints();
 app.MapFoundationEndpoints();

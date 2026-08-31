@@ -1,0 +1,68 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 12,
+  "evidenceDate": "2026-08-31",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "40f6b43e47755f84b8c66e0590c2c05782c39f78",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Complete Release Commercial API suite",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release --artifacts-path .artifacts/gate12-readiness-api --logger console;verbosity=minimal",
+      "outcome": "PASS",
+      "summary": "All 71 current API, domain, migration, tenant, security, readiness and PostgreSQL acceptance tests passed in 2 minutes 19 seconds."
+    },
+    {
+      "name": "Liveness and dependency-readiness acceptance",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release --artifacts-path .artifacts/gate12-readiness-test --filter FullyQualifiedName~HealthEndpointTests --logger console;verbosity=minimal",
+      "outcome": "PASS",
+      "summary": "Both tests passed: liveness remains independent, while readiness fails closed for unreachable and unseeded databases and succeeds only after governed master data is present."
+    },
+    {
+      "name": "Health and retained OpenAPI contract",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release --artifacts-path .artifacts/gate12-readiness-contract --filter FullyQualifiedName~HealthEndpointTests|FullyQualifiedName~OpenApiContractTests --logger console;verbosity=minimal",
+      "outcome": "PASS",
+      "summary": "All 4 health and retained generated-contract tests passed after generation added the typed 200 and 503 health responses."
+    },
+    {
+      "name": "Release API build and OpenAPI generation",
+      "command": "dotnet build api/Advertified.Commercial.Api.csproj --configuration Release; node tools/generate-openapi.mjs",
+      "outcome": "PASS",
+      "summary": "The API built with zero warnings/errors and the repository generator refreshed the retained OpenAPI document."
+    },
+    {
+      "name": "Focused C# formatting",
+      "command": "dotnet format api/Advertified.Commercial.Api.csproj --verify-no-changes --no-restore --include api/Program.cs api/Endpoints/HealthEndpoints.cs api/tests/Advertified.Commercial.Api.Tests/HealthEndpointTests.cs --verbosity minimal",
+      "outcome": "PASS",
+      "summary": "All affected authored C# files pass formatting verification."
+    },
+    {
+      "name": "Complete repository architecture suite",
+      "command": "python -m pytest tests/architecture -q",
+      "outcome": "BLOCKED",
+      "summary": "21 of 23 checks pass. Separately owned screen work has web/src/brief-intake.css at 521 lines and embeds governed PENDING inline in PlanningWorkbench.tsx."
+    },
+    {
+      "name": "Web regression",
+      "command": "not run while the separately owned screen work is active",
+      "outcome": "BLOCKED",
+      "summary": "No web result is claimed while another agent is changing the screen tree."
+    }
+  ],
+  "unresolvedBlockers": [
+    "The separately owned screens must clear their two architecture failures and pass the complete web/browser suite.",
+    "ECS/ALB readiness configuration, telemetry, dashboards, alerts, synthetic checks, SLOs, performance, staging and independent operational review remain pending.",
+    "Security/privacy and all named production launch reviews remain pending.",
+    "No push, deployment, live provider call or production mutation is authorised by this packet."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}
