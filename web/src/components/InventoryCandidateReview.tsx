@@ -95,7 +95,7 @@ function Fact({ label, value }: { label: string; value: string | null }) {
 
 function money(values: InventoryValues): string | null {
   if (values.rateAmountMinor === null || !values.currency) return null
-  return formatMoney(values.rateAmountMinor, values.currency, 2)
+  return formatMoney(values.rateAmountMinor, values.currency)
 }
 
 function valuesFrom(form: FormData, original: InventoryValues): InventoryValues {

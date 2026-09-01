@@ -1,0 +1,80 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 12,
+  "evidenceDate": "2026-09-01",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "53209e7f718b64a25fc5fcf9aa83365301c5a50c",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Official GitHub action tag resolution",
+      "command": "git ls-remote https://github.com/actions/checkout.git refs/tags/v4; git ls-remote https://github.com/actions/setup-python.git refs/tags/v5; git ls-remote https://github.com/actions/setup-node.git refs/tags/v4; git ls-remote https://github.com/actions/setup-dotnet.git refs/tags/v4",
+      "outcome": "PASS",
+      "summary": "The four official release refs resolved to the full SHAs retained in the workflow and evidence report."
+    },
+    {
+      "name": "Registry manifest resolution",
+      "command": "docker buildx imagetools inspect clamav/clamav:1.4.3; docker buildx imagetools inspect redis:7.4.2-alpine; docker buildx imagetools inspect mailhog/mailhog:v1.0.1; docker buildx imagetools inspect pgvector/pgvector:0.8.6-pg16-bookworm",
+      "outcome": "PASS",
+      "summary": "Each retained version resolved to the manifest digest recorded in the Compose file or PostgreSQL Dockerfile."
+    },
+    {
+      "name": "Focused immutable build-input architecture checks",
+      "command": "python -m pytest tests/architecture/test_immutable_build_inputs.py -q",
+      "outcome": "PASS",
+      "summary": "8/8 passed, including valid, mutable and malformed fixtures plus the actual repository scan."
+    },
+    {
+      "name": "Complete architecture suite",
+      "command": "python -m pytest tests/architecture -q",
+      "outcome": "PASS",
+      "summary": "31/31 passed on the final immutable-input source."
+    },
+    {
+      "name": "Compose validation and pinned PostgreSQL build",
+      "command": "docker compose -f infrastructure/docker-compose.yml config --quiet; docker compose -f infrastructure/docker-compose.yml build postgres",
+      "outcome": "PASS",
+      "summary": "Compose validated and the PostgreSQL image built from the digest-bound pgvector/PostgreSQL base."
+    },
+    {
+      "name": "Pinned local dependency health and PostgreSQL extensions",
+      "command": "docker compose -f infrastructure/docker-compose.yml up --detach --wait --wait-timeout 180 --pull never; docker compose -f infrastructure/docker-compose.yml exec -T postgres psql -U advertified -d advertified -v ON_ERROR_STOP=1 -f /opt/advertified/verify-extensions.sql",
+      "outcome": "PASS",
+      "summary": "All six services became healthy; PostgreSQL 16.15 exposed pgcrypto 1.3, PostGIS 3.6.4 and vector 0.8.6."
+    },
+    {
+      "name": "Tracked and non-ignored source secret scan",
+      "command": "powershell -NoProfile -Command \"$ErrorActionPreference='Stop'; $scanRoot=Join-Path (Resolve-Path '.artifacts').Path ('gate12-immutable-inputs-gitleaks-replay-' + [guid]::NewGuid().ToString('N')); New-Item -ItemType Directory -Path $scanRoot | Out-Null; $files=@(git ls-files -co --exclude-standard); foreach($file in $files){$destination=Join-Path $scanRoot $file; $parent=Split-Path -Parent $destination; if($parent){New-Item -ItemType Directory -Force -Path $parent | Out-Null}; Copy-Item -LiteralPath $file -Destination $destination}; gitleaks dir $scanRoot --redact --no-banner --no-color --log-level info; if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}\"",
+      "outcome": "PASS",
+      "summary": "Gitleaks 8.30.1 returned zero findings from the tracked and non-ignored source mirror."
+    },
+    {
+      "name": "Diff, staging and generated-artifact hygiene",
+      "command": "powershell -NoProfile -Command \"$ErrorActionPreference='Stop'; git diff --check; if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}; if(@(git diff --cached --name-only).Count -ne 0){throw 'Staged files found'}; if(@(git ls-files .artifacts artifacts).Count -ne 0){throw 'Tracked artifacts found'}\"",
+      "outcome": "PASS",
+      "summary": "No diff-check error, staged file or tracked generated artifact was present."
+    },
+    {
+      "name": "Local application health after dependency recreation",
+      "command": "powershell -NoProfile -Command \"(Invoke-WebRequest -UseBasicParsing http://localhost:5000/health/live).StatusCode; (Invoke-WebRequest -UseBasicParsing http://localhost:5000/health/ready).StatusCode; (Invoke-WebRequest -UseBasicParsing http://localhost:5173/).StatusCode\"",
+      "outcome": "PASS",
+      "summary": "API liveness, API readiness and the web root each returned HTTP 200."
+    }
+  ],
+  "unresolvedBlockers": [
+    "API, web, runtime and worker production images and immutable application release artefacts remain absent.",
+    "SBOM generation, container vulnerability scanning, provenance/attestation, image signing, blocking CI gitleaks and explicit .NET transitive locking remain pending.",
+    "Production Cognito/OIDC and durable server-side session storage remain unimplemented.",
+    "Remote CI, staging, cloud deployment, Security/Privacy/Legal review and named production approval remain pending."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}

@@ -2,10 +2,12 @@
 
 ## Status and scope
 
-This runbook is an implementation-ready local and staging procedure, not production authority. The
-repository currently proves a PostgreSQL 16 custom backup and isolated database restore with
-deterministic local data. It does not yet prove managed point-in-time recovery, S3 object-byte
-recovery, the 15-minute RPO, the four-hour RTO, or a production change window.
+This runbook contains a verified local recovery exercise and an unverified staging/production
+procedure; it grants no production authority. The repository currently proves a PostgreSQL 16
+custom backup and isolated database restore plus a representative inventory-object backup and
+restore between separate, private, versioned local MinIO stores. It does not yet prove managed
+point-in-time recovery, managed S3 recovery across every object family, the 15-minute RPO, the
+four-hour RTO, or a production change window.
 
 Production execution remains blocked until the repository owner names the recovery commander,
 database operator, security/privacy contact, application validator and change approver; approves the
@@ -46,13 +48,22 @@ From `api/`, run:
 dotnet test tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj `
   --configuration Release `
   --artifacts-path ../.artifacts/gate12-recovery-test `
-  --filter "FullyQualifiedName~DatabaseRecoveryAcceptanceTests" `
+  --filter "Category=Recovery" `
   --logger "console;verbosity=minimal"
 ```
 
 The test must create two disposable PostgreSQL 16 instances. It migrates and seeds the source,
 creates a real custom-format `pg_dump`, transfers that archive, and runs `pg_restore` against the
 separate target. Replaying seed commands against the target is not a recovery pass.
+
+The same test must create distinct digest-pinned MinIO source and target containers with private,
+versioned buckets. It writes deterministic bytes through the application object-store adapter,
+retains the exact source version in a validated backup envelope, proves corrupt or missing bytes do
+not write to the target, stops the source, and restores into the initially empty target. The pass
+then reconciles the restored bytes, SHA-256, size and media type with the restored database record;
+checks a new target provider version and source-version provenance metadata; re-scans the bytes; and
+proves anonymous reads remain denied. This is representative local S3-compatible evidence, not a
+managed-service backup implementation or a complete production recovery exercise.
 
 ## Managed recovery sequence
 

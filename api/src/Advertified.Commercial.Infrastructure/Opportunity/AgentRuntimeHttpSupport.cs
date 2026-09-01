@@ -8,8 +8,7 @@ namespace Advertified.Commercial.Infrastructure.Opportunity;
 internal static class AgentRuntimeHttpSupport
 {
     private const string SchemaVersion = "1.0.0";
-    private const string Provider = "deterministic";
-    private const string Model = "fixture-v1";
+    private const string UndefinedLocale = "und";
     private const string ServiceKeyHeader = "X-Advertified-Service-Key";
 
     internal static readonly JsonSerializerOptions WireJson = new(JsonSerializerDefaults.Web)
@@ -28,7 +27,8 @@ internal static class AgentRuntimeHttpSupport
         string resourceType,
         Guid resourceId,
         long resourceVersion,
-        IReadOnlyList<Guid> evidenceItemIds) => CreateInvocation(
+        IReadOnlyList<Guid> evidenceItemIds,
+        AgentRuntimeOptions settings) => CreateInvocation(
             tenantId,
             actorId,
             runId,
@@ -36,7 +36,8 @@ internal static class AgentRuntimeHttpSupport
             correlationId,
             agentCode,
             [new AgentResourceReference(resourceType, resourceId, resourceVersion)],
-            evidenceItemIds);
+            evidenceItemIds,
+            settings);
 
     internal static AgentInvocationRequest CreateInvocation(
         Guid tenantId,
@@ -46,7 +47,8 @@ internal static class AgentRuntimeHttpSupport
         Guid correlationId,
         string agentCode,
         IReadOnlyList<AgentResourceReference> resourceRefs,
-        IReadOnlyList<Guid> evidenceItemIds)
+        IReadOnlyList<Guid> evidenceItemIds,
+        AgentRuntimeOptions settings)
     {
         if (tenantId == Guid.Empty || actorId == Guid.Empty || runId == Guid.Empty ||
             stepId == Guid.Empty || correlationId == Guid.Empty ||
@@ -68,11 +70,36 @@ internal static class AgentRuntimeHttpSupport
             SchemaVersion,
             resourceRefs,
             evidenceItemIds,
-            "en-ZA",
+            UndefinedLocale,
             SchemaVersion,
             new AgentToolPolicy([], 0, "PROPOSE_ONLY"),
-            new AgentProviderPolicy(Provider, Model, 0, 30, 1, 0, false),
+            CreateProviderPolicy(settings, agentCode),
             new AgentResumeContext(null, null, null));
+    }
+
+    private static AgentProviderPolicy CreateProviderPolicy(
+        AgentRuntimeOptions settings,
+        string agentCode)
+    {
+        if (!AgentRuntimeOptions.HasSafeProviderPolicy(settings) ||
+            !AgentRuntimeOptions.HasSafeRoutes(settings))
+        {
+            throw new InvalidOperationException("The agent provider policy is unsafe.");
+        }
+        var model = settings.ModelFor(agentCode);
+        var costCap = settings.CostCapFor(agentCode);
+        if (settings.Provider == AgentRuntimeOptions.BedrockProvider && costCap <= 0)
+        {
+            throw new InvalidOperationException("The live agent route requires a positive cost cap.");
+        }
+        return new AgentProviderPolicy(
+            settings.Provider,
+            model,
+            0,
+            settings.TimeoutSeconds,
+            settings.MaxAttempts,
+            costCap,
+            settings.AllowLive);
     }
 
     internal static async Task<AgentRuntimeResponse<TArtifact>> InvokeAsync<TArtifact>(
@@ -99,16 +126,18 @@ internal static class AgentRuntimeHttpSupport
         var output = await response.Content.ReadFromJsonAsync<AgentRuntimeResponse<TArtifact>>(
             WireJson, cancellationToken)
             ?? throw new JsonException("The agent runtime returned an empty response.");
-        Validate(output, approvedEvidenceItemIds);
+        Validate(output, settings, agentCode, approvedEvidenceItemIds);
         return output;
     }
 
     private static void Validate<TArtifact>(
         AgentRuntimeResponse<TArtifact> output,
+        AgentRuntimeOptions settings,
+        string agentCode,
         IReadOnlyList<Guid> approvedEvidenceItemIds)
     {
         ValidateEnvelope(output);
-        ValidateUsage(output.Usage);
+        ValidateUsage(output.Usage, CreateProviderPolicy(settings, agentCode));
         ValidateEvidence(output.EvidenceBindings, approvedEvidenceItemIds);
         ValidateMetadata(output);
     }
@@ -131,14 +160,30 @@ internal static class AgentRuntimeHttpSupport
         }
     }
 
-    private static void ValidateUsage(AgentProviderUsage usage)
+    private static void ValidateUsage(
+        AgentProviderUsage usage,
+        AgentProviderPolicy expected)
     {
-        if (usage.Provider != Provider || usage.Model != Model || usage.Units != 0 ||
-            usage.IncrementalCostMinor != 0 || usage.ToolCalls != 0 ||
-            usage.CacheStatus != "FIXTURE")
+        if (usage.Provider != expected.Provider || usage.Model != expected.Model ||
+            usage.Units < 0 || usage.ToolCalls != 0 || usage.IncrementalCostMinor < 0 ||
+            usage.IncrementalCostMinor > expected.CostCapMinor)
         {
-            throw new InvalidOperationException(
-                "The configured agent provider exceeded its deterministic zero-cost policy.");
+            throw new InvalidOperationException("The agent provider usage violated its policy.");
+        }
+        if (expected.Provider == AgentRuntimeOptions.DeterministicProvider)
+        {
+            if (usage.Units != 0 || usage.IncrementalCostMinor != 0 ||
+                usage.CacheStatus != "FIXTURE" || usage.ProviderRequestId is not null)
+            {
+                throw new InvalidOperationException(
+                    "The deterministic agent provider exceeded its zero-cost policy.");
+            }
+            return;
+        }
+        if (usage.Units <= 0 || usage.CacheStatus is not ("LIVE" or "CACHE_HIT") ||
+            string.IsNullOrWhiteSpace(usage.ProviderRequestId))
+        {
+            throw new InvalidOperationException("The live agent provider usage is incomplete.");
         }
     }
 
@@ -267,4 +312,5 @@ internal sealed record AgentProviderUsage(
     int Units,
     int ToolCalls,
     long IncrementalCostMinor,
-    string CacheStatus);
+    string CacheStatus,
+    string? ProviderRequestId = null);

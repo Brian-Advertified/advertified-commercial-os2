@@ -9,6 +9,25 @@ public sealed class DeliveryProofReader(
     DeliveryProofRecordStore store,
     ITenantAuthorizer authorizer) : IDeliveryProofReader
 {
+    public async Task<IReadOnlyList<DeliveryProofRequestView>> ListRequestsAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        CancellationToken cancellationToken)
+    {
+        var decision = await authorizer.AuthorizeAsync(
+            actorId, tenantId, MasterDataReferences.Permissions.DeliveryProofSubmit,
+            cancellationToken);
+        if (!decision.IsAllowed)
+        {
+            throw new UnauthorizedAccessException("Delivery proof request access denied.");
+        }
+        await using var transaction = await store.BeginSessionAsync(
+            actorId, tenantId, cancellationToken);
+        var rows = await store.ListRequestsAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return rows.Select(row => row.ToView()).ToArray();
+    }
+
     public async Task<DeliveryProofView> GetAsync(
         ActorId actorId,
         TenantId tenantId,

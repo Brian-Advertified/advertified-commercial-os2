@@ -1,0 +1,50 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 12,
+  "evidenceDate": "2026-09-01",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "53209e7f718b64a25fc5fcf9aa83365301c5a50c",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Release Docling test class",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj -c Release --filter FullyQualifiedName~DoclingInventoryExtractionAdapterTests --no-restore",
+      "outcome": "PASS",
+      "summary": "5/5 passed: Production HTTP and embedded-userinfo startup were rejected, Test HTTP startup was allowed, a loopback 307 was not followed, and the existing adapter mapping/header contract passed."
+    },
+    {
+      "name": "Scoped .NET formatting",
+      "command": "dotnet format api/Advertified.Commercial.Api.csproj --no-restore --include api/InventoryExtractionRegistration.cs --verbosity minimal; dotnet format api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --no-restore --include api/tests/Advertified.Commercial.Api.Tests/DoclingInventoryExtractionAdapterTests.cs --verbosity minimal",
+      "outcome": "PASS",
+      "summary": "Both affected C# files passed scoped formatting."
+    },
+    {
+      "name": "Complete architecture suite",
+      "command": "python -m pytest tests/architecture -q",
+      "outcome": "PASS",
+      "summary": "31/31 passed against the redirect- and URL-hardened slice."
+    },
+    {
+      "name": "Scoped source diff and whitespace hygiene",
+      "command": "git diff --check -- api/InventoryExtractionRegistration.cs api/tests/Advertified.Commercial.Api.Tests/DoclingInventoryExtractionAdapterTests.cs; rg -n '[ \\t]+$' -- api/InventoryExtractionRegistration.cs api/tests/Advertified.Commercial.Api.Tests/DoclingInventoryExtractionAdapterTests.cs docs/GATE12_DOCLING_TRANSPORT_SECURITY_WORK_PACKET.md docs/evidence/gate12-docling-transport-security-20260901/REPORT.md docs/evidence/gate12-docling-transport-security-20260901/manifest.json",
+      "outcome": "PASS",
+      "summary": "No whitespace error was found in the bounded slice."
+    }
+  ],
+  "unresolvedBlockers": [
+    "Managed Docling service identity, secret injection and rotation are not implemented or certified by this slice.",
+    "Private production networking and certificate-chain evidence are not available.",
+    "No sandbox canary, staging or production deployment was authorised or executed.",
+    "Production readiness and named independent approval remain outstanding."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}

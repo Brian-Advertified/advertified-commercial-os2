@@ -61,9 +61,15 @@ public static class MeasurementAgentValidation
 
     private static void ValidateUsage(MeasurementAgentProposal proposal)
     {
-        if (proposal.Provider != "deterministic" || proposal.Model != "fixture-v1" ||
-            proposal.Units != 0 || proposal.ToolCalls != 0 ||
-            proposal.IncrementalCostMinor != 0 || proposal.CacheStatus != "FIXTURE" ||
+        var deterministic = proposal.Provider == "deterministic" &&
+            proposal.Model == "fixture-v1" && proposal.Units == 0 &&
+            proposal.IncrementalCostMinor == 0 && proposal.CacheStatus == "FIXTURE" &&
+            proposal.ProviderRequestId is null;
+        var live = proposal.Provider == "bedrock" && proposal.Model != "fixture-v1" &&
+            proposal.Units > 0 && proposal.IncrementalCostMinor >= 0 &&
+            proposal.CacheStatus is "LIVE" or "CACHE_HIT" &&
+            !string.IsNullOrWhiteSpace(proposal.ProviderRequestId);
+        if ((!deterministic && !live) || proposal.ToolCalls != 0 ||
             proposal.ContractVersion != "1.0.0" || proposal.PromptVersion != "1.0.0")
             throw new MeasurementAgentOutputRejectedException();
     }

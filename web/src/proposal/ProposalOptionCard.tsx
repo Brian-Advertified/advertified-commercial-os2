@@ -1,7 +1,7 @@
 import type { ProposalOption } from '../api/proposal-schemas'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { mediaVisual } from '../planning/media-visuals'
-import { formatMoney } from '../presentation/format'
+import { formatDate, formatMoney } from '../presentation/format'
 
 export function ProposalOptionCard({ option, selected, decisionMode, busy, onSelect }: {
   option: ProposalOption
@@ -33,13 +33,8 @@ function groupPeriods(option: ProposalOption) {
   const grouped = new Map<string, string[]>()
   for (const period of option.runningPeriods) {
     const values = grouped.get(period.channel) ?? []
-    values.push(`${date(period.start)} – ${date(period.end)}`)
+    values.push(`${formatDate(period.start)} – ${formatDate(period.end)}`)
     grouped.set(period.channel, values)
   }
   return [...grouped].map(([channel, periods]) => ({ channel, periods }))
-}
-
-function date(value: string) {
-  return new Intl.DateTimeFormat('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
-    .format(new Date(`${value}T00:00:00`))
 }

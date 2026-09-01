@@ -1,0 +1,302 @@
+.measurement-submission,
+.measurement-report-generation,
+.review-resource-page > .performance-evidence-card,
+.review-resource-page > .measurement-report-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+}
+
+.measurement-record-list {
+  padding-top: 0.15rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.measurement-record-list > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.measurement-record-list h3 {
+  margin: 0.08rem 0 0.2rem;
+  color: var(--navy);
+}
+
+.measurement-record-list header p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.measurement-record-list > div {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.performance-evidence-card,
+.measurement-report-card {
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.7rem;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+}
+
+.performance-evidence-card > header,
+.measurement-report-card > header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.6rem;
+}
+
+.performance-evidence-card > header > span:first-child,
+.measurement-report-card > header > span:first-child {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  color: var(--electric-soft);
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+}
+
+.performance-evidence-card h3,
+.measurement-report-card h3 {
+  margin: 0.06rem 0 0.18rem;
+  color: var(--navy);
+}
+
+.performance-evidence-card header p,
+.measurement-report-card header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.performance-method,
+.measurement-findings {
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--line);
+}
+
+.performance-method h4,
+.measurement-findings h4,
+.measurement-report-columns h4 {
+  margin: 0 0 0.3rem;
+  color: var(--navy);
+}
+
+.performance-method p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.performance-metric-table {
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+  overflow: hidden;
+}
+
+.performance-metric-table > div {
+  padding: 0.58rem 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.performance-metric-table > div:last-child {
+  border-bottom: 0;
+}
+
+.performance-metric-table span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.performance-metric-table span:last-child {
+  text-align: right;
+}
+
+.performance-metric-table strong {
+  color: var(--navy);
+  font-size: 0.75rem;
+}
+
+.performance-metric-table small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.performance-limitations summary,
+.measurement-submission summary {
+  color: var(--electric-soft);
+  font-size: 0.75rem;
+  font-weight: 780;
+  cursor: pointer;
+}
+
+.performance-limitations ul,
+.measurement-report-columns ul,
+.measurement-findings p {
+  color: var(--muted-strong);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.measurement-submission {
+  padding: 0.8rem;
+}
+
+.measurement-submission > form {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.measurement-form-grid,
+.measurement-metric-entry fieldset > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.measurement-metric-entry {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.measurement-metric-entry fieldset {
+  margin: 0;
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+}
+
+.measurement-metric-entry legend {
+  padding: 0 0.3rem;
+  color: var(--navy);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.measurement-form-actions {
+  display: grid;
+  grid-template-columns: auto minmax(14rem, 1fr) auto;
+  align-items: end;
+  gap: 0.6rem;
+}
+
+.measurement-report-generation {
+  padding: 0.8rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(14rem, 0.7fr) auto;
+  align-items: end;
+  gap: 0.7rem;
+}
+
+.measurement-report-generation h3 {
+  margin: 0.1rem 0 0.25rem;
+  color: var(--navy);
+}
+
+.measurement-report-generation p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.measurement-findings {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.measurement-findings article {
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--line);
+}
+
+.measurement-findings article > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.measurement-findings article span,
+.measurement-findings article small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.measurement-report-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+  overflow: hidden;
+}
+
+.measurement-report-columns > section {
+  padding: 0.65rem;
+  border-right: 1px solid var(--line);
+}
+
+.measurement-report-columns > section:last-child {
+  border-right: 0;
+}
+
+.measurement-report-columns li small {
+  display: block;
+  margin-top: 0.14rem;
+  color: var(--warning);
+}
+
+@media (max-width: 900px) {
+  .measurement-form-grid,
+  .measurement-metric-entry fieldset > div,
+  .measurement-report-generation {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .measurement-report-generation > .primary-button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 650px) {
+  .measurement-form-grid,
+  .measurement-metric-entry fieldset > div,
+  .measurement-form-actions,
+  .measurement-report-generation,
+  .measurement-report-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .measurement-report-columns > section {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .measurement-report-columns > section:last-child {
+    border-bottom: 0;
+  }
+
+  .measurement-record-list > header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .measurement-form-actions .primary-button,
+  .measurement-report-generation .primary-button {
+    width: 100%;
+  }
+}

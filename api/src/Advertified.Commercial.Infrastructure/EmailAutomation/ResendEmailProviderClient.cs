@@ -11,13 +11,17 @@ namespace Advertified.Commercial.Infrastructure.EmailAutomation;
 
 public sealed class ResendEmailProviderClient(
     HttpClient httpClient,
-    IOptions<EmailAutomationOptions> options) : IEmailProviderClient
+    IOptions<EmailAutomationOptions> options,
+    TimeProvider timeProvider) : IEmailProviderClient
 {
     private const string ReceivedEventType = "email.received";
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private readonly EmailAutomationOptions configuration = options.Value;
 
     public string ProviderCode => MasterDataCodes.EmailProviders.Resend;
+
+    public InboundEmailIdentityAssessment AssessInboundIdentity(
+        RetrievedInboundEmail email) => new(false);
 
     public bool VerifyWebhook(
         string rawPayload,
@@ -118,18 +122,31 @@ public sealed class ResendEmailProviderClient(
             request,
             delivery: true,
             cancellationToken);
-        ResendSendResult result;
+        ResendSendResult? result;
         try
         {
             result = await response.Content.ReadFromJsonAsync<ResendSendResult>(
-                Json, cancellationToken)
-                ?? throw new EmailDeliveryFailedException();
+                Json, cancellationToken);
         }
-        catch (JsonException exception)
+        catch (Exception exception) when (IsAmbiguousDeliveryResponse(exception))
         {
-            throw new EmailDeliveryFailedException(exception);
+            throw new EmailDeliveryAcceptanceUnknownException(exception);
         }
-        return new EmailDeliveryReceipt(result.Id, DateTimeOffset.UtcNow);
+        if (string.IsNullOrWhiteSpace(result?.Id))
+        {
+            throw new EmailDeliveryAcceptanceUnknownException();
+        }
+        return new EmailDeliveryReceipt(result.Id, timeProvider.GetUtcNow());
+    }
+
+    public Task<EmailDeliveryReconciliationResult> ReconcileDeliveryAsync(
+        string idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(new EmailDeliveryReconciliationResult(
+            EmailDeliveryReconciliationOutcome.Unknown,
+            null));
     }
 
     private async Task<HttpResponseMessage> SendRequestAsync(
@@ -150,24 +167,35 @@ public sealed class ResendEmailProviderClient(
             response.Dispose();
             if (delivery)
             {
+                if ((int)response.StatusCode >= 500 ||
+                    response.StatusCode == System.Net.HttpStatusCode.RequestTimeout)
+                {
+                    throw new EmailDeliveryAcceptanceUnknownException();
+                }
                 throw new EmailDeliveryFailedException();
             }
             throw new EmailProviderUnavailableException();
         }
+        catch (OperationCanceledException exception) when (delivery)
+        {
+            throw new EmailDeliveryAcceptanceUnknownException(exception);
+        }
         catch (OperationCanceledException exception)
             when (!cancellationToken.IsCancellationRequested)
         {
-            throw delivery
-                ? new EmailDeliveryFailedException(exception)
-                : new EmailProviderUnavailableException(exception);
+            throw new EmailProviderUnavailableException(exception);
         }
         catch (HttpRequestException exception)
         {
             throw delivery
-                ? new EmailDeliveryFailedException(exception)
+                ? new EmailDeliveryAcceptanceUnknownException(exception)
                 : new EmailProviderUnavailableException(exception);
         }
     }
+
+    private static bool IsAmbiguousDeliveryResponse(Exception exception) =>
+        exception is JsonException or NotSupportedException or HttpRequestException or
+            IOException or OperationCanceledException;
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string path)
     {

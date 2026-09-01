@@ -40,13 +40,27 @@ class ToolPolicy(ContractModel):
 
 
 class ProviderPolicy(ContractModel):
-    provider: Literal["deterministic"]
-    model: Literal["fixture-v1"]
+    provider: Literal["deterministic", "bedrock"]
+    model: Annotated[str, Field(min_length=1, max_length=300, pattern=r"^\\S+$")]
     temperature: Literal[0]
-    timeout_seconds: PositiveInt
-    max_attempts: PositiveInt
-    cost_cap_minor: Literal[0]
-    allow_live: Literal[False]
+    timeout_seconds: Annotated[int, Field(ge=1, le=120)]
+    max_attempts: Annotated[int, Field(ge=1, le=3)]
+    cost_cap_minor: NonNegativeInt
+    allow_live: bool
+
+    @model_validator(mode="after")
+    def validate_provider_boundary(self) -> ProviderPolicy:
+        if self.provider == "deterministic":
+            if (
+                self.model != "fixture-v1"
+                or self.cost_cap_minor != 0
+                or self.allow_live
+                or self.max_attempts != 1
+            ):
+                raise ValueError("Deterministic provider policy must remain zero-cost and local.")
+        elif self.model == "fixture-v1" or self.cost_cap_minor <= 0 or not self.allow_live:
+            raise ValueError("Bedrock policy requires an explicit live model and positive cost cap.")
+        return self
 
 
 class ResumeContext(ContractModel):
@@ -123,12 +137,55 @@ class SuggestedNextAction(ContractModel):
 
 
 class ProviderUsage(ContractModel):
-    provider: Literal["deterministic"]
-    model: Literal["fixture-v1"]
+    provider: Literal["deterministic", "bedrock"]
+    model: Annotated[str, Field(min_length=1, max_length=300, pattern=r"^\\S+$")]
     units: NonNegativeInt
     tool_calls: NonNegativeInt
-    incremental_cost_minor: Literal[0]
-    cache_status: Literal["FIXTURE"]
+    incremental_cost_minor: NonNegativeInt
+    cache_status: Literal["FIXTURE", "LIVE", "CACHE_HIT"]
+    provider_request_id: Annotated[str | None, Field(min_length=1, max_length=300)] = None
+
+    @model_validator(mode="after")
+    def validate_usage_boundary(self) -> ProviderUsage:
+        if self.provider == "deterministic":
+            if (
+                self.model != "fixture-v1"
+                or self.units != 0
+                or self.tool_calls != 0
+                or self.incremental_cost_minor != 0
+                or self.cache_status != "FIXTURE"
+                or self.provider_request_id is not None
+            ):
+                raise ValueError("Deterministic usage must remain fixture-only and zero-cost.")
+        elif (
+            self.model == "fixture-v1"
+            or self.units <= 0
+            or self.tool_calls != 0
+            or self.cache_status not in ("LIVE", "CACHE_HIT")
+        ):
+            raise ValueError("Bedrock usage is incomplete or unsafe.")
+        return self
+
+
+class GeneratedAgentOutput(ContractModel, Generic[ArtifactT]):
+    schema_version: Literal["1.0.0"]
+    status: OutputStatus
+    artifact: ArtifactT | None
+    evidence_bindings: tuple[EvidenceBinding, ...]
+    unknowns: tuple[UnknownItem, ...]
+    assumptions: tuple[PlanningAssumption, ...]
+    confidence: tuple[ConfidenceAssessment, ...]
+    objections: tuple[Objection, ...]
+    rationale: Annotated[str, Field(min_length=1, max_length=1_000)]
+    suggested_next_action: SuggestedNextAction | None
+
+    @model_validator(mode="after")
+    def validate_status(self) -> GeneratedAgentOutput[ArtifactT]:
+        if self.status == OutputStatus.COMPLETED and self.artifact is None:
+            raise ValueError("A completed output requires a typed artifact.")
+        if self.status == OutputStatus.FAILED and self.artifact is not None:
+            raise ValueError("A failed output cannot present an artifact as valid.")
+        return self
 
 
 class AgentOutputEnvelope(ContractModel, Generic[ArtifactT]):

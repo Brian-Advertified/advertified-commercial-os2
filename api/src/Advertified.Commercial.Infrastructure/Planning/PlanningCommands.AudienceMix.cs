@@ -17,11 +17,11 @@ public sealed partial class PlanningCommands
         CommandEnvelope<GenerateAudiencesCommand> envelope,
         CancellationToken cancellationToken)
     {
-        var brief = await LoadApprovedBriefAsync(
+        var brief = await LoadPlanningReadyBriefAsync(
             briefVersionId, envelope, cancellationToken);
         var proposal = await planningAgent.ProposeAudiencesAsync(
             BuildBriefInput(brief, envelope), cancellationToken);
-        if (proposal.Audiences.Count == 0 || proposal.IncrementalCostMinor != 0)
+        if (proposal.Audiences.Count == 0 || proposal.IncrementalCostMinor < 0)
         {
             throw new InvalidOperationException("The audience proposal is invalid.");
         }
@@ -76,7 +76,7 @@ public sealed partial class PlanningCommands
         CommandEnvelope<GenerateMediaMixCommand> envelope,
         CancellationToken cancellationToken)
     {
-        var brief = await LoadApprovedBriefAsync(
+        var brief = await LoadPlanningReadyBriefAsync(
             briefVersionId, envelope, cancellationToken);
         var audience = await store.FindLatestAudienceAsync(
             envelope.TenantId, briefVersionId, cancellationToken);
@@ -136,7 +136,7 @@ public sealed partial class PlanningCommands
         var mix = await store.FindMixAsync(
             envelope.TenantId, mixVersionId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Media mix access denied.");
-        var brief = await LoadApprovedBriefAsync(
+        var brief = await LoadPlanningReadyBriefAsync(
             mix.BriefVersionId, envelope, cancellationToken);
         if (mix.Status != MasterDataCodes.LifecycleStatuses.Draft)
         {
@@ -189,7 +189,7 @@ public sealed partial class PlanningCommands
         var mix = await store.FindMixAsync(
             envelope.TenantId, mixVersionId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Media mix access denied.");
-        var brief = await LoadApprovedBriefAsync(
+        var brief = await LoadPlanningReadyBriefAsync(
             mix.BriefVersionId, envelope, cancellationToken);
         var allocations = Read<MediaAllocationView[]>(mix.AllocationsJson);
         await EnsureOohSelectionRemainsLockedAsync(
@@ -228,7 +228,7 @@ public sealed partial class PlanningCommands
             MasterDataReferences.CommercialEventTypes.MediaMixApproved, now);
     }
 
-    private async Task<PlanningBriefRow> LoadApprovedBriefAsync<TCommand>(
+    private async Task<PlanningBriefRow> LoadPlanningReadyBriefAsync<TCommand>(
         Guid briefVersionId,
         CommandEnvelope<TCommand> envelope,
         CancellationToken cancellationToken)
@@ -241,8 +241,10 @@ public sealed partial class PlanningCommands
         {
             throw new UnauthorizedAccessException("Planning assignment denied.");
         }
-        if (brief.Status != MasterDataCodes.LifecycleStatuses.Approved || brief.BudgetUnknown ||
-            !brief.BudgetMinor.HasValue || string.IsNullOrWhiteSpace(brief.Currency))
+        if ((brief.Status != MasterDataCodes.LifecycleStatuses.Ready &&
+                brief.Status != MasterDataCodes.LifecycleStatuses.Approved) ||
+            brief.BudgetUnknown || !brief.BudgetMinor.HasValue ||
+            string.IsNullOrWhiteSpace(brief.Currency))
         {
             throw new InvalidLifecycleTransitionException();
         }

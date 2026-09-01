@@ -19,32 +19,67 @@ env:
   DOTNET_NOLOGO: "1"
   AWS_BEDROCK_ENABLED: "false"
   AI_COST_CAP_MINOR: "0"
+  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.0@sha256:691af3c7c5a48b16f187ce3446d5f194838f91238f27270ed36eef6359a574d9
+  SYFT_IMAGE: ghcr.io/anchore/syft:v1.50.0@sha256:1288ea4c8b38767b4e620c1e312c8cb26b6e887a99b4f07ab6cd19fc6f225026
+  TRIVY_IMAGE: ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
 
 jobs:
   architecture:
     name: Architecture guardrails
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          python-version: "3.12"
-      - name: Install test runner
-        run: python -m pip install pytest==7.4.3
+          persist-credentials: false
+      - name: Scan committed source for secrets
+        run: |
+          set -euo pipefail
+          scan_root="$(mktemp -d)"
+          report_root="$PWD/.artifacts/security"
+          mkdir --parents "$report_root"
+          git archive --format=tar HEAD | tar --extract --directory "$scan_root"
+          docker run --rm \
+            --volume "$scan_root:/source:ro" \
+            --volume "$report_root:/out" \
+            "$GITLEAKS_IMAGE" dir /source \
+              --redact \
+              --no-banner \
+              --max-target-megabytes 5 \
+              --report-format json \
+              --report-path /out/gitleaks.json
+      - name: Retain source secret-scan report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: source-secret-scan-${{ github.sha }}
+          path: .artifacts/security/gitleaks.json
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12.14"
+          cache: pip
+          cache-dependency-path: agent-runtime/requirements-dev.lock
+      - name: Install hash-locked test runner
+        run: >-
+          python -m pip install --require-hashes
+          -r agent-runtime/requirements-dev.lock
       - name: Enforce repository boundaries
         run: python -m pytest tests/architecture -q
 
   web:
     name: React web
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          node-version: "22"
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.2"
           cache: npm
           cache-dependency-path: web/package-lock.json
       - name: Install locked dependencies
@@ -57,25 +92,32 @@ jobs:
         run: npm test
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
-      - name: Authenticated shell journey
-        run: npm run test:e2e -- --workers=1
+      - name: Browser journeys
+        run: npm run test:e2e
       - name: Build
         run: npm run build
-      - name: Audit runtime dependencies
-        run: npm audit --omit=dev --audit-level=high
+      - name: Audit runtime and build dependency graphs
+        run: |
+          npm audit --omit=dev --audit-level=high
+          npm audit --audit-level=high
 
   commercial-api:
     name: C# Commercial API
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          dotnet-version: "10.0.x"
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "10.0.400"
+      - name: Build PostgreSQL integration dependency
+        run: docker compose -f infrastructure/docker-compose.yml build postgres
       - name: Restore test graph
         run: >-
           dotnet restore
           api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj
+          --locked-mode
       - name: Build API
         run: dotnet build api/Advertified.Commercial.Api.csproj --configuration Release --no-restore
       - name: Test API
@@ -88,15 +130,17 @@ jobs:
 
   agent-runtime:
     name: Python agent runtime
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: agent-runtime
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          python-version: "3.12"
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12.14"
           cache: pip
           cache-dependency-path: agent-runtime/requirements-dev.lock
       - name: Install hash-locked dependencies
@@ -117,14 +161,179 @@ jobs:
       - name: Test
         run: python -m pytest
 
+  application-packaging:
+    name: Application packaging
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Record container toolchain
+        run: docker version
+      - name: Build no-push verification images
+        run: |
+          docker build --file api/Dockerfile --target api --tag advertified/commercial-api:ci-verification .
+          docker build --file api/Dockerfile --target migrator --tag advertified/database-migrator:ci-verification .
+          docker build --file agent-runtime/Dockerfile --tag advertified/agent-runtime:ci-verification .
+          docker build --file web/Dockerfile --tag advertified/web:ci-verification .
+      - name: Verify image identities and record immutable image IDs
+        run: |
+          set -euo pipefail
+          test "$(docker image inspect advertified/commercial-api:ci-verification --format '{{.Config.User}}')" = "app"
+          test "$(docker image inspect advertified/database-migrator:ci-verification --format '{{.Config.User}}')" = "app"
+          test "$(docker image inspect advertified/agent-runtime:ci-verification --format '{{.Config.User}}')" = "10001:10001"
+          test "$(docker image inspect advertified/web:ci-verification --format '{{.Config.User}}')" = "10001:10001"
+          test -z "$(docker run --rm --entrypoint getcap advertified/web:ci-verification /usr/bin/caddy)"
+          docker run --rm --entrypoint sh advertified/commercial-api:ci-verification \
+            -c 'test ! -e /app/appsettings.Development.json'
+          docker image inspect \
+            advertified/commercial-api:ci-verification \
+            advertified/database-migrator:ci-verification \
+            advertified/agent-runtime:ci-verification \
+            advertified/web:ci-verification \
+            --format '{{.RepoTags}} {{.Id}}'
+      - name: Smoke application process boundaries
+        run: |
+          set -euo pipefail
+          network=advertified-ci-packaging
+          api=advertified-ci-api
+          runtime=advertified-ci-agent-runtime
+          web=advertified-ci-web
+          cleanup() {
+            docker rm --force "$api" "$runtime" "$web" >/dev/null 2>&1 || true
+            docker network rm "$network" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker network create "$network"
+          docker run --detach --name "$api" --network "$network" --publish 127.0.0.1:18080:8080 \
+            --env ASPNETCORE_ENVIRONMENT=Production \
+            --env 'ConnectionStrings__CommercialDatabase=Host=127.0.0.1;Port=1;Database=closed;Username=closed;Password=closed;Timeout=1' \
+            --env Authentication__Mode=Disabled \
+            --env 'AllowedHosts=localhost;127.0.0.1' \
+            --env ReverseProxy__KnownProxies__0=127.0.0.1 \
+            --env InventoryProtection__ObjectStoreMode=Minio \
+            --env InventoryProtection__ScannerMode=ClamAv \
+            --env InventoryProtection__Endpoint=closed.invalid:443 \
+            --env InventoryProtection__AccessKey=closed \
+            --env InventoryProtection__SecretKey=closed \
+            --env InventoryProtection__Bucket=closed \
+            --env InventoryProtection__UseTls=true \
+            --env InventoryProtection__ClamAvHost=closed.invalid \
+            --env InventoryProtection__ClamAvPort=3310 \
+            --env InventoryExtraction__Mode=Docling \
+            --env InventoryExtraction__BaseUrl=https://closed.invalid \
+            --env InventoryExtraction__ApiKey=closed \
+            advertified/commercial-api:ci-verification
+          docker run --detach --name "$runtime" --network "$network" --publish 127.0.0.1:18081:8080 \
+            --env ADVERTIFIED_AGENT_RUNTIME_MODE=deterministic \
+            --env ADVERTIFIED_AGENT_RUNTIME_SERVICE_KEY=ci-local-only \
+            advertified/agent-runtime:ci-verification
+          docker run --detach --name "$web" --network "$network" --publish 127.0.0.1:18082:8080 \
+            --env ADVERTIFIED_API_UPSTREAM=http://advertified-ci-api:8080 \
+            advertified/web:ci-verification
+          for endpoint in \
+            http://127.0.0.1:18080/health/live \
+            http://127.0.0.1:18081/health/live \
+            http://127.0.0.1:18082/health/live; do
+            for attempt in $(seq 1 30); do
+              curl --fail --silent "$endpoint" >/dev/null && break
+              test "$attempt" -lt 30
+              sleep 2
+            done
+          done
+          curl --fail --silent --dump-header /tmp/advertified-index.headers \
+            http://127.0.0.1:18082/ >/tmp/advertified-index.html
+          curl --fail --silent --dump-header /tmp/advertified-sign-in.headers \
+            http://127.0.0.1:18082/sign-in >/tmp/advertified-sign-in.html
+          cmp /tmp/advertified-index.html /tmp/advertified-sign-in.html
+          grep --ignore-case '^Content-Security-Policy:' /tmp/advertified-index.headers
+          grep --ignore-case '^Permissions-Policy:' /tmp/advertified-index.headers
+          grep --ignore-case '^X-Permitted-Cross-Domain-Policies: none' /tmp/advertified-index.headers
+          grep --ignore-case '^Cache-Control: no-cache' /tmp/advertified-index.headers
+          grep --ignore-case '^Cache-Control: no-cache' /tmp/advertified-sign-in.headers
+          asset_path=$(grep --only-matching --extended-regexp '/assets/[^" ]+\.js' \
+            /tmp/advertified-index.html | head --lines 1)
+          curl --fail --silent --header 'Accept-Encoding: gzip' \
+            --dump-header /tmp/advertified-asset.headers --output /dev/null \
+            "http://127.0.0.1:18082${asset_path}"
+          grep --ignore-case '^Cache-Control: public, max-age=31536000, immutable' \
+            /tmp/advertified-asset.headers
+          grep --ignore-case '^Content-Encoding: gzip' /tmp/advertified-asset.headers
+          curl --fail --silent --dump-header /tmp/advertified-public-asset.headers \
+            --output /dev/null \
+            http://127.0.0.1:18082/assets/media-inventory/radio.jpg
+          grep --ignore-case '^Cache-Control: no-cache' \
+            /tmp/advertified-public-asset.headers
+          if grep --ignore-case 'immutable' /tmp/advertified-public-asset.headers; then
+            echo 'Unversioned public assets must not be cached as immutable.' >&2
+            exit 1
+          fi
+          test "$(docker exec "$api" id -u)" != "0"
+          test "$(docker exec "$runtime" id -u)" != "0"
+          test "$(docker exec "$web" id -u)" != "0"
+          set +e
+          migrator_output=$(docker run --rm advertified/database-migrator:ci-verification 2>&1)
+          migrator_exit=$?
+          set -e
+          test "$migrator_exit" -eq 2
+          grep -F "No database change was made." <<<"$migrator_output"
+      - name: Generate final-image CycloneDX SBOMs
+        run: |
+          set -euo pipefail
+          output="$PWD/.artifacts/supply-chain"
+          mkdir --parents "$output"
+          while read -r image report; do
+            docker run --rm \
+              --volume /var/run/docker.sock:/var/run/docker.sock \
+              --volume "$output:/out" \
+              "$SYFT_IMAGE" "docker:$image" \
+              --output "cyclonedx-json=/out/$report"
+          done <<'EOF'
+          advertified/commercial-api:ci-verification commercial-api.cdx.json
+          advertified/database-migrator:ci-verification database-migrator.cdx.json
+          advertified/agent-runtime:ci-verification agent-runtime.cdx.json
+          advertified/web:ci-verification web.cdx.json
+          EOF
+      - name: Scan final-image SBOMs for high and critical vulnerabilities
+        run: |
+          set -euo pipefail
+          output="$PWD/.artifacts/supply-chain"
+          scan_status=0
+          for sbom in "$output"/*.cdx.json; do
+            report="${sbom%.cdx.json}.trivy.json"
+            docker run --rm \
+              --volume advertified-trivy-cache:/root/.cache/trivy \
+              --volume "$output:/out" \
+              "$TRIVY_IMAGE" sbom \
+                --db-repository ghcr.io/aquasecurity/trivy-db:2 \
+                --timeout 20m \
+                --scanners vuln \
+              --severity HIGH,CRITICAL \
+              --exit-code 1 \
+              --format json \
+              --output "/out/$(basename "$report")" \
+              "/out/$(basename "$sbom")" || scan_status=1
+          done
+          exit "$scan_status"
+      - name: Retain supply-chain reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: application-supply-chain-${{ github.sha }}
+          path: .artifacts/supply-chain
+          if-no-files-found: error
+          retention-days: 30
+
   infrastructure:
     name: PostgreSQL and local services
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: infrastructure
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Validate Compose
         run: docker compose config --quiet
       - name: Build PostgreSQL with spatial and vector extensions

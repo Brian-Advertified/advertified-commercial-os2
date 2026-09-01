@@ -17,65 +17,86 @@ public sealed partial class EmailProposalAutomationProcessor
         CorrelationId correlationId,
         CancellationToken cancellationToken)
     {
+        if (run.DeliveryRequestedAtUtc.HasValue)
+        {
+            return await ResumeDeliveryAsync(
+                context, run, owner, correlationId, cancellationToken);
+        }
+
         var tenantId = new TenantId(context.TenantId);
-        var briefId = run.BriefId
-            ?? throw new EmailAutomationReviewRequiredException(
-                MasterDataCodes.AutomationFailureReasons.IncompleteBrief,
-                "The campaign Brief is not available for proposal creation.");
-        var planId = run.MediaPlanVersionId
-            ?? throw new EmailAutomationReviewRequiredException(
-                MasterDataCodes.AutomationFailureReasons.PlanUnready,
-                "The approved media plan is not available for proposal creation.");
+        var briefId = RequireBriefId(run);
+        var planId = RequirePlanId(run);
         var expiry = context.ReceivedAtUtc.AddDays(proposalPolicy.DefaultValidityDays);
         if (expiry <= timeProvider.GetUtcNow())
         {
-            throw new EmailAutomationReviewRequiredException(
+            throw ReviewRequired(
                 MasterDataCodes.AutomationFailureReasons.ProposalUnready,
                 "The inbound request is too old for automatic proposal delivery. Start a new campaign request.");
         }
 
-        ProposalVersionView proposal;
-        if (!run.ProposalVersionId.HasValue)
+        var proposal = await GetOrCreateProposalAsync(
+            tenantId, owner, run, briefId, planId, understanding, expiry,
+            correlationId, cancellationToken);
+        proposal = await EnsureApprovedProposalAsync(
+            tenantId, owner, run, planId, proposal, correlationId, cancellationToken);
+        run = await RecordProposalCheckpointAsync(
+            context, proposal.Id, owner, cancellationToken);
+        var document = await GetOrRenderDocumentAsync(
+            tenantId, owner, run, proposal, correlationId, cancellationToken);
+        run = await RecordDocumentCheckpointAsync(
+            context, document.Id, owner, cancellationToken);
+        return await BeginDeliveryAsync(
+            context, run, proposal, document, owner, correlationId, cancellationToken);
+    }
+
+    private async Task<ProposalVersionView> GetOrCreateProposalAsync(
+        TenantId tenantId,
+        ActorId owner,
+        EmailAutomationRunRow run,
+        Guid briefId,
+        Guid planId,
+        SuppliedBriefUnderstandingView understanding,
+        DateTimeOffset expiry,
+        CorrelationId correlationId,
+        CancellationToken cancellationToken)
+    {
+        if (run.ProposalVersionId.HasValue)
         {
-            var generated = await proposalCommands.GenerateAsync(
-                briefId,
-                envelopes.Create(
-                    tenantId, owner, run.Id, EmailAutomationStageNames.ProposalGenerate,
-                    0,
-                    new GenerateProposalCommand(
-                        policy.ProposalTitle,
-                        [new ProposalOptionInput(
-                            planId,
-                            policy.ProposalOptionLabel,
-                            understanding.Draft.Objective)],
-                        policy.ProposalTerms,
-                        expiry),
-                    correlationId),
-                cancellationToken);
-            proposal = generated.Data;
-            run = await store.UpdateRunAsync(
-                tenantId,
-                owner,
-                context.InboundEmailId,
-                current => current with
-                {
-                    ProposalVersionId = proposal.Id,
-                    UpdatedAtUtc = timeProvider.GetUtcNow(),
-                },
-                cancellationToken);
-        }
-        else
-        {
-            proposal = await proposalReader.GetAsync(
+            return await proposalReader.GetAsync(
                 owner, tenantId, run.ProposalVersionId.Value, cancellationToken);
         }
 
+        var generated = await proposalCommands.GenerateAsync(
+            briefId,
+            envelopes.Create(
+                tenantId, owner, run.Id, EmailAutomationStageNames.ProposalGenerate,
+                0,
+                new GenerateProposalCommand(
+                    policy.ProposalTitle,
+                    [new ProposalOptionInput(
+                        planId, policy.ProposalOptionLabel, understanding.Draft.Objective)],
+                    policy.ProposalTerms,
+                    expiry),
+                correlationId),
+            cancellationToken);
+        return generated.Data;
+    }
+
+    private async Task<ProposalVersionView> EnsureApprovedProposalAsync(
+        TenantId tenantId,
+        ActorId owner,
+        EmailAutomationRunRow run,
+        Guid planId,
+        ProposalVersionView proposal,
+        CorrelationId correlationId,
+        CancellationToken cancellationToken)
+    {
         if (proposal.Options.Count != policy.MaximumProposalOptions ||
             proposal.Options.Any(option => option.PlanVersionId != planId ||
                 option.Channels.Any(channel =>
                     !policy.AllowedChannels.Contains(channel, StringComparer.Ordinal))))
         {
-            throw new EmailAutomationReviewRequiredException(
+            throw ReviewRequired(
                 MasterDataCodes.AutomationFailureReasons.ProposalUnready,
                 "The proposal does not reference the exact approved OOH plan.");
         }
@@ -94,27 +115,55 @@ public sealed partial class EmailProposalAutomationProcessor
         if (proposal.Status is not (MasterDataCodes.LifecycleStatuses.Approved or
             MasterDataCodes.LifecycleStatuses.Sent))
         {
-            throw new EmailAutomationReviewRequiredException(
+            throw ReviewRequired(
                 MasterDataCodes.AutomationFailureReasons.ProposalUnready,
                 "The proposal is not approved for automatic delivery.");
         }
-        run = await store.UpdateRunAsync(
-            tenantId,
+        if (proposal.Status == MasterDataCodes.LifecycleStatuses.Sent &&
+            !run.DeliveryRequestedAtUtc.HasValue)
+        {
+            throw DeliveryAmbiguous();
+        }
+        if (proposal.Status != MasterDataCodes.LifecycleStatuses.Sent &&
+            proposal.ExpiryAtUtc <= timeProvider.GetUtcNow())
+        {
+            throw ReviewRequired(
+                MasterDataCodes.AutomationFailureReasons.ProposalUnready,
+                "The proposal expired before automatic delivery could start.");
+        }
+        return proposal;
+    }
+
+    private Task<EmailAutomationRunRow> RecordProposalCheckpointAsync(
+        EmailAutomationContextRow context,
+        Guid proposalId,
+        ActorId owner,
+        CancellationToken cancellationToken) =>
+        store.UpdateRunAsync(
+            new TenantId(context.TenantId),
             owner,
             context.InboundEmailId,
             current => current with
             {
-                ProposalVersionId = proposal.Id,
+                ProposalVersionId = proposalId,
                 Checkpoint = MasterDataCodes.EmailAutomationCheckpoints.ProposalApproved,
                 UpdatedAtUtc = timeProvider.GetUtcNow(),
             },
             cancellationToken);
 
+    private async Task<ProposalDocumentView> GetOrRenderDocumentAsync(
+        TenantId tenantId,
+        ActorId owner,
+        EmailAutomationRunRow run,
+        ProposalVersionView proposal,
+        CorrelationId correlationId,
+        CancellationToken cancellationToken)
+    {
         if (proposal.Document is null)
         {
             if (proposal.Status != MasterDataCodes.LifecycleStatuses.Approved)
             {
-                throw new EmailAutomationReviewRequiredException(
+                throw ReviewRequired(
                     MasterDataCodes.AutomationFailureReasons.ProposalUnready,
                     "The sent proposal has no retained document.");
             }
@@ -125,84 +174,42 @@ public sealed partial class EmailProposalAutomationProcessor
                     proposal.Version, new RenderProposalCommand(), correlationId),
                 cancellationToken)).Data;
         }
-        var document = proposal.Document
-            ?? throw new EmailAutomationReviewRequiredException(
-                MasterDataCodes.AutomationFailureReasons.ProposalUnready,
-                "The approved proposal could not be rendered.");
-        run = await store.UpdateRunAsync(
-            tenantId,
-            owner,
-            context.InboundEmailId,
-            current => current with
-            {
-                DocumentId = document.Id,
-                Checkpoint = MasterDataCodes.EmailAutomationCheckpoints.DocumentRendered,
-                DeliveryIdempotencyKey = current.DeliveryIdempotencyKey ??
-                    BuildDeliveryIdempotencyKey(current.Id, context.ReplyToEmail),
-                UpdatedAtUtc = timeProvider.GetUtcNow(),
-            },
-            cancellationToken);
-
-        var content = await proposalReader.GetDocumentAsync(
-            owner, tenantId, document.Id, cancellationToken);
-        var provider = emailProviders.Resolve(context.Provider);
-        var sender = string.IsNullOrWhiteSpace(options.Value.SenderAddress)
-            ? context.MailboxAddress
-            : options.Value.SenderAddress.Trim();
-        var delivery = await provider.SendAsync(
-            new ProposalEmailDelivery(
-                context.ReplyToEmail,
-                sender,
-                string.Concat(policy.EmailSubjectPrefix, " ", proposal.Title),
-                policy.EmailBody,
-                content.FileName,
-                content.MediaType,
-                content.Content,
-                context.ProviderMessageId,
-                run.DeliveryIdempotencyKey!),
-            cancellationToken);
-
-        if (proposal.Status == MasterDataCodes.LifecycleStatuses.Approved)
-        {
-            proposal = (await proposalCommands.RecordAutomatedDeliveryAsync(
-                proposal.Id,
-                envelopes.Create(
-                    tenantId, owner, run.Id, EmailAutomationStageNames.ProposalSend,
-                    proposal.Version,
-                    new RecordAutomatedProposalDeliveryCommand(
-                        run.Id,
-                        context.ReplyToEmail,
-                        delivery.ProviderMessageId),
-                    correlationId),
-                cancellationToken)).Data;
-        }
-        if (proposal.Status != MasterDataCodes.LifecycleStatuses.Sent)
-        {
-            throw new EmailAutomationReviewRequiredException(
-                MasterDataCodes.AutomationFailureReasons.DeliveryFailed,
-                "The proposal delivery could not be recorded.");
-        }
-
-        return await store.UpdateRunAsync(
-            tenantId,
-            owner,
-            context.InboundEmailId,
-            current => current with
-            {
-                Status = MasterDataCodes.EmailAutomationStatuses.Sent,
-                Checkpoint = MasterDataCodes.EmailAutomationCheckpoints.Sent,
-                DeliveryProviderId = delivery.ProviderMessageId,
-                FailureCode = null,
-                FailureMessage = null,
-                UpdatedAtUtc = timeProvider.GetUtcNow(),
-            },
-            new EmailAutomationTransition(
-                new CommandId(Guid.NewGuid()),
-                correlationId,
-                MasterDataReferences.CommercialActions.EmailAutomationSent,
-                MasterDataReferences.CommercialEventTypes.EmailProposalAutomationSent),
-            cancellationToken);
+        return proposal.Document ?? throw ReviewRequired(
+            MasterDataCodes.AutomationFailureReasons.ProposalUnready,
+            "The approved proposal could not be rendered.");
     }
+
+    private Task<EmailAutomationRunRow> RecordDocumentCheckpointAsync(
+        EmailAutomationContextRow context,
+        Guid documentId,
+        ActorId owner,
+        CancellationToken cancellationToken) =>
+        store.UpdateRunAsync(
+            new TenantId(context.TenantId),
+            owner,
+            context.InboundEmailId,
+            current => current with
+            {
+                DocumentId = documentId,
+                Checkpoint = MasterDataCodes.EmailAutomationCheckpoints.DocumentRendered,
+                UpdatedAtUtc = timeProvider.GetUtcNow(),
+            },
+            cancellationToken);
+
+    private static Guid RequireBriefId(EmailAutomationRunRow run) =>
+        run.BriefId ?? throw ReviewRequired(
+            MasterDataCodes.AutomationFailureReasons.IncompleteBrief,
+            "The campaign Brief is not available for proposal creation.");
+
+    private static Guid RequirePlanId(EmailAutomationRunRow run) =>
+        run.MediaPlanVersionId ?? throw ReviewRequired(
+            MasterDataCodes.AutomationFailureReasons.PlanUnready,
+            "The approved media plan is not available for proposal creation.");
+
+    private static EmailAutomationReviewRequiredException ReviewRequired(
+        string failureCode,
+        string message) =>
+        new(failureCode, message);
 
     private static string BuildDeliveryIdempotencyKey(Guid runId, string recipient) =>
         string.Concat(

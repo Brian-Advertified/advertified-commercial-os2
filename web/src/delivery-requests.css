@@ -1,0 +1,137 @@
+.proof-request-page {
+  display: grid;
+  gap: .8rem;
+  max-width: 96rem;
+  margin: 0 auto;
+}
+
+.proof-request-hero {
+  padding: 0 0 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) auto;
+  align-items: center;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.proof-request-hero h1 {
+  max-width: 32ch;
+  margin: 0.15rem 0 0.4rem;
+  color: var(--navy);
+  font-size: clamp(1.45rem, 2.6vw, 2rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.proof-request-hero p:last-child {
+  max-width: 48rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: .75rem;
+  line-height: 1.5;
+}
+
+.proof-request-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: 0;
+  border: 1px solid var(--line);
+}
+
+.proof-request-card {
+  min-width: 0;
+  padding: .8rem;
+  display: grid;
+  gap: .65rem;
+  background: var(--white);
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.proof-request-card > header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.65rem;
+}
+
+.proof-request-card > header > span:first-child {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  color: var(--electric-soft);
+  background: var(--electric-wash);
+  border: 1px solid var(--line-strong);
+  border-radius: .25rem;
+}
+
+.proof-request-card h2 {
+  margin: 0.1rem 0 0.2rem;
+  color: var(--navy);
+  font-size: .9rem;
+}
+
+.proof-request-card header p,
+.proof-request-card header small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.proof-request-card dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  border-block: 1px solid var(--line);
+}
+
+.proof-request-card dl div {
+  padding: .55rem;
+  background: transparent;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+}
+.proof-request-card dl div:last-child { border-right: 0; }
+
+.proof-request-card dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.proof-request-card dd {
+  margin: 0.2rem 0 0;
+  color: var(--navy);
+  font-size: 0.75rem;
+  font-weight: 730;
+}
+
+.proof-request-reason {
+  margin: 0;
+  color: var(--muted-strong);
+  line-height: 1.5;
+}
+
+.proof-request-card footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 700px) {
+  .proof-request-hero,
+  .proof-request-card > header,
+  .proof-request-card dl {
+    grid-template-columns: 1fr;
+  }
+
+  .proof-request-card footer,
+  .proof-request-card footer a {
+    width: 100%;
+  }
+
+  .proof-request-card { border-right: 0; }
+}

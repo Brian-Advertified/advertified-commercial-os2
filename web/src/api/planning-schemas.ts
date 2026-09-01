@@ -90,6 +90,7 @@ export const shortlistCandidateSchema = z.object({
   rejectionReason: z.string().nullable(),
   rejectionDetail: z.string().nullable(),
   score: z.number().nullable(),
+  rationale: z.string().nullable(),
   isSelected: z.boolean().nullable(),
   benchmark: benchmarkSchema.nullable(),
 })
@@ -120,7 +121,6 @@ export const planLineSchema = z.object({
   geography: z.string(),
   runningPeriods: z.array(runningPeriodSchema).min(1),
   quantity: z.number().int().positive(),
-  supplierCostMinor: z.number().int().nonnegative(),
   clientPriceMinor: z.number().int().nonnegative(),
   feesMinor: z.number().int().nonnegative(),
   vatMinor: z.number().int().nonnegative(),
@@ -148,7 +148,6 @@ export const mediaPlanSchema = z.object({
   mixVersionId: z.guid(),
   shortlistVersionId: z.guid(),
   versionNumber: z.number().int().positive(),
-  subtotalMinor: z.number().int().nonnegative(),
   feesMinor: z.number().int().nonnegative(),
   vatMinor: z.number().int().nonnegative(),
   totalMinor: z.number().int().nonnegative(),
@@ -181,6 +180,7 @@ export const campaignModeSchema = z.object({
 export const planningWorkspaceSchema = z.object({
   briefId: z.guid(),
   briefVersionId: z.guid(),
+  clientName: z.string().trim().min(1),
   campaignMode: campaignModeSchema.nullable(),
   audience: audienceSetSchema.nullable(),
   mediaMix: mediaMixSchema.nullable(),

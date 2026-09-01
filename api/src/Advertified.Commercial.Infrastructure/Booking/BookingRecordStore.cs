@@ -8,6 +8,8 @@ namespace Advertified.Commercial.Infrastructure.Booking;
 
 public sealed partial class BookingRecordStore(GovernanceDbContext dbContext)
 {
+    private const int MaxBookingResults = 200;
+
     internal GovernanceDbContext DbContext => dbContext;
 
     internal async Task<IDbContextTransaction> BeginSessionAsync(
@@ -40,7 +42,10 @@ public sealed partial class BookingRecordStore(GovernanceDbContext dbContext)
             booking.product_name AS "ProductName", booking.channel_code AS "Channel",
             booking.geography AS "Geography", booking.flight_start AS "FlightStart",
             booking.flight_end AS "FlightEnd", booking.running_periods AS "RunningPeriods",
-            booking.quantity AS "Quantity", booking.supplier_cost_minor AS "SupplierCostMinor",
+            booking.quantity AS "Quantity",
+            CASE WHEN booking.supplier_tenant_id = commercial.current_tenant_id()
+                      AND viewer.role_code IN ({0}, {1})
+                THEN booking.supplier_cost_minor END AS "SupplierCostMinor",
             CASE WHEN booking.buyer_tenant_id = commercial.current_tenant_id()
                 THEN booking.client_price_minor END AS "ClientPriceMinor",
             CASE WHEN booking.buyer_tenant_id = commercial.current_tenant_id()
@@ -54,9 +59,17 @@ public sealed partial class BookingRecordStore(GovernanceDbContext dbContext)
             booking.request_reason AS "RequestReason", booking.confirmed_by AS "ConfirmedBy",
             booking.confirmed_at_utc AS "ConfirmedAtUtc",
             booking.confirmation_reason AS "ConfirmationReason",
-            booking.supplier_note AS "SupplierNote",
+            CASE WHEN booking.supplier_tenant_id = commercial.current_tenant_id()
+                      AND viewer.role_code IN ({0}, {1})
+                THEN booking.supplier_note END AS "SupplierNote",
             booking.terms_accepted AS "TermsAccepted", booking.version AS "Version",
             booking.updated_at_utc AS "UpdatedAtUtc"
         FROM commercial.bookings booking
+        JOIN commercial.memberships viewer
+          ON viewer.tenant_id = commercial.current_tenant_id()
+         AND viewer.user_id = commercial.current_user_id()
+         AND viewer.status_code = {2}
+        WHERE (booking.buyer_tenant_id = commercial.current_tenant_id()
+               OR booking.supplier_tenant_id = commercial.current_tenant_id())
         """;
 }

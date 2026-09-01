@@ -62,6 +62,60 @@ public sealed partial class BriefCommands
             MasterDataReferences.CommercialEventTypes.BriefSubmitted, now);
     }
 
+    private async Task<CommandOutcome> MarkReadyOutcomeAsync(
+        Guid versionId,
+        CommandEnvelope<MarkBriefVersionReadyCommand> envelope,
+        CancellationToken cancellationToken)
+    {
+        var row = await store.FindVersionAsync(envelope.TenantId, versionId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Brief access denied.");
+        var brief = await store.FindBriefForUpdateAsync(
+            envelope.TenantId, row.BriefId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Brief access denied.");
+        EnsureOwner(brief, envelope.ActorId.Value);
+        if (brief.CurrentDraftVersionId != versionId ||
+            row.Status != MasterDataCodes.LifecycleStatuses.Draft)
+        {
+            throw new InvalidLifecycleTransitionException();
+        }
+        EnsurePlanningReady(row);
+        var now = timeProvider.GetUtcNow();
+        var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE commercial.brief_versions
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Ready}, version = version + 1
+            WHERE tenant_id = {envelope.TenantId.Value} AND id = {versionId}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.Draft}
+              AND version = {envelope.ExpectedVersion}
+            """, cancellationToken);
+        if (changed != 1)
+        {
+            throw new VersionConflictException();
+        }
+        await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE commercial.campaign_briefs
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Ready},
+                ready_version_id = {versionId}, current_draft_version_id = {versionId},
+                version = version + 1, updated_at_utc = {now}
+            WHERE tenant_id = {envelope.TenantId.Value} AND id = {brief.Id};
+            UPDATE commercial.opportunities
+            SET stage_code = {MasterDataCodes.LifecycleStatuses.Planning}, version = version + 1,
+                updated_at_utc = {now}
+            WHERE tenant_id = {envelope.TenantId.Value}
+              AND id = {brief.OpportunityId}
+              AND stage_code = {MasterDataCodes.LifecycleStatuses.BriefReady};
+            """, cancellationToken);
+        var view = row with
+        {
+            Status = MasterDataCodes.LifecycleStatuses.Ready,
+            Version = row.Version + 1,
+        };
+        return OpportunityCommandSupport.Outcome(
+            envelope, view.ToView(), versionId, view.Version,
+            MasterDataReferences.CommercialResourceTypes.BriefVersion,
+            MasterDataReferences.CommercialActions.BriefVersionReady,
+            MasterDataReferences.CommercialEventTypes.BriefReady, now);
+    }
+
     private async Task<CommandOutcome> ApproveOutcomeAsync(
         Guid versionId,
         CommandEnvelope<ApproveBriefVersionCommand> envelope,
@@ -78,7 +132,8 @@ public sealed partial class BriefCommands
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.campaign_briefs
             SET status_code = {MasterDataCodes.LifecycleStatuses.Approved}, approved_version_id = {versionId},
-                current_draft_version_id = {versionId}, version = version + 1,
+                ready_version_id = {versionId}, current_draft_version_id = {versionId},
+                version = version + 1,
                 updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {brief.Id};
             UPDATE commercial.opportunities
@@ -183,6 +238,18 @@ public sealed partial class BriefCommands
         {
             throw new ApprovalRequiredException();
         }
+    }
+
+    private static void EnsurePlanningReady(BriefVersionRow row)
+    {
+        var view = row.ToView();
+        if (row.BudgetUnknown || !row.BudgetMinor.HasValue ||
+            string.IsNullOrWhiteSpace(row.Currency) ||
+            view.Unknowns.Any(item => item.IsBlocking))
+        {
+            throw new InvalidLifecycleTransitionException();
+        }
+        EnsureNoCriticalConflict(row);
     }
 
     private static void EnsureNoCriticalConflict(BriefVersionRow row)

@@ -28,15 +28,17 @@ export function OpportunityActions(props: Props) {
     },
   }
   const controls = { ...props, token: session?.antiforgeryToken ?? '', runner }
-  return <section className="action-panel" aria-labelledby="actions-title">
-    <div className="page-heading-split"><div><p className="eyebrow">Available controls</p>
+  return <section className="operations-action-panel" aria-labelledby="actions-title">
+    <header className="operations-action-header"><div><p className="eyebrow">Available controls</p>
       <h2 id="actions-title">Act on this record</h2></div>
-      <button className="text-action" type="button" onClick={() => void props.reload()}>Refresh</button></div>
+      <button className="text-action" type="button" onClick={() => void props.reload()}>Refresh</button></header>
     {error && <p className="inline-alert" role="alert">{error}</p>}
-    <EvidenceControls {...controls} />
-    <AgentControls {...controls} />
-    <StrategyControls {...controls} />
-    <BriefControls {...controls} />
+    <div className="operations-action-controls">
+      <EvidenceControls {...controls} />
+      <AgentControls {...controls} />
+      <StrategyControls {...controls} />
+      <BriefControls {...controls} />
+    </div>
   </section>
 }
 
@@ -75,7 +77,7 @@ function SourceForm({ detail, tenantId, token, runner }: ControlProps) {
     void runner.run('Register source', () => opportunityApi.registerSource(
       tenantId, detail.opportunity.id, sourcePayload(detail, values, content, reviewerId), token))
   }
-  return <form className="action-form" onSubmit={submit}>
+  return <form className="operations-source-form" onSubmit={submit}>
     <label className="field-group">Source title<input name="title" required /></label>
     <label className="field-group">Supplied source text<textarea name="content" required /></label>
     <Identifier label="Evidence reviewer user ID" value={reviewerId} setValue={setReviewerId} />
@@ -122,7 +124,7 @@ function AgentControls({ detail, tenantId, token, runner }: ControlProps) {
       <ActionButton label="Generate opportunity angles" runner={runner}
         action={() => opportunityApi.queue(tenantId, opportunity.id, 'angles:generate', token)} />}
     {!selectedAngle && detail.angles.map((angle) =>
-      <ActionButton key={angle.id} label={`Select angle ${angle.rank}`} runner={runner}
+      <ActionButton key={angle.id} label={`Select angle ${angle.rank}`} runner={runner} tone="secondary"
         action={() => opportunityApi.selectAngle(tenantId, angle.id, angle.version, token)} />)}
   </>
 }
@@ -140,7 +142,7 @@ function StrategyControls({ detail, tenantId, token, runner }: ControlProps) {
           tenantId, detail.opportunity.id, 'strategies:generate', token, approverId)} />
     </>}
     {unresolved.map((item) => <ActionButton key={item.id}
-      label={`Resolve ${item.severity.toLowerCase()} objection`} runner={runner}
+      label={`Resolve ${item.severity.toLowerCase()} objection`} runner={runner} tone="secondary"
       action={() => opportunityApi.resolveObjection(tenantId, item.id, item.version, token)} />)}
     {detail.strategy?.status === opportunityCodes.status.draft && unresolved.length === 0 &&
       <ActionButton label="Submit strategy" runner={runner}
@@ -150,7 +152,7 @@ function StrategyControls({ detail, tenantId, token, runner }: ControlProps) {
       <><ActionButton label="Approve assigned strategy" runner={runner}
           action={() => opportunityApi.approveStrategy(
             tenantId, detail.strategy!.id, detail.strategy!.version, token)} />
-        <ActionButton label="Reject assigned strategy" runner={runner}
+        <ActionButton label="Reject assigned strategy" runner={runner} tone="secondary"
           action={() => opportunityApi.rejectStrategy(
             tenantId, detail.strategy!.id, detail.strategy!.version, token)} /></>}
   </>
@@ -181,11 +183,12 @@ function Identifier({ label, value, setValue }: { label: string; value: string; 
   </label>
 }
 
-function ActionButton({ label, runner, action, disabled = false }: {
+function ActionButton({ label, runner, action, disabled = false, tone = 'primary' }: {
   label: string; runner: Runner; action?: () => Promise<unknown>; disabled?: boolean
+  tone?: 'primary' | 'secondary'
 }) {
   const click = action ? () => void runner.run(label, action) : undefined
-  return <button className="primary-button" type={action ? 'button' : 'submit'}
+  return <button className={`${tone}-button operations-action-button`} type={action ? 'button' : 'submit'}
     onClick={click} disabled={Boolean(runner.busy) || disabled}>
     {runner.busy === label ? 'Working…' : label}
   </button>

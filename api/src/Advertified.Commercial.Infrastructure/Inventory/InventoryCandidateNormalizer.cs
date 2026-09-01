@@ -2,6 +2,7 @@ using System.Globalization;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Constants;
 using Advertified.Commercial.Domain.MasterData;
+using Advertified.Commercial.Infrastructure.MasterData;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
@@ -49,6 +50,7 @@ internal static class InventoryCandidateNormalizer
         var canonical = new Dictionary<string, string>(StringComparer.Ordinal);
         var extension = new Dictionary<string, string>(StringComparer.Ordinal);
         var evidence = new List<InventoryFieldEvidenceView>();
+        var canonicalSources = new List<(string Header, string Field, string Value)>();
         foreach (var pair in row.Values)
         {
             if (ExcludedClaims.Any(claim => pair.Key.Contains(claim, StringComparison.Ordinal)))
@@ -58,14 +60,20 @@ internal static class InventoryCandidateNormalizer
             if (Aliases.TryGetValue(pair.Key, out var field))
             {
                 canonical[field] = pair.Value;
-                evidence.Add(Evidence(field, pair.Value, Normalize(field, pair.Value),
-                    Transformation(field, pair.Key), row.Locator, sourceHash));
+                canonicalSources.Add((pair.Key, field, pair.Value));
             }
             else
             {
                 extension[pair.Key] = pair.Value;
             }
         }
+        evidence.AddRange(canonicalSources.Select(source => Evidence(
+            source.Field,
+            source.Value,
+            Normalize(source.Field, source.Value, canonical),
+            Transformation(source.Field, source.Header),
+            row.Locator,
+            sourceHash)));
         var values = ToValues(canonical, extension, evidence, row.Locator, sourceHash);
         return new ExtractedInventoryCandidate(values, evidence, row.Locator, row.Number);
     }
@@ -108,7 +116,7 @@ internal static class InventoryCandidateNormalizer
         }
         return values.TryGetValue("rate", out var major) &&
             decimal.TryParse(major, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount)
-            ? checked((long)decimal.Round(amount * 100, 0, MidpointRounding.AwayFromZero))
+            ? MajorRateToMinor(amount, Code(values, "currency"))
             : null;
     }
 
@@ -123,16 +131,24 @@ internal static class InventoryCandidateNormalizer
     private static string? Code(Dictionary<string, string> values, string field) =>
         Text(values, field)?.ToUpperInvariant().Replace(' ', '_');
 
-    private static string? Normalize(string field, string value) => field switch
+    private static string? Normalize(
+        string field,
+        string value,
+        Dictionary<string, string> values) => field switch
     {
         "channel" or "product_type" or "rate_type" or "currency" or "availability" =>
             value.Trim().ToUpperInvariant().Replace(' ', '_'),
         "rate" when decimal.TryParse(value, NumberStyles.Number,
             CultureInfo.InvariantCulture, out var amount) =>
-            checked((long)decimal.Round(amount * 100, 0, MidpointRounding.AwayFromZero))
-                .ToString(CultureInfo.InvariantCulture),
+            MajorRateToMinor(amount, Code(values, "currency"))
+                ?.ToString(CultureInfo.InvariantCulture),
         _ => value.Trim(),
     };
+
+    private static long? MajorRateToMinor(decimal amount, string? currency) =>
+        currency is not null && CurrencyMetadata.TryGetMinorUnitDigits(currency, out var digits)
+            ? CurrencyMetadata.MajorToMinor(amount, digits)
+            : null;
 
     private static string Transformation(string field, string header) => field switch
     {

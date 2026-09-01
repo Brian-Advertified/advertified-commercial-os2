@@ -5,8 +5,8 @@ export type SessionState = {
   session: BrowserSession | null
   loading: boolean
   error: string | null
-  signIn: () => Promise<void>
-  signOut: () => Promise<void>
+  signIn: (returnTo?: string) => Promise<boolean>
+  signOut: () => Promise<boolean>
   reload: () => Promise<void>
 }
 

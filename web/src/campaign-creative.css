@@ -1,0 +1,213 @@
+.creative-request-form {
+  padding-top: 0.85rem;
+  display: grid;
+  gap: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.creative-request-form > header h3,
+.creative-action-form h4 {
+  margin: 0.1rem 0 0.25rem;
+  color: var(--navy);
+}
+
+.creative-request-form > header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.creative-request-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 0.65rem;
+}
+
+.creative-request-card {
+  min-width: 0;
+  margin: 0;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.65rem;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+}
+
+.creative-request-card legend {
+  padding: 0 0.3rem;
+  color: var(--navy);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.creative-request-card > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.creative-request-card > div,
+.creative-review-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.creative-request-form > footer {
+  padding-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.creative-request-form > footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.creative-current-version {
+  padding-top: 0.7rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.creative-current-version > div {
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.creative-current-version span,
+.creative-review-grid span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 780;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.creative-current-version strong,
+.creative-review-grid strong {
+  overflow-wrap: anywhere;
+  color: var(--navy);
+  font-size: 0.75rem;
+}
+
+.creative-current-version small,
+.creative-current-version p,
+.creative-review-grid small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.creative-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+  overflow: hidden;
+}
+
+.creative-review-grid > div {
+  padding: 0.65rem;
+  display: grid;
+  gap: 0.16rem;
+  border-right: 1px solid var(--line);
+}
+
+.creative-review-grid > div:last-child {
+  border-right: 0;
+}
+
+.creative-action-form {
+  padding-top: 0.7rem;
+  display: grid;
+  gap: 0.65rem;
+  border-top: 1px solid var(--line);
+}
+
+.creative-review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.creative-replacement {
+  border-top: 1px solid var(--line);
+}
+
+.creative-replacement summary {
+  padding-top: 0.65rem;
+  color: var(--electric-soft);
+  font-size: 0.75rem;
+  font-weight: 780;
+  cursor: pointer;
+}
+
+.creative-replacement .creative-action-form {
+  margin-top: 0.6rem;
+}
+
+.creative-waiting {
+  padding: 0.65rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+
+.creative-waiting span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.creative-waiting strong {
+  color: var(--navy);
+  font-size: 0.75rem;
+}
+
+.creative-waiting small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 650px) {
+  .creative-request-card > div,
+  .creative-review-form-grid,
+  .creative-current-version,
+  .creative-review-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .creative-review-grid > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .creative-review-grid > div:last-child {
+    border-bottom: 0;
+  }
+
+  .creative-request-form > footer,
+  .creative-review-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .creative-request-form .primary-button,
+  .creative-review-actions button {
+    width: 100%;
+  }
+}

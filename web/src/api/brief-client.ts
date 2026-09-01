@@ -65,12 +65,13 @@ async function command<T>(
   body: unknown,
   token: string,
   expectedVersion?: number,
+  idempotencyKey: string = crypto.randomUUID(),
 ): Promise<T> {
   return (await request(
     path,
     schema,
     { method: 'POST', body: JSON.stringify(body) },
-    { antiforgeryToken: token, expectedVersion, idempotencyKey: crypto.randomUUID() },
+    { antiforgeryToken: token, expectedVersion, idempotencyKey },
   )).data
 }
 
@@ -95,15 +96,22 @@ export const briefApi = {
     )).data
   },
 
-  create(tenantId: string, body: CreateBrief, token: string) {
+  create(tenantId: string, body: CreateBrief, token: string, idempotencyKey?: string) {
     return command(
-      `/api/v1/tenants/${tenantId}/briefs`, campaignBriefSummarySchema, body, token)
+      `/api/v1/tenants/${tenantId}/briefs`, campaignBriefSummarySchema, body, token,
+      undefined, idempotencyKey)
   },
 
-  createVersion(tenantId: string, briefId: string, body: CreateBriefVersion, token: string) {
+  createVersion(
+    tenantId: string,
+    briefId: string,
+    body: CreateBriefVersion,
+    token: string,
+    idempotencyKey?: string,
+  ) {
     return command(
       `/api/v1/tenants/${tenantId}/briefs/${briefId}/versions`,
-      briefVersionSchema, body, token)
+      briefVersionSchema, body, token, undefined, idempotencyKey)
   },
 
   submit(
@@ -115,6 +123,17 @@ export const briefApi = {
     return command(
       `/api/v1/tenants/${tenantId}/brief-versions/${version.id}:submit`,
       briefVersionSchema, { confirmerUserId, comment: null }, token, version.version)
+  },
+
+  markReady(
+    tenantId: string,
+    version: BriefVersion,
+    token: string,
+    idempotencyKey?: string,
+  ) {
+    return command(
+      `/api/v1/tenants/${tenantId}/brief-versions/${version.id}:ready`,
+      briefVersionSchema, {}, token, version.version, idempotencyKey)
   },
 
   approve(tenantId: string, version: BriefVersion, token: string) {

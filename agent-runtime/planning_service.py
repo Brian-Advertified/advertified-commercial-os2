@@ -20,6 +20,10 @@ from planning_contracts import (
     AudienceAgentRequest,
     AudienceDefinition,
     AudienceDefinitionSetArtifact,
+    InventoryCandidateFacts,
+    InventoryCandidateInterpretation,
+    InventoryIntelligenceAgentRequest,
+    InventoryShortlistDraftArtifact,
     MediaAllocation,
     MediaMixDraftArtifact,
     MediaPlanningAgentRequest,
@@ -119,6 +123,94 @@ def propose_media_mix(
             requires_human=True,
         ),
         usage=_usage(),
+    )
+
+
+def interpret_inventory(
+    request: InventoryIntelligenceAgentRequest,
+) -> AgentOutputEnvelope[InventoryShortlistDraftArtifact]:
+    interpretations = tuple(
+        InventoryCandidateInterpretation(
+            candidate_id=candidate.candidate_id,
+            rationale=_inventory_rationale(candidate),
+        )
+        for candidate in request.inventory.candidates
+    )
+    unbenchmarked = any(
+        candidate.is_eligible and candidate.benchmark is None
+        for candidate in request.inventory.candidates
+    )
+    confidence = min(
+        (_inventory_confidence(candidate) for candidate in request.inventory.candidates),
+        default=Decimal("1"),
+    )
+    return AgentOutputEnvelope(
+        schema_version="1.0.0",
+        status=OutputStatus.COMPLETED,
+        artifact=InventoryShortlistDraftArtifact(interpretations=interpretations),
+        evidence_bindings=(),
+        unknowns=(UnknownItem(
+            field_path="artifact.interpretations",
+            question=(
+                "A deterministic comparative benchmark is unavailable for one or more "
+                "eligible candidates."
+            ),
+            is_blocking=False,
+        ),) if unbenchmarked else (),
+        assumptions=(),
+        confidence=(ConfidenceAssessment(
+            field_path="artifact.interpretations",
+            confidence=confidence,
+        ),),
+        objections=(),
+        rationale=(
+            "Each explanation restates the supplied governed eligibility and benchmark "
+            "facts without changing commercial calculations."
+        ),
+        suggested_next_action=SuggestedNextAction(
+            command_code="SelectInventoryShortlist",
+            requires_human=True,
+        ),
+        usage=_usage(),
+    )
+
+
+def _inventory_rationale(candidate: InventoryCandidateFacts) -> str:
+    if not candidate.is_eligible:
+        return (
+            "Excluded by governed hard eligibility: "
+            f"{candidate.rejection_detail}"
+        )
+    benchmark = candidate.benchmark
+    if benchmark is None:
+        return (
+            f"{candidate.name} is eligible after governed hard constraints. "
+            "No deterministic comparative benchmark applies, so selection should rely "
+            "on the visible rate, supply state and campaign fit."
+        )
+    if benchmark.cohort_size < 2 or benchmark.median_minor is None:
+        return (
+            f"{candidate.name} is eligible after governed hard constraints. "
+            f"The {benchmark.geography_basis.replace('_', ' ').lower()} benchmark has "
+            f"{benchmark.cohort_size} compatible peer(s), which is insufficient for a "
+            "defensible market-price conclusion."
+        )
+    position = benchmark.position.replace("_", " ").lower()
+    return (
+        f"{candidate.name} is eligible after governed hard constraints. Its published "
+        f"rate is {position} across {benchmark.cohort_size} compatible peers using "
+        f"{benchmark.geography_basis.replace('_', ' ').lower()}; deterministic "
+        f"benchmark confidence is {int(benchmark.confidence * 100)}%."
+    )
+
+
+def _inventory_confidence(candidate: InventoryCandidateFacts) -> Decimal:
+    if not candidate.is_eligible:
+        return Decimal("1")
+    return (
+        candidate.benchmark.confidence
+        if candidate.benchmark is not None
+        else Decimal("0.50")
     )
 
 

@@ -1,5 +1,6 @@
 import type { InboundCampaignEmail } from '../api/email-automation-schemas'
 import { masterDataCodes } from '../generated/master-data-codes'
+import { formatDateTime } from '../presentation/format'
 import { automationFailureLabel, automationStatusLabel } from './email-automation-presentation'
 
 export function InboxMessageList({ messages, selectedId, onSelect }: {
@@ -19,7 +20,7 @@ export function InboxMessageList({ messages, selectedId, onSelect }: {
       onClick={() => onSelect(message.id)}>
       <div className="ooh-message-card-top"><span className={statusClass(message.status)}>
         {automationStatusLabel(message.status)}
-      </span><time dateTime={message.receivedAtUtc}>{formatDate(message.receivedAtUtc)}</time></div>
+      </span><time dateTime={message.receivedAtUtc}>{formatDateTime(message.receivedAtUtc)}</time></div>
       <strong>{message.subject}</strong>
       <span>{message.senderName || message.senderEmail}</span>
       {message.failureCode && <small>{automationFailureLabel(message.failureCode)}</small>}
@@ -38,10 +39,4 @@ function statusClass(status: string) {
     return 'ooh-status ooh-status-failed'
   }
   return 'ooh-status ooh-status-working'
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-ZA', {
-    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-  }).format(new Date(value))
 }

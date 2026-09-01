@@ -193,7 +193,7 @@ public sealed partial class OpportunityRunProcessor(
     {
         if (output.SchemaVersion != "1.0.0" ||
             output.Status is not (MasterDataCodes.LifecycleStatuses.Completed or MasterDataCodes.LifecycleStatuses.ReviewRequired) ||
-            output.Usage.IncrementalCostMinor != 0 || output.Usage.ToolCalls != 0)
+            output.Usage.IncrementalCostMinor < 0 || output.Usage.ToolCalls != 0)
         {
             throw new InvalidOperationException("The agent output violated the opportunity workflow contract.");
         }

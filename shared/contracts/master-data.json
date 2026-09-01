@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.9.0",
-  "effectiveFrom": "2026-08-30",
+  "registryVersion": "2.12.0",
+  "effectiveFrom": "2026-09-01",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
     "channels": [
@@ -355,13 +355,16 @@
     "emailAutomationCheckpoints": [
       {"code":"SOURCE_CAPTURED","displayLabel":"Source Captured","isActive":true,"sortOrder":10},
       {"code":"BRIEF_APPROVED","displayLabel":"Brief Approved","isActive":true,"sortOrder":20},
+      {"code":"BRIEF_READY","displayLabel":"Brief Ready","isActive":true,"sortOrder":25},
       {"code":"STP_APPROVED","displayLabel":"STP Approved","isActive":true,"sortOrder":30},
       {"code":"MIX_APPROVED","displayLabel":"Media Mix Approved","isActive":true,"sortOrder":40},
       {"code":"SHORTLIST_APPROVED","displayLabel":"Inventory Shortlist Approved","isActive":true,"sortOrder":50},
       {"code":"PLAN_APPROVED","displayLabel":"Media Plan Approved","isActive":true,"sortOrder":60},
       {"code":"PROPOSAL_APPROVED","displayLabel":"Proposal Approved","isActive":true,"sortOrder":70},
       {"code":"DOCUMENT_RENDERED","displayLabel":"Document Rendered","isActive":true,"sortOrder":80},
-      {"code":"SENT","displayLabel":"Proposal Sent","isActive":true,"sortOrder":90}
+      {"code":"DELIVERY_REQUESTED","displayLabel":"Proposal Delivery Requested","isActive":true,"sortOrder":90},
+      {"code":"DELIVERY_ACCEPTED","displayLabel":"Proposal Delivery Accepted","isActive":true,"sortOrder":100},
+      {"code":"SENT","displayLabel":"Proposal Sent","isActive":true,"sortOrder":110}
     ],
     "automationFailureReasons": [
       {"code":"INVALID_MAILBOX","displayLabel":"Mailbox Not Configured","isActive":true,"sortOrder":10},
@@ -376,7 +379,9 @@
       {"code":"SUPPLY_UNREADY","displayLabel":"Supply Not Ready","isActive":true,"sortOrder":90},
       {"code":"PLAN_UNREADY","displayLabel":"Media Plan Not Ready","isActive":true,"sortOrder":100},
       {"code":"PROPOSAL_UNREADY","displayLabel":"Proposal Not Ready","isActive":true,"sortOrder":110},
-      {"code":"DELIVERY_FAILED","displayLabel":"Proposal Delivery Failed","isActive":true,"sortOrder":120}
+      {"code":"DELIVERY_FAILED","displayLabel":"Proposal Delivery Failed","isActive":true,"sortOrder":120},
+      {"code":"DELIVERY_AMBIGUOUS","displayLabel":"Proposal Delivery Acceptance Unknown","isActive":true,"sortOrder":130},
+      {"code":"DELIVERY_RECORDING_REQUIRED","displayLabel":"Accepted Delivery Needs Recording","isActive":true,"sortOrder":140}
     ],
     "emailAutomationPolicies": [
       {"code":"OOH_INBOUND_PROPOSAL_V1","displayLabel":"Inbound OOH Proposal Automation v1","isActive":true,"sortOrder":10,"metadata":{"campaignMode":"OOH_ONLY","allowedChannels":["OOH","DOOH"],"requiredBriefFields":["objective","audience","geography","timing","budget","vatStatus"],"minimumStpConfidence":0.45,"minimumSupplyConfidence":"CONFIRMED","maximumProposalOptions":1,"maximumSourceBytes":1048576,"maximumClarificationCount":20,"maximumClarificationLength":4000,"maximumRetryReasonLength":2000,"requiresTenantOptIn":true,"allowAutomaticExternalSend":true,"allowAttachments":false,"proposalTitle":"Out-of-home media proposal","proposalOptionLabel":"Recommended OOH plan","proposalTerms":"The proposal is based on the exact approved plan, rates, availability and running periods shown. Any material change requires a new version.","emailSubjectPrefix":"Your Advertified OOH proposal","emailBody":"Please find the recommended out-of-home media proposal attached. Reply to this email if the campaign requirements need to change."}}
@@ -489,6 +494,7 @@
       {"code":"campaign_brief.created","displayLabel":"Campaign Brief Created","isActive":true,"sortOrder":220},
       {"code":"brief_version.created","displayLabel":"Brief Version Created","isActive":true,"sortOrder":230},
       {"code":"brief_version.submitted","displayLabel":"Brief Version Submitted","isActive":true,"sortOrder":240},
+      {"code":"brief_version.ready","displayLabel":"Brief Version Ready","isActive":true,"sortOrder":245},
       {"code":"brief_version.approved","displayLabel":"Brief Version Approved","isActive":true,"sortOrder":250},
       {"code":"brief_version.rejected","displayLabel":"Brief Version Rejected","isActive":true,"sortOrder":260},
       {"code":"inventory_import.created","displayLabel":"Inventory Import Created","isActive":true,"sortOrder":270},
@@ -515,6 +521,8 @@
       {"code":"inbound_mailbox.configured","displayLabel":"Inbound Mailbox Configured","isActive":true,"sortOrder":480},
       {"code":"inbound_email.received","displayLabel":"Inbound Campaign Email Received","isActive":true,"sortOrder":490},
       {"code":"email_automation.started","displayLabel":"Email Proposal Automation Started","isActive":true,"sortOrder":500},
+      {"code":"email_automation.delivery_requested","displayLabel":"Email Proposal Delivery Requested","isActive":true,"sortOrder":501},
+      {"code":"email_automation.delivery_accepted","displayLabel":"Email Proposal Delivery Accepted","isActive":true,"sortOrder":502},
       {"code":"email_automation.review_required","displayLabel":"Email Proposal Automation Review Required","isActive":true,"sortOrder":510},
       {"code":"email_automation.sent","displayLabel":"Email Proposal Automation Sent","isActive":true,"sortOrder":520},
       {"code":"email_automation.failed","displayLabel":"Email Proposal Automation Failed","isActive":true,"sortOrder":530},
@@ -575,6 +583,7 @@
       {"code":"CampaignBriefCreated","displayLabel":"Campaign Brief Created","isActive":true,"sortOrder":220},
       {"code":"BriefVersionCreated","displayLabel":"Brief Version Created","isActive":true,"sortOrder":230},
       {"code":"BriefSubmitted","displayLabel":"Brief Submitted","isActive":true,"sortOrder":240},
+      {"code":"BriefReady","displayLabel":"Brief Ready","isActive":true,"sortOrder":245},
       {"code":"BriefApproved","displayLabel":"Brief Approved","isActive":true,"sortOrder":250},
       {"code":"BriefRejected","displayLabel":"Brief Rejected","isActive":true,"sortOrder":260},
       {"code":"InventoryImportCreated","displayLabel":"Inventory Import Created","isActive":true,"sortOrder":270},
@@ -601,6 +610,8 @@
       {"code":"InboundMailboxConfigured","displayLabel":"Inbound Mailbox Configured","isActive":true,"sortOrder":480},
       {"code":"InboundCampaignEmailReceived","displayLabel":"Inbound Campaign Email Received","isActive":true,"sortOrder":490},
       {"code":"EmailProposalAutomationStarted","displayLabel":"Email Proposal Automation Started","isActive":true,"sortOrder":500},
+      {"code":"EmailProposalDeliveryRequested","displayLabel":"Email Proposal Delivery Requested","isActive":true,"sortOrder":501},
+      {"code":"EmailProposalDeliveryAccepted","displayLabel":"Email Proposal Delivery Accepted","isActive":true,"sortOrder":502},
       {"code":"EmailProposalAutomationReviewRequired","displayLabel":"Email Proposal Automation Review Required","isActive":true,"sortOrder":510},
       {"code":"EmailProposalAutomationSent","displayLabel":"Email Proposal Automation Sent","isActive":true,"sortOrder":520},
       {"code":"EmailProposalAutomationFailed","displayLabel":"Email Proposal Automation Failed","isActive":true,"sortOrder":530},
@@ -804,10 +815,10 @@
       {"code":"LOW","displayLabel":"Low","isActive":true,"sortOrder":40}
     ],
     "currencies": [
-      {"code":"ZAR","displayLabel":"South African Rand","isActive":true,"sortOrder":10},
-      {"code":"USD","displayLabel":"US Dollar","isActive":true,"sortOrder":20},
-      {"code":"EUR","displayLabel":"Euro","isActive":true,"sortOrder":30},
-      {"code":"GBP","displayLabel":"Pound Sterling","isActive":true,"sortOrder":40}
+      {"code":"ZAR","displayLabel":"South African Rand","isActive":true,"sortOrder":10,"metadata":{"minorUnitDigits":2,"briefMarkers":["ZAR","R","rand","rands"]}},
+      {"code":"USD","displayLabel":"US Dollar","isActive":true,"sortOrder":20,"metadata":{"minorUnitDigits":2,"briefMarkers":["USD","US$","$","dollar","dollars","US dollar","US dollars"]}},
+      {"code":"EUR","displayLabel":"Euro","isActive":true,"sortOrder":30,"metadata":{"minorUnitDigits":2,"briefMarkers":["EUR","€","euro","euros"]}},
+      {"code":"GBP","displayLabel":"Pound Sterling","isActive":true,"sortOrder":40,"metadata":{"minorUnitDigits":2,"briefMarkers":["GBP","£","pound","pounds","sterling"]}}
     ],
     "vatStatuses": [
       {"code":"REGISTERED","displayLabel":"VAT Registered","isActive":true,"sortOrder":10,"metadata":{"rate":0.15}},

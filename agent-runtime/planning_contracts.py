@@ -1,4 +1,4 @@
-"""Strict Audience and Media Planning agent contracts."""
+"""Strict Audience, Media Planning and Inventory Intelligence contracts."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import Field, model_validator
+from pydantic import Field, NonNegativeInt, model_validator
 
 from contracts import AgentInvocationEnvelope, ContractModel, StableCode
 
@@ -24,7 +24,9 @@ class AudienceAgentRequest(ContractModel):
 
     @model_validator(mode="after")
     def validate_brief_reference(self) -> AudienceAgentRequest:
-        _require_brief_reference(self.invocation, self.planning.brief_version_id)
+        _require_resource_reference(
+            self.invocation, "BriefVersion", self.planning.brief_version_id
+        )
         return self
 
 
@@ -40,7 +42,88 @@ class MediaPlanningAgentRequest(ContractModel):
 
     @model_validator(mode="after")
     def validate_brief_reference(self) -> MediaPlanningAgentRequest:
-        _require_brief_reference(self.invocation, self.planning.brief_version_id)
+        _require_resource_reference(
+            self.invocation, "BriefVersion", self.planning.brief_version_id
+        )
+        return self
+
+
+class InventoryBenchmarkFacts(ContractModel):
+    policy_version: StableCode
+    geography_basis: StableCode
+    cohort_size: NonNegativeInt
+    median_minor: Annotated[int | None, Field(ge=0)] = None
+    percentile: Annotated[Decimal | None, Field(ge=0, le=100)] = None
+    position: StableCode
+    confidence: Annotated[Decimal, Field(ge=0, le=1)]
+    exclusions: tuple[Annotated[str, Field(min_length=1, max_length=500)], ...]
+
+
+class InventoryCandidateFacts(ContractModel):
+    candidate_id: UUID
+    product_version_id: UUID
+    name: Annotated[str, Field(min_length=1, max_length=300)]
+    channel: StableCode
+    geography: Annotated[str, Field(min_length=1, max_length=500)]
+    rate_amount_minor: Annotated[int | None, Field(ge=0)] = None
+    currency: Annotated[str | None, Field(pattern=r"^[A-Z]{3}$")] = None
+    is_eligible: bool
+    rejection_reason: StableCode | None = None
+    rejection_detail: Annotated[str | None, Field(min_length=1, max_length=1_000)] = None
+    score: Annotated[Decimal | None, Field(ge=0)] = None
+    benchmark: InventoryBenchmarkFacts | None = None
+
+    @model_validator(mode="after")
+    def validate_eligibility_facts(self) -> InventoryCandidateFacts:
+        if self.is_eligible:
+            if (
+                self.rate_amount_minor is None
+                or self.currency is None
+                or self.score is None
+                or self.rejection_reason is not None
+                or self.rejection_detail is not None
+            ):
+                raise ValueError(
+                    "Eligible inventory requires rate, currency and score without rejection facts."
+                )
+        elif (
+            self.rejection_reason is None
+            or self.rejection_detail is None
+            or self.score is not None
+        ):
+            raise ValueError(
+                "Ineligible inventory requires its deterministic rejection and no score."
+            )
+        return self
+
+
+class InventoryIntelligenceContext(ContractModel):
+    brief_version_id: UUID
+    shortlist_version_id: UUID
+    candidates: Annotated[tuple[InventoryCandidateFacts, ...], Field(min_length=1)]
+
+    @model_validator(mode="after")
+    def validate_unique_candidates(self) -> InventoryIntelligenceContext:
+        ids = [item.candidate_id for item in self.candidates]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Inventory candidate IDs must be unique.")
+        return self
+
+
+class InventoryIntelligenceAgentRequest(ContractModel):
+    invocation: AgentInvocationEnvelope
+    inventory: InventoryIntelligenceContext
+
+    @model_validator(mode="after")
+    def validate_exact_resources(self) -> InventoryIntelligenceAgentRequest:
+        _require_resource_reference(
+            self.invocation, "BriefVersion", self.inventory.brief_version_id
+        )
+        _require_resource_reference(
+            self.invocation,
+            "InventoryShortlistVersion",
+            self.inventory.shortlist_version_id,
+        )
         return self
 
 
@@ -77,9 +160,26 @@ class MediaMixDraftArtifact(ContractModel):
     assumptions: tuple[str, ...]
 
 
-def _require_brief_reference(invocation: AgentInvocationEnvelope, brief_id: UUID) -> None:
+class InventoryCandidateInterpretation(ContractModel):
+    candidate_id: UUID
+    rationale: Annotated[str, Field(min_length=1, max_length=1_000)]
+
+
+class InventoryShortlistDraftArtifact(ContractModel):
+    interpretations: Annotated[
+        tuple[InventoryCandidateInterpretation, ...],
+        Field(min_length=1),
+    ]
+
+
+def _require_resource_reference(
+    invocation: AgentInvocationEnvelope,
+    resource_type: str,
+    resource_id: UUID,
+) -> None:
     if not any(
-        reference.resource_type == "BriefVersion" and reference.resource_id == brief_id
+        reference.resource_type == resource_type
+        and reference.resource_id == resource_id
         for reference in invocation.resource_refs
     ):
-        raise ValueError("The exact BriefVersion resource reference is required.")
+        raise ValueError(f"The exact {resource_type} resource reference is required.")

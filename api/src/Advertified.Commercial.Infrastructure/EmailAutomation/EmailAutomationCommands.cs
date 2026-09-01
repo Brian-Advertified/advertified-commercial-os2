@@ -12,6 +12,7 @@ using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Advertified.Commercial.Infrastructure.EmailAutomation;
 
@@ -21,6 +22,7 @@ public sealed partial class EmailAutomationCommands(
     ITenantAuthorizer authorizer,
     IEmailProposalAutomationProcessor processor,
     EmailAutomationPolicy policy,
+    IOptions<EmailAutomationOptions> options,
     TimeProvider timeProvider) : IEmailAutomationCommands
 {
     public async Task<CommandResult<InboundMailboxView>> ConfigureMailboxAsync(
@@ -52,18 +54,20 @@ public sealed partial class EmailAutomationCommands(
         CommandEnvelope<ProcessInboundEmailCommand> envelope,
         CancellationToken cancellationToken)
     {
-        await EnsureAllowedAsync(
-            envelope.ActorId,
-            envelope.TenantId,
+        var existing = await ReadAuthorizedRunAsync(
+            inboundEmailId, envelope, cancellationToken);
+        if (existing.Status == MasterDataCodes.EmailAutomationStatuses.Sent)
+        {
+            return new CommandResult<EmailAutomationRunView>(
+                EmailAutomationRecordStore.ToView(existing), existing.Version, false);
+        }
+        var receipt = await dispatcher.DispatchAsync(
+            envelope,
             MasterDataReferences.Permissions.EmailAutomationManage,
+            token => PrepareProcessOutcomeAsync(inboundEmailId, envelope, token),
             cancellationToken);
-        var view = await processor.ProcessAsync(
-            envelope.TenantId,
-            envelope.ActorId,
-            inboundEmailId,
-            envelope.CorrelationId,
-            cancellationToken);
-        return new CommandResult<EmailAutomationRunView>(view, view.Version, false);
+        return await ContinuePreparedRunAsync(
+            inboundEmailId, envelope, receipt, cancellationToken);
     }
 
     public async Task<CommandResult<EmailAutomationRunView>> RetryAsync(
@@ -71,64 +75,20 @@ public sealed partial class EmailAutomationCommands(
         CommandEnvelope<RetryInboundEmailCommand> envelope,
         CancellationToken cancellationToken)
     {
-        await EnsureAllowedAsync(
-            envelope.ActorId,
-            envelope.TenantId,
-            MasterDataReferences.Permissions.EmailAutomationManage,
-            cancellationToken);
         _ = Required(
             envelope.Command.Reason,
             policy.MaximumRetryReasonLength,
             nameof(envelope.Command.Reason));
         var clarifications = NormalizeClarifications(
             envelope.Command.Clarifications ?? []);
-        await using (var transaction = await store.BeginSessionAsync(
-                         envelope.ActorId, envelope.TenantId, cancellationToken))
-        {
-            var run = await store.FindRunAsync(
-                envelope.TenantId, inboundEmailId, cancellationToken)
-                ?? throw new UnauthorizedAccessException("Email automation access denied.");
-            if (run.Version != envelope.ExpectedVersion)
-            {
-                throw new VersionConflictException();
-            }
-            if (run.Status is not (MasterDataCodes.EmailAutomationStatuses.ReviewRequired or
-                MasterDataCodes.EmailAutomationStatuses.Failed))
-            {
-                throw new EmailAutomationNotRetryableException();
-            }
-            EnsureClarificationsAllowed(run, clarifications);
-            var clarificationsJson = clarifications.Length == 0
-                ? run.ClarificationsJson
-                : EmailAutomationRecordStore.Write(clarifications);
-            var understandingJson = clarifications.Length == 0
-                ? run.UnderstandingJson
-                : null;
-            var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-                UPDATE commercial.email_proposal_automation_runs
-                SET status_code = {MasterDataCodes.EmailAutomationStatuses.Received},
-                    understanding_json = {understandingJson}::jsonb,
-                    clarifications_json = {clarificationsJson}::jsonb,
-                    failure_collection_code = NULL, failure_code = NULL,
-                    failure_message = NULL, version = version + 1,
-                    updated_at_utc = {timeProvider.GetUtcNow()}
-                WHERE tenant_id = {envelope.TenantId.Value}
-                  AND inbound_email_id = {inboundEmailId}
-                  AND version = {envelope.ExpectedVersion}
-                """, cancellationToken);
-            if (changed != 1)
-            {
-                throw new VersionConflictException();
-            }
-            await transaction.CommitAsync(cancellationToken);
-        }
-        var view = await processor.ProcessAsync(
-            envelope.TenantId,
-            envelope.ActorId,
-            inboundEmailId,
-            envelope.CorrelationId,
+        var receipt = await dispatcher.DispatchAsync(
+            envelope,
+            MasterDataReferences.Permissions.EmailAutomationManage,
+            token => PrepareRetryOutcomeAsync(
+                inboundEmailId, envelope, clarifications, token),
             cancellationToken);
-        return new CommandResult<EmailAutomationRunView>(view, view.Version, false);
+        return await ContinuePreparedRunAsync(
+            inboundEmailId, envelope, receipt, cancellationToken);
     }
 
     private EmailAutomationClarificationInput[] NormalizeClarifications(

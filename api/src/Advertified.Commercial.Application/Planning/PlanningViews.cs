@@ -84,6 +84,7 @@ public sealed record InventoryShortlistCandidateView(
     string? RejectionReason,
     string? RejectionDetail,
     decimal? Score,
+    string? Rationale,
     bool? IsSelected,
     InventoryBenchmarkView? Benchmark);
 
@@ -122,7 +123,6 @@ public sealed record MediaPlanLineView(
     string Geography,
     IReadOnlyList<MediaRunningPeriodView> RunningPeriods,
     int Quantity,
-    long SupplierCostMinor,
     long ClientPriceMinor,
     long FeesMinor,
     long VatMinor,
@@ -138,7 +138,6 @@ public sealed record MediaPlanVersionView(
     Guid MixVersionId,
     Guid ShortlistVersionId,
     int VersionNumber,
-    long SubtotalMinor,
     long FeesMinor,
     long VatMinor,
     long TotalMinor,
@@ -157,6 +156,7 @@ public sealed record MediaPlanVersionView(
 public sealed record PlanningWorkspaceView(
     Guid BriefId,
     Guid BriefVersionId,
+    string ClientName,
     CampaignModeSelectionView? CampaignMode,
     AudienceDefinitionSetView? Audience,
     MediaMixVersionView? MediaMix,

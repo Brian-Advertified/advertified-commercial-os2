@@ -119,7 +119,7 @@ def test_creative_uses_real_product_asset_and_verified_current_price(
     assert concept["preserve_supplied_products"] is True
     assert concept["source_asset_ids"] == ["88888888-8888-8888-8888-888888888888"]
     price = next(item for item in concept["text_elements"] if item["role"] == "PRICE")
-    assert price == {"role": "PRICE", "text": "R69 999.00", "verified": True}
+    assert price == {"role": "PRICE", "text": "ZAR 69,999.00", "verified": True}
 
 
 def test_creative_excludes_expired_price_and_uncleared_product_image(

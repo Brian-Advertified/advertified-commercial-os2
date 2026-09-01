@@ -31,7 +31,7 @@ function BookingWorkspace({ tenantId, canBuy, token }: {
   if (model.error && !model.bookings) return <MessageState
     title="Bookings could not be loaded" message={model.error} />
   if (!model.bookings) return <LoadingState label="Loading bookings" />
-  return <section aria-labelledby="bookings-title">
+  return <section className="booking-workbench-page" aria-labelledby="bookings-title">
     <header className="page-heading page-heading-split"><div><p className="eyebrow">
       Selected option to supplier confirmation</p><h1 id="bookings-title">Bookings</h1>
       <p>Every step is explicit. Drafting does not contact a supplier, and only the assigned

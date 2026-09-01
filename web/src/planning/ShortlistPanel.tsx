@@ -48,6 +48,8 @@ function CandidateCard({ candidate, editable, selected, onToggle }: {
     <p>{candidate.geography}</p>
     <div className="shortlist-facts"><span>{rate}</span><span>{eligibility}</span></div>
     {candidate.rejectionDetail && <p className="rejection-copy">{candidate.rejectionDetail}</p>}
+    {candidate.rationale && <p className="inventory-rationale">
+      <strong>Inventory Intelligence:</strong> {candidate.rationale}</p>}
     {candidate.benchmark && <BenchmarkDetail candidate={candidate} />}
   </article>
 }

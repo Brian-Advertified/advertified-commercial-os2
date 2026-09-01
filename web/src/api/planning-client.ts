@@ -53,6 +53,7 @@ export const planningApi = {
     mode: string,
     token: string,
     decision?: { source: string; confidence: number; reason: string },
+    idempotencyKey: string = crypto.randomUUID(),
   ): Promise<CampaignMode> {
     const resolved = decision ?? {
       source: masterDataCodes.campaignModeDecisionSources.humanSelection,
@@ -68,7 +69,7 @@ export const planningApi = {
         confidence: resolved.confidence,
         reason: resolved.reason,
       }) },
-      { antiforgeryToken: token, idempotencyKey: crypto.randomUUID() },
+      { antiforgeryToken: token, idempotencyKey },
     )).data
   },
 

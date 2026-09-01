@@ -130,6 +130,16 @@ function renderPython() {
       lines.push(`    ${safeMember} = ${JSON.stringify(item.code)}`)
     }
   }
+  const currencies = registry.collections.currencies ?? []
+  lines.push('', 'CURRENCY_MINOR_UNIT_DIGITS: dict[str, int] = {')
+  for (const currency of currencies) {
+    const digits = currency.metadata?.minorUnitDigits
+    if (!Number.isInteger(digits) || digits < 0 || digits > 9) {
+      throw new Error(`Currency ${currency.code} has invalid minor-unit metadata.`)
+    }
+    lines.push(`    ${JSON.stringify(currency.code)}: ${digits},`)
+  }
+  lines.push('}')
   lines.push('')
   return `${lines.join('\n')}\n`
 }

@@ -75,7 +75,7 @@ internal sealed record BookingRow(
     DateOnly FlightEnd,
     int RunningPeriods,
     int Quantity,
-    long SupplierCostMinor,
+    long? SupplierCostMinor,
     long? ClientPriceMinor,
     long? FeesMinor,
     long? VatMinor,

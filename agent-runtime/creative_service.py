@@ -25,11 +25,11 @@ from creative_contracts import (
     CreativeWarning,
 )
 from master_data_codes import (
+    CURRENCY_MINOR_UNIT_DIGITS,
     AssetRightsStatuses,
     AssetTypes,
     CreativeTextRoles,
     CreativeWarningTypes,
-    Currencies,
 )
 
 DISCLOSURE = (
@@ -202,10 +202,11 @@ def _verified_price(
             return None
         if product.offer_valid_from is not None and start < product.offer_valid_from:
             return None
-    amount = product.current_price_minor / 100
-    if product.currency == Currencies.ZAR.value:
-        return f"R{amount:,.2f}".replace(",", " ")
-    return f"{product.currency} {amount:,.2f}"
+    minor_unit_digits = CURRENCY_MINOR_UNIT_DIGITS.get(product.currency)
+    if minor_unit_digits is None:
+        return None
+    amount = Decimal(product.current_price_minor) / (Decimal(10) ** minor_unit_digits)
+    return f"{product.currency} {amount:,.{minor_unit_digits}f}"
 
 
 def _warnings(

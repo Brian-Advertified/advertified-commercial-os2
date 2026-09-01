@@ -57,6 +57,8 @@ public sealed record SubmitBriefVersionCommand(
     Guid? ConfirmerUserId,
     string? Comment);
 
+public sealed record MarkBriefVersionReadyCommand;
+
 public sealed record ApproveBriefVersionCommand(string? Reason);
 
 public sealed record RejectBriefVersionCommand(
@@ -77,6 +79,11 @@ public interface IBriefCommands
     Task<CommandResult<BriefVersionView>> SubmitAsync(
         Guid versionId,
         CommandEnvelope<SubmitBriefVersionCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<BriefVersionView>> MarkReadyAsync(
+        Guid versionId,
+        CommandEnvelope<MarkBriefVersionReadyCommand> envelope,
         CancellationToken cancellationToken);
 
     Task<CommandResult<BriefVersionView>> ApproveAsync(

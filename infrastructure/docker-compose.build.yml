@@ -1,0 +1,28 @@
+name: advertified-os2-build
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+      target: api
+    image: advertified/commercial-api-dev:local
+
+  migrator:
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+      target: migrator
+    image: advertified/commercial-migrator-dev:local
+
+  agent-runtime:
+    build:
+      context: ..
+      dockerfile: agent-runtime/Dockerfile
+    image: advertified/agent-runtime-dev:local
+
+  web:
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
+    image: advertified/web-dev:local

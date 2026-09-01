@@ -13,7 +13,7 @@ import { useWorkspace } from '../auth/workspace-state'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { LoadingState, MessageState } from '../components/PageState'
 import { mediaVisual } from '../planning/media-visuals'
-import { formatMoney } from '../presentation/format'
+import { formatDate, formatMoney } from '../presentation/format'
 import { proposalPolicy } from '../proposal/proposal-policy'
 
 const maximumChoices = proposalPolicy.maximumOptions
@@ -85,7 +85,7 @@ function BuilderContent({ briefId, plans, choices, error, busy, toggle, update, 
   }
   return <section className="proposal-page proposal-builder" aria-labelledby="proposal-builder-title">
     <Link className="text-action back-link" to={`/briefs/${briefId}`}>← Back to Brief</Link>
-    <BuilderHero choiceCount={choices.length} />
+    <BuilderHero choiceCount={choices.length} planCount={plans.length} />
     {error && <p className="inline-alert" role="alert">{error}</p>}
     {plans.length === 0 ? <EmptyPlans briefId={briefId} /> :
       <form onSubmit={event => void handleSubmit(event)} className="proposal-builder-form">
@@ -95,11 +95,13 @@ function BuilderContent({ briefId, plans, choices, error, busy, toggle, update, 
   </section>
 }
 
-function BuilderHero({ choiceCount }: { choiceCount: number }) {
+function BuilderHero({ choiceCount, planCount }: { choiceCount: number; planCount: number }) {
   return <header className="proposal-hero"><div><p className="eyebrow eyebrow-light">Client proposal</p>
     <h1 id="proposal-builder-title">Build clear choices from approved plans</h1>
     <p>Select up to three genuinely different media plans. Each choice keeps its exact budget, inventory and running periods.</p></div>
-    <div className="proposal-choice-count"><strong>{choiceCount}</strong><span>of {maximumChoices} choices</span></div>
+    <dl className="proposal-builder-metrics"><div><dt>Approved plans</dt><dd>{planCount}</dd></div>
+      <div><dt>Selected choices</dt><dd>{choiceCount}</dd></div>
+      <div><dt>Maximum</dt><dd>{maximumChoices}</dd></div></dl>
   </header>
 }
 
@@ -228,6 +230,5 @@ function formatPeriodSummary(plan: ApprovedPlanChoice) {
 }
 
 function shortDate(value: string) {
-  return new Intl.DateTimeFormat('en-ZA', { day: 'numeric', month: 'short' })
-    .format(new Date(`${value}T00:00:00`))
+  return formatDate(value)
 }

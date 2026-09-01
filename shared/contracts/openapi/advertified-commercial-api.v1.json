@@ -2226,6 +2226,110 @@
         }
       }
     },
+    "/api/v1/tenants/{tenantId}/delivery-proof-requests": {
+      "get": {
+        "tags": [
+          "Campaign delivery"
+        ],
+        "operationId": "ListDeliveryProofRequests",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "description": "Optional UUID request correlation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeliveryProofRequestView"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tenants/{tenantId}/delivery-proofs/{proofId}": {
       "get": {
         "tags": [
@@ -3936,6 +4040,200 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SubmitBriefVersionCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Strong optimistic-concurrency version for this entity.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Idempotency-Replayed": {
+                "description": "True when a prior canonical command result was replayed.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriefVersionView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{tenantId}/brief-versions/{versionId}:ready": {
+      "post": {
+        "tags": [
+          "Canonical Brief"
+        ],
+        "operationId": "MarkBriefVersionReady",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "description": "Optional UUID request correlation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique key for safely retrying this command.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Strong ETag version returned by the latest read.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "description": "Required for unsafe cookie-authenticated browser requests.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkBriefVersionReadyCommand"
               }
             }
           },
@@ -11445,6 +11743,15 @@
             }
           },
           {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Strong ETag version returned by the latest read.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "X-CSRF-TOKEN",
             "in": "header",
             "description": "Required for unsafe cookie-authenticated browser requests.",
@@ -11540,6 +11847,24 @@
           },
           "409": {
             "description": "Conflict",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
             "headers": {
               "X-Correlation-ID": {
                 "description": "UUID support reference for this response.",
@@ -21292,7 +21617,8 @@
           },
           "supplierCostMinor": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "nullable": true
           },
           "clientPriceMinor": {
             "type": "integer",
@@ -21742,6 +22068,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "clientName": {
+            "type": "string",
+            "nullable": true
+          },
           "opportunityId": {
             "type": "string",
             "format": "uuid",
@@ -21760,6 +22090,11 @@
             "nullable": true
           },
           "currentDraftVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "readyVersionId": {
             "type": "string",
             "format": "uuid",
             "nullable": true
@@ -23130,6 +23465,61 @@
         },
         "additionalProperties": false
       },
+      "DeliveryProofRequestView": {
+        "type": "object",
+        "properties": {
+          "campaignId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bookingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "supplierName": {
+            "type": "string",
+            "nullable": true
+          },
+          "productName": {
+            "type": "string",
+            "nullable": true
+          },
+          "channel": {
+            "type": "string",
+            "nullable": true
+          },
+          "geography": {
+            "type": "string",
+            "nullable": true
+          },
+          "flightStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "flightEnd": {
+            "type": "string",
+            "format": "date"
+          },
+          "proofRequestedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "proofRequestReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "latestProofId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "latestProofStatus": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "DeliveryProofView": {
         "type": "object",
         "properties": {
@@ -23358,8 +23748,22 @@
             "type": "string",
             "nullable": true
           },
+          "deliveryProviderCode": {
+            "type": "string",
+            "nullable": true
+          },
           "deliveryProviderId": {
             "type": "string",
+            "nullable": true
+          },
+          "deliveryRequestedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "deliveryAcceptedAtUtc": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           },
           "incrementalAiCostMinor": {
@@ -23682,7 +24086,7 @@
             "nullable": true
           }
         },
-        "additionalProperties": { }
+        "additionalProperties": {}
       },
       "HumanTaskCompletionView": {
         "type": "object",
@@ -24724,6 +25128,10 @@
             "format": "double",
             "nullable": true
           },
+          "rationale": {
+            "type": "string",
+            "nullable": true
+          },
           "isSelected": {
             "type": "boolean",
             "nullable": true
@@ -24891,6 +25299,10 @@
             "nullable": true
           }
         },
+        "additionalProperties": false
+      },
+      "MarkBriefVersionReadyCommand": {
+        "type": "object",
         "additionalProperties": false
       },
       "MarketplaceListingPage": {
@@ -25507,10 +25919,6 @@
             "type": "integer",
             "format": "int32"
           },
-          "supplierCostMinor": {
-            "type": "integer",
-            "format": "int64"
-          },
           "clientPriceMinor": {
             "type": "integer",
             "format": "int64"
@@ -25569,10 +25977,6 @@
           "versionNumber": {
             "type": "integer",
             "format": "int32"
-          },
-          "subtotalMinor": {
-            "type": "integer",
-            "format": "int64"
           },
           "feesMinor": {
             "type": "integer",
@@ -26236,6 +26640,10 @@
           "briefVersionId": {
             "type": "string",
             "format": "uuid"
+          },
+          "clientName": {
+            "type": "string",
+            "nullable": true
           },
           "campaignMode": {
             "$ref": "#/components/schemas/CampaignModeSelectionView"

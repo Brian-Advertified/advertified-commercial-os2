@@ -120,32 +120,20 @@ public sealed partial class EmailProposalAutomationProcessor
         var version = brief.Versions.Single(item => item.Id == run.BriefVersionId);
         if (version.Status == MasterDataCodes.LifecycleStatuses.Draft)
         {
-            var submitted = await briefCommands.SubmitAsync(
+            var ready = await briefCommands.MarkReadyAsync(
                 version.Id,
                 envelopes.Create(
-                    tenantId, owner, run.Id, EmailAutomationStageNames.BriefSubmit,
-                    version.Version, new SubmitBriefVersionCommand(null, null), correlationId),
+                    tenantId, owner, run.Id, EmailAutomationStageNames.BriefReady,
+                    version.Version, new MarkBriefVersionReadyCommand(), correlationId),
                 cancellationToken);
-            version = submitted.Data;
+            version = ready.Data;
         }
-        if (version.Status == MasterDataCodes.LifecycleStatuses.InReview)
-        {
-            var approved = await briefCommands.ApproveAsync(
-                version.Id,
-                envelopes.Create(
-                    tenantId, owner, run.Id, EmailAutomationStageNames.BriefApprove,
-                    version.Version,
-                    new ApproveBriefVersionCommand(
-                        "The configured mailbox permits automatic processing of a complete Brief."),
-                    correlationId),
-                cancellationToken);
-            version = approved.Data;
-        }
-        if (version.Status != MasterDataCodes.LifecycleStatuses.Approved)
+        if (version.Status is not (MasterDataCodes.LifecycleStatuses.Ready or
+            MasterDataCodes.LifecycleStatuses.Approved))
         {
             throw new EmailAutomationReviewRequiredException(
                 MasterDataCodes.AutomationFailureReasons.IncompleteBrief,
-                "The campaign Brief is not ready for automatic planning.");
+                "The campaign Brief needs clarification before automatic planning can continue.");
         }
 
         var workspace = await planningReader.GetWorkspaceAsync(
@@ -178,7 +166,7 @@ public sealed partial class EmailProposalAutomationProcessor
             context.InboundEmailId,
             current => current with
             {
-                Checkpoint = MasterDataCodes.EmailAutomationCheckpoints.BriefApproved,
+                Checkpoint = MasterDataCodes.EmailAutomationCheckpoints.BriefReady,
                 UpdatedAtUtc = timeProvider.GetUtcNow(),
             },
             cancellationToken);

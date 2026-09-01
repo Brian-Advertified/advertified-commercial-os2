@@ -66,3 +66,13 @@ public sealed class EmailDeliveryFailedException : Exception
     {
     }
 }
+
+public sealed class EmailDeliveryAcceptanceUnknownException : Exception
+{
+    public EmailDeliveryAcceptanceUnknownException(Exception? innerException = null)
+        : base(
+            "The email provider may have accepted the proposal email, so delivery requires reconciliation.",
+            innerException)
+    {
+    }
+}

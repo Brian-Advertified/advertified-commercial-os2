@@ -41,7 +41,7 @@ public sealed class ProposalReader(
             MasterDataReferences.Permissions.ProposalGenerate, cancellationToken);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
-        var brief = await store.FindApprovedBriefAsync(
+        var brief = await store.FindPlanningReadyBriefAsync(
             tenantId, briefId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Brief access denied.");
         if (brief.OwnerUserId != actorId.Value)

@@ -82,11 +82,13 @@ public sealed partial class OpportunityRunProcessor
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.ai_usage_ledger (
                 id, tenant_id, run_id, step_id, provider_code, model_code, units,
-                tool_calls, incremental_cost_minor, cache_status_code, recorded_at_utc)
+                tool_calls, incremental_cost_minor, cache_status_code,
+                provider_request_id, recorded_at_utc)
             VALUES (
                 {Guid.NewGuid()}, {context.TenantId.Value}, {context.Run.Id},
                 {execution.StepId}, {usage.Provider}, {usage.Model}, {usage.Units},
-                {usage.ToolCalls}, {usage.IncrementalCostMinor}, {usage.CacheStatus}, {now})
+                {usage.ToolCalls}, {usage.IncrementalCostMinor}, {usage.CacheStatus},
+                {usage.ProviderRequestId}, {now})
             """, cancellationToken);
     }
 

@@ -27,8 +27,12 @@ test('authenticated workspace and profile journey remains truthful', async ({ pa
   const workspace = page.getByRole('button', { name: /Northstar Agency/ })
   await workspace.focus()
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('heading', { name: /Good to see you in Northstar Agency/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Work dashboard', exact: true })).toBeVisible()
   await expect(page.getByText('Restricted')).toHaveCount(0)
+  const skipLink = page.getByRole('link', { name: 'Skip to main content' })
+  await skipLink.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('#main-content')).toBeFocused()
 
   await page.getByRole('link', { name: 'Profile', exact: true }).click()
   await page.getByLabel('Display name').fill('A')
@@ -87,7 +91,13 @@ async function handleApi(route: Route, state: FixtureState) {
   if (path === '/api/v1/workspaces') return json(route, 200, [workspaceFixture()])
   if (path === '/api/v1/me') return handleProfileRead(route, state)
   if (path === `/api/v1/tenants/${tenantId}/me`) return handleProfileUpdate(route, state)
+  return handleTenantRead(route, path)
+}
+
+async function handleTenantRead(route: Route, path: string) {
   if (path === `/api/v1/tenants/${tenantId}`) return json(route, 200, tenantFixture())
+  if (path.endsWith('/opportunities')) return json(route, 200, emptyPageFixture())
+  if (path.endsWith('/human-tasks')) return json(route, 200, emptyPageFixture())
   if (path.endsWith('/client-accounts')) return json(route, 200, pageFixture(clientFixture()))
   if (path.endsWith('/agencies')) return json(route, 200, pageFixture(agencyFixture()))
   if (path.endsWith('/contacts')) return json(route, 200, pageFixture(contactFixture()))
@@ -155,6 +165,7 @@ function contactFixture() {
   return { id: 'd1000000-0000-0000-0000-000000000001', tenantId, clientAccountId: 'c1000000-0000-0000-0000-000000000001', name: 'Casey Client', jobTitle: null, email: 'casey@example.com', phone: null, purposeCode: 'CAMPAIGN', consentBasis: 'Supplied', retainUntil: null, statusCode: 'ACTIVE', version: 1, updatedAtUtc: now }
 }
 function pageFixture(item: unknown) { return { items: [item], nextCursor: null } }
+function emptyPageFixture() { return { items: [], nextCursor: null } }
 function safeProblem(code: string) {
   return { type: null, title: 'Request failed', status: 500, detail: null, instance: null, code, correlationId: 'e5000000-0000-0000-0000-000000000001', fieldErrors: null }
 }

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Advertified.Commercial.Domain.MasterData;
 using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
@@ -15,8 +16,14 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         var connectionString = postgres.GetConnectionString();
         await DisposableDatabaseRoles.ProvisionAsync(connectionString);
         await SeedAsync(connectionString);
-        await using var operatorFactory = CreateFactory(connectionString, OperatorId);
-        await using var otherFactory = CreateFactory(connectionString, OtherUserId);
+        await using var operatorFactory = CreateFactory(
+            connectionString,
+            OperatorId,
+            configureServices: ConfigureDeterministicPlanningClock);
+        await using var otherFactory = CreateFactory(
+            connectionString,
+            OtherUserId,
+            configureServices: ConfigureDeterministicPlanningClock);
         using var client = operatorFactory.CreateClient();
         using var other = otherFactory.CreateClient();
 
@@ -155,15 +162,21 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         using var rejectedSelection = await RawCommandAsync(
             client, Path($"shortlist-versions/{shortlistId}:select"),
             "planning-select-rejected", 1,
-            new { selectedCandidateIds = new[] { stale.GetProperty("id").GetGuid() },
-                reason = "This should fail hard eligibility." });
+            new
+            {
+                selectedCandidateIds = new[] { stale.GetProperty("id").GetGuid() },
+                reason = "This should fail hard eligibility."
+            });
         await AssertProblemAsync(
             rejectedSelection, HttpStatusCode.Conflict, "INVALID_LIFECYCLE_TRANSITION");
         using var selection = await CommandAsync(
             client, Path($"shortlist-versions/{shortlistId}:select"),
             "planning-select", 1,
-            new { selectedCandidateIds = new[] { confirmed.GetProperty("id").GetGuid() },
-                reason = "Best confirmed local fit." });
+            new
+            {
+                selectedCandidateIds = new[] { confirmed.GetProperty("id").GetGuid() },
+                reason = "Best confirmed local fit."
+            });
         Assert.Equal("APPROVED", selection.RootElement.GetProperty("status").GetString());
 
         using var plan = await CommandAsync(
@@ -174,10 +187,22 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         Assert.Empty(plan.RootElement.GetProperty("objections").EnumerateArray());
         Assert.Equal("supplier-confirmation:email-001", plan.RootElement.GetProperty("lines")[0]
             .GetProperty("supplySource").GetString());
-        Assert.Equal(100_000, plan.RootElement.GetProperty("subtotalMinor").GetInt64());
+        Assert.False(plan.RootElement.TryGetProperty("subtotalMinor", out _));
+        Assert.False(plan.RootElement.GetProperty("lines")[0]
+            .TryGetProperty("supplierCostMinor", out _));
         Assert.Equal(5_000, plan.RootElement.GetProperty("feesMinor").GetInt64());
         Assert.Equal(15_750, plan.RootElement.GetProperty("vatMinor").GetInt64());
         Assert.Equal(120_750, plan.RootElement.GetProperty("totalMinor").GetInt64());
+
+        await SeedInternalPlanReviewAsync(connectionString, planId);
+        using var operatorPlanResponse = await client.GetAsync(Path($"media-plans/{planId}"));
+        operatorPlanResponse.EnsureSuccessStatusCode();
+        using var operatorPlan = JsonDocument.Parse(
+            await operatorPlanResponse.Content.ReadAsStringAsync());
+        Assert.Equal("Private operator planning note.", operatorPlan.RootElement
+            .GetProperty("assumptions")[0].GetString());
+        Assert.Equal("BENCHMARK_INSUFFICIENT", operatorPlan.RootElement
+            .GetProperty("objections")[0].GetProperty("code").GetString());
 
         using var approvedPlan = await CommandAsync(
             client, Path($"media-plan-versions/{planId}:approve"),
@@ -188,8 +213,38 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         using var workspace = await client.GetAsync(Path($"brief-versions/{BriefVersionId}/planning"));
         workspace.EnsureSuccessStatusCode();
         using var workspaceJson = JsonDocument.Parse(await workspace.Content.ReadAsStringAsync());
+        Assert.Equal("Planning Client",
+            workspaceJson.RootElement.GetProperty("clientName").GetString());
         Assert.Equal("APPROVED", workspaceJson.RootElement.GetProperty("mediaPlan")
             .GetProperty("status").GetString());
+        Assert.Single(workspaceJson.RootElement.GetProperty("mediaPlan")
+            .GetProperty("objections").EnumerateArray());
+
+        await SetOperatorRoleAsync(
+            connectionString, MasterDataCodes.Roles.AdvertiserAdmin);
+        using var advertiserPlanResponse = await client.GetAsync(Path($"media-plans/{planId}"));
+        advertiserPlanResponse.EnsureSuccessStatusCode();
+        using var advertiserPlan = JsonDocument.Parse(
+            await advertiserPlanResponse.Content.ReadAsStringAsync());
+        Assert.Empty(advertiserPlan.RootElement.GetProperty("assumptions").EnumerateArray());
+        Assert.Empty(advertiserPlan.RootElement.GetProperty("objections").EnumerateArray());
+        Assert.Equal(120_750, advertiserPlan.RootElement.GetProperty("totalMinor").GetInt64());
+        Assert.False(advertiserPlan.RootElement.TryGetProperty("subtotalMinor", out _));
+        Assert.False(advertiserPlan.RootElement.GetProperty("lines")[0]
+            .TryGetProperty("supplierCostMinor", out _));
+
+        await SetOperatorRoleAsync(
+            connectionString, MasterDataCodes.Roles.AdvertiserApprover);
+        using var advertiserWorkspace = await client.GetAsync(
+            Path($"brief-versions/{BriefVersionId}/planning"));
+        advertiserWorkspace.EnsureSuccessStatusCode();
+        using var advertiserWorkspaceJson = JsonDocument.Parse(
+            await advertiserWorkspace.Content.ReadAsStringAsync());
+        Assert.Empty(advertiserWorkspaceJson.RootElement.GetProperty("mediaPlan")
+            .GetProperty("assumptions").EnumerateArray());
+        Assert.Empty(advertiserWorkspaceJson.RootElement.GetProperty("mediaPlan")
+            .GetProperty("objections").EnumerateArray());
+
         using var crossTenant = await other.GetAsync(Path($"brief-versions/{BriefVersionId}/planning"));
         await AssertProblemAsync(crossTenant, HttpStatusCode.Forbidden, "TENANT_FORBIDDEN");
     }

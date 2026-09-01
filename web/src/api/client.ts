@@ -18,6 +18,9 @@ import {
 
 const safeMessages: Readonly<Record<string, string>> = {
   AUTHENTICATION_REQUIRED: 'Your session has ended. Sign in again to continue.',
+  NETWORK_UNAVAILABLE: 'Advertified could not connect. Check the local address and try again.',
+  INVALID_API_RESPONSE: 'Advertified received an unexpected response. Refresh and try again.',
+  RATE_LIMITED: 'Too many connection attempts were made. Wait a moment and try again.',
   APPROVAL_REQUIRED: 'This action belongs to the assigned operator or reviewer.',
   [masterDataCodes.agentFailureReasons.evidenceRequired]:
     'Complete and approve the required evidence first.',
@@ -53,6 +56,30 @@ const safeMessages: Readonly<Record<string, string>> = {
     'Commercial settings have not been configured for this workspace.',
   BOOKING_REVIEW_REQUIRED:
     'The selected price, policy, rate, or availability changed. Start a new plan and client-confirmed proposal.',
+  FUNDING_REVIEW_REQUIRED:
+    'The selected option, purchase order amount, currency, or payment evidence no longer matches.',
+  PAYMENT_METHOD_UNAVAILABLE:
+    'That payment method is not configured. Use the available approved payment route.',
+  CAMPAIGN_READINESS_BLOCKED:
+    'Complete confirmed funding and every exact supplier Booking before continuing.',
+  CREATIVE_READINESS_BLOCKED:
+    'Complete the current brand, rights and supplier technical reviews first.',
+  CREATIVE_FILE_REJECTED:
+    'Choose a safe file that matches the booked format and file-size requirement.',
+  CAMPAIGN_DELIVERY_BLOCKED:
+    'The campaign cannot move to the next delivery state yet. Review the visible readiness conditions.',
+  DELIVERY_PROOF_BLOCKED:
+    'Use the exact confirmed Booking and capture evidence inside its delivery window.',
+  DELIVERY_PROOF_FILE_REJECTED:
+    'Choose a safe image or PDF that matches the selected proof type.',
+  PERFORMANCE_EVIDENCE_BLOCKED:
+    'Use completed-campaign evidence with a valid source, method, period and limitations.',
+  PERFORMANCE_EVIDENCE_FILE_REJECTED:
+    'Choose a safe PDF, JSON or CSV source whose contents match its file type.',
+  MEASUREMENT_REPORT_BLOCKED:
+    'Approve the exact delivery proof and sourced performance evidence before generating the report.',
+  MEASUREMENT_AGENT_OUTPUT_REJECTED:
+    'The proposed interpretation did not satisfy the evidence and safety checks.',
   [masterDataCodes.automationFailureReasons.invalidRecipient]:
     'A safe reply address could not be confirmed.',
   [masterDataCodes.automationFailureReasons.clientNotResolved]:
@@ -73,6 +100,8 @@ const safeMessages: Readonly<Record<string, string>> = {
     'The proposal is not ready to be sent.',
   [masterDataCodes.automationFailureReasons.deliveryFailed]:
     'The proposal was prepared, but the email could not be delivered.',
+  [masterDataCodes.automationFailureReasons.deliveryAmbiguous]:
+    'The provider may have accepted the email. Check the original delivery request before taking further action.',
 }
 
 export const sessionExpiredEvent = 'advertified:session-expired'
@@ -141,8 +170,10 @@ async function safeFetch(path: string, init: RequestInit): Promise<Response> {
 }
 
 async function readJson(response: Response): Promise<unknown> {
+  const body = await response.text()
+  if (!body.trim()) return null
   try {
-    return await response.json()
+    return JSON.parse(body)
   } catch {
     throw new ApiFailure('INVALID_API_RESPONSE', response.status)
   }

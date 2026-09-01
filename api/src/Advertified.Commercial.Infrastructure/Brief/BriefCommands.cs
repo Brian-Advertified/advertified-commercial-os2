@@ -49,6 +49,17 @@ public sealed partial class BriefCommands(
         return CommandOutcomeFactory.ToResult<BriefVersionView>(receipt);
     }
 
+    public async Task<CommandResult<BriefVersionView>> MarkReadyAsync(
+        Guid versionId,
+        CommandEnvelope<MarkBriefVersionReadyCommand> envelope,
+        CancellationToken cancellationToken)
+    {
+        var receipt = await dispatcher.DispatchAsync(
+            envelope, MasterDataReferences.Permissions.BriefSubmit,
+            token => MarkReadyOutcomeAsync(versionId, envelope, token), cancellationToken);
+        return CommandOutcomeFactory.ToResult<BriefVersionView>(receipt);
+    }
+
     public async Task<CommandResult<BriefVersionView>> ApproveAsync(
         Guid versionId,
         CommandEnvelope<ApproveBriefVersionCommand> envelope,
@@ -115,8 +126,8 @@ public sealed partial class BriefCommands(
                 OpportunityCommandSupport.Hash(content), envelope.ActorId.Value, now),
             cancellationToken);
         var view = new CampaignBriefSummaryView(
-            id, envelope.TenantId.Value, client.Id, null, title, command.OwnerUserId,
-            MasterDataCodes.LifecycleStatuses.Created, null, null, 1, now);
+            id, envelope.TenantId.Value, client.Id, client.Name, null, title, command.OwnerUserId,
+            MasterDataCodes.LifecycleStatuses.Created, null, null, null, 1, now);
         return OpportunityCommandSupport.Outcome(
             envelope, view, id, 1, MasterDataReferences.CommercialResourceTypes.CampaignBrief,
             MasterDataReferences.CommercialActions.CampaignBriefCreated, MasterDataReferences.CommercialEventTypes.CampaignBriefCreated, now);

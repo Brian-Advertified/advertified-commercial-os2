@@ -4,6 +4,7 @@ using Advertified.Commercial.Api.Background;
 using Advertified.Commercial.Api.Endpoints;
 using Advertified.Commercial.Api.Errors;
 using Advertified.Commercial.Api.OpenApi;
+using Advertified.Commercial.Api.Observability;
 using Advertified.Commercial.Api.Startup;
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Booking;
@@ -71,8 +72,10 @@ var connectionString = StartupConfigurationValidator.ValidateAndGetConnectionStr
 
 builder.Services.AddDbContext<GovernanceDbContext>(
     options => options.UseNpgsql(connectionString));
+builder.AddOutboxDispatch();
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton<IBrowserSessionStore, InMemoryBrowserSessionStore>();
+builder.Services.AddScoped<IBrowserSessionStore, PostgresBrowserSessionStore>();
+builder.Services.AddScoped<OidcIdentityResolver>();
 builder.Services.AddScoped<IIdentityWorkspaceReader, IdentityWorkspaceReader>();
 builder.Services.AddScoped<ITenantMembershipSource, DatabaseTenantMembershipSource>();
 builder.Services.AddScoped<ITenantAuthorizer, TenantAuthorizer>();
@@ -173,16 +176,22 @@ builder.Services.AddSingleton<IInventoryMalwareScanner>(serviceProvider =>
         : new DeterministicInventoryMalwareScanner());
 builder.Services.AddOptions<AgentRuntimeOptions>()
     .Bind(builder.Configuration.GetSection(AgentRuntimeOptions.SectionName))
-    .Validate(
-        options => options.Mode is AgentRuntimeOptions.DisabledMode
-            or AgentRuntimeOptions.InProcessMode
-            or AgentRuntimeOptions.HttpMode,
+    .Validate(AgentRuntimeOptions.HasSupportedMode,
         "The agent runtime mode is invalid.")
+    .Validate(AgentRuntimeOptions.HasSupportedProvider,
+        "The agent runtime provider is invalid.")
+    .Validate(AgentRuntimeOptions.HasCompatibleMode,
+        "The agent runtime mode and provider are incompatible.")
+    .Validate(AgentRuntimeOptions.HasSafeProviderPolicy,
+        "The agent runtime provider policy is unsafe.")
+    .Validate(AgentRuntimeOptions.HasSafeRoutes,
+        "The agent runtime model or cost route is invalid.")
     .Validate(
-        options => options.PollMilliseconds is >= 25 and <= 5_000,
-        "The agent runtime poll interval must be between 25 and 5000 milliseconds.")
+        options => options.PollMilliseconds is >= 25 and <= 5_000 &&
+            options.TimeoutSeconds is >= 1 and <= 120,
+        "The agent runtime timing configuration is invalid.")
     .Validate(
-        options => options.Mode != AgentRuntimeOptions.HttpMode ||
+        options => !options.UsesHttp ||
             (Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out _) &&
              !string.IsNullOrWhiteSpace(options.ServiceKey)),
         "The HTTP agent runtime requires an absolute URL and service key.")
@@ -192,24 +201,19 @@ builder.Services.AddHttpClient<HttpPlanningAgentClient>(ConfigureAgentRuntimeHtt
 builder.Services.AddHttpClient<HttpProposalNarrativeClient>(ConfigureAgentRuntimeHttpClient);
 builder.Services.AddHttpClient<HttpMeasurementAgentClient>(ConfigureAgentRuntimeHttpClient);
 builder.Services.AddScoped<IOpportunityAgentClient>(serviceProvider =>
-    agentRuntime.Mode switch
-    {
-        AgentRuntimeOptions.InProcessMode =>
-            ActivatorUtilities.CreateInstance<InProcessOpportunityAgentClient>(serviceProvider),
-        AgentRuntimeOptions.HttpMode =>
-            serviceProvider.GetRequiredService<HttpOpportunityAgentClient>(),
-        _ => ActivatorUtilities.CreateInstance<InProcessOpportunityAgentClient>(serviceProvider),
-    });
+    agentRuntime.UsesHttp
+        ? serviceProvider.GetRequiredService<HttpOpportunityAgentClient>()
+        : ActivatorUtilities.CreateInstance<InProcessOpportunityAgentClient>(serviceProvider));
 builder.Services.AddScoped<IPlanningAgentClient>(serviceProvider =>
-    agentRuntime.Mode == AgentRuntimeOptions.HttpMode
+    agentRuntime.UsesHttp
         ? serviceProvider.GetRequiredService<HttpPlanningAgentClient>()
         : serviceProvider.GetRequiredService<DeterministicPlanningAgentClient>());
 builder.Services.AddScoped<IProposalNarrativeClient>(serviceProvider =>
-    agentRuntime.Mode == AgentRuntimeOptions.HttpMode
+    agentRuntime.UsesHttp
         ? serviceProvider.GetRequiredService<HttpProposalNarrativeClient>()
         : serviceProvider.GetRequiredService<DeterministicProposalNarrativeClient>());
 builder.Services.AddScoped<IMeasurementAgentClient>(serviceProvider =>
-    agentRuntime.Mode == AgentRuntimeOptions.HttpMode
+    agentRuntime.UsesHttp
         ? serviceProvider.GetRequiredService<HttpMeasurementAgentClient>()
         : serviceProvider.GetRequiredService<DeterministicMeasurementAgentClient>());
 if (agentRuntime.Mode != AgentRuntimeOptions.DisabledMode)
@@ -243,7 +247,7 @@ builder.Services.AddAntiforgery(options =>
         : CookieSecurePolicy.None;
 });
 
-builder.Services
+var authentication = builder.Services
     .AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme = LocalIdentityDefaults.CompositeScheme;
@@ -253,19 +257,21 @@ builder.Services
         LocalIdentityDefaults.CompositeScheme,
         displayName: null,
         options => options.ForwardDefaultSelector = context =>
-            string.Equals(
-                context.RequestServices.GetRequiredService<IConfiguration>()
-                    ["Authentication:Mode"],
-                LocalIdentityDefaults.DeterministicSessionMode,
-                StringComparison.Ordinal)
+        {
+            var mode = context.RequestServices.GetRequiredService<IConfiguration>()
+                ["Authentication:Mode"];
+            return mode is LocalIdentityDefaults.DeterministicSessionMode or
+                    LocalIdentityDefaults.OidcMode
                 ? BrowserSessionAuthenticationHandler.AuthenticationScheme
-                : LocalIdentityDefaults.Scheme)
+                : LocalIdentityDefaults.Scheme;
+        })
     .AddScheme<AuthenticationSchemeOptions, DevelopmentIdentityHandler>(
         LocalIdentityDefaults.Scheme,
         _ => { })
     .AddScheme<AuthenticationSchemeOptions, BrowserSessionAuthenticationHandler>(
         BrowserSessionAuthenticationHandler.AuthenticationScheme,
         _ => { });
+builder.AddAdvertifiedOidc(authentication, authenticationMode);
 builder.Services.AddAuthorization();
 builder.Services.AddTrustedProxyHeaders(builder.Configuration);
 builder.Services.AddAdvertifiedRateLimits();
@@ -292,6 +298,7 @@ var app = builder.Build();
 
 app.UseForwardedHeaders();
 app.UseMiddleware<CorrelationMiddleware>();
+app.UseMiddleware<RequestCompletionTelemetryMiddleware>();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Test"))
 {
@@ -342,6 +349,7 @@ static void ConfigureAgentRuntimeHttpClient(
     var options = serviceProvider.GetRequiredService<
         Microsoft.Extensions.Options.IOptions<AgentRuntimeOptions>>().Value;
     client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
+    client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
 }
 
 app.Run();

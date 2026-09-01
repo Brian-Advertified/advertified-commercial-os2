@@ -73,6 +73,84 @@ public sealed class DeterministicPlanningAgentClient : IPlanningAgentClient
             0));
     }
 
+    public Task<InventoryIntelligenceAgentProposal> InterpretInventoryAsync(
+        InventoryIntelligenceInput input,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (input.Candidates.Count == 0 ||
+            input.Candidates.Select(item => item.CandidateId).Distinct().Count() !=
+                input.Candidates.Count)
+        {
+            throw new ArgumentException("Inventory Intelligence requires unique candidates.");
+        }
+        foreach (var candidate in input.Candidates)
+        {
+            ValidateInventoryCandidate(candidate);
+        }
+        var interpretations = input.Candidates
+            .Select(candidate => new InventoryCandidateInterpretationProposal(
+                candidate.CandidateId,
+                ExplainInventory(candidate)))
+            .ToArray();
+        return Task.FromResult(new InventoryIntelligenceAgentProposal(
+            interpretations,
+            "Each explanation restates governed eligibility and benchmark facts.",
+            "deterministic",
+            "fixture-v1",
+            0));
+    }
+
+    private static void ValidateInventoryCandidate(
+        InventoryIntelligenceCandidateInput candidate)
+    {
+        if (candidate.CandidateId == Guid.Empty || candidate.ProductVersionId == Guid.Empty ||
+            string.IsNullOrWhiteSpace(candidate.Name))
+        {
+            throw new ArgumentException("The inventory candidate identity is invalid.");
+        }
+        var valid = candidate.IsEligible
+            ? candidate.RateAmountMinor.HasValue &&
+              !string.IsNullOrWhiteSpace(candidate.Currency) &&
+              candidate.Score.HasValue &&
+              candidate.RejectionReason is null &&
+              candidate.RejectionDetail is null
+            : !string.IsNullOrWhiteSpace(candidate.RejectionReason) &&
+              !string.IsNullOrWhiteSpace(candidate.RejectionDetail) &&
+              !candidate.Score.HasValue;
+        if (!valid)
+        {
+            throw new ArgumentException("The inventory eligibility facts are invalid.");
+        }
+    }
+
+    private static string ExplainInventory(InventoryIntelligenceCandidateInput candidate)
+    {
+        if (!candidate.IsEligible)
+        {
+            return $"Excluded by governed hard eligibility: {candidate.RejectionDetail}";
+        }
+        var benchmark = candidate.Benchmark;
+        if (benchmark is null)
+        {
+            return $"{candidate.Name} is eligible after governed hard constraints. " +
+                "No deterministic comparative benchmark applies, so selection should rely " +
+                "on the visible rate, supply state and campaign fit.";
+        }
+        var basis = benchmark.GeographyBasis.Replace('_', ' ').ToLowerInvariant();
+        if (benchmark.CohortSize < 2 || !benchmark.MedianMinor.HasValue)
+        {
+            return $"{candidate.Name} is eligible after governed hard constraints. " +
+                $"The {basis} benchmark has {benchmark.CohortSize} compatible peer(s), " +
+                "which is insufficient for a defensible market-price conclusion.";
+        }
+        var position = benchmark.Position.Replace('_', ' ').ToLowerInvariant();
+        var confidence = decimal.ToInt32(decimal.Truncate(benchmark.Confidence * 100));
+        return $"{candidate.Name} is eligible after governed hard constraints. Its " +
+            $"published rate is {position} across {benchmark.CohortSize} compatible peers " +
+            $"using {basis}; deterministic benchmark confidence is {confidence}%.";
+    }
+
     private static MediaAllocationProposal[] Allocate(long budget, string[] channels)
     {
         var even = budget / channels.Length;

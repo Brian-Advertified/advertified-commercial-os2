@@ -25,14 +25,11 @@ public sealed partial class ProposalCommands
             nameof(envelope.Command.ProviderMessageId));
         var now = timeProvider.GetUtcNow();
         if (proposal.Status != MasterDataCodes.LifecycleStatuses.Approved ||
-            proposal.ExpiryAtUtc <= now ||
             await store.FindDocumentAsync(
                 envelope.TenantId, proposalVersionId, cancellationToken) is null)
         {
             throw new ProposalDocumentRequiredException();
         }
-        await EnsureProposalPlansCurrentAsync(
-            envelope.TenantId, proposalVersionId, cancellationToken);
         var authorised = await store.DbContext.Database.SqlQuery<bool>($"""
             SELECT EXISTS (
                 SELECT 1
@@ -49,8 +46,12 @@ public sealed partial class ProposalCommands
                   AND run.document_id IS NOT NULL
                   AND run.campaign_mode_code = {MasterDataCodes.CampaignModes.OohOnly}
                   AND run.status_code = {MasterDataCodes.EmailAutomationStatuses.Processing}
+                  AND run.checkpoint_code = {MasterDataCodes.EmailAutomationCheckpoints.DeliveryAccepted}
+                  AND run.delivery_requested_at_utc IS NOT NULL
+                  AND run.delivery_accepted_at_utc IS NOT NULL
+                  AND run.delivery_provider_code IS NOT NULL
+                  AND run.delivery_provider_id = {providerMessageId}
                   AND mailbox.owner_user_id = {envelope.ActorId.Value}
-                  AND mailbox.is_enabled AND mailbox.auto_send_enabled
                   AND email.reply_to_email = {recipient}
                   AND run.delivery_idempotency_key IS NOT NULL) AS "Value"
             """).SingleAsync(cancellationToken);

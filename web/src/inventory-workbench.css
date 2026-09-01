@@ -1,0 +1,202 @@
+.inventory-workbench-page,
+.inventory-record-page,
+.inventory-import-page {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 96rem;
+  margin: 0 auto;
+}
+
+.inventory-workbench-hero {
+  padding: 0 0 0.9rem;
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.75fr) minmax(32rem, 1.25fr);
+  align-items: stretch;
+  gap: 1rem;
+  color: var(--body);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+}
+.inventory-workbench-hero h1 { margin: 0.05rem 0 0.3rem; color: var(--navy); font-size: 1.4rem; line-height: 1.1; letter-spacing: -0.025em; }
+.inventory-workbench-hero > div > p:last-child { margin: 0; color: var(--muted); font-size: 0.75rem; line-height: 1.45; }
+.inventory-workbench-hero dl { margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); }
+.inventory-workbench-hero dl div { min-width: 0; padding: 0.65rem 0.7rem; display: grid; align-content: center; gap: 0.2rem; border-right: 1px solid var(--line); }
+.inventory-workbench-hero dl div:last-child { border-right: 0; }
+.inventory-workbench-hero dt { color: var(--muted); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+.inventory-workbench-hero dd { margin: 0; color: var(--navy); font-size: 0.82rem; font-weight: 850; }
+.inventory-workbench-hero small { color: var(--muted); font-size: 0.75rem; line-height: 1.3; }
+
+.inventory-workbench-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.28fr); gap: 0.75rem; align-items: start; }
+.inventory-catalogue-column { min-width: 0; display: grid; gap: 0.75rem; }
+.inventory-filter-workbench,
+.inventory-catalogue-results,
+.inventory-import-workbench,
+.inventory-empty-state { background: var(--white); border: 1px solid var(--line); border-radius: 0.35rem; }
+.inventory-filter-workbench { padding: 0.8rem 0.9rem; }
+.inventory-filter-workbench > header,
+.inventory-import-workbench > header { display: flex; align-items: center; gap: 0.6rem; }
+.inventory-filter-workbench > header > span,
+.inventory-import-workbench > header > span { width: 2.2rem; height: 2.2rem; display: grid; place-items: center; color: var(--electric-soft); border-right: 1px solid var(--line); }
+.inventory-filter-workbench h2,
+.inventory-import-workbench h2,
+.inventory-catalogue-results h2,
+.inventory-empty-state h2 { margin: 0.05rem 0 0; color: var(--navy); font-size: 0.88rem; }
+.inventory-filter-grid { margin-top: 0.7rem; display: grid; grid-template-columns: 1.25fr 0.8fr 1fr auto; align-items: end; gap: 0.6rem; }
+.inventory-filter-grid .primary-button { white-space: nowrap; }
+
+.inventory-catalogue-results { overflow: hidden; }
+.inventory-catalogue-results > header { padding: 0.75rem 0.85rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--line); }
+.inventory-product-table-head,
+.inventory-product-row { display: grid; grid-template-columns: minmax(18rem, 1.5fr) minmax(10rem, 0.7fr) minmax(10rem, 0.8fr) minmax(10rem, 0.7fr) 1.25rem; align-items: center; gap: 0.75rem; }
+.inventory-product-table-head { padding: 0.45rem 0.8rem; color: var(--muted); background: var(--canvas); border-bottom: 1px solid var(--line); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+.inventory-product-row { min-width: 0; padding: 0.65rem 0.8rem; color: var(--muted-strong); border-bottom: 1px solid var(--line); font-size: 0.75rem; text-decoration: none; }
+.inventory-product-row:last-child { border-bottom: 0; }
+.inventory-product-row:hover { color: var(--navy); background: var(--surface-strong); }
+.inventory-product-identity { min-width: 0; display: flex; align-items: center; gap: 0.6rem; }
+.inventory-product-identity > span:last-child { min-width: 0; display: grid; gap: 0.08rem; }
+.inventory-product-identity small { overflow: hidden; color: var(--muted); font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
+.inventory-product-identity strong { overflow: hidden; color: var(--navy); font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
+.inventory-channel-icon { width: 2rem; height: 2rem; display: grid; place-items: center; color: var(--electric-soft); border-right: 1px solid var(--line); }
+.inventory-channel-icon .media-type-icon { width: 1.55rem; height: 1.55rem; stroke: currentColor; }
+.inventory-verification-cell { display: grid; justify-items: start; gap: 0.22rem; }
+.inventory-verification-cell small { color: var(--muted); font-size: 0.75rem; }
+.inventory-product-row > .icon { color: var(--muted); }
+.inventory-catalogue-results > .load-more { margin: 0.7rem 0.8rem; }
+
+.inventory-import-workbench { position: sticky; top: 4.25rem; padding: 0.85rem; display: grid; gap: 0.7rem; color: var(--body); background: var(--surface-subtle); border-left: 0.2rem solid var(--electric); }
+.inventory-import-workbench h2 { color: var(--navy); }
+.inventory-import-workbench > p { margin: 0; color: var(--muted); font-size: 0.75rem; line-height: 1.45; }
+.inventory-import-workbench .field-group { color: var(--muted-strong); }
+.inventory-import-workbench input { color: var(--navy); background: var(--canvas); }
+.inventory-file-field { display: grid; gap: 0.35rem; color: var(--muted-strong); font-size: 0.75rem; font-weight: 750; }
+.inventory-file-field > input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.inventory-file-field > span { min-height: 4rem; padding: 0.65rem; display: grid; grid-template-columns: auto 1fr; place-items: start; align-items: center; gap: 0.15rem 0.55rem; color: var(--navy); background: var(--canvas); border: 1px dashed var(--line-strong); cursor: pointer; }
+.inventory-file-field > input:focus-visible + span { border-color: var(--electric); outline: 2px solid var(--electric); outline-offset: 2px; }
+.inventory-file-field > span > .icon { grid-row: 1 / 3; }
+.inventory-file-field small { color: var(--muted); font-size: 0.75rem; font-weight: 500; }
+.inventory-import-boundary { padding: 0.55rem 0; display: flex; gap: 0.45rem; color: var(--muted); border-block: 1px solid var(--line); font-size: 0.75rem; line-height: 1.4; }
+.inventory-empty-state { min-height: 8rem; padding: 1rem; display: flex; align-items: center; gap: 0.75rem; }
+.inventory-empty-state > span { width: 2.4rem; height: 2.4rem; display: grid; place-items: center; color: var(--electric-soft); border-right: 1px solid var(--line); }
+.inventory-empty-state p { margin: 0.2rem 0 0; max-width: 40rem; color: var(--muted); font-size: 0.75rem; line-height: 1.45; }
+
+.inventory-record-header,
+.inventory-import-header { padding: 0.9rem 1rem; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.75rem; background: var(--white); border: 1px solid var(--line); border-radius: 0.35rem; }
+.inventory-import-header { grid-template-columns: minmax(0, 1fr) auto; }
+.inventory-record-icon { width: 2.5rem; height: 2.5rem; display: grid; place-items: center; color: var(--electric-soft); border-right: 1px solid var(--line); }
+.inventory-record-header h1,
+.inventory-import-header h1 { margin: 0.05rem 0 0.2rem; color: var(--navy); font-size: 1.25rem; line-height: 1.1; }
+.inventory-record-header p:last-child,
+.inventory-import-header p:last-child { margin: 0; color: var(--muted); font-size: 0.75rem; }
+.inventory-record-state,
+.inventory-import-state { display: grid; justify-items: end; gap: 0.3rem; padding-left: 0.8rem; border-left: 1px solid var(--line); }
+.inventory-record-state small,
+.inventory-import-state small { color: var(--muted); font-size: 0.75rem; }
+.inventory-record-tabs { position: sticky; top: 3.5rem; z-index: 8; display: flex; background: var(--canvas); border: 1px solid var(--line); border-radius: 0.25rem; }
+.inventory-record-tabs a { min-height: 2.3rem; padding: 0.5rem 0.85rem; display: flex; align-items: center; color: var(--muted-strong); border-right: 1px solid var(--line); border-bottom: 2px solid transparent; font-size: 0.75rem; font-weight: 750; text-decoration: none; }
+.inventory-record-tabs a:last-child { border-right: 0; }
+.inventory-record-tabs a:hover { color: var(--navy); background: var(--surface-strong); border-bottom-color: var(--electric); }
+.inventory-record-strip,
+.import-summary { margin: 0; display: grid; border: 1px solid var(--line); background: var(--white); }
+.inventory-record-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.import-summary { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.inventory-record-strip > div,
+.import-summary > div { min-width: 0; padding: 0.65rem 0.75rem; display: grid; gap: 0.18rem; border-right: 1px solid var(--line); }
+.inventory-record-strip > div:last-child,
+.import-summary > div:last-child { border-right: 0; }
+.inventory-record-strip dt,
+.import-summary dt { color: var(--muted); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+.inventory-record-strip dd,
+.import-summary dd { margin: 0; overflow: hidden; color: var(--navy); font-size: 0.75rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.import-summary-failure { grid-column: 1 / -1; color: var(--danger); background: var(--danger-wash); border-top: 1px solid #74303c; }
+
+.inventory-record-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); }
+.inventory-record-section { padding: 0.9rem 1rem; background: var(--white); border: 1px solid var(--line); border-radius: 0.35rem; }
+.inventory-record-columns .inventory-record-section { border: 0; border-right: 1px solid var(--line); border-radius: 0; }
+.inventory-record-columns .inventory-record-section:last-child { border-right: 0; }
+.inventory-record-section h2 { margin: 0.05rem 0 0.7rem; color: var(--navy); font-size: 0.92rem; }
+.product-fact-list { margin: 0; border-top: 1px solid var(--line); }
+.product-fact { display: grid; grid-template-columns: minmax(8rem, 0.4fr) minmax(0, 1fr); gap: 0.75rem; padding: 0.55rem 0; border-bottom: 1px solid var(--line); }
+.product-fact dt { color: var(--muted); font-size: 0.75rem; }
+.product-fact dd { margin: 0; color: var(--navy); font-size: 0.75rem; font-weight: 700; text-align: right; }
+.inventory-record-anchor { scroll-margin-top: 7rem; }
+.inventory-record-anchor .detail-card,
+.inventory-record-page .inventory-benchmark-empty { margin: 0; padding: 0.9rem 1rem; background: var(--white); border: 1px solid var(--line); border-radius: 0.35rem; }
+.source-lineage { margin: 0; scroll-margin-top: 7rem; }
+.source-lineage > p:not(.eyebrow) { color: var(--muted); font-size: 0.75rem; }
+.inventory-asset-ledger { border-top: 1px solid var(--line); }
+.inventory-asset-ledger details { padding: 0.55rem 0; border-bottom: 1px solid var(--line); }
+.inventory-asset-ledger summary { color: var(--electric-soft); font-size: 0.75rem; cursor: pointer; }
+.inventory-asset-ledger p { overflow-wrap: anywhere; color: var(--muted); font-size: 0.75rem; }
+
+.inventory-record-page .benchmark-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: start; }
+.inventory-record-page .benchmark-heading h2 { margin: 0.05rem 0 0.25rem; color: var(--navy); font-size: 0.92rem; }
+.inventory-record-page .benchmark-heading p { margin: 0; color: var(--muted); font-size: 0.75rem; }
+.inventory-record-page .benchmark-position { min-width: 11rem; padding-left: 0.8rem; display: grid; gap: 0.15rem; background: transparent; border: 0; border-left: 1px solid var(--line); border-radius: 0; }
+.inventory-record-page .benchmark-position span,
+.inventory-record-page .benchmark-position small { color: var(--muted); font-size: 0.75rem; }
+.inventory-record-page .benchmark-position strong { color: var(--navy); font-size: 0.82rem; }
+.inventory-record-page .benchmark-summary-grid { margin-top: 0.75rem; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); }
+.inventory-record-page .benchmark-summary-grid > div { min-height: 0; padding: 0.65rem 0.75rem; display: grid; gap: 0.2rem; background: var(--canvas); border: 0; border-right: 1px solid var(--line); border-radius: 0; }
+.inventory-record-page .benchmark-summary-grid > div:last-child { border-right: 0; }
+.inventory-record-page .benchmark-summary-grid span { color: var(--muted); font-size: 0.75rem; }
+.inventory-record-page .benchmark-summary-grid strong { color: var(--navy); font-size: 0.78rem; }
+
+.inventory-candidate-ledger { background: var(--white); border: 1px solid var(--line); border-radius: 0.35rem; scroll-margin-top: 7rem; }
+.inventory-candidate-ledger > header { padding: 0.75rem 0.85rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--line); }
+.inventory-candidate-ledger h2 { margin: 0.05rem 0 0; color: var(--navy); font-size: 0.9rem; }
+.inventory-candidate-ledger > header > span { color: var(--muted); font-size: 0.75rem; }
+.inventory-candidate-empty { margin: 0; padding: 1rem; color: var(--muted); font-size: 0.75rem; }
+.candidate-stack { display: grid; gap: 0; }
+.inventory-import-page .candidate-card { padding: 0.8rem 0.85rem; background: var(--canvas); border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
+.inventory-import-page .candidate-card:last-child { border-bottom: 0; }
+.inventory-import-page .candidate-facts { margin-top: 0.65rem; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); }
+.inventory-import-page .candidate-facts div { padding: 0.55rem; display: grid; gap: 0.18rem; background: transparent; border-right: 1px solid var(--line); border-radius: 0; }
+.inventory-import-page .candidate-facts div:last-child { border-right: 0; }
+.inventory-import-page .candidate-facts span { color: var(--muted); font-size: 0.75rem; }
+.inventory-import-page .candidate-facts strong { color: var(--navy); font-size: 0.75rem; }
+.inventory-import-page .evidence-table { border: 1px solid var(--line); }
+.inventory-import-page .evidence-table div { background: transparent; border-bottom: 1px solid var(--line); }
+.inventory-import-page .publish-panel { margin-top: 0; border-left-color: var(--positive); border-radius: 0.35rem; }
+.inventory-import-page .import-action { margin: 0; justify-self: start; }
+#publication-action { scroll-margin-top: 7rem; }
+
+@media (max-width: 1100px) {
+  .inventory-workbench-hero { grid-template-columns: 1fr; }
+  .inventory-workbench-layout { grid-template-columns: 1fr; }
+  .inventory-import-workbench { position: static; }
+  .inventory-product-table-head { display: none; }
+  .inventory-product-row { grid-template-columns: minmax(15rem, 1.5fr) 1fr 1rem; }
+  .inventory-product-row > span:nth-child(3) { display: none; }
+}
+
+@media (max-width: 820px) {
+  .inventory-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .inventory-record-columns { grid-template-columns: 1fr; }
+  .inventory-record-columns .inventory-record-section { border-right: 0; border-bottom: 1px solid var(--line); }
+  .inventory-record-columns .inventory-record-section:last-child { border-bottom: 0; }
+  .import-summary { grid-template-columns: repeat(3, 1fr); }
+  .inventory-import-page .candidate-facts { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+  .inventory-workbench-hero dl,
+  .inventory-record-strip,
+  .inventory-record-page .benchmark-summary-grid { grid-template-columns: repeat(2, 1fr); }
+  .inventory-filter-grid { grid-template-columns: 1fr; }
+  .inventory-product-row { grid-template-columns: minmax(0, 1fr) 1rem; }
+  .inventory-product-row > span:nth-child(2),
+  .inventory-product-row > span:nth-child(3),
+  .inventory-product-row > span:nth-child(4) { display: none; }
+  .inventory-record-header, .inventory-import-header { grid-template-columns: 1fr; }
+  .inventory-record-icon { display: none; }
+  .inventory-record-state, .inventory-import-state { justify-items: start; padding: 0.5rem 0 0; border-top: 1px solid var(--line); border-left: 0; }
+  .inventory-record-tabs { position: static; overflow-x: auto; }
+  .inventory-record-tabs a { flex: 0 0 auto; }
+  .import-summary { grid-template-columns: 1fr 1fr; }
+  .inventory-record-page .benchmark-heading { display: grid; }
+  .inventory-record-page .benchmark-position { padding: 0.5rem 0 0; border-top: 1px solid var(--line); border-left: 0; }
+  .inventory-import-page .candidate-facts { grid-template-columns: 1fr; }
+  .inventory-import-page .candidate-facts div { border-right: 0; border-bottom: 1px solid var(--line); }
+}

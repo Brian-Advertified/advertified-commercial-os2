@@ -1,4 +1,5 @@
 using Advertified.Commercial.DatabaseMigrator;
+using Npgsql;
 
 const string ApplyArgument = "--apply";
 const string ConnectionVariable = "ADVERTIFIED_MIGRATION_CONNECTION_STRING";
@@ -26,6 +27,14 @@ try
         $"Applied {result.AppliedMigrations.Count} migration(s); " +
         $"synchronised {result.MasterData.CollectionCount} master-data collections.");
     return 0;
+}
+catch (PostgresException exception)
+{
+    Console.Error.WriteLine(
+        $"Migration failed safely (PostgreSQL SQLSTATE {exception.SqlState}; " +
+        $"schema {exception.SchemaName ?? "none"}; table {exception.TableName ?? "none"}; " +
+        $"constraint {exception.ConstraintName ?? "none"}). No success was recorded.");
+    return 1;
 }
 catch (Exception exception)
 {

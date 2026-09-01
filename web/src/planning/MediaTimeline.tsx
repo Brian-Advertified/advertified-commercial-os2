@@ -1,5 +1,6 @@
 import type { MediaAllocation } from '../api/planning-schemas'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
+import { formatDate } from '../presentation/format'
 import { mediaVisual } from './media-visuals'
 
 export function MediaTimeline({ allocations }: { allocations: MediaAllocation[] }) {
@@ -40,6 +41,5 @@ function dateValue(value: string) {
 }
 
 function shortDate(value: number) {
-  return new Intl.DateTimeFormat('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
-    .format(new Date(value))
+  return formatDate(new Date(value))
 }

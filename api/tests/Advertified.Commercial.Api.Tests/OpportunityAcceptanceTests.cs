@@ -95,7 +95,7 @@ public sealed partial class OpportunityAcceptanceTests
         Assert.Equal("Draft the campaign brief.",
             detail.GetProperty("nextAction").GetString());
         await AssertDurableLineageAsync(connectionString, opportunityId);
-        await AssertSuppliedBriefPathAsync(solo, clientId);
+        await AssertSuppliedBriefPathAsync(solo, clientId, connectionString);
         await AssertOpportunityBriefPathAsync(
             owner, solo, approver, opportunityId, connectionString);
     }

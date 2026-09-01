@@ -47,7 +47,7 @@ internal sealed record ProposalDecisionRow(
     Guid DecidedBy,
     DateTimeOffset DecidedAtUtc);
 
-internal sealed record ApprovedBriefReferenceRow(
+internal sealed record PlanningReadyBriefReferenceRow(
     Guid BriefId,
     Guid BriefVersionId,
     string Objective,

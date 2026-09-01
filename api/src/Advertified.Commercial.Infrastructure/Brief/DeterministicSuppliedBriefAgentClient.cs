@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.RegularExpressions;
 using Advertified.Commercial.Application.Brief;
 using Advertified.Commercial.Domain.MasterData;
@@ -8,6 +7,8 @@ namespace Advertified.Commercial.Infrastructure.Brief;
 public sealed partial class DeterministicSuppliedBriefAgentClient(
     SuppliedBriefAgentPolicy policy) : ISuppliedBriefAgentClient
 {
+    private readonly SuppliedBriefBudgetParser budgetParser = new(policy);
+
     private const string ClientPath = "clientName";
     private const string ProblemPath = "businessProblem";
     private const string ObjectivePath = "objective";
@@ -34,7 +35,12 @@ public sealed partial class DeterministicSuppliedBriefAgentClient(
         var fields = ExtractFields(content, clarifications);
         var channels = DetectChannels(content, clarifications);
         var mode = ResolveMode(content, channels, clarifications);
-        var questions = BuildQuestions(fields, mode);
+        var budgetField = fields.GetValueOrDefault(BudgetPath);
+        var budgetFromClarification = budgetField?.SourceLocator == "clarification:brief";
+        var budget = budgetParser.Parse(
+            budgetFromClarification ? budgetField?.Value : content,
+            budgetFromClarification);
+        var questions = BuildQuestions(fields, mode, budget);
         var unknowns = questions.Select(question => new BriefUnknownInput(
             question.FieldPath, question.Question, question.IsBlocking)).ToArray();
         var evidence = BuildEvidence(fields, mode);
@@ -51,16 +57,15 @@ public sealed partial class DeterministicSuppliedBriefAgentClient(
             ?? (objective.Length == 0
                 ? string.Empty
                 : $"The supplied request requires a campaign response to: {objective}");
-        var budget = TryParseBudget(fields.GetValueOrDefault(BudgetPath)?.Value ?? content);
         var draft = new SuppliedBriefDraftView(
             problem,
             objective,
             SplitValues(fields.GetValueOrDefault(AudiencePath)?.Value),
             SplitValues(fields.GetValueOrDefault(GeographyPath)?.Value),
             fields.GetValueOrDefault(TimingPath)?.Value ?? string.Empty,
-            budget,
-            !budget.HasValue,
-            budget.HasValue ? policy.DefaultCurrency : null,
+            budget?.AmountMinor,
+            budget is null,
+            budget?.Currency,
             ParseVatStatus(content),
             null,
             channels,
@@ -206,7 +211,8 @@ public sealed partial class DeterministicSuppliedBriefAgentClient(
 
     private SuppliedBriefQuestionView[] BuildQuestions(
         Dictionary<string, ExtractedField> fields,
-        ModeDecision mode)
+        ModeDecision mode,
+        ParsedSuppliedBriefBudget? budget)
     {
         var questions = new List<SuppliedBriefQuestionView>();
         RequireField(questions, fields, ClientPath, "Which client or brand is this campaign for?");
@@ -214,7 +220,7 @@ public sealed partial class DeterministicSuppliedBriefAgentClient(
         RequireField(questions, fields, AudiencePath, "Who must the campaign reach?");
         RequireField(questions, fields, GeographyPath, "Where must the campaign run?");
         RequireField(questions, fields, TimingPath, "When must the campaign run?");
-        if (!TryParseBudget(fields.GetValueOrDefault(BudgetPath)?.Value).HasValue)
+        if (budget is null)
         {
             questions.Add(new SuppliedBriefQuestionView(
                 BudgetPath, "What budget is available for media?", true, Array.Empty<string>()));
@@ -299,30 +305,10 @@ public sealed partial class DeterministicSuppliedBriefAgentClient(
         return sentence is null ? null : InferredField(sentence, sentence, 0.70m);
     }
 
-    private static ExtractedField? ExtractBudgetText(string content)
+    private ExtractedField? ExtractBudgetText(string content)
     {
-        var match = Budget().Match(content);
-        return match.Success ? SourceField(match.Value, match.Value, 0.98m) : null;
-    }
-
-    private static long? TryParseBudget(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return null;
-        var match = Budget().Match(value);
-        if (!match.Success) return null;
-        var raw = match.Groups["amount"].Value.Replace(" ", string.Empty)
-            .Replace(",", string.Empty);
-        if (!decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture,
-                out var amount)) return null;
-        var unit = match.Groups["unit"].Value.ToLowerInvariant();
-        var multiplier = unit switch
-        {
-            "k" or "thousand" => 1_000m,
-            "m" or "million" => 1_000_000m,
-            _ => 1m,
-        };
-        return checked((long)decimal.Round(amount * multiplier * 100m, 0,
-            MidpointRounding.AwayFromZero));
+        var evidence = budgetParser.ExtractEvidence(content);
+        return evidence is null ? null : SourceField(evidence, evidence, 0.98m);
     }
 
     private static string? ParseVatStatus(string content)
@@ -375,9 +361,6 @@ public sealed partial class DeterministicSuppliedBriefAgentClient(
         }
         return result;
     }
-
-    [GeneratedRegex(@"(?:R|ZAR|rand)\s*(?<amount>[\d\s,]+(?:\.\d{1,2})?)\s*(?<unit>k|m|million|thousand)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex Budget();
 
     [GeneratedRegex(@"\b\d{1,4}[-/]\d{1,2}(?:[-/]\d{1,4})?\b", RegexOptions.CultureInvariant)]
     private static partial Regex NumericDate();

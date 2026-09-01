@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import type { BookablePlanLine, Booking } from '../api/booking-schemas'
 import { masterDataCodes } from '../generated/master-data-codes'
-
-const money = (minor: number, currency: string) =>
-  new Intl.NumberFormat('en-ZA', { style: 'currency', currency }).format(minor / 100)
+import { formatMoney } from '../presentation/format'
 
 export function BookableLines({ items, busy, create }: {
   items: BookablePlanLine[]
@@ -22,7 +20,7 @@ export function BookableLines({ items, busy, create }: {
         <StatusHeader status="Not booked" product={line.productName} />
         <PlacementFacts item={line} />
         <div className="booking-total"><span>Client-approved total</span>
-          <strong>{money(line.clientPriceMinor, line.currency)}</strong></div>
+          <strong>{formatMoney(line.clientPriceMinor, line.currency)}</strong></div>
         <p className="booking-guardrail">Creating this draft does not contact or commit the supplier.</p>
         <button className="primary-button" disabled={busy} onClick={() => void create(line)}>
           Create booking draft</button>
@@ -64,8 +62,7 @@ function BookingCard({ tenantId, booking, busy, request, confirm }: {
     <StatusHeader status={statusLabel(booking.status)} product={booking.productName} />
     <PlacementFacts item={booking} />
     <div className="booking-total"><span>{buyer ? 'Client-approved total' : 'Supplier amount'}</span>
-      <strong>{money(buyer ? booking.clientPriceMinor! : booking.supplierCostMinor,
-        booking.currency)}</strong></div>
+      <strong>{bookingAmount(booking, buyer)}</strong></div>
     <details className="booking-terms"><summary>Frozen booking terms</summary>
       <p>{booking.terms}</p></details>
     {buyer && booking.status === masterDataCodes.lifecycleStatuses.draft &&
@@ -118,4 +115,9 @@ function statusLabel(status: string) {
   if (status === masterDataCodes.lifecycleStatuses.pendingSupplier) return 'Supplier review'
   if (status === masterDataCodes.lifecycleStatuses.confirmed) return 'Confirmed'
   return status
+}
+
+function bookingAmount(booking: Booking, buyer: boolean) {
+  const amount = buyer ? booking.clientPriceMinor : booking.supplierCostMinor
+  return amount == null ? 'Not available' : formatMoney(amount, booking.currency)
 }

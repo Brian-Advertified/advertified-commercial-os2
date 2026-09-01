@@ -3,10 +3,14 @@ import { z } from 'zod'
 const requiredText = z.string().trim().min(1)
 const nullableText = z.string().nullable()
 
+const localBrowserPath = z.string().regex(/^\/(?!\/)/u)
+
 export const sessionSchema = z.object({
   authenticated: z.boolean(),
   antiforgeryToken: requiredText,
   expiresAtUtc: z.iso.datetime({ offset: true }).nullable(),
+  signInPath: localBrowserPath.nullable(),
+  signOutPath: localBrowserPath.nullable(),
 }).strict()
 
 export const currentUserSchema = z.object({
@@ -200,9 +204,10 @@ export const opportunityPageSchema = cursorPage(opportunitySchema)
 export const humanTaskPageSchema = cursorPage(humanTaskSchema)
 
 export const campaignBriefSummarySchema = z.object({
-  id: z.guid(), tenantId: z.guid(), clientId: z.guid(), opportunityId: z.guid().nullable(),
-  title: requiredText, ownerUserId: z.guid(), status: requiredText,
-  currentDraftVersionId: z.guid().nullable(), approvedVersionId: z.guid().nullable(),
+  id: z.guid(), tenantId: z.guid(), clientId: z.guid(), clientName: requiredText,
+  opportunityId: z.guid().nullable(), title: requiredText, ownerUserId: z.guid(), status: requiredText,
+  currentDraftVersionId: z.guid().nullable(), readyVersionId: z.guid().nullable(),
+  approvedVersionId: z.guid().nullable(),
   version: z.number().int().positive(), updatedAtUtc: z.iso.datetime({ offset: true }),
 }).strict()
 

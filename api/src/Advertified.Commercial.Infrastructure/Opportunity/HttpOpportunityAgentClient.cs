@@ -16,13 +16,15 @@ public sealed class HttpOpportunityAgentClient(
             httpClient,
             options.Value,
             input.AgentCode,
-            CreatePayload(input),
+            CreatePayload(input, options.Value),
             input.ApprovedEvidence.Select(item => item.Id).ToArray(),
             cancellationToken);
         return ToOutput(output);
     }
 
-    private static object CreatePayload(OpportunityAgentInput input) => new
+    private static object CreatePayload(
+        OpportunityAgentInput input,
+        AgentRuntimeOptions settings) => new
     {
         invocation = AgentRuntimeHttpSupport.CreateInvocation(
             input.TenantId,
@@ -34,7 +36,8 @@ public sealed class HttpOpportunityAgentClient(
             "EvidenceSet",
             input.EvidenceSetId,
             input.EvidenceSetVersion,
-            input.ApprovedEvidence.Select(item => item.Id).ToArray()),
+            input.ApprovedEvidence.Select(item => item.Id).ToArray(),
+            settings),
         opportunity = new
         {
             id = input.OpportunityId,
@@ -67,7 +70,8 @@ public sealed class HttpOpportunityAgentClient(
             output.Usage.Units,
             output.Usage.ToolCalls,
             output.Usage.IncrementalCostMinor,
-            output.Usage.CacheStatus);
+            output.Usage.CacheStatus,
+            output.Usage.ProviderRequestId);
         var objections = output.Objections
             .Select(item => new AgentObjectionOutput(
                 item.Severity,

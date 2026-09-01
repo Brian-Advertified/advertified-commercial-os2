@@ -19,12 +19,27 @@ public static class DeliveryEndpoints
             .WithName("ReviewDeliveryProof").Produces<DeliveryProofView>()
             .WithCommandProblems(requiresVersion: true);
 
+        var requests = endpoints.MapGroup(
+                "/api/v1/tenants/{tenantId:guid}/delivery-proof-requests")
+            .WithTags("Campaign delivery").RequireAuthorization();
+        requests.MapGet(string.Empty, ListRequestsAsync)
+            .WithName("ListDeliveryProofRequests")
+            .Produces<IReadOnlyList<DeliveryProofRequestView>>().WithQueryProblems();
+
         var proofs = endpoints.MapGroup("/api/v1/tenants/{tenantId:guid}/delivery-proofs")
             .WithTags("Campaign delivery").RequireAuthorization();
         proofs.MapGet("/{proofId:guid}", GetAsync)
             .WithName("GetDeliveryProof").Produces<DeliveryProofView>().WithQueryProblems();
         return endpoints;
     }
+
+    private static async Task<IResult> ListRequestsAsync(
+        Guid tenantId,
+        ICurrentIdentity identity,
+        IDeliveryProofReader reader,
+        CancellationToken cancellationToken) =>
+        Results.Ok(await reader.ListRequestsAsync(
+            identity.ActorId, new TenantId(tenantId), cancellationToken));
 
     private static Task<IResult> SubmitAsync(
         Guid tenantId, Guid campaignId, SubmitDeliveryProofCommand command,

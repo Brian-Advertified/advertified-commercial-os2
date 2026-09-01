@@ -86,15 +86,25 @@ public sealed partial class BookingRecordStore
     {
         var suffix = forUpdate ? " FOR UPDATE OF booking" : string.Empty;
         return DbContext.Database.SqlQuery<BookingRow>(FormattableStringFactory.Create(
-                BookingSelect + " WHERE booking.id = {0}" + suffix, bookingId))
+                BookingSelect + " AND booking.id = {3}" + suffix,
+                BookingProjectionArguments(bookingId)))
             .SingleOrDefaultAsync(cancellationToken);
     }
 
     internal Task<List<BookingRow>> ListRowsAsync(CancellationToken cancellationToken) =>
         DbContext.Database.SqlQuery<BookingRow>(FormattableStringFactory.Create(
                 BookingSelect +
-                " ORDER BY booking.updated_at_utc DESC, booking.id DESC"))
+                " ORDER BY booking.updated_at_utc DESC, booking.id DESC LIMIT {3}",
+                BookingProjectionArguments(MaxBookingResults)))
             .ToListAsync(cancellationToken);
+
+    private static object[] BookingProjectionArguments(params object[] suffix) =>
+    [
+        MasterDataCodes.Roles.SupplierAdmin,
+        MasterDataCodes.Roles.SupplierUser,
+        MasterDataCodes.LifecycleStatuses.Active,
+        .. suffix,
+    ];
 
     internal Task<List<BookableLineRow>> ListBookableRowsAsync(
         TenantId tenantId,

@@ -6,11 +6,13 @@ public sealed record CampaignBriefSummaryView(
     Guid Id,
     Guid TenantId,
     Guid ClientId,
+    string ClientName,
     Guid? OpportunityId,
     string Title,
     Guid OwnerUserId,
     string Status,
     Guid? CurrentDraftVersionId,
+    Guid? ReadyVersionId,
     Guid? ApprovedVersionId,
     long Version,
     DateTimeOffset UpdatedAtUtc);

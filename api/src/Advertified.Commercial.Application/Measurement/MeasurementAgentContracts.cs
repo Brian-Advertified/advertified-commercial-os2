@@ -48,7 +48,8 @@ public sealed record MeasurementAgentProposal(
     long IncrementalCostMinor,
     string CacheStatus,
     string ContractVersion,
-    string PromptVersion);
+    string PromptVersion,
+    string? ProviderRequestId = null);
 
 public interface IMeasurementAgentClient
 {

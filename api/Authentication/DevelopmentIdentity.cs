@@ -13,8 +13,10 @@ public static class LocalIdentityDefaults
 {
     public const string Scheme = "AdvertifiedLocalIdentity";
     public const string CompositeScheme = "AdvertifiedIdentity";
+    public const string DisabledMode = "Disabled";
     public const string DeterministicMode = "Deterministic";
     public const string DeterministicSessionMode = "DeterministicSession";
+    public const string OidcMode = "Oidc";
     public const string HumanIdentity = "human";
     public const string ServiceIdentity = "service";
 }

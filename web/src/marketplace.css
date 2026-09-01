@@ -1,96 +1,388 @@
-.marketplace-search {
-  align-items: end;
+.marketplace-workbench {
+  width: min(96rem, 100%);
+  margin: 0 auto;
   display: grid;
-  gap: 1rem;
-  grid-template-columns: 2fr 1fr 1fr auto;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
 }
 
-.marketplace-publish,
-.marketplace-action-form {
-  margin: 1rem 0;
-}
-
-.marketplace-publish {
-  border-left: 4px solid var(--electric-deep);
-}
-
-.marketplace-publish textarea,
-.marketplace-action-form textarea {
-  min-height: 6rem;
-}
-
-.marketplace-grid {
+.marketplace-command-header {
+  padding: 0.9rem 1rem;
   display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
-  margin: 1rem 0 2rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
 }
 
-.marketplace-listing {
+.marketplace-command-icon {
+  width: 2.7rem;
+  height: 2.7rem;
+  display: grid;
+  place-items: center;
+  color: var(--electric-soft);
+  border-right: 1px solid var(--line);
+}
+
+.marketplace-command-header h1 {
+  margin: 0.05rem 0 0.22rem;
+  color: var(--navy);
+  font-size: 1.35rem;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+
+.marketplace-command-header > div > p:last-child {
+  margin: 0;
+  max-width: 48rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.marketplace-access {
+  min-width: 10rem;
+  padding-left: 0.8rem;
+  display: grid;
+  justify-items: end;
+  gap: 0.2rem;
+  border-left: 1px solid var(--line);
+}
+
+.marketplace-access span,
+.marketplace-access strong { font-size: 0.75rem; }
+.marketplace-access span { color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.marketplace-access strong { color: var(--navy); }
+
+.marketplace-metric-strip {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+}
+
+.marketplace-metric-strip > div {
+  min-width: 0;
+  padding: 0.6rem 0.75rem;
+  display: grid;
+  gap: 0.12rem;
+  border-right: 1px solid var(--line);
+}
+
+.marketplace-metric-strip > div:last-child { border-right: 0; }
+.marketplace-metric-strip dt { color: var(--muted); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.marketplace-metric-strip dd { margin: 0; color: var(--navy); font-size: 1rem; font-weight: 850; }
+.marketplace-metric-strip small { color: var(--muted); font-size: 0.75rem; }
+
+.marketplace-tabs {
   display: flex;
-  flex-direction: column;
+  overflow-x: auto;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
 }
 
-.marketplace-listing .button-row {
-  margin-top: auto;
-  padding-top: 1rem;
+.marketplace-tabs button {
+  min-height: 2.35rem;
+  padding: 0.48rem 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted-strong);
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
-.marketplace-facts {
+.marketplace-tabs button[aria-pressed="true"] {
+  color: var(--navy);
+  background: var(--surface-strong);
+  border-bottom-color: var(--electric);
+}
+
+.marketplace-tabs button span { color: var(--electric-soft); font-size: 0.75rem; }
+
+.marketplace-filter-bar {
+  margin-bottom: 0.75rem;
+  padding: 0.7rem 0.8rem;
   display: grid;
-  gap: .6rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 1rem 0;
+  grid-template-columns: minmax(10rem, 0.24fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 0.8rem;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
 }
 
-.marketplace-facts div {
+.marketplace-filter-bar > header,
+.marketplace-publish > header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.marketplace-filter-bar > header > span,
+.marketplace-publish > header > span {
+  width: 2.2rem;
+  height: 2.2rem;
+  display: grid;
+  place-items: center;
+  color: var(--electric-soft);
+  border-right: 1px solid var(--line);
+}
+
+.marketplace-filter-bar h2,
+.marketplace-publish h2,
+.marketplace-ledger h2,
+.marketplace-action-form h2,
+.marketplace-inspector h2 {
+  margin: 0.05rem 0 0;
+  color: var(--navy);
+  font-size: 0.88rem;
+}
+
+.marketplace-filter-fields {
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr 1fr auto;
+  align-items: end;
+  gap: 0.55rem;
+}
+
+.marketplace-filter-fields .secondary-button { white-space: nowrap; }
+.marketplace-filter-bar .field-group,
+.marketplace-publish .field-group,
+.marketplace-action-form .field-group { color: var(--muted-strong); font-size: 0.75rem; font-weight: 750; }
+
+.marketplace-filter-bar input,
+.marketplace-filter-bar select,
+.marketplace-publish input,
+.marketplace-publish select,
+.marketplace-publish textarea,
+.marketplace-action-form input,
+.marketplace-action-form select,
+.marketplace-action-form textarea {
+  width: 100%;
+  min-height: 2.35rem;
+  padding: 0.48rem 0.58rem;
+  color: var(--navy);
   background: var(--canvas);
-  border-radius: .5rem;
-  padding: .7rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.25rem;
+  font: inherit;
+  font-size: 0.75rem;
 }
 
-.marketplace-facts dt {
-  color: var(--text-muted);
-  font-size: .75rem;
+.marketplace-master-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.42fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.marketplace-ledger {
+  min-width: 0;
+  overflow: hidden;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+}
+
+.marketplace-ledger-heading {
+  padding: 0.68rem 0.8rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--line);
+}
+
+.marketplace-ledger-heading > span { color: var(--muted); font-size: 0.75rem; }
+.marketplace-table-scroll { width: 100%; overflow-x: auto; }
+.marketplace-table { width: 100%; border-collapse: collapse; }
+.marketplace-table th {
+  padding: 0.42rem 0.65rem;
+  color: var(--muted);
+  background: var(--canvas);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: left;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.marketplace-facts dd {
-  margin: .25rem 0 0;
+.marketplace-table td {
+  padding: 0.58rem 0.65rem;
+  color: var(--muted-strong);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.75rem;
+  vertical-align: middle;
 }
 
-.marketplace-requests {
-  border-top: 1px solid var(--line);
-  padding-top: 2rem;
+.marketplace-table tbody tr:last-child td { border-bottom: 0; }
+.marketplace-table tbody tr:hover td,
+.marketplace-row-selected td { background: var(--surface-strong); }
+.marketplace-row-selected td:first-child { border-left: 2px solid var(--electric); }
+.marketplace-table td > strong,
+.marketplace-table td > small { display: block; }
+.marketplace-table td > strong { color: var(--navy); font-size: 0.75rem; }
+.marketplace-table td > small { margin-top: 0.15rem; color: var(--muted); font-size: 0.75rem; }
+
+.marketplace-product-cell { min-width: 15rem; display: flex; align-items: center; gap: 0.55rem; }
+.marketplace-product-cell > span { width: 1.9rem; height: 1.9rem; display: grid; place-items: center; color: var(--electric-soft); border-right: 1px solid var(--line); }
+.marketplace-product-cell > div > strong { display: block; overflow: hidden; color: var(--navy); font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
+.marketplace-product-cell small { display: block; margin-top: 0.1rem; color: var(--muted); font-size: 0.75rem; }
+.marketplace-availability { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--navy); font-size: 0.75rem; font-weight: 700; }
+.marketplace-availability::before { width: 0.38rem; height: 0.38rem; background: var(--positive); border-radius: 50%; content: ""; }
+.marketplace-row-action { width: 1%; text-align: right; white-space: nowrap; }
+.marketplace-row-action .text-action { font-size: 0.75rem; }
+
+.marketplace-row-select {
+  min-width: 14rem;
+  padding: 0;
+  display: grid;
+  gap: 0.12rem;
+  color: var(--navy);
+  background: transparent;
+  border: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
-.marketplace-request h3 {
-  margin: .4rem 0 0;
+.marketplace-row-select strong { font-size: 0.75rem; }
+.marketplace-row-select small { color: var(--muted); font-size: 0.75rem; }
+.marketplace-state { display: grid; gap: 0.08rem; color: var(--muted-strong); font-size: 0.75rem; }
+.marketplace-state small { color: var(--electric-soft); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.04em; }
+.marketplace-open-row { width: 1.8rem; height: 1.8rem; padding: 0.25rem; color: var(--muted); background: transparent; border: 0; cursor: pointer; }
+.marketplace-open-row:hover { color: var(--electric-soft); }
+
+.marketplace-action-form,
+.marketplace-inspector,
+.marketplace-publish {
+  padding: 0.8rem 0.85rem;
+  color: var(--body);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
 }
 
-.marketplace-response {
-  background: var(--canvas);
-  border-radius: .6rem;
-  margin: 1rem 0;
-  padding: 1rem;
+.marketplace-action-form,
+.marketplace-inspector { position: sticky; top: 4.25rem; border-left: 2px solid var(--electric); }
+.marketplace-action-form { display: grid; gap: 0.7rem; }
+.marketplace-action-form > header,
+.marketplace-inspector > header,
+.marketplace-response > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.marketplace-response p:last-child {
-  margin-bottom: 0;
+.marketplace-action-form > header p,
+.marketplace-inspector > header p { margin: 0.16rem 0 0; color: var(--muted); font-size: 0.75rem; }
+.marketplace-editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
+.marketplace-action-form textarea { min-height: 4.5rem; resize: vertical; }
+.marketplace-action-form > footer { padding-top: 0.65rem; display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; border-top: 1px solid var(--line); }
+.marketplace-action-form > footer p { margin: 0; color: var(--muted); font-size: 0.75rem; line-height: 1.4; }
+.marketplace-action-form > footer button { flex: 0 0 auto; }
+
+.marketplace-inspector-status { min-width: 7rem; padding-left: 0.65rem; display: grid; justify-items: end; gap: 0.12rem; border-left: 1px solid var(--line); }
+.marketplace-inspector-status small { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; }
+.marketplace-inspector-status strong { color: var(--navy); font-size: 0.75rem; }
+.marketplace-inspector-facts { margin: 0.7rem 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.marketplace-inspector-facts > div,
+.marketplace-response dl > div { padding: 0.48rem 0; display: grid; gap: 0.12rem; border-bottom: 1px solid var(--line); }
+.marketplace-inspector-facts > div:nth-child(odd) { padding-right: 0.5rem; border-right: 1px solid var(--line); }
+.marketplace-inspector-facts > div:nth-child(even) { padding-left: 0.5rem; }
+.marketplace-inspector-facts dt,
+.marketplace-response dt { color: var(--muted); font-size: 0.75rem; }
+.marketplace-inspector-facts dd,
+.marketplace-response dd { margin: 0; color: var(--navy); font-size: 0.75rem; font-weight: 700; overflow-wrap: anywhere; }
+.marketplace-awaiting-response { margin: 0.7rem 0 0; padding: 0.6rem 0; color: var(--muted); border-block: 1px solid var(--line); font-size: 0.75rem; }
+
+.marketplace-response { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid var(--line); }
+.marketplace-response h3 { margin: 0.05rem 0 0; color: var(--navy); font-size: 0.86rem; }
+.marketplace-response > header > span { color: var(--positive); font-size: 0.75rem; font-weight: 750; }
+.marketplace-response dl { margin: 0.55rem 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.marketplace-response dl > div:first-child { padding-right: 0.5rem; border-right: 1px solid var(--line); }
+.marketplace-response dl > div:last-child { padding-left: 0.5rem; }
+.marketplace-response > p { margin: 0.55rem 0; color: var(--muted-strong); font-size: 0.75rem; line-height: 1.45; }
+.marketplace-evidence { padding-top: 0.5rem; display: grid; gap: 0.2rem; border-top: 1px solid var(--line); font-size: 0.75rem; }
+.marketplace-evidence strong { color: var(--navy); }
+.marketplace-evidence span,
+.marketplace-evidence ul { margin: 0; color: var(--muted); }
+.marketplace-evidence ul { padding-left: 1rem; }
+
+.marketplace-inspector-actions { margin-top: 0.7rem; padding-top: 0.65rem; border-top: 1px solid var(--line); }
+.marketplace-inspector-actions > p,
+.marketplace-boundary-note { margin: 0; display: flex; align-items: flex-start; gap: 0.4rem; color: var(--muted); font-size: 0.75rem; line-height: 1.4; }
+.marketplace-inspector-actions .icon,
+.marketplace-boundary-note .icon { flex: 0 0 auto; color: var(--electric-soft); }
+.marketplace-inspector-actions > div { margin-top: 0.6rem; display: flex; justify-content: flex-end; }
+.marketplace-inspector-empty { min-height: 10rem; position: static; display: flex; align-items: center; gap: 0.7rem; border-left-color: var(--line); }
+.marketplace-inspector-empty > .icon { color: var(--muted); }
+.marketplace-inspector-empty p { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.75rem; }
+
+.marketplace-empty { min-height: 7rem; padding: 0.8rem; display: flex; align-items: center; gap: 0.7rem; }
+.marketplace-empty > span { width: 2.2rem; height: 2.2rem; display: grid; place-items: center; color: var(--electric-soft); border-right: 1px solid var(--line); }
+.marketplace-empty h2 { margin: 0; }
+.marketplace-empty p { margin: 0.18rem 0 0; color: var(--muted); font-size: 0.75rem; }
+
+.marketplace-publish { display: grid; gap: 0.75rem; }
+.marketplace-publish > header p:last-child { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.75rem; }
+.marketplace-publish-fields { display: grid; grid-template-columns: minmax(14rem, 0.7fr) minmax(20rem, 1.3fr) auto; align-items: end; gap: 0.65rem; }
+.marketplace-publish textarea { min-height: 4rem; resize: vertical; }
+.marketplace-boundary-note { padding-top: 0.65rem; border-top: 1px solid var(--line); }
+
+@media (max-width: 1050px) {
+  .marketplace-filter-bar { grid-template-columns: 1fr; }
+  .marketplace-master-detail { grid-template-columns: 1fr; }
+  .marketplace-action-form,
+  .marketplace-inspector { position: static; }
+  .marketplace-publish-fields { grid-template-columns: 1fr 1fr; }
+  .marketplace-publish-fields .primary-button { grid-column: 1 / -1; }
 }
 
-.marketplace-empty {
-  margin: 1rem 0 2rem;
+@media (max-width: 760px) {
+  .marketplace-command-header { grid-template-columns: auto minmax(0, 1fr); }
+  .marketplace-access { grid-column: 1 / -1; padding: 0.55rem 0 0; justify-items: start; border-top: 1px solid var(--line); border-left: 0; }
+  .marketplace-metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .marketplace-metric-strip > div:nth-child(2) { border-right: 0; }
+  .marketplace-metric-strip > div:nth-child(-n + 2) { border-bottom: 1px solid var(--line); }
+  .marketplace-filter-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .marketplace-filter-fields .secondary-button { width: 100%; }
+  .marketplace-secondary-column { display: none; }
+  .marketplace-product-cell { min-width: 10rem; }
+  .marketplace-publish-fields { grid-template-columns: 1fr; }
+  .marketplace-publish-fields .primary-button { grid-column: auto; }
 }
 
-@media (max-width: 800px) {
-  .marketplace-search,
-  .marketplace-facts {
-    grid-template-columns: 1fr;
-  }
-
-  .marketplace-grid {
-    grid-template-columns: 1fr;
-  }
+@media (max-width: 520px) {
+  .marketplace-filter-fields,
+  .marketplace-editor-grid,
+  .marketplace-inspector-facts { grid-template-columns: 1fr; }
+  .marketplace-table th,
+  .marketplace-table td { padding-inline: 0.48rem; }
+  .marketplace-table:not(.marketplace-request-table) th:nth-child(4),
+  .marketplace-table:not(.marketplace-request-table) td:nth-child(4),
+  .marketplace-table:not(.marketplace-request-table) th:nth-child(5),
+  .marketplace-table:not(.marketplace-request-table) td:nth-child(5) { display: none; }
+  .marketplace-row-action { width: 7rem; white-space: normal; }
+  .marketplace-request-table th:nth-child(3),
+  .marketplace-request-table td:nth-child(3) { display: none; }
+  .marketplace-inspector-facts > div:nth-child(n) { padding-inline: 0; border-right: 0; }
+  .marketplace-action-form > footer { align-items: stretch; flex-direction: column; }
+  .marketplace-action-form > footer button { width: 100%; }
 }

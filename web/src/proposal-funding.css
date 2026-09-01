@@ -1,0 +1,36 @@
+.proposal-funding-next {
+  padding: .8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--body);
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--positive);
+  border-radius: .25rem;
+  box-shadow: none;
+}
+
+.proposal-funding-next h2 {
+  margin: 0.15rem 0 0.35rem;
+  color: var(--navy);
+  font-size: .9rem;
+}
+
+.proposal-funding-next p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 700px) {
+  .proposal-funding-next {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .proposal-funding-next .primary-button {
+    width: 100%;
+  }
+}

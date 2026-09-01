@@ -11,7 +11,8 @@ public sealed partial class OpportunityAcceptanceTests
 {
     private static async Task AssertSuppliedBriefPathAsync(
         HttpClient solo,
-        Guid clientId)
+        Guid clientId,
+        string connectionString)
     {
         const string original =
             "The client wants qualified Gauteng enquiries by December. Budget was not supplied.";
@@ -30,6 +31,8 @@ public sealed partial class OpportunityAcceptanceTests
             });
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         using var createdJson = await ReadJsonAsync(created);
+        Assert.Equal("Opportunity Test Client",
+            createdJson.RootElement.GetProperty("clientName").GetString());
         var briefId = createdJson.RootElement.GetProperty("id").GetGuid();
         using var draftResponse = await SendCommandAsync(
             solo,
@@ -39,20 +42,23 @@ public sealed partial class OpportunityAcceptanceTests
         Assert.Equal(HttpStatusCode.Created, draftResponse.StatusCode);
         using var draftJson = await ReadJsonAsync(draftResponse);
         var draft = draftJson.RootElement.Clone();
-        var approved = await ConfirmBriefAsync(
-            solo, solo, draft, null, "brief-solo");
+        var ready = await MarkBriefReadyAsync(solo, draft, "brief-solo");
+        await AssertBriefReadyWithoutApprovalAsync(
+            connectionString, briefId, ready.GetProperty("id").GetGuid());
 
         using var revisionResponse = await SendCommandAsync(
             solo,
             $"/api/v1/tenants/{TenantId}/briefs/{briefId}/versions",
             "brief-supplied-version-2",
-            SuppliedVersion(briefId, approved.GetProperty("id").GetGuid(),
+            SuppliedVersion(briefId, ready.GetProperty("id").GetGuid(),
                 "Generate qualified enquiries and record their source."));
         Assert.Equal(HttpStatusCode.Created, revisionResponse.StatusCode);
         using var detailResponse = await solo.GetAsync(
             $"/api/v1/tenants/{TenantId}/briefs/{briefId}");
         using var detailJson = await ReadJsonAsync(detailResponse);
         var detail = detailJson.RootElement;
+        Assert.Equal("Opportunity Test Client",
+            detail.GetProperty("brief").GetProperty("clientName").GetString());
         var suppliedSource = detail.GetProperty("sources")[0];
         Assert.Equal(original, suppliedSource.GetProperty("content").GetString());
         Assert.Equal(
@@ -60,8 +66,10 @@ public sealed partial class OpportunityAcceptanceTests
             suppliedSource.GetProperty("contentHash").GetString());
         Assert.Equal(2, detail.GetProperty("versions").GetArrayLength());
         Assert.Equal(
-            approved.GetProperty("id").GetGuid(),
-            detail.GetProperty("brief").GetProperty("approvedVersionId").GetGuid());
+            ready.GetProperty("id").GetGuid(),
+            detail.GetProperty("brief").GetProperty("readyVersionId").GetGuid());
+        Assert.Equal(JsonValueKind.Null,
+            detail.GetProperty("brief").GetProperty("approvedVersionId").ValueKind);
         Assert.Equal("DRAFT", detail.GetProperty("brief").GetProperty("status").GetString());
     }
 
@@ -93,6 +101,45 @@ public sealed partial class OpportunityAcceptanceTests
         Assert.Equal("The Brief is confirmed and ready for planning.",
             final.GetProperty("nextAction").GetString());
         await AssertBriefLineageAsync(connectionString, opportunityId);
+    }
+
+    private static async Task<JsonElement> MarkBriefReadyAsync(
+        HttpClient client,
+        JsonElement draft,
+        string keyPrefix)
+    {
+        var versionId = draft.GetProperty("id").GetGuid();
+        using var response = await SendCommandAsync(
+            client,
+            $"/api/v1/tenants/{TenantId}/brief-versions/{versionId}:ready",
+            $"{keyPrefix}-ready",
+            new { },
+            draft.GetProperty("version").GetInt64());
+        response.EnsureSuccessStatusCode();
+        using var json = await ReadJsonAsync(response);
+        Assert.Equal("READY", json.RootElement.GetProperty("status").GetString());
+        Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("approvedBy").ValueKind);
+        return json.RootElement.Clone();
+    }
+
+    private static async Task AssertBriefReadyWithoutApprovalAsync(
+        string connectionString,
+        Guid briefId,
+        Guid versionId)
+    {
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        Assert.Equal(1, await ScalarAsync(
+            connection,
+            "SELECT count(*)::integer FROM commercial.campaign_briefs " +
+            "WHERE id = $1 AND status_code = 'READY' " +
+            "AND ready_version_id IS NOT NULL AND approved_version_id IS NULL",
+            briefId));
+        Assert.Equal(0, await ScalarAsync(
+            connection,
+            "SELECT count(*)::integer FROM commercial.human_tasks " +
+            "WHERE resource_id = $1 AND task_type_code = 'BRIEF_APPROVAL'",
+            versionId));
     }
 
     private static async Task<JsonElement> ConfirmBriefAsync(
@@ -143,18 +190,15 @@ public sealed partial class OpportunityAcceptanceTests
         audiences = new[] { "People seeking workspace furniture" },
         geographies = new[] { "Gauteng" },
         timing = "By December 2026",
-        budgetMinor = (long?)null,
-        budgetUnknown = true,
-        currency = (string?)null,
+        budgetMinor = (long?)10_000_000,
+        budgetUnknown = false,
+        currency = "ZAR",
         vatStatus = (string?)null,
         feesMinor = (long?)null,
         constraints = Array.Empty<string>(),
         measurement = new[] { "Qualified enquiries" },
-        facts = new[] { "The supplied source names Gauteng and December." },
-        unknowns = new[]
-        {
-            new { fieldPath = "budget", question = "What budget is available?", isBlocking = false },
-        },
+        facts = new[] { "The supplied source names Gauteng, December and a media budget." },
+        unknowns = Array.Empty<object>(),
         assumptions = Array.Empty<object>(),
         conflicts = Array.Empty<object>(),
         evidenceItemIds = Array.Empty<Guid>(),

@@ -1,3 +1,5 @@
+using Advertified.Commercial.Domain.MasterData;
+
 namespace Advertified.Commercial.Infrastructure.EmailAutomation;
 
 public sealed class EmailAutomationOptions
@@ -14,6 +16,19 @@ public sealed class EmailAutomationOptions
     public string? SenderAddress { get; init; }
     public int WebhookToleranceSeconds { get; init; } = 300;
     public bool ProcessInline { get; init; } = true;
+
+    public bool IsProviderEnabled(string providerCode) => Mode switch
+    {
+        DeterministicMode => string.Equals(
+            providerCode,
+            MasterDataCodes.EmailProviders.Deterministic,
+            StringComparison.Ordinal),
+        ResendMode => string.Equals(
+            providerCode,
+            MasterDataCodes.EmailProviders.Resend,
+            StringComparison.Ordinal),
+        _ => false,
+    };
 
     public static bool IsSupported(EmailAutomationOptions options) =>
         options.Mode is DisabledMode or DeterministicMode or ResendMode;

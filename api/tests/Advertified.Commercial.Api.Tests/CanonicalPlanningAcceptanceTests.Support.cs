@@ -2,10 +2,13 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using Testcontainers.PostgreSql;
@@ -27,15 +30,23 @@ public sealed partial class CanonicalPlanningAcceptanceTests
     private static readonly Guid ImportId = Guid.Parse("75000000-0000-0000-0000-000000000002");
     private static readonly Guid CandidateId = Guid.Parse("75000000-0000-0000-0000-000000000003");
     private static readonly DateTimeOffset Now = new(2026, 8, 29, 18, 0, 0, TimeSpan.Zero);
-    private const string EmailWebhookSecret = "whsec_Z2F0ZS05LXdlaGhvb2stc2VjcmV0";
+    private static readonly string EmailWebhookSecret = string.Concat(
+        "whsec_", Convert.ToBase64String("deterministic-local-webhook-secret"u8));
 
     internal static PostgreSqlContainer CreatePostgres() => DisposablePostgres.Create(
         "advertified_planning", "advertified_planning", "advertified-planning-local-only");
 
+    internal static void ConfigureDeterministicPlanningClock(IServiceCollection services)
+    {
+        services.RemoveAll<TimeProvider>();
+        services.AddSingleton<TimeProvider>(new FixedPlanningTimeProvider());
+    }
+
     internal static WebApplicationFactory<Program> CreateFactory(
         string connectionString,
         Guid userId,
-        bool enableEmailAutomation = false) =>
+        bool enableEmailAutomation = false,
+        Action<IServiceCollection>? configureServices = null) =>
         new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
     {
         builder.UseEnvironment("Test");
@@ -57,6 +68,10 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         builder.UseSetting("Logging:LogLevel:Default", "Warning");
         builder.UseSetting("Logging:LogLevel:Microsoft.EntityFrameworkCore", "Warning");
         builder.ConfigureLogging(logging => logging.AddConsole());
+        if (configureServices is not null)
+        {
+            builder.ConfigureServices(configureServices);
+        }
     });
 
     internal static async Task SeedAsync(string connectionString)
@@ -148,5 +163,55 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         Assert.Equal(status, response.StatusCode);
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(code, json.RootElement.GetProperty("code").GetString());
+    }
+
+    private static async Task SeedInternalPlanReviewAsync(
+        string connectionString,
+        Guid planId)
+    {
+        var assumptions = $"[{JsonSerializer.Serialize("Private operator planning note.")}]";
+        var objection = JsonSerializer.Serialize(new
+        {
+            code = MasterDataCodes.PlanningObjectionTypes.BenchmarkInsufficient,
+            severity = MasterDataCodes.CriticSeverities.Advisory,
+            affectedField = "benchmark",
+            evidenceGap = "Internal comparison review remains open.",
+            recommendedResolution = "Operator should review the comparison evidence.",
+        });
+        var objections = $"[{objection}]";
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand("""
+            UPDATE commercial.media_plan_versions
+            SET assumptions_json = $1::jsonb, critic_report_json = $2::jsonb
+            WHERE tenant_id = $3 AND id = $4
+            """, connection);
+        command.Parameters.AddWithValue(assumptions);
+        command.Parameters.AddWithValue(objections);
+        command.Parameters.AddWithValue(TenantId);
+        command.Parameters.AddWithValue(planId);
+        Assert.Equal(1, await command.ExecuteNonQueryAsync());
+    }
+
+    private static async Task SetOperatorRoleAsync(
+        string connectionString,
+        string role)
+    {
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand("""
+            UPDATE commercial.memberships
+            SET role_code = $1, version = version + 1
+            WHERE tenant_id = $2 AND user_id = $3
+            """, connection);
+        command.Parameters.AddWithValue(role);
+        command.Parameters.AddWithValue(TenantId);
+        command.Parameters.AddWithValue(OperatorId);
+        Assert.Equal(1, await command.ExecuteNonQueryAsync());
+    }
+
+    private sealed class FixedPlanningTimeProvider : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => Now;
     }
 }

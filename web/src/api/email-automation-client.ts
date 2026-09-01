@@ -66,14 +66,18 @@ export const emailAutomationApi = {
 
   async processMessage(
     tenantId: string,
-    inboundEmailId: string,
+    run: EmailAutomationRun,
     antiforgeryToken: string,
   ): Promise<EmailAutomationRun> {
     return (await request(
-      tenantPath(tenantId, `messages/${inboundEmailId}:process`),
+      tenantPath(tenantId, `messages/${run.inboundEmailId}:process`),
       emailAutomationRunSchema,
       { method: 'POST', body: JSON.stringify({}) },
-      { antiforgeryToken, idempotencyKey: crypto.randomUUID() },
+      {
+        antiforgeryToken,
+        expectedVersion: run.version,
+        idempotencyKey: crypto.randomUUID(),
+      },
     )).data
   },
 

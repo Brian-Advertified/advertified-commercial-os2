@@ -1,0 +1,143 @@
+name: advertified-os2-dev
+
+services:
+  database-role-bootstrap:
+    image: advertified/postgres-dev:16-postgis3-pgvector0.8.6
+    entrypoint: ["psql"]
+    command:
+      - -v
+      - ON_ERROR_STOP=1
+      - -f
+      - /opt/advertified/init-scripts/02-provision-database-roles.sql
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: advertified
+      PGUSER: advertified
+      PGPASSWORD: advertified-local-only
+    volumes:
+      - ./init-scripts:/opt/advertified/init-scripts:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  migrator:
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+      target: migrator
+    image: advertified/commercial-migrator-dev:local
+    command: ["--apply"]
+    environment:
+      ADVERTIFIED_MIGRATION_CONNECTION_STRING: Host=postgres
+      PGPORT: "5432"
+      PGDATABASE: advertified
+      PGUSER: advertified
+      PGPASSWORD: advertified-local-only
+    depends_on:
+      database-role-bootstrap:
+        condition: service_completed_successfully
+    restart: "no"
+
+  development-seed:
+    image: advertified/postgres-dev:16-postgis3-pgvector0.8.6
+    entrypoint: ["psql"]
+    command:
+      - -v
+      - ON_ERROR_STOP=1
+      - -f
+      - /opt/advertified/development/seed-local-workspace.sql
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: advertified
+      PGUSER: advertified
+      PGPASSWORD: advertified-local-only
+    volumes:
+      - ./development:/opt/advertified/development:ro
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    restart: "no"
+
+  agent-runtime:
+    build:
+      context: ..
+      dockerfile: agent-runtime/Dockerfile
+    image: advertified/agent-runtime-dev:local
+    environment:
+      ADVERTIFIED_AGENT_RUNTIME_MODE: deterministic
+      ADVERTIFIED_AGENT_RUNTIME_SERVICE_KEY: advertified-agent-runtime-local-only
+    ports:
+      - "127.0.0.1:5098:8080"
+
+  api:
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+      target: api
+    image: advertified/commercial-api-dev:local
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Logging__Console__FormatterName: simple
+      Logging__Console__FormatterOptions__SingleLine: "true"
+      ConnectionStrings__CommercialDatabase: Host=postgres
+      PGPORT: "5432"
+      PGDATABASE: advertified
+      PGUSER: advertified
+      PGPASSWORD: advertified-local-only
+      Authentication__Mode: DeterministicSession
+      Authentication__DevelopmentIdentity__UserId: 10000000-0000-0000-0000-000000000001
+      Authentication__DevelopmentIdentity__ActorId: 10000000-0000-0000-0000-000000000001
+      Authentication__DevelopmentIdentity__IdentityType: human
+      Authentication__BrowserSession__SecureCookie: "false"
+      Authentication__BrowserSession__AllowedOrigins__0: http://localhost:3017
+      InventoryProtection__ObjectStoreMode: Minio
+      InventoryProtection__ScannerMode: ClamAv
+      InventoryProtection__Endpoint: minio:9000
+      InventoryProtection__AccessKey: advertified-local
+      InventoryProtection__SecretKey: advertified-local-only
+      InventoryProtection__Bucket: advertified-inventory
+      InventoryProtection__UseTls: "false"
+      InventoryProtection__ClamAvHost: clamav
+      InventoryProtection__ClamAvPort: "3310"
+      InventoryExtraction__Mode: Docling
+      InventoryExtraction__BaseUrl: http://docling:5001
+      InventoryExtraction__ApiKey: advertified-docling-local-only
+      InventoryExtraction__TimeoutSeconds: "180"
+      AgentRuntime__Mode: HttpDeterministic
+      AgentRuntime__BaseUrl: http://agent-runtime:8080
+      AgentRuntime__ServiceKey: advertified-agent-runtime-local-only
+      EmailAutomation__Mode: Deterministic
+      EmailAutomation__ProcessInline: "true"
+    ports:
+      - "127.0.0.1:5097:8080"
+    depends_on:
+      development-seed:
+        condition: service_completed_successfully
+      agent-runtime:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+      docling:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailhog:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
+    image: advertified/web-dev:local
+    environment:
+      ADVERTIFIED_API_UPSTREAM: http://api:8080
+    ports:
+      - "127.0.0.1:3017:8080"
+    depends_on:
+      api:
+        condition: service_healthy

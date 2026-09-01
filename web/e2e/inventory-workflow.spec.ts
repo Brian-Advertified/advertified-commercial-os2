@@ -45,14 +45,16 @@ test('supplier intake reaches operator review and searchable inventory', async (
   await expect(page.getByText('COMPLETED', { exact: true })).toBeVisible()
 
   await page.getByRole('link', { name: 'Inventory', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Bree Street Gantry' })).toBeVisible()
-  await page.getByRole('heading', { name: 'Bree Street Gantry' }).click()
-  await expect(page.getByText('Confirm availability before booking.')).toBeVisible()
+  const productLink = page.getByRole('link', { name: /Bree Street Gantry/ })
+  await expect(productLink).toBeVisible()
+  await productLink.click()
+  await expect(page).toHaveURL(`/inventory/products/${productId}`)
+  await expect(page.getByText('Confirm availability before booking.')).toBeVisible({ timeout: 15_000 })
   await expect(page.getByRole('heading', { name: 'How this placement compares' })).toBeVisible()
   await expect(page.getByText('Strong Value')).toBeVisible()
   await expect(page.getByText('25% below median')).toBeVisible()
   await page.getByText('RATE CARD', { exact: true }).click()
-  await expect(page.getByText(/SHA-256 a{64}/)).toBeVisible()
+  await expect(page.getByText(/File-integrity evidence: SHA-256 a{64}/)).toBeVisible()
 })
 
 async function handleApi(route: Route, state: State) {

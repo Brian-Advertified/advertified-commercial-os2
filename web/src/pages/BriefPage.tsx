@@ -3,14 +3,25 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { briefApi } from '../api/brief-client'
 import { humanMessage } from '../api/client'
 import { opportunityCodes } from '../api/opportunity-constants'
-import type { BriefVersion, CampaignBrief } from '../api/schemas'
+import type { CampaignBrief } from '../api/schemas'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
+import { BriefSourceHistory } from '../brief/BriefSourceHistory'
+import { BriefStructuredReview } from '../brief/BriefStructuredReview'
 import { LoadingState, MessageState } from '../components/PageState'
-import { formatMoney } from '../presentation/format'
+import { formatDateTime, humanizeCode } from '../presentation/format'
 
 const briefConfirmerRoles: readonly string[] =
   Object.values(opportunityCodes.briefConfirmerRole)
+
+type BriefWorkspaceView = 'structured' | 'evidence' | 'source' | 'history'
+
+const briefWorkspaceViews: readonly { id: BriefWorkspaceView; label: string }[] = [
+  { id: 'structured', label: 'Structured Brief' },
+  { id: 'evidence', label: 'Evidence and open items' },
+  { id: 'source', label: 'Original source' },
+  { id: 'history', label: 'Version history' },
+]
 
 export function BriefPage() {
   const { selected, loading } = useWorkspace()
@@ -30,94 +41,162 @@ function BriefRecord({ tenantId, briefId, token, canConfirm }: {
   token: string
   canConfirm: boolean
 }) {
+  const model = useBriefRecord(tenantId, briefId)
+  if (model.error && !model.record) {
+    return <MessageState title="Brief could not be opened" message={model.error} />
+  }
+  if (!model.record) return <LoadingState label="Loading the campaign Brief" />
+  return <BriefRecordContent record={model.record} error={model.error}
+    busy={model.busy} token={token} canConfirm={canConfirm} confirm={model.confirm} />
+}
+
+function BriefRecordContent({ record, error, busy, token, canConfirm, confirm }: {
+  record: CampaignBrief
+  error: string | null
+  busy: boolean
+  token: string
+  canConfirm: boolean
+  confirm: (version: CampaignBrief['versions'][number], token: string) => Promise<void>
+}) {
+  const [view, setView] = useBriefWorkspaceView()
+  const current = record.versions.at(-1)
+  if (!current) return <MessageState title="Brief is incomplete"
+    message="No retained Brief version is available for review." />
+  const approved = current.status === opportunityCodes.status.approved
+  const allowed = canConfirm && isConfirmable(current.status)
+  const backTarget = record.brief.opportunityId
+    ? `/opportunities/${record.brief.opportunityId}` : '/home'
+  return <section className="brief-record-page" aria-labelledby="brief-title">
+    <BriefCommandHeader record={record} approved={approved} allowed={allowed}
+      busy={busy} backTarget={backTarget} onConfirm={() => confirm(current, token)} />
+    <BriefSummaryStrip record={record} />
+    <BriefWorkspaceNavigation view={view} onSelect={setView} />
+    {error && <p className="inline-alert" role="alert">{error}</p>}
+    {view === 'structured' || view === 'evidence'
+      ? <BriefStructuredReview version={current} view={view} />
+      : <BriefSourceHistory record={record} view={view} />}
+  </section>
+}
+
+function BriefCommandHeader({ record, approved, allowed, busy, backTarget, onConfirm }: {
+  record: CampaignBrief
+  approved: boolean
+  allowed: boolean
+  busy: boolean
+  backTarget: string
+  onConfirm: () => Promise<void>
+}) {
+  const current = record.versions.at(-1)!
+  return <header className="brief-command-header">
+    <div className="brief-command-copy">
+      <Link className="text-action back-link" to={backTarget}>← Back to work</Link>
+      <p className="eyebrow">{record.brief.clientName} · Campaign Brief · Version {current.versionNumber}</p>
+      <h1 id="brief-title">{record.brief.title}</h1>
+      <p>{current.objective}</p>
+    </div>
+    <div className="brief-command-actions">
+      <span className={`brief-command-status ${statusTone(current.status)}`}>
+        <span aria-hidden="true" />{humanizeCode(record.brief.status, true)}
+      </span>
+      {allowed && <button className="primary-button" type="button" disabled={busy}
+        onClick={() => void onConfirm()}>{busy ? 'Confirming…' : 'Confirm this Brief'}</button>}
+      {approved && <Link className="primary-button" to={`/planning/${current.id}`}>
+        Continue to planning</Link>}
+    </div>
+  </header>
+}
+
+function BriefSummaryStrip({ record }: { record: CampaignBrief }) {
+  const current = record.versions.at(-1)!
+  const unresolvedConflicts = current.conflicts.filter(item => !item.resolved).length
+  const openItems = current.unknowns.length + unresolvedConflicts
+  return <dl className="brief-summary-strip" aria-label="Current Brief summary">
+    <SummaryItem label="Current version" value={`Version ${current.versionNumber}`}
+      detail={`${record.versions.length} retained · ${formatDateTime(current.createdAtUtc)}`} />
+    <SummaryItem label="Source integrity" value={`${record.sources.length} source${record.sources.length === 1 ? '' : 's'}`}
+      detail="Original content retained" />
+    <SummaryItem label="Open review items" value={String(openItems)}
+      detail={`${current.unknowns.length} questions · ${unresolvedConflicts} conflicts`} />
+    <SummaryItem label="Evidence on version" value={String(current.evidenceItemIds.length)}
+      detail={`${current.facts.length} recorded facts`} />
+  </dl>
+}
+
+function SummaryItem({ label, value, detail }: {
+  label: string
+  value: string
+  detail: string
+}) {
+  return <div><dt>{label}</dt><dd>{value}</dd><small>{detail}</small></div>
+}
+
+function BriefWorkspaceNavigation({ view, onSelect }: {
+  view: BriefWorkspaceView
+  onSelect: (view: BriefWorkspaceView) => void
+}) {
+  return <nav className="brief-workspace-navigation" aria-label="Brief record views">
+    {briefWorkspaceViews.map(item => <a key={item.id} href={`#brief-${item.id}`}
+      aria-current={view === item.id ? 'page' : undefined}
+      onClick={() => onSelect(item.id)}>{item.label}</a>)}
+  </nav>
+}
+
+function useBriefWorkspaceView() {
+  const [view, setView] = useState<BriefWorkspaceView>(() => viewFromHash(window.location.hash))
+  useEffect(() => {
+    const syncFromHash = () => setView(viewFromHash(window.location.hash))
+    window.addEventListener('hashchange', syncFromHash)
+    return () => window.removeEventListener('hashchange', syncFromHash)
+  }, [])
+  return [view, setView] as const
+}
+
+function viewFromHash(hash: string): BriefWorkspaceView {
+  const requested = hash.replace('#brief-', '')
+  return briefWorkspaceViews.some(item => item.id === requested)
+    ? requested as BriefWorkspaceView
+    : 'structured'
+}
+
+function isConfirmable(status: string) {
+  return status === opportunityCodes.status.draft ||
+    status === opportunityCodes.status.inReview
+}
+
+function statusTone(status: string) {
+  if (status === opportunityCodes.status.approved) return 'is-positive'
+  if (status === opportunityCodes.status.inReview) return 'is-warning'
+  return 'is-neutral'
+}
+
+function useBriefRecord(tenantId: string, briefId: string) {
   const [record, setRecord] = useState<CampaignBrief | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const load = useCallback(async () => {
     setRecord(await briefApi.get(tenantId, briefId)); setError(null)
   }, [tenantId, briefId])
-
   useEffect(() => {
     let active = true
     void briefApi.get(tenantId, briefId)
-      .then((brief) => { if (active) setRecord(brief) })
+      .then(value => { if (active) setRecord(value) })
       .catch((failure: unknown) => { if (active) setError(humanMessage(failure)) })
     return () => { active = false }
   }, [tenantId, briefId])
-  if (error && !record) return <MessageState title="Brief could not be opened" message={error} />
-  if (!record) return <LoadingState label="Loading the campaign Brief" />
-  const current = record.versions.at(-1)
-  async function confirm() {
-    if (!current) return
+  async function confirm(version: CampaignBrief['versions'][number], antiforgeryToken: string) {
     setBusy(true); setError(null)
     try {
-      if (current.status === opportunityCodes.status.draft) {
-        await briefApi.confirm(tenantId, current, token)
+      if (version.status === opportunityCodes.status.draft) {
+        await briefApi.confirm(tenantId, version, antiforgeryToken)
+      } else {
+        await briefApi.approve(tenantId, version, antiforgeryToken)
       }
-      else await briefApi.approve(tenantId, current, token)
       await load()
-    } catch (failure) { setError(humanMessage(failure)) } finally { setBusy(false) }
+    } catch (failure) {
+      setError(humanMessage(failure))
+    } finally {
+      setBusy(false)
+    }
   }
-  return <section aria-labelledby="brief-title">
-    <Link className="text-action back-link" to={record.brief.opportunityId
-      ? `/opportunities/${record.brief.opportunityId}` : '/briefs/new'}>← Back</Link>
-    <header className="page-heading page-heading-split"><div><p className="eyebrow">Campaign Brief</p>
-      <h1 id="brief-title">{record.brief.title}</h1><p>One canonical source, every version retained.</p></div>
-      <span className="status-chip">{record.brief.status.replaceAll('_', ' ')}</span></header>
-    {error && <p className="inline-alert" role="alert">{error}</p>}
-    {current && <BriefOverview version={current} busy={busy} confirm={confirm}
-      allowed={canConfirm} />}
-    <SourcePanel record={record} />
-    <VersionHistory versions={record.versions} />
-  </section>
-}
-
-function BriefOverview({ version, busy, confirm, allowed }: {
-  version: BriefVersion
-  busy: boolean
-  confirm: () => Promise<void>
-  allowed: boolean
-}) {
-  const canConfirm = allowed && (version.status === opportunityCodes.status.draft ||
-    version.status === opportunityCodes.status.inReview)
-  return <article className="next-action-card brief-overview">
-    <div className="page-heading-split"><div><p className="eyebrow eyebrow-light">Current version</p>
-      <h2>Version {version.versionNumber}: {version.objective}</h2></div>
-      {canConfirm && <button className="primary-button" type="button" disabled={busy}
-        onClick={() => void confirm()}>{busy ? 'Confirming…' : 'Confirm this Brief'}</button>}
-      {version.status === opportunityCodes.status.approved &&
-        <Link className="primary-button" to={`/planning/${version.id}`}>Start planning</Link>}</div>
-    <p><strong>Business problem:</strong> {version.businessProblem}</p>
-    <p><strong>Timing:</strong> {version.timing}</p>
-    <p><strong>Budget:</strong> {version.budgetUnknown ? 'Not supplied' : formatMoney(
-      version.budgetMinor ?? 0, version.currency ?? opportunityCodes.currency.zar, 2)}</p>
-    <TagList label="Audience direction" values={version.audiences} />
-    <TagList label="Geographies" values={version.geographies} />
-    {version.unknowns.length > 0 && <div><h3>Still to confirm</h3><ul>
-      {version.unknowns.map((item) => <li key={`${item.fieldPath}-${item.question}`}>{item.question}</li>)}
-    </ul></div>}
-  </article>
-}
-
-function SourcePanel({ record }: { record: CampaignBrief }) {
-  return <article className="detail-card"><p className="eyebrow">Original source</p>
-    {record.sources.map((source) => <details key={source.id}>
-      <summary>{source.title} · SHA-256 {source.contentHash.slice(0, 12)}…</summary>
-      <p className="source-copy">{source.content}</p>
-    </details>)}</article>
-}
-
-function VersionHistory({ versions }: { versions: BriefVersion[] }) {
-  return <article className="detail-card"><p className="eyebrow">Version comparison</p>
-    <h2>{versions.length} retained version{versions.length === 1 ? '' : 's'}</h2>
-    <div className="version-grid">{versions.map((version) => <section key={version.id}>
-      <span className="status-chip">{version.status}</span><h3>Version {version.versionNumber}</h3>
-      <p>{version.objective}</p><small>Created {new Date(version.createdAtUtc).toLocaleString()}</small>
-      {version.requestedChanges && <p>Requested: {version.requestedChanges}</p>}
-    </section>)}</div>
-  </article>
-}
-
-function TagList({ label, values }: { label: string; values: string[] }) {
-  return <div><strong>{label}:</strong> {values.length ? values.join(', ') : 'Not supplied'}</div>
+  return { record, error, busy, confirm }
 }

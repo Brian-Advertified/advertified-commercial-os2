@@ -37,7 +37,12 @@ public sealed class InboundEmailReceiver(
         var replyTo = EmailContentNormalizer.SelectReplyAddress(email);
         var body = EmailContentNormalizer.Body(email);
         var sourceHash = EmailContentNormalizer.SourceHash(email, sender, replyTo, body);
-        var metadata = EmailContentNormalizer.Metadata(rawPayload, email);
+        var allowedDomains = EmailAutomationRecordStore.Read<string[]>(
+            mailbox.AllowedSenderDomainsJson);
+        var automaticReply = EmailContentNormalizer.AssessAutomaticReply(
+            provider.AssessInboundIdentity(email), sender, replyTo, allowedDomains);
+        var metadata = EmailContentNormalizer.Metadata(
+            rawPayload, email, automaticReply);
         var command = new ReceiveInboundEmailCommand(
             mailbox.Id,
             Required(providerEventId, 300),

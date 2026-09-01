@@ -1,0 +1,16 @@
+.advertified-notifications {
+  --toastify-color-dark: #0d1628;
+  --toastify-text-color-dark: #e5edf8;
+  --toastify-toast-shadow: none;
+  --toastify-color-progress-dark: #4f8cff;
+  pointer-events: none;
+}
+
+.advertified-notifications .Toastify__toast {
+  border: 1px solid #33425d;
+  pointer-events: none;
+}
+
+.advertified-notifications .Toastify__close-button {
+  pointer-events: auto;
+}

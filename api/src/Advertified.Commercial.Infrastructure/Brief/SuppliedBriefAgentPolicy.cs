@@ -18,6 +18,7 @@ public sealed record SuppliedBriefAgentPolicy(
     string[] MediaLabels,
     string[] MeasurementLabels,
     string[] ConstraintLabels,
+    IReadOnlyList<BriefCurrencyPolicy> ActiveCurrencies,
     string DefaultCurrency,
     decimal MinimumModeConfidence)
 {
@@ -45,6 +46,10 @@ public sealed record SuppliedBriefAgentPolicy(
                 item => item.Code,
                 item => ReadStringArray(item.MetadataJson, BriefTermsField),
                 StringComparer.Ordinal);
+        var currencies = CurrencyMetadata.ReadActive(registry)
+            .Select(item => new BriefCurrencyPolicy(
+                item.Code, item.MinorUnitDigits, item.BriefMarkers))
+            .ToArray();
 
         using var metadata = JsonDocument.Parse(policyItem.MetadataJson);
         var root = metadata.RootElement;
@@ -62,6 +67,7 @@ public sealed record SuppliedBriefAgentPolicy(
             ReadStringArray(root, "mediaLabels"),
             ReadStringArray(root, "measurementLabels"),
             ReadStringArray(root, "constraintLabels"),
+            currencies,
             root.GetProperty("defaultCurrency").GetString()
                 ?? throw new InvalidOperationException("The default Brief currency is missing."),
             root.GetProperty("minimumRouteConfidence").GetDecimal());
@@ -92,10 +98,20 @@ public sealed record SuppliedBriefAgentPolicy(
             policy.ObjectiveLabels.Length == 0 || policy.AudienceLabels.Length == 0 ||
             policy.GeographyLabels.Length == 0 || policy.TimingLabels.Length == 0 ||
             policy.MinimumModeConfidence is <= 0 or > 1 ||
-            string.IsNullOrWhiteSpace(policy.DefaultCurrency))
+            policy.ActiveCurrencies.Count == 0 ||
+            policy.ActiveCurrencies.Any(currency =>
+                currency.MinorUnitDigits is < 0 or > 9 ||
+                currency.BriefMarkers.Length == 0) ||
+            !policy.ActiveCurrencies.Any(currency =>
+                currency.Code == policy.DefaultCurrency))
         {
             throw new InvalidOperationException(
                 "The governed Brief-understanding policy is incomplete.");
         }
     }
 }
+
+public sealed record BriefCurrencyPolicy(
+    string Code,
+    int MinorUnitDigits,
+    string[] BriefMarkers);

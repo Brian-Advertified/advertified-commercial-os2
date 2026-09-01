@@ -5,11 +5,13 @@ using Microsoft.Extensions.Options;
 
 namespace Advertified.Commercial.Infrastructure.Planning;
 
-public sealed class HttpPlanningAgentClient(
+public sealed partial class HttpPlanningAgentClient(
     HttpClient httpClient,
     IOptions<AgentRuntimeOptions> options) : IPlanningAgentClient
 {
     private const string BriefVersionResourceType = "BriefVersion";
+    private HttpClient RuntimeHttpClient => httpClient;
+    private AgentRuntimeOptions RuntimeSettings => options.Value;
 
     public async Task<AudienceAgentProposal> ProposeAudiencesAsync(
         PlanningBriefInput input,
@@ -42,7 +44,8 @@ public sealed class HttpPlanningAgentClient(
             output.Rationale,
             output.Usage.Provider,
             output.Usage.Model,
-            output.Usage.IncrementalCostMinor);
+            output.Usage.IncrementalCostMinor,
+            output.Usage.ProviderRequestId);
     }
 
     public async Task<MediaPlanningAgentProposal> ProposeMediaMixAsync(
@@ -83,10 +86,11 @@ public sealed class HttpPlanningAgentClient(
             output.Rationale,
             output.Usage.Provider,
             output.Usage.Model,
-            output.Usage.IncrementalCostMinor);
+            output.Usage.IncrementalCostMinor,
+            output.Usage.ProviderRequestId);
     }
 
-    private static AgentInvocationRequest CreateInvocation(
+    private AgentInvocationRequest CreateInvocation(
         PlanningBriefInput input,
         string agentCode) => AgentRuntimeHttpSupport.CreateInvocation(
             input.TenantId,
@@ -98,7 +102,8 @@ public sealed class HttpPlanningAgentClient(
             BriefVersionResourceType,
             input.BriefVersionId,
             input.BriefVersion,
-            input.EvidenceItemIds);
+            input.EvidenceItemIds,
+            RuntimeSettings);
 
     private static AudienceDefinitionProposal ToProposal(AudienceDefinition item) => new(
         item.Name,

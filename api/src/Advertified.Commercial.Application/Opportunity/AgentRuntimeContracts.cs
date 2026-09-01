@@ -42,7 +42,8 @@ public sealed record AgentUsageOutput(
     int Units,
     int ToolCalls,
     long IncrementalCostMinor,
-    string CacheStatus);
+    string CacheStatus,
+    string? ProviderRequestId = null);
 
 public sealed record OpportunityAgentOutput(
     string SchemaVersion,

@@ -1,26 +1,39 @@
 :root {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #344056;
-  background: #f4f7fb;
+  background: #f3f6fb;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 
   --navy: #071a33;
+  --navy-deep: #041326;
   --navy-soft: #102b4f;
   --navy-line: #28486d;
   --electric: #2b7cff;
   --electric-deep: #145fd1;
   --electric-soft: #9fc3ff;
   --electric-wash: #e8f1ff;
-  --canvas: #f4f7fb;
+  --canvas: #f3f6fb;
+  --surface-subtle: #f8fafc;
+  --surface-strong: #eef3f9;
   --white: #ffffff;
   --body: #344056;
   --muted: #6c778b;
+  --muted-strong: #536177;
   --slate-light: #c7d1df;
   --line: #dfe5ee;
   --line-strong: #cbd4e1;
-  --shadow-sm: 0 0.4rem 1.2rem rgba(7, 26, 51, 0.05);
+  --positive: #146c9c;
+  --positive-wash: #e6f3fb;
+  --warning: #9a641e;
+  --warning-wash: #fff4de;
+  --danger: #a3473d;
+  --danger-wash: #fff0ee;
+  --purple: #6a5bd1;
+  --purple-wash: #f0edff;
+  --shadow-sm: 0 0.45rem 1.35rem rgba(7, 26, 51, 0.06);
+  --shadow-md: 0 0.9rem 2.2rem rgba(7, 26, 51, 0.1);
   --shadow-lg: 0 1.5rem 3rem rgba(7, 26, 51, 0.18);
 }
 
@@ -50,9 +63,19 @@ a {
   text-underline-offset: 0.2em;
 }
 
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
 :focus-visible {
   outline: 0.18rem solid var(--electric);
   outline-offset: 0.18rem;
+}
+
+::selection {
+  color: var(--navy);
+  background: var(--electric-soft);
 }
 
 @media (prefers-reduced-motion: reduce) {

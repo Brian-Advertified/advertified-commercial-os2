@@ -30,6 +30,8 @@ public sealed record RetrievedInboundEmail(
     IReadOnlyList<InboundAttachmentReference> Attachments,
     DateTimeOffset ReceivedAtUtc);
 
+public sealed record InboundEmailIdentityAssessment(bool SenderAuthenticated);
+
 public sealed record ProposalEmailDelivery(
     string To,
     string From,
@@ -45,9 +47,23 @@ public sealed record EmailDeliveryReceipt(
     string ProviderMessageId,
     DateTimeOffset AcceptedAtUtc);
 
+public enum EmailDeliveryReconciliationOutcome
+{
+    Accepted,
+    NotFound,
+    Unknown
+}
+
+public sealed record EmailDeliveryReconciliationResult(
+    EmailDeliveryReconciliationOutcome Outcome,
+    EmailDeliveryReceipt? Receipt);
+
 public interface IEmailProviderClient
 {
     string ProviderCode { get; }
+
+    InboundEmailIdentityAssessment AssessInboundIdentity(
+        RetrievedInboundEmail email);
 
     bool VerifyWebhook(
         string rawPayload,
@@ -64,6 +80,10 @@ public interface IEmailProviderClient
 
     Task<EmailDeliveryReceipt> SendAsync(
         ProposalEmailDelivery delivery,
+        CancellationToken cancellationToken);
+
+    Task<EmailDeliveryReconciliationResult> ReconcileDeliveryAsync(
+        string idempotencyKey,
         CancellationToken cancellationToken);
 }
 

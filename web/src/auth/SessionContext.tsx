@@ -42,13 +42,20 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   useSessionExpiry(reload)
 
-  const signIn = useCallback(async () => {
-    if (!session) return
+  const signIn = useCallback(async (returnTo?: string) => {
+    if (!session) return false
+    if (session.signInPath) {
+      const destination = new URL(session.signInPath, window.location.origin)
+      destination.searchParams.set('returnTo', returnTo ?? '/workspaces')
+      window.location.assign(destination.toString())
+      return true
+    }
     setLoading(true)
     setError(null)
     try {
       await api.signIn(session.antiforgeryToken)
       setSession(await api.getSession())
+      return false
     } catch (failure) {
       setError(humanMessage(failure))
       throw failure
@@ -58,12 +65,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [session])
 
   const signOut = useCallback(async () => {
-    if (!session) return
+    if (!session) return false
+    sessionStorage.removeItem('advertified.workspace')
+    if (session.signOutPath) {
+      window.location.assign(session.signOutPath)
+      return true
+    }
     setLoading(true)
     try {
       await api.signOut(session.antiforgeryToken)
-      sessionStorage.removeItem('advertified.workspace')
       setSession(await api.getSession())
+      return false
     } finally {
       setLoading(false)
     }

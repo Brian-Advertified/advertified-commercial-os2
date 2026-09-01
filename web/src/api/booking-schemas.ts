@@ -21,7 +21,7 @@ export const bookablePlanLineSchema = z.object({
   vatMinor: z.number().int().nonnegative(),
   currency: z.string(),
   alreadyBooked: z.boolean(),
-})
+}).strict()
 
 export const bookingSchema = z.object({
   id: z.guid(),
@@ -41,7 +41,7 @@ export const bookingSchema = z.object({
   flightEnd: z.iso.date(),
   runningPeriods: z.number().int().positive(),
   quantity: z.number().int().positive(),
-  supplierCostMinor: z.number().int().nonnegative(),
+  supplierCostMinor: z.number().int().nonnegative().nullable().optional(),
   clientPriceMinor: nullableInteger,
   feesMinor: nullableInteger,
   vatMinor: nullableInteger,
@@ -56,11 +56,11 @@ export const bookingSchema = z.object({
   confirmedBy: z.guid().nullable(),
   confirmedAtUtc: z.iso.datetime({ offset: true }).nullable(),
   confirmationReason: z.string().nullable(),
-  supplierNote: z.string().nullable(),
+  supplierNote: z.string().nullable().optional(),
   termsAccepted: z.boolean(),
   version: z.number().int().positive(),
   updatedAtUtc: z.iso.datetime({ offset: true }),
-})
+}).strict()
 
 export const bookablePlanLinesSchema = z.array(bookablePlanLineSchema)
 export const bookingsSchema = z.array(bookingSchema)

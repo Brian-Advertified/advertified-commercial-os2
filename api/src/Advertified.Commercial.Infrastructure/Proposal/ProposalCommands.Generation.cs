@@ -16,7 +16,7 @@ public sealed partial class ProposalCommands
         CommandEnvelope<GenerateProposalCommand> envelope,
         CancellationToken cancellationToken)
     {
-        var brief = await LoadOwnedApprovedBriefAsync(briefId, envelope, cancellationToken);
+        var brief = await LoadOwnedPlanningReadyBriefAsync(briefId, envelope, cancellationToken);
         ValidateGenerateCommand(envelope.Command, timeProvider.GetUtcNow(), proposalPolicy);
         var plans = await LoadPlansAsync(
             envelope.TenantId, brief.BriefVersionId,
@@ -39,7 +39,7 @@ public sealed partial class ProposalCommands
                 item.Plan.Id, item.Plan.VersionNumber,
                 item.Label, item.Outcome, item.Plan.TotalMinor, item.Plan.Currency,
                 item.Plan.Channels)).ToArray()), cancellationToken);
-        if (narrative.IncrementalCostMinor != 0)
+        if (narrative.IncrementalCostMinor < 0)
         {
             throw new InvalidOperationException("The local proposal narrative exceeded its zero-cost policy.");
         }
@@ -75,13 +75,13 @@ public sealed partial class ProposalCommands
             MasterDataReferences.CommercialEventTypes.ProposalGenerated, now);
     }
 
-    private async Task<ApprovedBriefReferenceRow> LoadOwnedApprovedBriefAsync<TCommand>(
+    private async Task<PlanningReadyBriefReferenceRow> LoadOwnedPlanningReadyBriefAsync<TCommand>(
         Guid briefId,
         CommandEnvelope<TCommand> envelope,
         CancellationToken cancellationToken)
         where TCommand : notnull
     {
-        var brief = await store.FindApprovedBriefAsync(
+        var brief = await store.FindPlanningReadyBriefAsync(
             envelope.TenantId, briefId, cancellationToken)
             ?? throw new InvalidLifecycleTransitionException();
         if (brief.OwnerUserId != envelope.ActorId.Value)

@@ -78,7 +78,8 @@ internal static partial class EmailContentNormalizer
 
     internal static string Metadata(
         string rawPayload,
-        RetrievedInboundEmail email)
+        RetrievedInboundEmail email,
+        InboundAutomaticReplyAssessment automaticReply)
     {
         using var notification = JsonDocument.Parse(rawPayload);
         return JsonSerializer.Serialize(new
@@ -86,7 +87,54 @@ internal static partial class EmailContentNormalizer
             notification = notification.RootElement,
             headers = email.Headers,
             recipients = email.Recipients,
+            automaticReply = new
+            {
+                senderAuthenticated = automaticReply.SenderAuthenticated,
+                replyAddressAuthorized = automaticReply.ReplyAddressAuthorized,
+            },
         });
+    }
+
+    internal static InboundAutomaticReplyAssessment AssessAutomaticReply(
+        InboundEmailIdentityAssessment identity,
+        string sender,
+        string replyTo,
+        IReadOnlyList<string> allowedDomains)
+    {
+        var replyAuthorized = string.Equals(sender, replyTo, StringComparison.Ordinal) ||
+            allowedDomains.Count > 0 && IsAllowedDomain(replyTo, allowedDomains);
+        return new InboundAutomaticReplyAssessment(
+            identity.SenderAuthenticated,
+            replyAuthorized);
+    }
+
+    internal static bool IsAutomaticReplyVerified(string metadataJson)
+    {
+        using var metadata = JsonDocument.Parse(metadataJson);
+        if (!metadata.RootElement.TryGetProperty("automaticReply", out var assessment) ||
+            assessment.ValueKind != JsonValueKind.Object ||
+            !assessment.TryGetProperty("senderAuthenticated", out var sender) ||
+            !assessment.TryGetProperty("replyAddressAuthorized", out var reply))
+        {
+            return false;
+        }
+        return sender.ValueKind == JsonValueKind.True &&
+            reply.ValueKind == JsonValueKind.True;
+    }
+
+    private static bool IsAllowedDomain(
+        string address,
+        IReadOnlyList<string> allowedDomains)
+    {
+        var separator = address.LastIndexOf('@');
+        if (separator < 0 || separator == address.Length - 1)
+        {
+            return false;
+        }
+        var domain = address[(separator + 1)..];
+        return allowedDomains.Any(allowed =>
+            string.Equals(domain, allowed, StringComparison.Ordinal) ||
+            domain.EndsWith(string.Concat(".", allowed), StringComparison.Ordinal));
     }
 
     private static string NormalizeWhitespace(string value)
@@ -104,3 +152,7 @@ internal static partial class EmailContentNormalizer
     [GeneratedRegex("[\\t ]+", RegexOptions.CultureInvariant)]
     private static partial Regex InlineWhitespace();
 }
+
+internal sealed record InboundAutomaticReplyAssessment(
+    bool SenderAuthenticated,
+    bool ReplyAddressAuthorized);

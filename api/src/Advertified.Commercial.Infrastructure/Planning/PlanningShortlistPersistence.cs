@@ -62,11 +62,10 @@ internal static class PlanningShortlistPersistence
                     inventory_product_id, rationale, status_code)
                 SELECT value."recommendationId", {tenantId.Value}, {briefVersionId},
                     {shortlistId}, value."id", value."inventoryTenantId", value."productId",
-                    {"Eligible after governed hard constraints; score is decision support only."},
-                    {MasterDataCodes.LifecycleStatuses.Draft}
+                    value."rationale", {MasterDataCodes.LifecycleStatuses.Draft}
                 FROM jsonb_to_recordset({candidatePayload}::jsonb) AS value(
                     "id" uuid, "recommendationId" uuid, "inventoryTenantId" uuid,
-                    "productId" uuid,
+                    "productId" uuid, "rationale" text,
                     "isEligible" boolean)
                 WHERE value."isEligible";
 
@@ -146,6 +145,7 @@ internal static class PlanningShortlistPersistence
             inventory.Currency,
             inventory.Channel,
             inventory.Geography,
+            candidate.Rationale,
             candidate.InputHash);
     }
 
@@ -192,6 +192,7 @@ internal static class PlanningShortlistPersistence
         string? Currency,
         string Channel,
         string Geography,
+        string Rationale,
         string InputHash);
 
     private sealed record BenchmarkPayload(
@@ -223,4 +224,5 @@ internal sealed record PreparedShortlistCandidate(
     MediaAllocationView? Allocation,
     EligibilityResult Eligibility,
     string InputHash,
+    string Rationale,
     BenchmarkResult? Benchmark);

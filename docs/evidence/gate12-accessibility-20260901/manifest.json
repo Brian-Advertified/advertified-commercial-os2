@@ -1,0 +1,67 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 12,
+  "evidenceDate": "2026-09-01",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "53209e7f718b64a25fc5fcf9aa83365301c5a50c",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Connected keyboard and accessibility semantics",
+      "command": "npx playwright test accessibility-connected.connected.spec.ts --config playwright.connected.config.ts",
+      "outcome": "PASS",
+      "summary": "1/1 passes against the packaged local application. SPA route changes focus main content; a cold authenticated load exposes the skip link as the first keyboard target; named navigation/main landmarks and critical Brief controls are accessible by role/name."
+    },
+    {
+      "name": "Connected critical journey regression",
+      "command": "npx playwright test --config playwright.connected.config.ts",
+      "outcome": "PASS",
+      "summary": "4/4 connected local journeys pass after the focus-management change: accessibility shell, proposal inbox, clear Brief to OOH planning, and Brief through approved rendered/shared proposal."
+    },
+    {
+      "name": "Web lint",
+      "command": "npm --prefix web run lint",
+      "outcome": "PASS",
+      "summary": "Oxlint reports zero warnings and zero errors after the accessibility source/test changes."
+    },
+    {
+      "name": "Pinned Linux web build",
+      "command": "docker compose -f infrastructure/docker-compose.build.yml build web",
+      "outcome": "PASS",
+      "summary": "The current AppShell focus-management implementation compiles in the existing pinned Linux web image. No new image name or Compose project was introduced, and the Vite oversized-chunk warning remains absent."
+    },
+    {
+      "name": "Final-tree architecture guardrails",
+      "command": "python -m pytest tests/architecture -q",
+      "outcome": "PASS",
+      "summary": "42/42 architecture checks pass after the accessibility changes."
+    },
+    {
+      "name": "Automated WCAG 2.2 AA engine",
+      "command": "Dedicated standards-engine scan of the complete critical journey matrix",
+      "outcome": "PENDING",
+      "summary": "No WCAG engine was added solely to inflate local evidence. The normative automated WCAG scan remains required before production certification."
+    },
+    {
+      "name": "Named manual keyboard and screen-reader review",
+      "command": "Independent manual review",
+      "outcome": "PENDING",
+      "summary": "The connected semantic checks do not substitute for a named human keyboard and screen-reader review across critical journeys."
+    }
+  ],
+  "unresolvedBlockers": [
+    "A standards-based automated WCAG 2.2 AA scan across the critical journey matrix is still required.",
+    "Named manual keyboard and screen-reader review remains required before production certification.",
+    "Accessibility certification must be repeated in production-shaped staging with production authentication and final release assets."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}

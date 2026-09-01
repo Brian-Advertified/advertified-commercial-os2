@@ -1,0 +1,333 @@
+.supplier-creative-page,
+.proof-submission-page,
+.review-resource-page {
+  width: 100%;
+  max-width: 80rem;
+  margin: 0 auto;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.supplier-creative-page .status-chip,
+.proof-submission-page .status-chip,
+.review-resource-page .status-chip,
+.supplier-creative-page .primary-button,
+.supplier-creative-page .secondary-button,
+.proof-submission-page .primary-button,
+.proof-submission-page .secondary-button,
+.review-resource-page .primary-button,
+.review-resource-page .secondary-button {
+  border-radius: 0.35rem;
+}
+
+.supplier-creative-detail,
+.supplier-creative-review,
+.proof-submission-form,
+.review-resource-page > .delivery-proof-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+}
+
+.supplier-creative-detail,
+.supplier-creative-review,
+.proof-submission-form {
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.supplier-creative-review h2 {
+  margin: 0.1rem 0 0.25rem;
+  color: var(--navy);
+}
+
+.supplier-creative-review p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.supplier-creative-detail > header,
+.delivery-proof-card > header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.6rem;
+}
+
+.supplier-creative-detail > header > span:first-child,
+.delivery-proof-card > header > span:first-child {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  color: var(--electric-soft);
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+}
+
+.supplier-creative-detail h2,
+.delivery-proof-card h3 {
+  margin: 0.06rem 0 0.18rem;
+  color: var(--navy);
+}
+
+.supplier-creative-detail dl,
+.delivery-proof-card dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.supplier-creative-detail dl div,
+.delivery-proof-card dl div {
+  min-width: 0;
+  padding: 0.6rem;
+  border-right: 1px solid var(--line);
+}
+
+.supplier-creative-detail dl div:last-child,
+.delivery-proof-card dl div:last-child {
+  border-right: 0;
+}
+
+.supplier-creative-detail dt,
+.delivery-proof-card dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.supplier-creative-detail dd,
+.delivery-proof-card dd {
+  margin: 0.14rem 0 0;
+  overflow-wrap: anywhere;
+  color: var(--navy);
+  font-size: 0.75rem;
+  font-weight: 720;
+}
+
+.supplier-creative-detail > section {
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--line);
+}
+
+.supplier-creative-detail h3 {
+  margin: 0 0 0.3rem;
+  color: var(--navy);
+}
+
+.supplier-creative-detail section p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.supplier-creative-review > div:last-child {
+  padding-top: 0.7rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  border-top: 1px solid var(--line);
+}
+
+.delivery-milestones {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  overflow: hidden;
+}
+
+.delivery-milestones > div {
+  padding: 0.65rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.5rem;
+  border-right: 1px solid var(--line);
+}
+
+.delivery-milestones > div:last-child {
+  border-right: 0;
+}
+
+.delivery-milestones > div > span {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  color: var(--electric-soft);
+  border: 1px solid var(--line);
+  border-radius: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+
+.delivery-milestones strong,
+.delivery-milestones small {
+  display: block;
+}
+
+.delivery-milestones strong {
+  color: var(--navy);
+  font-size: 0.75rem;
+}
+
+.delivery-milestones small {
+  margin-top: 0.1rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.delivery-proof-workspace {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.delivery-proof-grid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.delivery-proof-card {
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.7rem;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+}
+
+.delivery-proof-card header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.proof-location {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.proof-review-result {
+  padding-top: 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+
+.proof-review-result span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.proof-review-result strong {
+  color: var(--navy);
+  font-size: 0.75rem;
+}
+
+.proof-review-result small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.proof-review-form {
+  padding-top: 0.65rem;
+  display: grid;
+  gap: 0.6rem;
+  border-top: 1px solid var(--line);
+}
+
+.proof-review-form > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.proof-submission-hero > span {
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  color: var(--electric-soft);
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+}
+
+.proof-submission-form > footer {
+  padding-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.proof-submission-form > footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.proof-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+@media (max-width: 900px) {
+  .delivery-milestones,
+  .delivery-proof-card dl,
+  .supplier-creative-detail dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .delivery-milestones > div:nth-child(2),
+  .supplier-creative-detail dl div:nth-child(2),
+  .delivery-proof-card dl div:nth-child(2) {
+    border-right: 0;
+  }
+}
+
+@media (max-width: 650px) {
+  .delivery-milestones,
+  .delivery-proof-card dl,
+  .supplier-creative-detail dl,
+  .proof-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .delivery-milestones > div,
+  .supplier-creative-detail dl div,
+  .delivery-proof-card dl div {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .delivery-milestones > div:last-child,
+  .supplier-creative-detail dl div:last-child,
+  .delivery-proof-card dl div:last-child {
+    border-bottom: 0;
+  }
+
+  .proof-submission-form > footer,
+  .proof-review-form > div,
+  .supplier-creative-review > div:last-child {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .proof-submission-form .primary-button,
+  .proof-review-form button,
+  .supplier-creative-review button {
+    width: 100%;
+  }
+}

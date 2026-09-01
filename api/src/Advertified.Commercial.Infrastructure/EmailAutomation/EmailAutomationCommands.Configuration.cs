@@ -22,6 +22,10 @@ public sealed partial class EmailAutomationCommands
         }
         var address = NormalizeAddress(command.Address, nameof(command.Address));
         var provider = Required(command.Provider, 100, nameof(command.Provider)).ToUpperInvariant();
+        if (!options.Value.IsProviderEnabled(provider))
+        {
+            throw new InboundMailboxNotConfiguredException();
+        }
         await OpportunityCommandSupport.EnsureCodeAsync(
             store.DbContext,
             MasterDataCodes.EmailProviders.Collection,

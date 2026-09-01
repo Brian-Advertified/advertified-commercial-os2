@@ -47,6 +47,8 @@ public sealed partial class MarketplaceAcceptanceTests
         Assert.Equal("LIVE", live.RootElement.GetProperty("status").GetString());
         Assert.Equal(BuyerUserId, live.RootElement.GetProperty("startedBy").GetGuid());
         var liveVersion = live.RootElement.GetProperty("version").GetInt64();
+        await AssertSupplierProofRequestBoundariesBeforeCompletionAsync(
+            buyer, supplier, other);
         await AssertPerformanceBlockedBeforeCompletionAsync(buyer, campaignId);
 
         using var earlyCompletion = await RawCommandAsync(
@@ -76,6 +78,9 @@ public sealed partial class MarketplaceAcceptanceTests
             });
         Assert.Equal("COMPLETED", completed.RootElement.GetProperty("status").GetString());
         Assert.Equal(BuyerUserId, completed.RootElement.GetProperty("proofRequestedBy").GetGuid());
+        await AssertSupplierProofRequestAsync(
+            supplier, campaignId, bookingId, null, null);
+        await AssertSupplierProofRequestDatabaseBoundaryAsync(connectionString);
 
         using var buyerSubmission = await RawCommandAsync(
             buyer, BuyerTenantId, $"campaigns/{campaignId}/delivery-proofs",
@@ -112,6 +117,16 @@ public sealed partial class MarketplaceAcceptanceTests
         Assert.Equal("CLEAN", first.RootElement.GetProperty("malwareScanStatus").GetString());
         Assert.DoesNotContain("objectKey", first.RootElement.GetRawText(),
             StringComparison.OrdinalIgnoreCase);
+        await AssertSupplierProofRequestAsync(
+            supplier, campaignId, bookingId, firstProofId, "SUBMITTED");
+        using var activeReplacement = await RawCommandAsync(
+            supplier, SupplierTenantId, $"campaigns/{campaignId}/delivery-proofs",
+            "delivery-proof-active-replacement", null,
+            ProofBody(
+                bookingId, "2026-09-20T08:00:00Z",
+                CreativePng.Append((byte)2).ToArray(), "active-replacement.png"));
+        await AssertProblemAsync(
+            activeReplacement, HttpStatusCode.Conflict, "DELIVERY_PROOF_BLOCKED");
         using var duplicateContent = await RawCommandAsync(
             supplier, SupplierTenantId, $"campaigns/{campaignId}/delivery-proofs",
             "delivery-proof-duplicate-content", null,
@@ -136,6 +151,8 @@ public sealed partial class MarketplaceAcceptanceTests
             "delivery-proof-reject", 1,
             new { approved = false, reason = "The image does not clearly identify the site." });
         Assert.Equal("REJECTED", rejected.RootElement.GetProperty("status").GetString());
+        await AssertSupplierProofRequestAsync(
+            supplier, campaignId, bookingId, firstProofId, "REJECTED");
         using var repeatedReview = await RawCommandAsync(
             buyer, BuyerTenantId,
             $"campaigns/{campaignId}/delivery-proofs/{firstProofId}:review",
@@ -152,12 +169,24 @@ public sealed partial class MarketplaceAcceptanceTests
                 bookingId, "2026-09-21T08:00:00Z", replacementBytes, "replacement.png"));
         var replacementId = replacement.RootElement.GetProperty("id").GetGuid();
         Assert.NotEqual(firstProofId, replacementId);
+        await AssertSupplierProofRequestAsync(
+            supplier, campaignId, bookingId, replacementId, "SUBMITTED");
         using var approved = await CommandAsync(
             buyer, BuyerTenantId,
             $"campaigns/{campaignId}/delivery-proofs/{replacementId}:review",
             "delivery-proof-approve", 1,
             new { approved = true, reason = "The replacement identifies the exact booked site." });
         Assert.Equal("APPROVED", approved.RootElement.GetProperty("status").GetString());
+        await AssertSupplierProofRequestAsync(
+            supplier, campaignId, bookingId, replacementId, "APPROVED");
+        using var approvedReplacement = await RawCommandAsync(
+            supplier, SupplierTenantId, $"campaigns/{campaignId}/delivery-proofs",
+            "delivery-proof-approved-replacement", null,
+            ProofBody(
+                bookingId, "2026-09-22T08:00:00Z",
+                CreativePng.Append((byte)3).ToArray(), "approved-replacement.png"));
+        await AssertProblemAsync(
+            approvedReplacement, HttpStatusCode.Conflict, "DELIVERY_PROOF_BLOCKED");
         await AssertDeliveryEvidenceAsync(
             connectionString, firstProofId, replacementId, campaignId);
         await AssertMeasurementBlockedWithoutFactsAsync(buyer, campaignId);
@@ -178,6 +207,37 @@ public sealed partial class MarketplaceAcceptanceTests
             reason = "Supplier submits retained proof for the exact confirmed booking.",
             file = new { fileName, mediaType = "image/png", content },
         };
+
+    private static async Task AssertSupplierProofRequestAsync(
+        HttpClient supplier,
+        Guid campaignId,
+        Guid bookingId,
+        Guid? expectedProofId,
+        string? expectedProofStatus)
+    {
+        using var requests = await ReadAsync(
+            supplier, SupplierTenantId, "delivery-proof-requests");
+        var request = Assert.Single(
+            requests.RootElement.EnumerateArray(),
+            item => item.GetProperty("campaignId").GetGuid() == campaignId &&
+                item.GetProperty("bookingId").GetGuid() == bookingId);
+        var responseText = request.GetRawText();
+        Assert.DoesNotContain("buyerTenantId", responseText, StringComparison.Ordinal);
+        Assert.DoesNotContain("supplierTenantId", responseText, StringComparison.Ordinal);
+        Assert.DoesNotContain("supplierCost", responseText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("clientPrice", responseText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("margin", responseText, StringComparison.OrdinalIgnoreCase);
+        var proofId = request.GetProperty("latestProofId");
+        var proofStatus = request.GetProperty("latestProofStatus");
+        if (expectedProofId.HasValue)
+        {
+            Assert.Equal(expectedProofId.Value, proofId.GetGuid());
+            Assert.Equal(expectedProofStatus, proofStatus.GetString());
+            return;
+        }
+        Assert.Equal(JsonValueKind.Null, proofId.ValueKind);
+        Assert.Equal(JsonValueKind.Null, proofStatus.ValueKind);
+    }
 
     private static async Task AssertDeliveryProofVisibilityAsync(
         HttpClient buyer, HttpClient supplier, HttpClient other,

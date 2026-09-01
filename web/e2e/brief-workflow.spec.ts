@@ -9,12 +9,12 @@ const versionId = 'b6000000-0000-0000-0000-000000000001'
 const now = '2026-08-29T16:00:00Z'
 
 type State = {
-  status: 'DRAFT' | 'IN_REVIEW' | 'APPROVED'
+  status: 'DRAFT' | 'IN_REVIEW' | 'READY' | 'APPROVED'
   version: number
   source: string
 }
 
-test('one agency operator takes a supplied Brief through confirmation', async ({ page }) => {
+test('a clear supplied Brief proceeds after only unclear details are corrected', async ({ page }) => {
   const state: State = { status: 'DRAFT', version: 1, source: '' }
   await page.addInitScript((id) => {
     sessionStorage.setItem('advertified.workspace', JSON.stringify({ tenantId: id }))
@@ -24,16 +24,17 @@ test('one agency operator takes a supplied Brief through confirmation', async ({
   await page.goto('/briefs/new')
   await page.getByLabel('Campaign or Brief name').fill('December enquiry Brief')
   await page.getByLabel('Original Brief').fill(
-    'Client One needs qualified Gauteng enquiries by December. The media type is unclear.')
-  await page.getByRole('button', { name: 'Create campaign from Brief' }).click()
+    'Client One needs qualified Gauteng enquiries by December with a R100,000 media budget. The media type is unclear.')
+  await page.getByRole('button', { name: 'Understand this Brief' }).click()
 
   await expect(page.getByRole('heading', {
-    name: 'Answer only what could not be confirmed',
+    name: 'Confirm only what could not be established',
   })).toBeVisible()
-  await page.getByLabel('Should this use only out-of-home media or a full campaign?')
-    .selectOption('OOH_ONLY')
-  await page.getByRole('button', { name: 'Continue to planning' }).click()
+  await page.getByRole('radio', { name: /OOH and DOOH only/ }).check()
+  await page.getByRole('button', { name: 'Review the completed Brief' }).click()
   await expect(page).toHaveURL(new RegExp(`/planning/${versionId}$`))
+  await expect(page.getByRole('button', { name: 'Approve Brief and start planning' }))
+    .toHaveCount(0)
 })
 
 test('advertiser can read a Brief without being asked to confirm it', async ({ page }) => {
@@ -49,7 +50,24 @@ test('advertiser can read a Brief without being asked to confirm it', async ({ p
 
   await page.goto(`/briefs/${briefId}`)
   await expect(page.getByRole('heading', { name: 'December enquiry Brief' })).toBeVisible()
+  await expect(page.getByText('Client One · Campaign Brief · Version 1', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Confirm this Brief' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Structured Brief' })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Original source' }).click()
+  await expect(page).toHaveURL(new RegExp(`/briefs/${briefId}#brief-source$`))
+  await expect(page.getByRole('heading', {
+    name: 'Client source retained verbatim',
+  })).toBeVisible()
+  await expect(page.locator('.brief-source-copy')).toContainText(state.source)
+
+  await page.goto(`/briefs/${briefId}#brief-evidence`)
+  await expect(page.getByRole('heading', { name: 'Evidence and open items' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'What budget is available?' })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Version history' }).click()
+  await expect(page).toHaveURL(new RegExp(`/briefs/${briefId}#brief-history$`))
+  await expect(page.getByRole('heading', { name: 'Version history' })).toBeVisible()
 })
 
 async function handleApi(route: Route, state: State, role = 'agency_admin') {
@@ -93,18 +111,14 @@ async function handleWriteApi(route: Route, state: State, path: string) {
     return json(route, briefSummary('CREATED'), 201)
   }
   if (path.endsWith(`/briefs/${briefId}/versions`)) {
-    assertMutation(route, false); return json(route, versionFixture(state), 201)
+    assertMutation(route, false)
+    return json(route, versionFixture(state), 201)
   }
-  if (path.endsWith(`${versionId}:submit`)) {
+  if (path.endsWith(`${versionId}:ready`)) {
     assertMutation(route, true)
-    const body = request.postDataJSON() as Record<string, unknown>
-    expect(body.confirmerUserId).toBeNull()
-    expect(body.approverUserId).toBeUndefined()
-    state.status = 'IN_REVIEW'; state.version = 2
-    return json(route, versionFixture(state))
-  }
-  if (path.endsWith(`${versionId}:approve`)) {
-    assertMutation(route, true); state.status = 'APPROVED'; state.version = 3
+    expect(request.postDataJSON()).toEqual({})
+    state.status = 'READY'
+    state.version = 2
     return json(route, versionFixture(state))
   }
   if (path.endsWith(`/brief-versions/${versionId}/campaign-mode:select`)) {
@@ -133,10 +147,10 @@ function understandingFixture(mode: string | null) {
     draft: {
       businessProblem: 'Qualified demand is not established.',
       objective: 'Generate qualified enquiries.', audiences: ['Workspace furniture buyers'],
-      geographies: ['Gauteng'], timing: 'By December 2026', budgetMinor: null,
-      budgetUnknown: true, currency: null, vatStatus: null, feesMinor: null,
+      geographies: ['Gauteng'], timing: 'By December 2026', budgetMinor: 10000000,
+      budgetUnknown: false, currency: 'ZAR', vatStatus: null, feesMinor: null,
       mediaRequirements: mode ? ['OOH'] : [], constraints: [], measurement: [],
-      facts: ['The supplied Brief names Gauteng and December.'], unknowns: [],
+      facts: ['The supplied Brief names Gauteng, December and the budget.'], unknowns: [],
       assumptions: [], conflicts: [],
     },
     questions: needsChoice ? [{
@@ -169,8 +183,10 @@ function briefFixture(state: State) {
 
 function briefSummary(status: string) {
   return {
-    id: briefId, tenantId, clientId, opportunityId: null, title: 'December enquiry Brief',
+    id: briefId, tenantId, clientId, clientName: 'Client One', opportunityId: null,
+    title: 'December enquiry Brief',
     ownerUserId: userId, status, currentDraftVersionId: status === 'CREATED' ? null : versionId,
+    readyVersionId: status === 'READY' || status === 'APPROVED' ? versionId : null,
     approvedVersionId: status === 'APPROVED' ? versionId : null,
     version: status === 'CREATED' ? 1 : stateVersion(status), updatedAtUtc: now,
   }
@@ -181,21 +197,72 @@ function versionFixture(state: State) {
     id: versionId, briefId, baseVersionId: null, sourceId, versionNumber: 1,
     businessProblem: 'Qualified demand is not established.', objective: 'Generate qualified enquiries.',
     audiences: ['Workspace furniture buyers'], geographies: ['Gauteng'], timing: 'By December 2026',
-    budgetMinor: null, budgetUnknown: true, currency: null, vatStatus: null, feesMinor: null,
-    constraints: [], measurement: [], facts: [], unknowns: [{
+    budgetMinor: state.status === 'DRAFT' ? null : 10000000,
+    budgetUnknown: state.status === 'DRAFT',
+    currency: state.status === 'DRAFT' ? null : 'ZAR',
+    vatStatus: null, feesMinor: null,
+    constraints: [], measurement: [], facts: [], unknowns: state.status === 'DRAFT' ? [{
       fieldPath: 'budget', question: 'What budget is available?', isBlocking: false,
-    }], assumptions: [], conflicts: [], evidenceItemIds: [], status: state.status,
-    createdBy: userId, submittedBy: state.status === 'DRAFT' ? null : userId,
+    }] : [], assumptions: [], conflicts: [], evidenceItemIds: [], status: state.status,
+    createdBy: userId,
+    submittedBy: state.status === 'IN_REVIEW' || state.status === 'APPROVED' ? userId : null,
     approvedBy: state.status === 'APPROVED' ? userId : null, rejectedBy: null,
     rejectionReason: null, requestedChanges: null, version: state.version, createdAtUtc: now,
   }
 }
 
-function stateVersion(status: string) { return status === 'APPROVED' ? 4 : 2 }
-function sessionFixture() { return { authenticated: true, antiforgeryToken: 'csrf-brief', expiresAtUtc: '2026-08-29T20:00:00Z' } }
-function workspaceFixture(role: string) { return { membershipId: 'b7000000-0000-0000-0000-000000000001', tenantId, name: 'Solo Agency', slug: 'solo-agency', roleCode: role, version: 1 } }
-function userFixture() { return { id: userId, email: 'solo@example.com', displayName: 'Solo Operator', phone: null, mfaEnabled: true, version: 1 } }
-function clientFixture() { return { id: clientId, tenantId, externalReference: 'solo-client', legalName: 'Client One', tradingName: 'Client One', website: null, industry: null, billingProfileJson: '{}', primaryContactId: null, statusCode: 'ACTIVE', version: 1, updatedAtUtc: now } }
+function stateVersion(status: string) {
+  if (status === 'APPROVED') return 4
+  if (status === 'READY') return 3
+  return 2
+}
+
+function sessionFixture() {
+  return {
+    authenticated: true,
+    antiforgeryToken: 'csrf-brief',
+    expiresAtUtc: '2026-08-29T20:00:00Z',
+  }
+}
+
+function workspaceFixture(role: string) {
+  return {
+    membershipId: 'b7000000-0000-0000-0000-000000000001',
+    tenantId,
+    name: 'Solo Agency',
+    slug: 'solo-agency',
+    roleCode: role,
+    version: 1,
+  }
+}
+
+function userFixture() {
+  return {
+    id: userId,
+    email: 'solo@example.com',
+    displayName: 'Solo Operator',
+    phone: null,
+    mfaEnabled: true,
+    version: 1,
+  }
+}
+
+function clientFixture() {
+  return {
+    id: clientId,
+    tenantId,
+    externalReference: 'solo-client',
+    legalName: 'Client One',
+    tradingName: 'Client One',
+    website: null,
+    industry: null,
+    billingProfileJson: '{}',
+    primaryContactId: null,
+    statusCode: 'ACTIVE',
+    version: 1,
+    updatedAtUtc: now,
+  }
+}
 
 function assertMutation(route: Route, versioned: boolean) {
   const headers = route.request().headers()
@@ -210,5 +277,10 @@ async function json(
   status = 200,
   headers?: Record<string, string>,
 ) {
-  await route.fulfill({ status, headers, contentType: 'application/json', body: JSON.stringify(body) })
+  await route.fulfill({
+    status,
+    headers,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  })
 }

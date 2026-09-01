@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Domain.Governance;
 
@@ -54,7 +55,8 @@ public sealed record BookingView(
     DateOnly FlightEnd,
     int RunningPeriods,
     int Quantity,
-    long SupplierCostMinor,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    long? SupplierCostMinor,
     long? ClientPriceMinor,
     long? FeesMinor,
     long? VatMinor,
@@ -69,6 +71,7 @@ public sealed record BookingView(
     Guid? ConfirmedBy,
     DateTimeOffset? ConfirmedAtUtc,
     string? ConfirmationReason,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? SupplierNote,
     bool TermsAccepted,
     long Version,

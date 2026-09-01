@@ -2,9 +2,11 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import type {
   EmailAutomationClarification,
+  EmailAutomationRun,
   InboundEmailDetail,
 } from '../api/email-automation-schemas'
 import { masterDataCodes } from '../generated/master-data-codes'
+import { formatDateTime, humanizeCode } from '../presentation/format'
 import {
   automationCheckpoints,
   automationFailureLabel,
@@ -12,14 +14,16 @@ import {
   checkpointIndex,
 } from './email-automation-presentation'
 
-export function InboxMessageDetail({ detail, busy, onRetry }: {
+export function InboxMessageDetail({ detail, busy, onRetry, onReconcile }: {
   detail: InboundEmailDetail
   busy: boolean
   onRetry: (clarifications: EmailAutomationClarification[]) => Promise<void>
+  onReconcile: () => Promise<void>
 }) {
   const { email, run } = detail
   const needsAction = run.status === masterDataCodes.emailAutomationStatuses.reviewRequired ||
-    run.status === masterDataCodes.emailAutomationStatuses.failed
+    run.status === masterDataCodes.emailAutomationStatuses.failed ||
+    run.status === masterDataCodes.emailAutomationStatuses.processing
 
   return <article className="ooh-message-detail">
     <header className="ooh-detail-heading"><div><p className="eyebrow">Proposal request</p>
@@ -33,7 +37,8 @@ export function InboxMessageDetail({ detail, busy, onRetry }: {
       <span>Locked</span></div>
 
     <CheckpointProgress checkpoint={run.checkpoint} />
-    <ReviewState detail={detail} needsAction={needsAction} busy={busy} onRetry={onRetry} />
+    <ReviewState detail={detail} needsAction={needsAction} busy={busy}
+      onRetry={onRetry} onReconcile={onReconcile} />
     <ClarificationState detail={detail} busy={busy} onRetry={onRetry} />
     <DeliveredState status={run.status} />
 
@@ -54,25 +59,88 @@ function CheckpointProgress({ checkpoint }: { checkpoint: string }) {
   </section>
 }
 
-function ReviewState({ detail, needsAction, busy, onRetry }: {
+function ReviewState({ detail, needsAction, busy, onRetry, onReconcile }: {
   detail: InboundEmailDetail
   needsAction: boolean
   busy: boolean
   onRetry: (clarifications: EmailAutomationClarification[]) => Promise<void>
+  onReconcile: () => Promise<void>
 }) {
   if (!needsAction) return null
-  const nonOoh = detail.run.failureCode ===
-    masterDataCodes.automationFailureReasons.nonOohRequest
-  const retryable = detail.questions.length === 0 &&
-    detail.run.status === masterDataCodes.emailAutomationStatuses.failed
+  const state = reviewState(detail)
   return <section className="ooh-review-card" role="status">
-    <div><p className="eyebrow">Why it stopped</p><h3>Nothing was sent</h3>
-      <p>{automationFailureLabel(detail.run.failureCode, detail.run.failureMessage)}</p></div>
-    {nonOoh && <Link className="secondary-button" to="/briefs/new">
+    <div><p className="eyebrow">Why it stopped</p>
+      <h3>{reviewHeading(detail.run, state.ambiguous, state.interrupted)}</h3>
+      <p>{reviewMessage(detail.run, state.interrupted)}</p>
+      {state.hasDeliveryIntent && <DeliveryEvidence run={detail.run} />}</div>
+    {state.nonOoh && <Link className="secondary-button" to="/briefs/new">
       Start a new full campaign</Link>}
-    {retryable && <button className="secondary-button" type="button" disabled={busy}
+    {state.recoverable && <button className="secondary-button" type="button" disabled={busy}
+      onClick={() => void onReconcile()}>
+      {recoveryButtonLabel(detail.run, state.interrupted, busy)}
+    </button>}
+    {state.retryable && <button className="secondary-button" type="button" disabled={busy}
       onClick={() => void onRetry([])}>{busy ? 'Checking again…' : 'Retry request'}</button>}
   </section>
+}
+
+function reviewState(detail: InboundEmailDetail) {
+  const { run } = detail
+  const nonOoh = run.failureCode === masterDataCodes.automationFailureReasons.nonOohRequest
+  const ambiguous = run.failureCode ===
+    masterDataCodes.automationFailureReasons.deliveryAmbiguous
+  const interrupted = run.status === masterDataCodes.emailAutomationStatuses.processing
+  const accepted = run.deliveryAcceptedAtUtc !== null
+  const hasDeliveryIntent = run.deliveryRequestedAtUtc !== null
+  const retryable = !hasDeliveryIntent && detail.questions.length === 0 &&
+    run.status === masterDataCodes.emailAutomationStatuses.failed
+  return { nonOoh, ambiguous, interrupted, hasDeliveryIntent, retryable,
+    recoverable: interrupted || ambiguous || accepted }
+}
+
+function reviewHeading(run: EmailAutomationRun, ambiguous: boolean, interrupted: boolean) {
+  if (run.deliveryAcceptedAtUtc) return 'Provider acceptance is recorded'
+  if (ambiguous) return 'Provider acceptance is unknown'
+  if (interrupted) return 'Run can be resumed from its saved checkpoint'
+  if (run.failureCode === masterDataCodes.automationFailureReasons.deliveryFailed &&
+    run.deliveryRequestedAtUtc) return 'Provider rejected the delivery request'
+  return run.deliveryRequestedAtUtc ? 'Delivery request needs checking' : 'Nothing was sent'
+}
+
+function recoveryButtonLabel(run: EmailAutomationRun, interrupted: boolean, busy: boolean) {
+  if (busy) return interrupted ? 'Resuming saved run...' : 'Checking original delivery...'
+  if (interrupted) return 'Resume from saved checkpoint'
+  return run.deliveryAcceptedAtUtc ? 'Finish recorded delivery' : 'Check original delivery'
+}
+
+function reviewMessage(run: EmailAutomationRun, interrupted: boolean) {
+  if (run.deliveryAcceptedAtUtc) {
+    return 'The provider accepted the original delivery. Advertified only needs to finish recording it and will not send the email again.'
+  }
+  if (run.deliveryRequestedAtUtc) {
+    if (run.failureCode === masterDataCodes.automationFailureReasons.deliveryFailed) {
+      return automationFailureLabel(run.failureCode, run.failureMessage)
+    }
+    return 'The provider may have accepted the original delivery request. Advertified will check that same request and will not send another email.'
+  }
+  if (interrupted) {
+    return 'Processing was interrupted. Advertified will reuse completed steps and continue from the saved checkpoint.'
+  }
+  return automationFailureLabel(run.failureCode, run.failureMessage)
+}
+
+function DeliveryEvidence({ run }: { run: EmailAutomationRun }) {
+  return <dl className="ooh-delivery-evidence">
+    <div><dt>Provider</dt><dd>{run.deliveryProviderCode
+      ? humanizeCode(run.deliveryProviderCode, true)
+      : 'Recorded provider unavailable'}</dd></div>
+    <div><dt>Requested</dt><dd>{run.deliveryRequestedAtUtc
+      ? formatDateTime(run.deliveryRequestedAtUtc)
+      : 'Request time unavailable'}</dd></div>
+    <div><dt>Acceptance</dt><dd>{run.deliveryAcceptedAtUtc
+      ? formatDateTime(run.deliveryAcceptedAtUtc)
+      : 'Not confirmed'}</dd></div>
+  </dl>
 }
 
 function ClarificationState({ detail, busy, onRetry }: {
@@ -80,15 +148,15 @@ function ClarificationState({ detail, busy, onRetry }: {
   busy: boolean
   onRetry: (clarifications: EmailAutomationClarification[]) => Promise<void>
 }) {
-  if (detail.questions.length === 0) return null
+  if (detail.questions.length === 0 || detail.run.deliveryRequestedAtUtc !== null) return null
   return <ClarificationForm questions={detail.questions} busy={busy} onRetry={onRetry} />
 }
 
 function DeliveredState({ status }: { status: string }) {
   if (status !== masterDataCodes.emailAutomationStatuses.sent) return null
   return <section className="ooh-sent-card"><div className="ooh-sent-mark">✓</div><div>
-    <p className="eyebrow">Delivered</p><h3>The proposal was sent automatically</h3>
-    <p>The approved PDF was replied to the verified address. Duplicate provider events cannot send it again.</p>
+    <p className="eyebrow">Sent</p><h3>The proposal was sent automatically</h3>
+    <p>The approved PDF was submitted to the verified reply address. Duplicate provider events cannot send it again.</p>
   </div></section>
 }
 

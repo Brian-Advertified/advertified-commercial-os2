@@ -22,11 +22,11 @@ public sealed partial class ProposalRecordStore(GovernanceDbContext dbContext)
         return transaction;
     }
 
-    internal Task<ApprovedBriefReferenceRow?> FindApprovedBriefAsync(
+    internal Task<PlanningReadyBriefReferenceRow?> FindPlanningReadyBriefAsync(
         TenantId tenantId,
         Guid briefId,
         CancellationToken cancellationToken) =>
-        dbContext.Database.SqlQuery<ApprovedBriefReferenceRow>($"""
+        dbContext.Database.SqlQuery<PlanningReadyBriefReferenceRow>($"""
             SELECT brief.id AS "BriefId", version.id AS "BriefVersionId",
                 version.objective AS "Objective", brief.owner_user_id AS "OwnerUserId",
                 version.version AS "BriefVersion",
@@ -37,7 +37,7 @@ public sealed partial class ProposalRecordStore(GovernanceDbContext dbContext)
                     AS "EvidenceIdsJson"
             FROM commercial.campaign_briefs brief
             JOIN commercial.brief_versions version
-              ON version.tenant_id = brief.tenant_id AND version.id = brief.approved_version_id
+              ON version.tenant_id = brief.tenant_id AND version.id = COALESCE(brief.ready_version_id, brief.approved_version_id)
             WHERE brief.tenant_id = {tenantId.Value} AND brief.id = {briefId}
             """).SingleOrDefaultAsync(cancellationToken);
 

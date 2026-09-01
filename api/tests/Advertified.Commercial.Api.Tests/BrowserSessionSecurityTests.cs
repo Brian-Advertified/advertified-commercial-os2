@@ -1,5 +1,7 @@
 using System.Net;
 using System.Text.Json;
+using Advertified.Commercial.Application.Identity;
+using Advertified.Commercial.Infrastructure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -164,6 +166,7 @@ public sealed class BrowserSessionSecurityTests
             builder.UseSetting("InventoryProtection:Endpoint", "localhost:9000");
             builder.UseSetting("InventoryProtection:AccessKey", "test-access");
             builder.UseSetting("InventoryProtection:SecretKey", "test-secret");
+            builder.UseSetting("InventoryProtection:UseTls", "true");
             builder.UseSetting("InventoryProtection:ClamAvHost", "localhost");
         });
 
@@ -185,6 +188,22 @@ public sealed class BrowserSessionSecurityTests
             StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void ProductionRejectsObjectStorageWithoutTls()
+    {
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            ConfigureClosedProduction(builder);
+            builder.UseSetting("AllowedHosts", "api.advertified.example");
+            builder.UseSetting("ReverseProxy:KnownProxies:0", "127.0.0.1");
+            builder.UseSetting("InventoryProtection:UseTls", "false");
+        });
+
+        var exception = Assert.Throws<InvalidOperationException>(factory.CreateClient);
+        Assert.Contains("object storage must require TLS", exception.ToString(),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
     private static void ConfigureClosedProduction(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Production");
@@ -198,6 +217,7 @@ public sealed class BrowserSessionSecurityTests
         builder.UseSetting("InventoryProtection:Endpoint", "localhost:9000");
         builder.UseSetting("InventoryProtection:AccessKey", "test-access");
         builder.UseSetting("InventoryProtection:SecretKey", "test-secret");
+        builder.UseSetting("InventoryProtection:UseTls", "true");
         builder.UseSetting("InventoryProtection:ClamAvHost", "localhost");
     }
 
@@ -222,6 +242,11 @@ public sealed class BrowserSessionSecurityTests
             builder.UseSetting("Authentication:BrowserSession:LifetimeMinutes", "5");
             builder.UseSetting("Authentication:BrowserSession:SecureCookie", "false");
             builder.UseSetting("Authentication:BrowserSession:AllowedOrigins:0", LocalOrigin);
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<IBrowserSessionStore>();
+                services.AddSingleton<IBrowserSessionStore, InMemoryBrowserSessionStore>();
+            });
             if (useTrustedProxy)
             {
                 builder.UseSetting("ReverseProxy:KnownProxies:0", "127.0.0.1");

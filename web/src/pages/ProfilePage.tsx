@@ -35,27 +35,31 @@ export function ProfilePage() {
   if (!selected) return <Navigate to="/workspaces" replace />
   if (profile.loading) return <LoadingState label="Loading your profile" />
   if (profile.error || !profile.user || !session) {
-    return (
-      <MessageState
-        title="Your profile could not be loaded"
-        message={profile.error ?? 'Try again.'}
-      />
-    )
+    return <MessageState title="Your profile could not be loaded"
+      message={profile.error ?? 'Try again.'} />
   }
 
-  return (
-    <section aria-labelledby="profile-title">
-      <header className="page-heading">
-        <p className="eyebrow">Personal details</p>
+  return <section className="operations-page operations-profile-page" aria-labelledby="profile-title">
+    <header className="operations-command-header">
+      <div><p className="eyebrow">Personal details</p>
         <h1 id="profile-title">Your profile</h1>
-        <p>Keep the details your team uses to identify you accurate.</p>
-      </header>
-      <ProfileEditor
-        initialUser={profile.user}
-        tenantId={selected.tenantId}
-        antiforgeryToken={session.antiforgeryToken}
-        onUpdated={profile.setUser}
-      />
+        <p>Maintain the identity details your team uses inside the selected workspace.</p></div>
+    </header>
+    <dl className="operations-context-strip">
+      <div><dt>Workspace</dt><dd>{selected.name}</dd></div>
+      <div><dt>Workspace role</dt><dd>{formatRole(selected.roleCode)}</dd></div>
+      <div><dt>Identity protection</dt><dd>{profile.user.mfaEnabled ? 'MFA enabled' : 'Local identity'}</dd></div>
+    </dl>
+    <section className="operations-panel operations-profile-workspace" aria-labelledby="profile-details-title">
+      <header className="operations-panel-header"><div><p className="eyebrow">Identity record</p>
+        <h2 id="profile-details-title">Profile details</h2></div>
+        <span>Version {profile.user.version}</span></header>
+      <ProfileEditor initialUser={profile.user} tenantId={selected.tenantId}
+        antiforgeryToken={session.antiforgeryToken} onUpdated={profile.setUser} />
     </section>
-  )
+  </section>
+}
+
+function formatRole(value: string): string {
+  return value.split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
 }

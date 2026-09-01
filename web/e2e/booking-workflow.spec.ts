@@ -117,19 +117,20 @@ function bookingFixture(state: State, supplierView: boolean) {
     ? { requestedBy: userId, requestedAtUtc: now,
         requestReason: 'Buyer requested supplier confirmation.' }
     : { requestedBy: null, requestedAtUtc: null, requestReason: null }
-  const confirmation = confirmed
+  const confirmation = confirmed && supplierView
     ? { confirmedBy: userId, confirmedAtUtc: now,
         confirmationReason: 'Supplier confirmed current supply.',
         supplierNote: 'Current supply confirmed by the supplier.' }
     : { confirmedBy: null, confirmedAtUtc: null,
-        confirmationReason: null, supplierNote: null }
+        confirmationReason: null }
+  const supplierPrivate = supplierView ? { supplierCostMinor: 1250000 } : {}
   return {
     id: bookingId, buyerTenantId, supplierTenantId, ...sensitive,
     marketplaceListingVersionId: listingVersionId,
     supplierName: 'Verified Outdoor Media', productName: 'N1 Highway Digital Billboard',
     channel: 'OOH', geography: 'Johannesburg', flightStart: '2026-09-01',
     flightEnd: '2026-09-30', runningPeriods: 1, quantity: 1,
-    supplierCostMinor: 1250000,
+    ...supplierPrivate,
     currency: 'ZAR', terms: 'Frozen client-selected booking terms.', status: state.status,
     createdBy: userId, createdAtUtc: now, ...request, ...confirmation,
     termsAccepted: confirmed, version: state.version, updatedAtUtc: now,

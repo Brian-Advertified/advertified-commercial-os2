@@ -45,4 +45,22 @@ public sealed class OutboxMessageRow
     public DateTimeOffset? PublishedAtUtc { get; private set; }
 
     public int Attempts { get; private set; }
+
+    public DateTimeOffset? NextAttemptAtUtc { get; private set; }
+
+    public Guid? ClaimToken { get; private set; }
+
+    public Guid? LeaseOwner { get; private set; }
+
+    public DateTimeOffset? LeaseExpiresAtUtc { get; private set; }
+
+    public DateTimeOffset? AttemptStartedAtUtc { get; private set; }
+
+    public string? TransportReference { get; private set; }
+
+    public string? LastFailureCode { get; private set; }
+
+    public DateTimeOffset? LastFailureAtUtc { get; private set; }
+
+    public DateTimeOffset? DeadLetteredAtUtc { get; private set; }
 }

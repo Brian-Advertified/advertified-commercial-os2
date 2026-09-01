@@ -4,8 +4,7 @@ internal static class EmailAutomationStageNames
 {
     internal const string BriefCreate = "brief-create";
     internal const string BriefVersionCreate = "brief-version-create";
-    internal const string BriefSubmit = "brief-submit";
-    internal const string BriefApprove = "brief-approve";
+    internal const string BriefReady = "brief-ready";
     internal const string CampaignModeSelect = "campaign-mode-select";
     internal const string StpGenerate = "stp-generate";
     internal const string MixGenerate = "mix-generate";

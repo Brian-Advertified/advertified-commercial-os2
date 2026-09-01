@@ -21,6 +21,20 @@ public sealed record SubmitDeliveryProofCommand(
 
 public sealed record ReviewDeliveryProofCommand(bool Approved, string Reason);
 
+public sealed record DeliveryProofRequestView(
+    Guid CampaignId,
+    Guid BookingId,
+    string SupplierName,
+    string ProductName,
+    string Channel,
+    string Geography,
+    DateOnly FlightStart,
+    DateOnly FlightEnd,
+    DateTimeOffset ProofRequestedAtUtc,
+    string ProofRequestReason,
+    Guid? LatestProofId,
+    string? LatestProofStatus);
+
 public sealed record DeliveryProofView(
     Guid Id,
     Guid CampaignId,
@@ -65,6 +79,11 @@ public interface IDeliveryProofCommands
 
 public interface IDeliveryProofReader
 {
+    Task<IReadOnlyList<DeliveryProofRequestView>> ListRequestsAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        CancellationToken cancellationToken);
+
     Task<DeliveryProofView> GetAsync(
         ActorId actorId,
         TenantId tenantId,

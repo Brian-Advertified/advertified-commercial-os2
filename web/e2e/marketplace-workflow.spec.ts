@@ -18,9 +18,12 @@ test('buyer creates and explicitly sends a marketplace request', async ({ page }
   await page.route('**/api/v1/**', async (route) => handleApi(route, state))
 
   await page.goto('/marketplace')
-  await expect(page.getByRole('heading', { name: 'Supplier marketplace' })).toBeVisible()
+  await expect(page).toHaveURL(/\/marketplace$/)
+  await expect(page.getByRole('heading', { name: 'Supplier marketplace' })).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText('Acceptance never creates a booking.')).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'N1 Highway Digital Billboard' })).toBeVisible()
+  await expect(page.getByRole('cell', {
+    name: /N1 Highway Digital Billboard/,
+  })).toBeVisible()
   await page.getByRole('button', { name: 'Request availability' }).click()
   await page.getByLabel('Request subject').fill('September Johannesburg launch')
   await page.getByLabel('Start date').fill('2026-09-15')

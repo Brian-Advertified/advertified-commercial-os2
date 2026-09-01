@@ -16,22 +16,14 @@ services:
       - ./init-scripts:/docker-entrypoint-initdb.d:ro
       - ./verify-extensions.sql:/opt/advertified/verify-extensions.sql:ro
     healthcheck:
-      test:
-        - CMD-SHELL
-        - >-
-          pg_isready -U ${POSTGRES_USER:-advertified} -d ${POSTGRES_DB:-advertified} &&
-          psql -U ${POSTGRES_USER:-advertified} -d ${POSTGRES_DB:-advertified}
-          -v ON_ERROR_STOP=1 -f /opt/advertified/verify-extensions.sql
-          >/dev/null &&
-          psql -U ${POSTGRES_USER:-advertified} -d ${POSTGRES_DB:-advertified}
-          -Atc "SHOW server_version_num;" | grep -Eq '^16'
+      test: ["CMD", "/usr/local/bin/advertified-healthcheck"]
       interval: 5s
       timeout: 5s
       retries: 12
       start_period: 10s
 
   minio:
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-advertified-local}
@@ -49,7 +41,7 @@ services:
       start_period: 10s
 
   clamav:
-    image: clamav/clamav:1.4.3
+    image: clamav/clamav:1.4.3@sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4
     ports:
       - "127.0.0.1:${CLAMAV_PORT:-53310}:3310"
     volumes:
@@ -80,7 +72,7 @@ services:
       start_period: 120s
 
   redis:
-    image: redis:7.4.2-alpine
+    image: redis:7.4.2-alpine@sha256:02419de7eddf55aa5bcf49efb74e88fa8d931b4d77c07eff8a6b2144472b6952
     command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "127.0.0.1:${REDIS_PORT:-56379}:6379"
@@ -93,7 +85,7 @@ services:
       retries: 12
 
   mailhog:
-    image: mailhog/mailhog:v1.0.1
+    image: mailhog/mailhog:v1.0.1@sha256:8d76a3d4ffa32a3661311944007a415332c4bb855657f4f6c57996405c009bea
     ports:
       - "127.0.0.1:${MAIL_SMTP_PORT:-51025}:1025"
       - "127.0.0.1:${MAIL_UI_PORT:-58025}:8025"

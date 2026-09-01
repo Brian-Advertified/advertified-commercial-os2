@@ -30,7 +30,7 @@ export function MailboxSetupForm({ current, ownerUserId, busy, onSubmit, onCance
     address: current?.address ?? '',
     provider: current?.provider ?? providerOptions[0].value,
     allowedDomains: current?.allowedSenderDomains.join(', ') ?? '',
-    autoSendEnabled: current?.autoSendEnabled ?? true,
+    autoSendEnabled: current?.autoSendEnabled ?? false,
   }))
   const domains = useMemo(() => parseDomains(values.allowedDomains), [values.allowedDomains])
   const valid = values.address.includes('@') && domains.length > 0

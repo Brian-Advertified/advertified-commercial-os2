@@ -16,14 +16,13 @@ using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
 
-public sealed class DatabaseRecoveryAcceptanceTests
+[Collection(RecoveryTestGroup.Name)]
+public sealed partial class DatabaseRecoveryAcceptanceTests
 {
     private const string Database = "advertified_recovery";
     private const string Username = "advertified_recovery";
     private const string Password = "advertified-recovery-local-only";
     private const string ArchivePath = "/tmp/advertified-recovery.dump";
-    private const string ObjectHash =
-        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
     private static readonly Guid TenantId =
         Guid.Parse("e1000000-0000-0000-0000-000000000001");
     private static readonly Guid OtherTenantId =
@@ -45,9 +44,15 @@ public sealed class DatabaseRecoveryAcceptanceTests
     {
         await using var source = CreatePostgres();
         await using var target = CreatePostgres();
-        await Task.WhenAll(source.StartAsync(), target.StartAsync());
+        await using var sourceObjects = DisposableMinio.Create();
+        await using var targetObjects = DisposableMinio.Create();
+        await Task.WhenAll(
+            source.StartAsync(), target.StartAsync(),
+            sourceObjects.StartAsync(), targetObjects.StartAsync());
         await PrepareDatabasesAsync(source, target);
+        await PrepareObjectStoresAsync(sourceObjects, targetObjects);
         await SeedSourceAsync(source.GetConnectionString());
+        var objectBackup = await CreateObjectBackupAsync(sourceObjects);
 
         var dump = await source.ExecAsync(
             ["pg_dump", "--format=custom", "--no-owner", "--file", ArchivePath,
@@ -62,7 +67,13 @@ public sealed class DatabaseRecoveryAcceptanceTests
                 "--username", Username, ArchivePath]);
         Assert.Equal(0, restore.ExitCode);
 
+        var reference = await ReadRestoredObjectReferenceAsync(target.GetConnectionString());
+        await AssertInvalidBackupsLeaveTargetEmptyAsync(
+            targetObjects, objectBackup, reference);
+        await sourceObjects.StopAsync();
+        await RestoreObjectAsync(targetObjects, objectBackup, reference);
         await AssertRestoredStateAsync(target.GetConnectionString());
+        await AssertRestoredObjectAsync(targetObjects, objectBackup, reference);
     }
 
     private static PostgreSqlContainer CreatePostgres() => DisposablePostgres.Create(
@@ -128,11 +139,10 @@ public sealed class DatabaseRecoveryAcceptanceTests
                 protected_object_key, source_hash, source_size, created_by,
                 version, created_at_utc, updated_at_utc)
             VALUES ($1, $2, $3, 'recovery.csv', 'text/csv', 'UPLOADED', 'CLEAN',
-                $4, $5, $6, 128, $7, 1, $8, $8)
+                $4, $5, $6, $7, $8, 1, $9, $9)
             """, ImportId, TenantId, supplierId,
-            $"quarantine/{TenantId:N}/recovery/{ImportId:N}",
-            $"protected/{TenantId:N}/inventory/{ImportId:N}/{ObjectHash}",
-            ObjectHash, UserId, Now);
+            QuarantineObjectKey, ProtectedObjectKey,
+            ObjectHash, ObjectContent.LongLength, UserId, Now);
         Add(batch, """
             INSERT INTO commercial.outbox_messages (
                 id, tenant_id, causation_id, correlation_id, event_type_code,
@@ -167,10 +177,10 @@ public sealed class DatabaseRecoveryAcceptanceTests
             SELECT count(*)::integer FROM "__EFMigrationsHistory"
             WHERE "MigrationId" = '202608300024_MeasurementReports'
             """));
-        Assert.Equal(1, await CountAsync(connection, """
+        Assert.Equal(1, await CountAsync(connection, $"""
             SELECT count(DISTINCT registry_version)::integer
             FROM governance.master_data_collections
-            WHERE registry_version = '2.9.0'
+            WHERE registry_version = '{MasterDataCodes.RegistryVersion}'
             """));
         Assert.Equal(80, await CountAsync(connection, """
             SELECT count(*)::integer FROM pg_class item
@@ -235,8 +245,7 @@ public sealed class DatabaseRecoveryAcceptanceTests
         command.Parameters.AddWithValue(OutboxId);
         await using var reader = await command.ExecuteReaderAsync();
         Assert.True(await reader.ReadAsync());
-        Assert.Equal($"protected/{TenantId:N}/inventory/{ImportId:N}/{ObjectHash}",
-            reader.GetString(0));
+        Assert.Equal(ProtectedObjectKey, reader.GetString(0));
         Assert.Equal(ObjectHash, reader.GetString(1));
         Assert.Equal("{\"fixture\": \"recovery\"}", reader.GetString(2));
     }

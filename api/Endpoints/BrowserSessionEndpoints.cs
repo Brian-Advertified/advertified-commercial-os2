@@ -20,6 +20,14 @@ public static class BrowserSessionEndpoints
             .AllowAnonymous()
             .RequireRateLimiting(RequestRateLimitPolicies.BrowserSessionStatus)
             .Produces<BrowserSessionView>();
+        group.MapGet("/login", BeginOidcAsync)
+            .WithName("BeginOidcBrowserSession")
+            .AllowAnonymous()
+            .RequireRateLimiting(RequestRateLimitPolicies.BrowserSession);
+        group.MapGet("/logout", EndOidcAsync)
+            .WithName("EndOidcBrowserSession")
+            .AllowAnonymous()
+            .RequireRateLimiting(RequestRateLimitPolicies.BrowserSession);
         group.MapPost("", StartAsync)
             .WithName("StartLocalBrowserSession")
             .AllowAnonymous()
@@ -37,14 +45,50 @@ public static class BrowserSessionEndpoints
 
     private static BrowserSessionView GetStatus(
         HttpContext context,
+        IConfiguration configuration,
         IAntiforgery antiforgery)
     {
         var tokens = antiforgery.GetAndStoreTokens(context);
         var authenticated = context.User.Identity?.IsAuthenticated == true;
+        var oidc = string.Equals(
+            configuration["Authentication:Mode"],
+            LocalIdentityDefaults.OidcMode,
+            StringComparison.Ordinal);
         return new BrowserSessionView(
             authenticated,
             RequireRequestToken(tokens),
-            authenticated ? ReadExpiry(context.User) : null);
+            authenticated ? ReadExpiry(context.User) : null,
+            oidc ? "/api/v1/session/login" : null,
+            oidc ? "/api/v1/session/logout" : null);
+    }
+
+    private static IResult BeginOidcAsync(
+        string? returnTo,
+        IConfiguration configuration)
+    {
+        EnsureOidcMode(configuration);
+        var properties = new Microsoft.AspNetCore.Authentication.AuthenticationProperties
+        {
+            RedirectUri = BrowserReturnPath.Normalize(returnTo),
+        };
+        return Results.Challenge(
+            properties,
+            [OidcAuthenticationRegistration.OidcScheme]);
+    }
+
+    private static async Task<IResult> EndOidcAsync(
+        HttpContext context,
+        IConfiguration configuration,
+        IBrowserSessionStore sessionStore,
+        IOptions<BrowserSessionOptions> sessionOptions,
+        IOptions<OidcAuthenticationOptions> oidcOptions,
+        CancellationToken cancellationToken)
+    {
+        EnsureOidcMode(configuration);
+        await InvalidateCurrentAsync(
+            context, sessionStore, sessionOptions.Value, cancellationToken);
+        BrowserSessionCookie.Delete(context.Response, sessionOptions.Value);
+        return Results.Redirect(BuildOidcLogoutUrl(oidcOptions.Value));
     }
 
     private static async Task<IResult> StartAsync(
@@ -64,12 +108,18 @@ public static class BrowserSessionEndpoints
 
         var identity = ReadConfiguredIdentity(configuration, options.Value, timeProvider);
         var session = await sessionStore.CreateAsync(identity, cancellationToken);
-        context.Response.Cookies.Append(
-            options.Value.CookieName,
+        BrowserSessionCookie.Append(
+            context.Response,
+            options.Value,
             session.Token,
-            CreateCookieOptions(options.Value, identity.ExpiresAtUtc));
+            identity.ExpiresAtUtc);
         var requestToken = RequireRequestToken(antiforgery.GetAndStoreTokens(context));
-        return Results.Ok(new BrowserSessionView(true, requestToken, identity.ExpiresAtUtc));
+        return Results.Ok(new BrowserSessionView(
+            true,
+            requestToken,
+            identity.ExpiresAtUtc,
+            null,
+            null));
     }
 
     private static async Task<IResult> EndAsync(
@@ -79,9 +129,7 @@ public static class BrowserSessionEndpoints
         CancellationToken cancellationToken)
     {
         await InvalidateCurrentAsync(context, sessionStore, options.Value, cancellationToken);
-        context.Response.Cookies.Delete(
-            options.Value.CookieName,
-            CreateCookieOptions(options.Value, expiresAtUtc: null));
+        BrowserSessionCookie.Delete(context.Response, options.Value);
         return Results.NoContent();
     }
 
@@ -138,17 +186,32 @@ public static class BrowserSessionEndpoints
         }
     }
 
-    private static CookieOptions CreateCookieOptions(
-        BrowserSessionOptions options,
-        DateTimeOffset? expiresAtUtc) => new()
+    private static void EnsureOidcMode(IConfiguration configuration)
     {
-        HttpOnly = true,
-        Secure = options.SecureCookie,
-        SameSite = SameSiteMode.Lax,
-        Path = "/",
-        IsEssential = true,
-        Expires = expiresAtUtc,
-    };
+        if (!string.Equals(
+                configuration["Authentication:Mode"],
+                LocalIdentityDefaults.OidcMode,
+                StringComparison.Ordinal))
+        {
+            throw new UnauthorizedAccessException("Managed sign in is unavailable.");
+        }
+    }
+
+    private static string BuildOidcLogoutUrl(OidcAuthenticationOptions options)
+    {
+        if (!OidcAuthenticationOptions.HasSafeConfiguration(options))
+        {
+            throw new InvalidOperationException("Managed sign out is not configured safely.");
+        }
+        var separator = options.LogoutEndpoint!.Contains('?') ? "&" : "?";
+        return string.Concat(
+            options.LogoutEndpoint,
+            separator,
+            "client_id=",
+            Uri.EscapeDataString(options.ClientId!),
+            "&logout_uri=",
+            Uri.EscapeDataString(options.PostLogoutRedirectUri!));
+    }
 
     private static DateTimeOffset? ReadExpiry(ClaimsPrincipal principal)
     {
@@ -180,4 +243,6 @@ public static class BrowserSessionEndpoints
 public sealed record BrowserSessionView(
     bool Authenticated,
     string AntiforgeryToken,
-    DateTimeOffset? ExpiresAtUtc);
+    DateTimeOffset? ExpiresAtUtc,
+    string? SignInPath,
+    string? SignOutPath);

@@ -15,13 +15,19 @@ public sealed class DeterministicEmailProviderClient(
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private readonly ConcurrentDictionary<string, RetrievedInboundEmail> received =
         new(StringComparer.Ordinal);
-    private readonly ConcurrentDictionary<string, ProposalEmailDelivery> deliveries =
+    private readonly ConcurrentDictionary<string, DeterministicDelivery> deliveries =
         new(StringComparer.Ordinal);
 
     public string ProviderCode => MasterDataCodes.EmailProviders.Deterministic;
 
+    public InboundEmailIdentityAssessment AssessInboundIdentity(
+        RetrievedInboundEmail email) => new(true);
+
     public IReadOnlyCollection<ProposalEmailDelivery> Deliveries =>
-        deliveries.Values.OrderBy(value => value.IdempotencyKey, StringComparer.Ordinal).ToArray();
+        deliveries.Values
+            .Select(value => value.Delivery)
+            .OrderBy(value => value.IdempotencyKey, StringComparer.Ordinal)
+            .ToArray();
 
     public void Register(RetrievedInboundEmail email) =>
         received[email.ProviderEmailId] = email;
@@ -79,15 +85,38 @@ public sealed class DeterministicEmailProviderClient(
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        deliveries.TryAdd(delivery.IdempotencyKey, delivery);
         var providerId = Convert.ToHexString(
             System.Security.Cryptography.SHA256.HashData(
                 System.Text.Encoding.UTF8.GetBytes(delivery.IdempotencyKey)))
             .ToLowerInvariant()[..24];
-        return Task.FromResult(new EmailDeliveryReceipt(
-            string.Concat("deterministic-", providerId),
-            timeProvider.GetUtcNow()));
+        var accepted = deliveries.GetOrAdd(
+            delivery.IdempotencyKey,
+            _ => new DeterministicDelivery(
+                delivery,
+                new EmailDeliveryReceipt(
+                    string.Concat("deterministic-", providerId),
+                    timeProvider.GetUtcNow())));
+        return Task.FromResult(accepted.Receipt);
     }
+
+    public Task<EmailDeliveryReconciliationResult> ReconcileDeliveryAsync(
+        string idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var result = deliveries.TryGetValue(idempotencyKey, out var delivery)
+            ? new EmailDeliveryReconciliationResult(
+                EmailDeliveryReconciliationOutcome.Accepted,
+                delivery.Receipt)
+            : new EmailDeliveryReconciliationResult(
+                EmailDeliveryReconciliationOutcome.NotFound,
+                null);
+        return Task.FromResult(result);
+    }
+
+    private sealed record DeterministicDelivery(
+        ProposalEmailDelivery Delivery,
+        EmailDeliveryReceipt Receipt);
 
     private sealed record FixtureNotification(
         [property: JsonPropertyName("type")] string Type,

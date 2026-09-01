@@ -33,6 +33,7 @@ test('planner edits allocation and timing before approving the plan', async ({ p
   await page.route('**/api/v1/**', async route => handleApi(route, state))
 
   await page.goto(`/planning/${briefVersionId}`)
+  await expect(page.getByText('Planning Client · Campaign planning', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Build audience direction' }).click()
   await expect(page.getByText('Local business decision makers', { exact: true })).toBeVisible()
 
@@ -130,6 +131,7 @@ function planning(state: State) {
   return {
     briefId,
     briefVersionId,
+    clientName: 'Planning Client',
     campaignMode: campaignMode(),
     audience: state.audience ? audience(state) : null,
     mediaMix: state.mix ? mix(state) : null,
@@ -175,7 +177,8 @@ function shortlist(state: State) {
       marketplaceListingVersionId: null, inventoryProductId: productId, productVersionId,
       rateId, availabilityId, name: 'Johannesburg OOH Site', channel: 'OOH', geography: 'Johannesburg',
       rateAmountMinor: 100_000, currency: 'ZAR', isEligible: true, rejectionReason: null, rejectionDetail: null,
-      score: 88, isSelected: state.shortlist?.selected ?? false, benchmark: { id: benchmarkId, policyVersion: 'OOH_LOCAL_PEER_V1',
+      score: 88, rationale: 'Eligible after governed hard constraints and local peer review.',
+      isSelected: state.shortlist?.selected ?? false, benchmark: { id: benchmarkId, policyVersion: 'OOH_LOCAL_PEER_V1',
         geographyBasis: 'RADIUS_5_KM', cohortSize: 4, medianMinor: 140_000, lowerQuartileMinor: 120_000,
         upperQuartileMinor: 160_000, percentile: 25, position: 'STRONG_VALUE', confidence: 0.4, exclusions: [] } }] }
 }
@@ -183,13 +186,13 @@ function shortlist(state: State) {
 function plan(current: NonNullable<State['plan']>) {
   const resolution = current.resolved ? 'ACCEPTED_WITH_REASON' : null
   return { id: planId, briefVersionId, mixVersionId: mixId, shortlistVersionId: shortlistId, versionNumber: 1,
-    subtotalMinor: 100_000, feesMinor: 5_000, vatMinor: 15_750, totalMinor: 120_750, currency: 'ZAR',
+    feesMinor: 5_000, vatMinor: 15_750, totalMinor: 120_750, currency: 'ZAR',
     supplyConfidence: 'UNKNOWN', inputHash: 'd'.repeat(64), status: current.status, assumptions: [],
     lines: [{ id: lineId, inventoryTenantId: tenantId, marketplaceListingVersionId: null,
       inventoryProductId: productId, productVersionId, rateId, availabilityId,
       name: 'Johannesburg OOH Site', channel: 'OOH', geography: 'Johannesburg',
       runningPeriods: [{ start: '2026-09-01', end: '2026-09-30' }], quantity: 1,
-      supplierCostMinor: 100_000, clientPriceMinor: 120_750, feesMinor: 5_000, vatMinor: 15_750,
+      clientPriceMinor: 120_750, feesMinor: 5_000, vatMinor: 15_750,
       availability: 'UNKNOWN', rateFreshness: 'CURRENT', supplySource: 'PUBLISHED_INVENTORY',
       lastConfirmedAtUtc: null, supplyConfidence: 'UNKNOWN' }],
     objections: [{ code: 'SUPPLY_UNCONFIRMED', severity: 'MATERIAL', affectedField: 'supply',

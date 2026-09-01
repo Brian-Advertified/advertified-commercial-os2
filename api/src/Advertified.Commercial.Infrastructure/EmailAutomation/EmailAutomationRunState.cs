@@ -18,34 +18,81 @@ public sealed partial class EmailAutomationRecordStore
         Guid inboundEmailId,
         Func<EmailAutomationRunRow, EmailAutomationRunRow> update,
         CancellationToken cancellationToken) =>
-        UpdateRunAsync(
+        UpdateRunWithTransitionAsync(
             tenantId,
             actorId,
             inboundEmailId,
             update,
-            transition: null,
+            _ => null,
             cancellationToken);
 
-    internal async Task<EmailAutomationRunRow> UpdateRunAsync(
+    internal Task<EmailAutomationRunRow> UpdateRunAsync(
         TenantId tenantId,
         ActorId actorId,
         Guid inboundEmailId,
         Func<EmailAutomationRunRow, EmailAutomationRunRow> update,
         EmailAutomationTransition? transition,
+        CancellationToken cancellationToken) =>
+        UpdateRunWithTransitionAsync(
+            tenantId,
+            actorId,
+            inboundEmailId,
+            update,
+            _ => transition,
+            cancellationToken);
+
+    internal async Task<EmailAutomationRunRow> UpdateRunWithTransitionAsync(
+        TenantId tenantId,
+        ActorId actorId,
+        Guid inboundEmailId,
+        Func<EmailAutomationRunRow, EmailAutomationRunRow> update,
+        Func<EmailAutomationRunRow, EmailAutomationTransition?> transitionFor,
         CancellationToken cancellationToken)
     {
         await using var transaction = await BeginSessionAsync(
             actorId, tenantId, cancellationToken);
         var current = await FindRunAsync(tenantId, inboundEmailId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Email automation access denied.");
-        var desired = update(current) with
+        var proposed = update(current);
+        if (proposed == current)
+        {
+            await transaction.CommitAsync(cancellationToken);
+            return current;
+        }
+        var desired = proposed with
         {
             Version = current.Version + 1,
         };
+        var changed = await PersistRunAsync(
+            tenantId, inboundEmailId, current.Version, desired, cancellationToken);
+        if (changed != 1)
+        {
+            throw new VersionConflictException();
+        }
+        var transition = transitionFor(desired);
+        if (transition is not null)
+        {
+            AddTransition(tenantId, actorId, desired, transition);
+            await DbContext.SaveChangesAsync(cancellationToken);
+        }
+        await transaction.CommitAsync(cancellationToken);
+        return desired;
+    }
+
+    private Task<int> PersistRunAsync(
+        TenantId tenantId,
+        Guid inboundEmailId,
+        long currentVersion,
+        EmailAutomationRunRow desired,
+        CancellationToken cancellationToken)
+    {
         var failureCollection = desired.FailureCode is null
             ? null
             : MasterDataCodes.AutomationFailureReasons.Collection;
-        var changed = await DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+        var deliveryProviderCollection = desired.DeliveryProviderCode is null
+            ? null
+            : MasterDataCodes.EmailProviders.Collection;
+        return DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.email_proposal_automation_runs
             SET status_code = {desired.Status}, checkpoint_code = {desired.Checkpoint},
                 client_account_id = {desired.ClientAccountId}, brief_id = {desired.BriefId},
@@ -62,23 +109,16 @@ public sealed partial class EmailAutomationRecordStore
                 failure_code = {desired.FailureCode},
                 failure_message = {desired.FailureMessage},
                 delivery_idempotency_key = {desired.DeliveryIdempotencyKey},
+                delivery_provider_collection_code = {deliveryProviderCollection},
+                delivery_provider_code = {desired.DeliveryProviderCode},
                 delivery_provider_id = {desired.DeliveryProviderId},
+                delivery_requested_at_utc = {desired.DeliveryRequestedAtUtc},
+                delivery_accepted_at_utc = {desired.DeliveryAcceptedAtUtc},
                 incremental_ai_cost_minor = {desired.IncrementalAiCostMinor},
                 version = version + 1, updated_at_utc = {desired.UpdatedAtUtc}
             WHERE tenant_id = {tenantId.Value} AND inbound_email_id = {inboundEmailId}
-              AND version = {current.Version}
+              AND version = {currentVersion}
             """, cancellationToken);
-        if (changed != 1)
-        {
-            throw new VersionConflictException();
-        }
-        if (transition is not null)
-        {
-            AddTransition(tenantId, actorId, desired, transition);
-            await DbContext.SaveChangesAsync(cancellationToken);
-        }
-        await transaction.CommitAsync(cancellationToken);
-        return desired;
     }
 
     private void AddTransition(

@@ -30,7 +30,10 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
         CancellationToken cancellationToken) =>
         dbContext.Database.SqlQuery<PlanningBriefRow>($"""
             SELECT version.id AS "Id", version.tenant_id AS "TenantId",
-                version.brief_id AS "BriefId", brief.owner_user_id AS "OwnerUserId",
+                version.brief_id AS "BriefId",
+                COALESCE(NULLIF(BTRIM(client.trading_name), ''), client.legal_name)
+                    AS "ClientName",
+                brief.owner_user_id AS "OwnerUserId",
                 version.status_code AS "Status", version.objective AS "Objective",
                 version.audiences_json::text AS "AudiencesJson",
                 version.geographies_json::text AS "GeographiesJson",
@@ -47,6 +50,9 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
             FROM commercial.brief_versions version
             JOIN commercial.campaign_briefs brief
               ON brief.tenant_id = version.tenant_id AND brief.id = version.brief_id
+            JOIN commercial.client_accounts client
+              ON client.tenant_id = brief.tenant_id
+             AND client.id = brief.client_account_id
             WHERE version.tenant_id = {tenantId.Value} AND version.id = {briefVersionId}
             """).SingleOrDefaultAsync(cancellationToken);
 

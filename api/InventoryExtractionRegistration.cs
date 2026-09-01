@@ -9,13 +9,7 @@ internal static class InventoryExtractionRegistration
         this WebApplicationBuilder builder,
         InventoryExtractionOptions settings)
     {
-        if (settings.Mode == InventoryExtractionOptions.DeterministicMode &&
-            !builder.Environment.IsDevelopment() &&
-            !builder.Environment.IsEnvironment("Test"))
-        {
-            throw new InvalidOperationException(
-                "Deterministic document extraction is restricted to development and test.");
-        }
+        EnsureEnvironmentIsSafe(builder, settings);
         builder.Services.AddOptions<InventoryExtractionOptions>()
             .Bind(builder.Configuration.GetSection(InventoryExtractionOptions.SectionName))
             .Validate(InventoryExtractionOptions.HasSupportedMode,
@@ -24,11 +18,41 @@ internal static class InventoryExtractionRegistration
                 "Docling extraction requires an absolute URL, API key and valid timeout.")
             .ValidateOnStart();
         builder.Services.AddHttpClient<DoclingInventoryExtractionAdapter>(
-            (serviceProvider, client) => ConfigureClient(serviceProvider, client));
+            (serviceProvider, client) => ConfigureClient(serviceProvider, client))
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                AllowAutoRedirect = false,
+            });
         builder.Services.AddScoped<IInventoryDocumentExtractionAdapter>(serviceProvider =>
             settings.Mode == InventoryExtractionOptions.DoclingMode
                 ? serviceProvider.GetRequiredService<DoclingInventoryExtractionAdapter>()
                 : new DeterministicInventoryExtractionAdapter());
+    }
+
+    private static void EnsureEnvironmentIsSafe(
+        WebApplicationBuilder builder,
+        InventoryExtractionOptions settings)
+    {
+        if (builder.Environment.IsDevelopment() ||
+            builder.Environment.IsEnvironment("Test"))
+        {
+            return;
+        }
+        if (settings.Mode == InventoryExtractionOptions.DeterministicMode)
+        {
+            throw new InvalidOperationException(
+                "Deterministic document extraction is restricted to development and test.");
+        }
+        if (settings.Mode == InventoryExtractionOptions.DoclingMode &&
+            (!Uri.TryCreate(settings.BaseUrl, UriKind.Absolute, out var baseUri) ||
+             baseUri.Scheme != Uri.UriSchemeHttps ||
+             string.IsNullOrWhiteSpace(baseUri.Host) ||
+             !string.IsNullOrEmpty(baseUri.UserInfo)))
+        {
+            throw new InvalidOperationException(
+                "Docling document extraction must use an HTTPS URL with a host and no " +
+                "embedded credentials outside development and test.");
+        }
     }
 
     private static void ConfigureClient(IServiceProvider serviceProvider, HttpClient client)

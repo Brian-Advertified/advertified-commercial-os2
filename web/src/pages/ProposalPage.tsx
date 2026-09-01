@@ -11,7 +11,7 @@ import { masterDataCodes } from '../generated/master-data-codes'
 import { ProposalAgencyActions } from '../proposal/ProposalAgencyActions'
 import { ProposalClientDecision } from '../proposal/ProposalClientDecision'
 import { ProposalEditor } from '../proposal/ProposalEditor'
-import { humanizeCode } from '../presentation/format'
+import { formatDate, humanizeCode } from '../presentation/format'
 import { ProposalOptionCard } from '../proposal/ProposalOptionCard'
 
 const preparationRoles = new Set<string>([
@@ -93,8 +93,10 @@ function ProposalContent(props: ProposalContentProps) {
       ← {canPrepare ? 'Back to Brief' : 'Back to work'}
     </Link>
     <ProposalHero proposal={proposal} />
+    <ProposalNavigation canPrepare={canPrepare} hasFunding={Boolean(proposal.decision?.optionId)} />
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
     {canPrepare ? <AgencyProposalContent {...props} /> : <ClientProposalContent {...props} />}
+    <ProposalFundingNextStep proposal={proposal} canPrepare={canPrepare} />
   </section>
 }
 
@@ -102,28 +104,28 @@ function AgencyProposalContent(props: ProposalContentProps) {
   const { proposal, busy, tenantId, token, act } = props
   const draft = proposal.status === masterDataCodes.lifecycleStatuses.draft
   return <>
-    {draft ? <ProposalEditor key={`${proposal.id}-${proposal.version}`}
+    <div id="proposal-details">{draft ? <ProposalEditor key={`${proposal.id}-${proposal.version}`}
       proposal={proposal} busy={busy} onSave={(input: ProposalUpdateInput) => act(() =>
         proposalApi.update(tenantId, proposal, input, token))} /> :
-      <ProposalSummary proposal={proposal} clientView={false} tenantId={tenantId} />}
+      <ProposalSummary proposal={proposal} clientView={false} tenantId={tenantId} />}</div>
     <ProposalPreview proposal={proposal} busy={busy} />
-    <ProposalAgencyActions tenantId={tenantId} proposal={proposal}
+    <div id="proposal-action"><ProposalAgencyActions tenantId={tenantId} proposal={proposal}
       recipients={props.recipients} busy={busy}
       onApprove={() => act(() => proposalApi.approve(tenantId, proposal, token))}
       onRender={() => act(() => proposalApi.render(tenantId, proposal, token))}
       onShare={recipientUserId => act(() => proposalApi.share(
-        tenantId, proposal, recipientUserId, token))} />
+        tenantId, proposal, recipientUserId, token))} /></div>
   </>
 }
 
 function ClientProposalContent(props: ProposalContentProps) {
   const { proposal, busy, tenantId, token, act } = props
   return <>
-    <ProposalSummary proposal={proposal} clientView tenantId={tenantId} />
-    <ProposalClientDecision proposal={proposal} busy={busy}
+    <div id="proposal-details"><ProposalSummary proposal={proposal} clientView tenantId={tenantId} /></div>
+    <div id="proposal-options"><ProposalClientDecision proposal={proposal} busy={busy}
       onSelect={optionId => act(() => proposalApi.selectOption(
         tenantId, proposal, optionId, token))}
-      onDecline={() => act(() => proposalApi.decline(tenantId, proposal, token))} />
+      onDecline={() => act(() => proposalApi.decline(tenantId, proposal, token))} /></div>
   </>
 }
 
@@ -131,9 +133,25 @@ function ProposalHero({ proposal }: { proposal: Proposal }) {
   return <header className="proposal-hero proposal-record-hero"><div>
     <p className="eyebrow eyebrow-light">Media proposal</p>
     <h1 id="proposal-title">{proposal.title}</h1><p>{proposal.executiveSummary}</p></div>
-    <div className="proposal-status-block"><span className="status-chip">{humanizeCode(proposal.status, true)}</span>
-      <small>Valid until {formatDateTime(proposal.expiryAtUtc)}</small></div>
+    <dl className="proposal-record-metrics">
+      <div><dt>Status</dt><dd><span className="status-chip">{humanizeCode(proposal.status, true)}</span></dd></div>
+      <div><dt>Client choices</dt><dd>{proposal.options.length}</dd></div>
+      <div><dt>Version</dt><dd>{proposal.versionNumber}</dd></div>
+      <div><dt>Valid until</dt><dd>{formatDate(proposal.expiryAtUtc)}</dd></div>
+    </dl>
   </header>
+}
+
+function ProposalNavigation({ canPrepare, hasFunding }: {
+  canPrepare: boolean
+  hasFunding: boolean
+}) {
+  return <nav className="proposal-navigation" aria-label="Proposal sections">
+    <a href="#proposal-details">Summary and wording</a>
+    <a href="#proposal-options">Client choices</a>
+    {canPrepare && <a href="#proposal-action">Next action</a>}
+    {hasFunding && <a href="#proposal-funding">Funding handoff</a>}
+  </nav>
 }
 
 function ProposalSummary({ proposal, clientView, tenantId }: {
@@ -150,7 +168,7 @@ function ProposalSummary({ proposal, clientView, tenantId }: {
 }
 
 function ProposalPreview({ proposal, busy }: { proposal: Proposal; busy: boolean }) {
-  return <section className="proposal-section" aria-labelledby="proposal-preview-title">
+  return <section className="proposal-section" id="proposal-options" aria-labelledby="proposal-preview-title">
     <div className="proposal-section-heading"><div><p className="eyebrow">Proposal preview</p>
       <h2 id="proposal-preview-title">Client choices</h2>
       <p>Only approved plan totals and client-safe facts are shown.</p></div></div>
@@ -160,7 +178,27 @@ function ProposalPreview({ proposal, busy }: { proposal: Proposal; busy: boolean
   </section>
 }
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
-    .format(new Date(value))
+function ProposalFundingNextStep({ proposal, canPrepare }: {
+  proposal: Proposal
+  canPrepare: boolean
+}) {
+  const selectedId = proposal.decision?.optionId
+  if (!selectedId) return null
+  const option = proposal.options.find(item => item.id === selectedId)
+  if (!option) return null
+  const query = new URLSearchParams({
+    proposalVersionId: proposal.id,
+    proposalOptionId: option.id,
+    amountMinor: String(option.budgetMinor),
+    currency: option.currency,
+  })
+  return <article className="proposal-funding-next" id="proposal-funding"><div><p className="eyebrow eyebrow-light">Client decision recorded</p>
+    <h2>{canPrepare ? 'Continue with purchase order and funding' : 'The selected option is ready for funding'}</h2>
+    <p>{canPrepare
+      ? 'Funding remains tied to this exact option and approved commercial version.'
+      : 'The agency can now reconcile the purchase order and payment before campaign delivery begins.'}</p></div>
+    {canPrepare
+      ? <Link className="primary-button" to={`/funding?${query}`}>Open funding <span aria-hidden="true">→</span></Link>
+      : <span className="status-chip status-positive">Selection retained</span>}
+  </article>
 }

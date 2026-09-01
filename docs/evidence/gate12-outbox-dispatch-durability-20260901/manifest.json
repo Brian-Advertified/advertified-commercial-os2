@@ -1,0 +1,106 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 12,
+  "evidenceDate": "2026-09-01",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "53209e7f718b64a25fc5fcf9aa83365301c5a50c",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Final Release API and test graph build",
+      "command": "dotnet build api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj -c Release --no-restore",
+      "outcome": "PASS",
+      "summary": "The final affected graph built with zero warnings and zero errors."
+    },
+    {
+      "name": "Focused current outbox behavior",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj -c Release --no-build --filter \"FullyQualifiedName~Outbox\" --logger \"console;verbosity=minimal\"",
+      "outcome": "PASS",
+      "summary": "7/7 passed in 20 seconds, including contract, dispatch, migration, readiness and retained command/outbox invariants."
+    },
+    {
+      "name": "Contract migration and readiness focus",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj -c Release --no-build --filter \"FullyQualifiedName~OutboxDeliveryContractTests|FullyQualifiedName~OutboxDispatchDurabilityMigrationTests|FullyQualifiedName~OutboxDispatchReadinessTests\" --logger \"console;verbosity=minimal\"",
+      "outcome": "PASS",
+      "summary": "4/4 passed in 15 seconds, including timing overflow, migration apply/down/guard and unavailable-transport retention."
+    },
+    {
+      "name": "Affected persistence health command and tenant regressions",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj -c Release --no-build --filter \"FullyQualifiedName~HealthEndpointTests|FullyQualifiedName~PersistedCommandAcceptanceTests|FullyQualifiedName~TenantIsolationMigrationTests|FullyQualifiedName~MasterDataMigrationTests.ModelSnapshotMatchesCurrentPersistenceModel\" --logger \"console;verbosity=minimal\"",
+      "outcome": "PASS",
+      "summary": "5/5 affected regression tests passed in 18 seconds."
+    },
+    {
+      "name": "Architecture suite",
+      "command": "python -m pytest tests/architecture -q",
+      "outcome": "PASS",
+      "summary": "31/31 architecture checks passed."
+    },
+    {
+      "name": "Scoped outbox formatting",
+      "command": "powershell -NoProfile -File docs/evidence/gate12-outbox-dispatch-durability-20260901/VERIFY.ps1 -Check Format",
+      "outcome": "PASS",
+      "summary": "The first exact-script run found twelve indentation errors in equivalent index expressions in the model configuration and snapshot. They were corrected without a model change; the retained command then passed all four affected project scopes."
+    },
+    {
+      "name": "Compose validation and local dependency health",
+      "command": "powershell -NoProfile -File docs/evidence/gate12-outbox-dispatch-durability-20260901/VERIFY.ps1 -Check Compose",
+      "outcome": "PASS",
+      "summary": "The Compose definition validated and all six configured local dependency services reported healthy."
+    },
+    {
+      "name": "Diff staging artifact and whitespace hygiene",
+      "command": "powershell -NoProfile -File docs/evidence/gate12-outbox-dispatch-durability-20260901/VERIFY.ps1 -Check Hygiene",
+      "outcome": "PASS",
+      "summary": "No whitespace error, staged file, tracked artifact or scoped trailing-whitespace line was found; Git emitted only existing CRLF conversion warnings."
+    },
+    {
+      "name": "Scoped current-source secret scan",
+      "command": "powershell -NoProfile -File docs/evidence/gate12-outbox-dispatch-durability-20260901/VERIFY.ps1 -Check Secrets",
+      "outcome": "PASS",
+      "summary": "All 31 affected current-source files completed with zero findings. Deterministic test-container credentials are local-only fixtures, not live secrets."
+    },
+    {
+      "name": "Authored source and SQL function limits",
+      "command": "powershell -NoProfile -File docs/evidence/gate12-outbox-dispatch-durability-20260901/VERIFY.ps1 -Check Limits",
+      "outcome": "PASS",
+      "summary": "Every newly authored outbox file is at or below the 300-line target; the pre-existing Program.cs remains 352 lines and below the 400-line hard cap. claim_next_outbox_event is 53 physical lines and each helper/transition function is below the 60-line hard cap."
+    },
+    {
+      "name": "Evidence manifest structural preflight",
+      "command": "python -m json.tool docs/evidence/gate12-outbox-dispatch-durability-20260901/manifest.json; powershell -NoProfile -File docs/evidence/gate12-outbox-dispatch-durability-20260901/VERIFY.ps1 -Check Evidence",
+      "outcome": "PASS",
+      "summary": "The corrected structural preflight passed. The first PowerShell draft emitted CommandNotFoundException because Boolean operators began new statements; it was corrected and rerun with ErrorActionPreference=Stop."
+    },
+    {
+      "name": "Full evidence JSON Schema evaluation",
+      "command": "python -c \"import json, pathlib, jsonschema; p=pathlib.Path(r'docs/evidence/gate12-outbox-dispatch-durability-20260901'); manifest=json.loads((p/'manifest.json').read_text(encoding='utf-8')); schema=json.loads((p.parent/'manifest.schema.json').read_text(encoding='utf-8')); jsonschema.validate(manifest, schema)\"",
+      "outcome": "BLOCKED",
+      "summary": "Python jsonschema is not installed, so no full JSON Schema evaluator result is claimed."
+    },
+    {
+      "name": "Complete final-tree Release API suite",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj -c Release --no-build --logger \"console;verbosity=minimal\"",
+      "outcome": "PASS",
+      "summary": "The combined current-tree Release API suite passed 128/128 in 3 minutes 57 seconds."
+    }
+  ],
+  "unresolvedBlockers": [
+    "Production cross-tenant scheduling/service identity requires a separate accepted ADR and dedicated least-privilege role; this local dispatcher remains bound to one configured tenant.",
+    "EventBridge/SQS, managed credentials, consumer idempotency, backlog release policy, sandbox canary and live transport proof remain absent.",
+    "Central telemetry export and alerts, named operations ownership, load/performance, managed recovery, remote CI, clean-checkout reproducibility and an immutable application image remain unverified.",
+    "Opportunity-worker fencing, moving inbound email work off the webhook path and scheduled email reconciliation remain separate unfinished durability work.",
+    "The repository-wide formatter still has known unrelated whitespace/EOL drift; only the bounded outbox scope is verified clean.",
+    "No commit, push, deployment, production mutation or live provider call was performed, and this evidence does not approve Gate 12 or production readiness."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}

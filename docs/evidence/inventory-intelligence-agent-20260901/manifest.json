@@ -1,0 +1,85 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 7,
+  "evidenceDate": "2026-09-01",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "53209e7f718b64a25fc5fcf9aa83365301c5a50c",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Deterministic agent runtime",
+      "command": "python -m pytest agent-runtime -q",
+      "outcome": "PASS",
+      "summary": "31/31 runtime tests passed, including the Inventory Intelligence handler and truthful eleven-handler roster."
+    },
+    {
+      "name": "Governed master-data projections",
+      "command": "npm --prefix web run master-data:check",
+      "outcome": "PASS",
+      "summary": "Registry 2.12.0 and generated C#, TypeScript and Python projections match."
+    },
+    {
+      "name": "Web static checks",
+      "command": "npm --prefix web run lint; npm --prefix web run type-check; npm --prefix web test",
+      "outcome": "PASS",
+      "summary": "Lint and type-check passed and the focused web unit suite passed 6/6."
+    },
+    {
+      "name": "Production web build",
+      "command": "npm --prefix web run build",
+      "outcome": "PASS",
+      "summary": "Vite 8 production build passed with explicit vendor code splitting and no oversized-chunk warning."
+    },
+    {
+      "name": "Pinned Linux application image build",
+      "command": "docker compose -f infrastructure/docker-compose.build.yml build api migrator agent-runtime web",
+      "outcome": "PASS",
+      "summary": "API and migrator published with pinned .NET SDK 10.0.400; the agent runtime and web images also built from content-addressed bases. The first Linux web build exposed an oversized entry chunk, which was corrected with explicit Vite code splitting and the web image was rebuilt cleanly."
+    },
+    {
+      "name": "Current connected development stack",
+      "command": "docker compose -f infrastructure/docker-compose.yml -f infrastructure/docker-compose.app.yml -f infrastructure/docker-compose.connector-ports.yml up agent-runtime api web",
+      "outcome": "PASS",
+      "summary": "Existing advertified-dev services were recreated on the current images; migration/bootstrap/seed jobs exited successfully and API, runtime and web reported healthy. No new Compose project was created."
+    },
+    {
+      "name": "Inventory Intelligence connected proposal journey",
+      "command": "npx playwright test proposal-connected.connected.spec.ts --config playwright.connected.config.ts",
+      "outcome": "PASS",
+      "summary": "1/1 passed. The real local web/API/database/runtime flow displays the persisted Inventory Intelligence rationale before inventory selection and still reaches approved PDF rendering and client share."
+    },
+    {
+      "name": "Connected critical journeys",
+      "command": "npx playwright test --config playwright.connected.config.ts",
+      "outcome": "PASS",
+      "summary": "3/3 passed for proposal inbox, clear Brief to OOH planning, and clear Brief through approved rendered/shared proposal."
+    },
+    {
+      "name": "Final-tree architecture guardrails",
+      "command": "python -m pytest tests/architecture -q",
+      "outcome": "PASS",
+      "summary": "42/42 architecture checks passed after the Inventory Intelligence and Vite build changes."
+    },
+    {
+      "name": "Complete current-tree C# suite",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release --no-restore",
+      "outcome": "BLOCKED",
+      "summary": "The repository requires .NET SDK 10.0.400 with roll-forward disabled, while this Windows host has 10.0.103. The current API does compile and publish in the pinned 10.0.400 Linux image, but the complete current-source C# test suite still requires a 10.0.400-capable runner or remote CI."
+    }
+  ],
+  "unresolvedBlockers": [
+    "The complete current-source C# suite has not been rerun after the Inventory Intelligence and Brief-readiness changes because the local Windows SDK is behind the repository-pinned 10.0.400 toolchain.",
+    "Live Bedrock/AgentCore activation, model routing, credentials and provider cost controls remain prohibited and unimplemented for production.",
+    "This evidence is local deterministic verification only and does not replace remote CI, staging, independent security/privacy review or production approval."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}

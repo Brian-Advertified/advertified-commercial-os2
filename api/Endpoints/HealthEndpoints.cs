@@ -1,4 +1,5 @@
 using System.Data.Common;
+using Advertified.Commercial.Api.Background;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,6 +26,7 @@ public static partial class HealthEndpoints
 
     private static async Task<IResult> ReadyAsync(
         GovernanceDbContext database,
+        OutboxDispatchReadiness outboxDispatch,
         ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
@@ -49,8 +51,21 @@ public static partial class HealthEndpoints
             return Unavailable("database-unavailable");
         }
 
+        if (outboxDispatch.IsEnabled &&
+            !await outboxDispatch.IsReadyAsync(cancellationToken))
+        {
+            LogOutboxTransportUnavailable(logger);
+            return Unavailable(
+                "outbox-transport-unavailable",
+                "database",
+                "master-data");
+        }
+
+        var checks = outboxDispatch.IsEnabled
+            ? new[] { "process", "database", "master-data", "outbox-transport" }
+            : ["process", "database", "master-data"];
         return Results.Ok(new HealthResponse(
-            "ready", Service, ["process", "database", "master-data"]));
+            "ready", Service, checks));
     }
 
     private static bool IsDependencyFailure(
@@ -77,4 +92,10 @@ public static partial class HealthEndpoints
         Level = LogLevel.Warning,
         Message = "Governed master-data readiness failed.")]
     private static partial void LogMasterDataUnavailable(ILogger logger);
+
+    [LoggerMessage(
+        EventId = 12_106,
+        Level = LogLevel.Warning,
+        Message = "Enabled outbox transport readiness failed.")]
+    private static partial void LogOutboxTransportUnavailable(ILogger logger);
 }

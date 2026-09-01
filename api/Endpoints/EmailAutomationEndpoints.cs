@@ -44,7 +44,7 @@ public static class EmailAutomationEndpoints
         group.MapPost("/messages/{inboundEmailId:guid}:process", ProcessMessageAsync)
             .WithName("ProcessInboundProposalMessage")
             .Produces<EmailAutomationRunView>()
-            .WithCommandProblems(requiresVersion: false);
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/messages/{inboundEmailId:guid}:retry", RetryMessageAsync)
             .WithName("RetryInboundProposalMessage")
             .Produces<EmailAutomationRunView>()
@@ -110,7 +110,7 @@ public static class EmailAutomationEndpoints
     {
         var mailbox = await reader.GetMailboxAsync(
             identity.ActorId, new TenantId(tenantId), cancellationToken);
-        return Results.Ok(mailbox);
+        return Results.Json(mailbox);
     }
 
     private static async Task<IResult> ListMessagesAsync(
@@ -152,7 +152,7 @@ public static class EmailAutomationEndpoints
             identity,
             commands,
             timeProvider,
-            requireVersion: false,
+            requireVersion: true,
             (service, id, envelope, token) => service.ProcessAsync(id, envelope, token),
             cancellationToken);
 

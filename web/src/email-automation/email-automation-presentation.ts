@@ -36,7 +36,11 @@ const failureLabels: Record<string, string> = {
   [masterDataCodes.automationFailureReasons.proposalUnready]:
     'The proposal is not ready to be sent.',
   [masterDataCodes.automationFailureReasons.deliveryFailed]:
-    'The proposal was prepared, but the email could not be delivered.',
+    'The automation stopped and needs review.',
+  [masterDataCodes.automationFailureReasons.deliveryAmbiguous]:
+    'The provider may have accepted the original delivery request, but Advertified did not receive a definitive response. Check that same request before taking any further action.',
+  [masterDataCodes.automationFailureReasons.deliveryRecordingRequired]:
+    'The provider accepted the original delivery. Advertified only needs to finish recording it locally and must not send another email.',
 }
 
 export const automationCheckpoints = [
@@ -48,6 +52,8 @@ export const automationCheckpoints = [
   [masterDataCodes.emailAutomationCheckpoints.planApproved, 'Media plan approved'],
   [masterDataCodes.emailAutomationCheckpoints.proposalApproved, 'Proposal approved'],
   [masterDataCodes.emailAutomationCheckpoints.documentRendered, 'PDF prepared'],
+  [masterDataCodes.emailAutomationCheckpoints.deliveryRequested, 'Delivery requested'],
+  [masterDataCodes.emailAutomationCheckpoints.deliveryAccepted, 'Provider accepted'],
   [masterDataCodes.emailAutomationCheckpoints.sent, 'Proposal sent'],
 ] as const
 
@@ -56,8 +62,9 @@ export function automationStatusLabel(status: string) {
 }
 
 export function automationFailureLabel(code: string | null, detail?: string | null) {
-  if (!code) return detail ?? 'Review the message and its latest completed stage.'
-  return failureLabels[code] ?? detail ?? humanizeCode(code, true)
+  if (detail?.trim()) return detail
+  if (!code) return 'Review the message and its latest completed stage.'
+  return failureLabels[code] ?? humanizeCode(code, true)
 }
 
 export function checkpointIndex(checkpoint: string) {

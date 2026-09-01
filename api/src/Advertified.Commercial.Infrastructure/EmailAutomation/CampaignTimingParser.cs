@@ -8,23 +8,15 @@ namespace Advertified.Commercial.Infrastructure.EmailAutomation;
 
 internal static partial class CampaignTimingParser
 {
-    private static readonly CultureInfo[] Cultures =
-    [
-        CultureInfo.InvariantCulture,
-        CultureInfo.GetCultureInfo("en-ZA"),
-        CultureInfo.GetCultureInfo("en-GB"),
-    ];
-
-    private static readonly string[] Formats =
+    private static readonly string[] UnambiguousFormats =
     [
         "yyyy-MM-dd",
         "d MMMM yyyy",
         "dd MMMM yyyy",
         "d MMM yyyy",
         "dd MMM yyyy",
-        "d/M/yyyy",
-        "dd/MM/yyyy",
     ];
+    private static readonly string[] SlashFormats = ["d/M/yyyy", "M/d/yyyy"];
 
     internal static MediaRunningPeriodInput[] Parse(string timing)
     {
@@ -46,24 +38,28 @@ internal static partial class CampaignTimingParser
 
     private static DateOnly? ParseDate(string value)
     {
-        foreach (var culture in Cultures)
+        var trimmed = value.Trim();
+        if (DateOnly.TryParseExact(
+                trimmed,
+                UnambiguousFormats,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces,
+                out var exact))
         {
-            if (DateOnly.TryParseExact(
-                    value.Trim(),
-                    Formats,
-                    culture,
-                    DateTimeStyles.AllowWhiteSpaces,
-                    out var exact))
-            {
-                return exact;
-            }
-            if (DateOnly.TryParse(
-                    value.Trim(), culture, DateTimeStyles.AllowWhiteSpaces, out var parsed))
-            {
-                return parsed;
-            }
+            return exact;
         }
-        return null;
+        var slashCandidates = SlashFormats
+            .Select(format => DateOnly.TryParseExact(
+                trimmed,
+                format,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var parsed) ? parsed : (DateOnly?)null)
+            .Where(candidate => candidate.HasValue)
+            .Select(candidate => candidate!.Value)
+            .Distinct()
+            .ToArray();
+        return slashCandidates.Length == 1 ? slashCandidates[0] : null;
     }
 
     [GeneratedRegex(

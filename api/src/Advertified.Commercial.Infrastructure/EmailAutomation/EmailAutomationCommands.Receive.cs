@@ -86,13 +86,15 @@ public sealed partial class EmailAutomationCommands
             INSERT INTO commercial.email_proposal_automation_runs (
                 id, tenant_id, inbound_email_id, policy_version,
                 campaign_mode_code, status_code, checkpoint_code,
-                client_account_id, input_hash, incremental_ai_cost_minor,
+                client_account_id, input_hash, delivery_provider_collection_code,
+                delivery_provider_code, incremental_ai_cost_minor,
                 version, created_at_utc, updated_at_utc)
             VALUES ({runId}, {envelope.TenantId.Value}, {emailId}, {policy.Version},
                 {MasterDataCodes.CampaignModes.OohOnly},
                 {MasterDataCodes.EmailAutomationStatuses.Received},
                 {MasterDataCodes.EmailAutomationCheckpoints.SourceCaptured},
                 {mailbox.DefaultClientAccountId}, {NormalizeHash(command.SourceHash)},
+                {MasterDataCodes.EmailProviders.Collection}, {mailbox.Provider},
                 0, 1, {now}, {now})
             """, cancellationToken);
         await InsertAttachmentsAsync(

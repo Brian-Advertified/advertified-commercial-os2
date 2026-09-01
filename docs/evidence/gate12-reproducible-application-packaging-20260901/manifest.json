@@ -1,0 +1,86 @@
+{
+  "$schema": "../manifest.schema.json",
+  "schemaVersion": "1.0.0",
+  "gate": 12,
+  "evidenceDate": "2026-09-01",
+  "repository": "advertified-commercial-os2",
+  "branch": "master",
+  "baseCommit": "53209e7f718b64a25fc5fcf9aa83365301c5a50c",
+  "workingTreeState": "UNCOMMITTED_REVIEW",
+  "liveProviderUsed": false,
+  "productionResourcesUsed": false,
+  "incrementalAiCostMinor": 0,
+  "checks": [
+    {
+      "name": "Build Compose definition",
+      "command": "docker compose -f infrastructure/docker-compose.build.yml config --quiet",
+      "outcome": "PASS",
+      "summary": "The canonical build definition resolves the API, migrator, agent runtime and web services without adding a parallel application stack."
+    },
+    {
+      "name": "Pinned application image builds",
+      "command": "docker compose -f infrastructure/docker-compose.build.yml build api migrator agent-runtime web",
+      "outcome": "PASS",
+      "summary": "All four Linux images built. API and migrator publish with pinned .NET SDK 10.0.400; Node 22.23.2, Python 3.12.14 and Caddy 2.11.4 base images are content-addressed."
+    },
+    {
+      "name": "Linux web chunking regression",
+      "command": "docker compose -f infrastructure/docker-compose.build.yml build web",
+      "outcome": "PASS",
+      "summary": "After explicit Vite 8 code splitting, the Linux build emits a 148.23 kB entry, 427.17 kB React vendor, 84.45 kB validation vendor and 46.51 kB UI vendor with no oversized-chunk warning. The warning limit was not raised."
+    },
+    {
+      "name": "Current application stack smoke",
+      "command": "docker compose -f infrastructure/docker-compose.yml -f infrastructure/docker-compose.app.yml -f infrastructure/docker-compose.connector-ports.yml up agent-runtime api web",
+      "outcome": "PASS",
+      "summary": "The existing advertified-dev runtime/API/web containers were recreated from the current images. Bootstrap, migrator and seed jobs exited successfully; runtime, API and web reached healthy state."
+    },
+    {
+      "name": "Same-origin web/API integration",
+      "command": "npx playwright test --config playwright.connected.config.ts",
+      "outcome": "PASS",
+      "summary": "3/3 connected local journeys passed through the Caddy-served web image and same-origin /api proxy into the current API/database/runtime stack."
+    },
+    {
+      "name": "Web source and production checks",
+      "command": "npm --prefix web run lint; npm --prefix web run type-check; npm --prefix web test; npm --prefix web run build",
+      "outcome": "PASS",
+      "summary": "Lint and type-check passed, web unit tests passed 6/6 and the host production build completed without an oversized-chunk warning."
+    },
+    {
+      "name": "Final-tree architecture guardrails",
+      "command": "python -m pytest tests/architecture -q",
+      "outcome": "PASS",
+      "summary": "42/42 architecture checks passed, including current immutable build-input and application-packaging guards."
+    },
+    {
+      "name": "Complete current-tree C# suite",
+      "command": "dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --configuration Release --no-restore",
+      "outcome": "BLOCKED",
+      "summary": "This Windows host has .NET SDK 10.0.103 while global.json requires 10.0.400 with roll-forward disabled. The current API compiles/publishes in the pinned 10.0.400 Linux image, but a complete current-source C# test result is still required."
+    },
+    {
+      "name": "SBOM and final-image vulnerability scan",
+      "command": "CI application-packaging job: Syft CycloneDX generation followed by Trivy HIGH/CRITICAL scan",
+      "outcome": "PENDING",
+      "summary": "The pinned CI steps are implemented but have not yet executed on remote CI for this uncommitted tree."
+    },
+    {
+      "name": "Committed-source secret scan",
+      "command": "CI architecture job: pinned Gitleaks scan of git archive HEAD",
+      "outcome": "PENDING",
+      "summary": "The blocking pinned CI step is implemented but cannot represent the current uncommitted tree until an owner-authorised commit and remote CI run exist."
+    }
+  ],
+  "unresolvedBlockers": [
+    "Complete current-source C# tests require a .NET 10.0.400-capable local runner or remote CI.",
+    "SBOM generation, final-image vulnerability scanning and blocking source secret scanning are configured but have no remote CI result for this uncommitted tree.",
+    "The dirty working tree cannot produce an immutable release identity, signed provenance or owner-approved release artifact.",
+    "Staging deployment, production identity, managed secrets, central telemetry and production smoke remain outside this packaging packet and unverified."
+  ],
+  "ownerReview": {
+    "status": "PENDING",
+    "owner": "Brian Rabuthu",
+    "decisionDate": null
+  }
+}

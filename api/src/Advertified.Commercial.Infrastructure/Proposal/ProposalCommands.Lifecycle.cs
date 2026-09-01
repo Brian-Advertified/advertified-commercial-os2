@@ -112,7 +112,7 @@ public sealed partial class ProposalCommands
         var proposal = await store.FindProposalAsync(
             envelope.TenantId, proposalVersionId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Proposal access denied.");
-        var brief = await store.FindApprovedBriefAsync(
+        var brief = await store.FindPlanningReadyBriefAsync(
             envelope.TenantId, proposal.BriefId, cancellationToken)
             ?? throw new ProposalStaleException();
         if (brief.OwnerUserId != envelope.ActorId.Value ||

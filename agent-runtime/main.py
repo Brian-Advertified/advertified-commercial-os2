@@ -1,33 +1,25 @@
-"""Advertified provider-disabled runtime with explicit deterministic mode."""
+"""Advertified typed agent runtime with deterministic and bounded Bedrock modes."""
 
 import os
 import secrets
 from typing import Literal
 
 from fastapi import FastAPI, Header, HTTPException, Request
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from agent_registry import AgentCode
-from creative_contracts import CreativeAgentRequest
-from creative_service import generate_creative_concepts
-from measurement_contracts import MeasurementAgentRequest
-from measurement_service import interpret_measurement
-from opportunity_contracts import OpportunityAgentRequest
-from opportunity_service import HANDLERS
-from planning_contracts import AudienceAgentRequest, MediaPlanningAgentRequest
-from planning_service import propose_audiences, propose_media_mix
-from proposal_contracts import ProposalNarrativeAgentRequest
-from proposal_service import propose_narrative
+from bedrock_provider import BEDROCK_MODE, bedrock_configuration_ready
+from runtime_execution import DETERMINISTIC_MODE, execute_agent, implemented_agents
 
 RUNTIME_MODE_KEY = "ADVERTIFIED_AGENT_RUNTIME_MODE"
 SERVICE_KEY = "ADVERTIFIED_AGENT_RUNTIME_SERVICE_KEY"
-DETERMINISTIC_MODE = "deterministic"
+DISABLED_MODE = "disabled"
 
 
 class RuntimeDescription(BaseModel):
     service: str
-    status: Literal["provider_disabled", "deterministic_ready"]
-    provider_mode: Literal["disabled", "deterministic"]
+    status: Literal["provider_disabled", "deterministic_ready", "bedrock_ready"]
+    provider_mode: Literal["disabled", "deterministic", "bedrock"]
     implemented_agents: list[str]
 
 
@@ -40,26 +32,26 @@ class HealthResponse(BaseModel):
 app = FastAPI(
     title="Advertified Agent Runtime",
     description="Typed proposal runtime; canonical state remains in the Commercial API.",
-    version="0.1.0",
+    version="0.2.0",
 )
 
 
 @app.get("/", response_model=RuntimeDescription)
 def describe_runtime() -> RuntimeDescription:
-    """Describe only capabilities that exist in this baseline."""
-    enabled = _deterministic_enabled()
-    implemented = [code.value for code in AgentCode if code in _implemented_agents()]
+    mode = _runtime_mode()
+    ready = _provider_configuration_ready(mode)
+    implemented = [code.value for code in AgentCode if code in implemented_agents()]
+    status = _runtime_status(mode, ready)
     return RuntimeDescription(
         service="Advertified Agent Runtime",
-        status="deterministic_ready" if enabled else "provider_disabled",
-        provider_mode="disabled" if not enabled else "deterministic",
-        implemented_agents=[] if not enabled else implemented,
+        status=status,
+        provider_mode=mode if ready else DISABLED_MODE,
+        implemented_agents=implemented if ready else [],
     )
 
 
 @app.get("/health/live", response_model=HealthResponse)
 def live() -> HealthResponse:
-    """Report process liveness without claiming provider availability."""
     return HealthResponse(
         status="healthy",
         service="advertified-agent-runtime",
@@ -69,12 +61,14 @@ def live() -> HealthResponse:
 
 @app.get("/health/ready", response_model=HealthResponse)
 def ready() -> HealthResponse:
-    """Report baseline readiness; no external provider is enabled."""
-    enabled = _deterministic_enabled()
+    mode = _runtime_mode()
+    if not _provider_configuration_ready(mode):
+        raise HTTPException(status_code=503, detail="Agent provider is not ready.")
+    check = "deterministic-zero-cost" if mode == DETERMINISTIC_MODE else "bedrock-configured"
     return HealthResponse(
         status="ready",
         service="advertified-agent-runtime",
-        checks=["process", "deterministic-zero-cost" if enabled else "provider-disabled"],
+        checks=["process", check],
     )
 
 
@@ -84,91 +78,36 @@ async def invoke(
     http_request: Request,
     x_advertified_service_key: str | None = Header(default=None),
 ) -> dict[str, object]:
-    """Invoke one allow-listed, zero-cost proposal contract."""
-    _require_deterministic_service(x_advertified_service_key)
-    body = await http_request.body()
-    if agent_code == AgentCode.CREATIVE:
-        return _invoke_creative(body)
-    if agent_code in (AgentCode.AUDIENCE, AgentCode.MEDIA_PLANNING):
-        return _invoke_planning(agent_code, body)
-    if agent_code == AgentCode.PROPOSAL_NARRATIVE:
-        return _invoke_proposal(body)
-    if agent_code == AgentCode.MEASUREMENT:
-        return _invoke_measurement(body)
-    return _invoke_opportunity(agent_code, body)
+    mode = _runtime_mode()
+    _require_service(mode, x_advertified_service_key)
+    return execute_agent(agent_code, await http_request.body(), mode)
 
 
-def _invoke_creative(body: bytes) -> dict[str, object]:
-    request = _validate_json(CreativeAgentRequest, body)
-    if request.invocation.agent_code != AgentCode.CREATIVE:
-        raise HTTPException(status_code=400, detail="Agent contract does not match the route.")
-    return generate_creative_concepts(request).model_dump(mode="json")
+def _runtime_mode() -> Literal["disabled", "deterministic", "bedrock"]:
+    mode = os.environ.get(RUNTIME_MODE_KEY, DISABLED_MODE).strip().lower()
+    return mode if mode in (DETERMINISTIC_MODE, BEDROCK_MODE) else DISABLED_MODE
 
 
-def _invoke_opportunity(agent_code: AgentCode, body: bytes) -> dict[str, object]:
-    request = _validate_json(OpportunityAgentRequest, body)
-    if request.invocation.agent_code != agent_code or agent_code not in HANDLERS:
-        raise HTTPException(status_code=400, detail="Agent contract does not match the route.")
-    return HANDLERS[agent_code](request).model_dump(mode="json")
+def _provider_configuration_ready(mode: str) -> bool:
+    if mode == DETERMINISTIC_MODE:
+        return True
+    if mode == BEDROCK_MODE:
+        return bedrock_configuration_ready()
+    return False
 
 
-def _invoke_planning(agent_code: AgentCode, body: bytes) -> dict[str, object]:
-    model = (
-        AudienceAgentRequest
-        if agent_code == AgentCode.AUDIENCE
-        else MediaPlanningAgentRequest
-    )
-    request = _validate_json(model, body)
-    _require_agent_match(request.invocation.agent_code, agent_code)
-    handler = propose_audiences if agent_code == AgentCode.AUDIENCE else propose_media_mix
-    return handler(request).model_dump(mode="json")
+def _runtime_status(
+    mode: str,
+    ready: bool,
+) -> Literal["provider_disabled", "deterministic_ready", "bedrock_ready"]:
+    if not ready:
+        return "provider_disabled"
+    return "deterministic_ready" if mode == DETERMINISTIC_MODE else "bedrock_ready"
 
 
-def _invoke_proposal(body: bytes) -> dict[str, object]:
-    request = _validate_json(ProposalNarrativeAgentRequest, body)
-    _require_agent_match(request.invocation.agent_code, AgentCode.PROPOSAL_NARRATIVE)
-    return propose_narrative(request).model_dump(mode="json")
-
-
-def _invoke_measurement(body: bytes) -> dict[str, object]:
-    request = _validate_json(MeasurementAgentRequest, body)
-    _require_agent_match(request.invocation.agent_code, AgentCode.MEASUREMENT)
-    return interpret_measurement(request).model_dump(mode="json")
-
-
-def _require_agent_match(contract_code: AgentCode, route_code: AgentCode) -> None:
-    if contract_code != route_code:
-        raise HTTPException(status_code=400, detail="Agent contract does not match the route.")
-
-
-def _implemented_agents() -> set[AgentCode]:
-    return {
-        *HANDLERS,
-        AgentCode.AUDIENCE,
-        AgentCode.MEDIA_PLANNING,
-        AgentCode.PROPOSAL_NARRATIVE,
-        AgentCode.CREATIVE,
-        AgentCode.MEASUREMENT,
-    }
-
-
-def _validate_json(model_type, body: bytes):
-    try:
-        return model_type.model_validate_json(body)
-    except ValidationError as error:
-        raise HTTPException(
-            status_code=422,
-            detail=error.errors(include_input=False, include_context=False),
-        ) from error
-
-
-def _deterministic_enabled() -> bool:
-    return os.environ.get(RUNTIME_MODE_KEY) == DETERMINISTIC_MODE
-
-
-def _require_deterministic_service(provided_key: str | None) -> None:
-    if not _deterministic_enabled():
-        raise HTTPException(status_code=503, detail="Deterministic runtime is disabled.")
+def _require_service(mode: str, provided_key: str | None) -> None:
+    if not _provider_configuration_ready(mode):
+        raise HTTPException(status_code=503, detail="Agent provider is disabled.")
     expected_key = os.environ.get(SERVICE_KEY)
     if (
         not expected_key

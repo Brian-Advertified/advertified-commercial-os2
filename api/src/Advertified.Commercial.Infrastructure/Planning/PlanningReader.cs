@@ -23,6 +23,7 @@ public sealed class PlanningReader(
         var brief = await store.FindBriefAsync(tenantId, briefVersionId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Planning access denied.");
         EnsureAssigned(brief, actorId);
+        var advertiserViewer = await store.CurrentViewerIsAdvertiserAsync(cancellationToken);
         var campaignModeRow = await store.FindCampaignModeAsync(
             tenantId, briefVersionId, cancellationToken);
         var audienceRow = await store.FindLatestAudienceAsync(
@@ -41,11 +42,12 @@ public sealed class PlanningReader(
         var mix = mixRow is null ? null : PlanningRecordStore.BuildMixView(mixRow);
         var shortlist = shortlistRow is null ? null : await store.BuildShortlistViewAsync(
             tenantId, shortlistRow, cancellationToken);
-        var plan = planRow is null ? null : await store.BuildPlanViewAsync(
-            tenantId, planRow, cancellationToken);
+        var plan = planRow is null ? null : ProjectPlanForViewer(
+            await store.BuildPlanViewAsync(tenantId, planRow, cancellationToken),
+            advertiserViewer);
         await transaction.CommitAsync(cancellationToken);
         return new PlanningWorkspaceView(
-            brief.BriefId, briefVersionId, campaignMode,
+            brief.BriefId, briefVersionId, brief.ClientName, campaignMode,
             audience, mix, shortlist, plan);
     }
 
@@ -64,7 +66,10 @@ public sealed class PlanningReader(
             tenantId, plan.BriefVersionId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Plan access denied.");
         EnsureAssigned(brief, actorId);
-        var view = await store.BuildPlanViewAsync(tenantId, plan, cancellationToken);
+        var advertiserViewer = await store.CurrentViewerIsAdvertiserAsync(cancellationToken);
+        var view = ProjectPlanForViewer(
+            await store.BuildPlanViewAsync(tenantId, plan, cancellationToken),
+            advertiserViewer);
         await transaction.CommitAsync(cancellationToken);
         return view;
     }
@@ -89,4 +94,14 @@ public sealed class PlanningReader(
             throw new UnauthorizedAccessException("Planning assignment denied.");
         }
     }
+
+    private static MediaPlanVersionView ProjectPlanForViewer(
+        MediaPlanVersionView plan,
+        bool advertiserViewer) => advertiserViewer
+            ? plan with
+            {
+                Assumptions = Array.Empty<string>(),
+                Objections = Array.Empty<PlanObjectionView>(),
+            }
+            : plan;
 }

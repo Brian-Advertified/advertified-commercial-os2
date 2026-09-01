@@ -45,7 +45,7 @@ function OohInboxContent({ inbox }: { inbox: InboxState }) {
   return <section className="ooh-inbox-page" aria-labelledby="ooh-inbox-title">
     <header className="ooh-inbox-hero"><div><p className="eyebrow eyebrow-light">Email to proposal</p>
       <h1 id="ooh-inbox-title">Proposal inbox</h1>
-      <p>Complete OOH requests can move through Brief interpretation, STP, media planning, verified inventory, proposal approval and PDF delivery without a per-request click.</p></div>
+      <p>When this tenant opts in, complete OOH requests can move through Brief interpretation, STP, media planning, verified inventory, proposal approval and PDF delivery to addresses that pass provider and mailbox checks. Anything unclear or unsafe is held for review.</p></div>
       <div className="ooh-hero-lock"><strong>One campaign flow</strong>
         <span>OOH follows the same stages as a full campaign. This inbox only permits OOH and DOOH media, and that choice cannot be widened later.</span></div></header>
     {inbox.error && <p className="inline-alert" role="alert">{inbox.error}</p>}
@@ -73,7 +73,7 @@ function ConnectedInbox({ inbox }: { inbox: InboxState }) {
       <section className="ooh-inbox-detail-panel">
         {inbox.detail
           ? <InboxMessageDetail detail={inbox.detail} busy={inbox.busy}
-              onRetry={inbox.retrySelected} />
+              onRetry={inbox.retrySelected} onReconcile={inbox.reconcileSelected} />
           : <article className="ooh-detail-empty"><div>↗</div><h2>Select an email</h2>
               <p>Open a request to see the original Brief, its latest stage and every approved artefact produced.</p></article>}
       </section>
@@ -91,7 +91,7 @@ function MailboxSummary({ mailbox, onEdit, onRefresh, busy }: {
     <h2>{mailbox.address}</h2><p>{providerLabel(mailbox.provider)} · {mailbox.allowedSenderDomains.length} allowed sender domain{mailbox.allowedSenderDomains.length === 1 ? '' : 's'}</p></div>
     <div className="ooh-mailbox-controls"><div className="ooh-mailbox-state">
       <span>{mailbox.autoSendEnabled ? 'Automatic sending on' : 'Automatic sending paused'}</span>
-      <strong>{mailbox.autoSendEnabled ? 'Complete proposals send themselves' : 'Requests stop before delivery'}</strong></div>
+      <strong>{mailbox.autoSendEnabled ? 'Ready proposals use provider and mailbox checks' : 'Requests stop before sending'}</strong></div>
       <button className="text-action" type="button" onClick={onEdit}>Settings</button>
       <button className="text-action" type="button" disabled={busy}
         onClick={() => void onRefresh()}>{busy ? 'Refreshing…' : 'Refresh'}</button></div>
@@ -108,8 +108,8 @@ function InboxMetrics({ messages }: { messages: InboundCampaignEmail[] }) {
   }), [messages])
   return <div className="ooh-inbox-metrics" aria-label="Proposal inbox summary">
     <article><span>Received</span><strong>{messages.length}</strong><small>Visible requests</small></article>
-    <article><span>Proposal sent</span><strong>{counts.sent}</strong><small>Delivered automatically</small></article>
-    <article><span>Needs attention</span><strong>{counts.review}</strong><small>Nothing was sent</small></article>
+    <article><span>Proposal sent</span><strong>{counts.sent}</strong><small>Sent automatically</small></article>
+    <article><span>Needs attention</span><strong>{counts.review}</strong><small>Review required</small></article>
     <article><span>In progress</span><strong>{counts.active}</strong><small>Being prepared</small></article>
   </div>
 }
@@ -165,12 +165,11 @@ function useOohInbox(tenantId: string, token: string) {
   }
 
   async function retrySelected(clarifications: EmailAutomationClarification[]) {
-    if (!detail) return
-    await act(async () => {
-      const run = await emailAutomationApi.retryMessage(
-        tenantId, detail.run, clarifications, token)
-      notifications.information(automationStatusLabel(run.status))
-    }, detail.email.id)
+    await retrySelectedMessage(detail, clarifications, tenantId, token, act)
+  }
+
+  async function reconcileSelected() {
+    await reconcileSelectedMessage(detail, tenantId, token, act)
   }
 
   async function refresh() {
@@ -178,7 +177,46 @@ function useOohInbox(tenantId: string, token: string) {
   }
 
   return { mailbox, messages, detail, selectedId, user, editing, busy, error,
-    setEditing, configure, selectMessage, retrySelected, refresh }
+    setEditing, configure, selectMessage, retrySelected, reconcileSelected, refresh }
+}
+
+type InboxActionRunner = (
+  action: () => Promise<void>,
+  preferredId?: string | null,
+) => Promise<void>
+
+async function retrySelectedMessage(
+  detail: InboundEmailDetail | null,
+  clarifications: EmailAutomationClarification[],
+  tenantId: string,
+  token: string,
+  act: InboxActionRunner,
+) {
+  if (!detail || detail.run.deliveryRequestedAtUtc !== null) return
+  await act(async () => {
+    const run = await emailAutomationApi.retryMessage(
+      tenantId, detail.run, clarifications, token)
+    notifications.information(automationStatusLabel(run.status))
+  }, detail.email.id)
+}
+
+async function reconcileSelectedMessage(
+  detail: InboundEmailDetail | null,
+  tenantId: string,
+  token: string,
+  act: InboxActionRunner,
+) {
+  if (!detail || detail.run.deliveryRequestedAtUtc === null &&
+    detail.run.status !== masterDataCodes.emailAutomationStatuses.processing) return
+  await act(async () => {
+    const run = await emailAutomationApi.processMessage(
+      tenantId, detail.run, token)
+    notifications.information(run.status === masterDataCodes.emailAutomationStatuses.sent
+      ? 'Provider acceptance confirmed. The proposal is recorded as sent.'
+      : detail.run.deliveryRequestedAtUtc
+        ? 'The original delivery was checked without sending another email.'
+        : 'Processing resumed from the saved checkpoint.')
+  }, detail.email.id)
 }
 
 function useInboxInitialLoad(

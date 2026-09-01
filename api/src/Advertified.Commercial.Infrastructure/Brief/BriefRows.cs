@@ -8,11 +8,13 @@ internal sealed record CampaignBriefRow
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }
     public Guid ClientId { get; set; }
+    public string ClientName { get; set; } = string.Empty;
     public Guid? OpportunityId { get; set; }
     public string Title { get; set; } = string.Empty;
     public Guid OwnerUserId { get; set; }
     public string Status { get; set; } = string.Empty;
     public Guid? CurrentDraftVersionId { get; set; }
+    public Guid? ReadyVersionId { get; set; }
     public Guid? ApprovedVersionId { get; set; }
     public long Version { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }
@@ -73,9 +75,9 @@ internal static class BriefRowMapper
     };
 
     public static CampaignBriefSummaryView ToView(this CampaignBriefRow row) => new(
-        row.Id, row.TenantId, row.ClientId, row.OpportunityId, row.Title, row.OwnerUserId,
-        row.Status, row.CurrentDraftVersionId, row.ApprovedVersionId, row.Version,
-        row.UpdatedAtUtc);
+        row.Id, row.TenantId, row.ClientId, row.ClientName, row.OpportunityId, row.Title,
+        row.OwnerUserId, row.Status, row.CurrentDraftVersionId, row.ReadyVersionId,
+        row.ApprovedVersionId, row.Version, row.UpdatedAtUtc);
 
     public static BriefSourceView ToView(this BriefSourceRow row) => new(
         row.Id, row.SourceType, row.Locator, row.Title, row.Content, row.ContentHash,

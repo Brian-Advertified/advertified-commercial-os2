@@ -41,25 +41,39 @@ public sealed class BriefRecordStore(GovernanceDbContext dbContext)
     {
         FormattableString query = forUpdate
             ? (FormattableString)$"""
-                SELECT id AS "Id", tenant_id AS "TenantId",
-                    client_account_id AS "ClientId", opportunity_id AS "OpportunityId",
-                    title AS "Title", owner_user_id AS "OwnerUserId", status_code AS "Status",
-                    current_draft_version_id AS "CurrentDraftVersionId",
-                    approved_version_id AS "ApprovedVersionId", version AS "Version",
-                    updated_at_utc AS "UpdatedAtUtc"
-                FROM commercial.campaign_briefs
-                WHERE tenant_id = {tenantId.Value} AND id = {briefId}
-                FOR UPDATE
+                SELECT brief.id AS "Id", brief.tenant_id AS "TenantId",
+                    brief.client_account_id AS "ClientId",
+                    COALESCE(NULLIF(BTRIM(client.trading_name), ''), client.legal_name)
+                        AS "ClientName",
+                    brief.opportunity_id AS "OpportunityId", brief.title AS "Title",
+                    brief.owner_user_id AS "OwnerUserId", brief.status_code AS "Status",
+                    brief.current_draft_version_id AS "CurrentDraftVersionId",
+                    brief.ready_version_id AS "ReadyVersionId",
+                    brief.approved_version_id AS "ApprovedVersionId", brief.version AS "Version",
+                    brief.updated_at_utc AS "UpdatedAtUtc"
+                FROM commercial.campaign_briefs brief
+                JOIN commercial.client_accounts client
+                  ON client.tenant_id = brief.tenant_id
+                 AND client.id = brief.client_account_id
+                WHERE brief.tenant_id = {tenantId.Value} AND brief.id = {briefId}
+                FOR UPDATE OF brief
                 """
             : (FormattableString)$"""
-                SELECT id AS "Id", tenant_id AS "TenantId",
-                    client_account_id AS "ClientId", opportunity_id AS "OpportunityId",
-                    title AS "Title", owner_user_id AS "OwnerUserId", status_code AS "Status",
-                    current_draft_version_id AS "CurrentDraftVersionId",
-                    approved_version_id AS "ApprovedVersionId", version AS "Version",
-                    updated_at_utc AS "UpdatedAtUtc"
-                FROM commercial.campaign_briefs
-                WHERE tenant_id = {tenantId.Value} AND id = {briefId}
+                SELECT brief.id AS "Id", brief.tenant_id AS "TenantId",
+                    brief.client_account_id AS "ClientId",
+                    COALESCE(NULLIF(BTRIM(client.trading_name), ''), client.legal_name)
+                        AS "ClientName",
+                    brief.opportunity_id AS "OpportunityId", brief.title AS "Title",
+                    brief.owner_user_id AS "OwnerUserId", brief.status_code AS "Status",
+                    brief.current_draft_version_id AS "CurrentDraftVersionId",
+                    brief.ready_version_id AS "ReadyVersionId",
+                    brief.approved_version_id AS "ApprovedVersionId", brief.version AS "Version",
+                    brief.updated_at_utc AS "UpdatedAtUtc"
+                FROM commercial.campaign_briefs brief
+                JOIN commercial.client_accounts client
+                  ON client.tenant_id = brief.tenant_id
+                 AND client.id = brief.client_account_id
+                WHERE brief.tenant_id = {tenantId.Value} AND brief.id = {briefId}
                 """;
         return dbContext.Database.SqlQuery<CampaignBriefRow>(query)
             .SingleOrDefaultAsync(cancellationToken);

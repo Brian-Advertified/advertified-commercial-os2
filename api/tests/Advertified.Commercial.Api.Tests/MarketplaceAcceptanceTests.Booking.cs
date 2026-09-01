@@ -125,6 +125,9 @@ public sealed partial class MarketplaceAcceptanceTests
         Assert.Equal("CONFIRMED", confirmed.RootElement.GetProperty("status").GetString());
         Assert.Equal(JsonValueKind.Null,
             confirmed.RootElement.GetProperty("clientPriceMinor").ValueKind);
+        await AssertRoleAppropriateBookingProjectionsAsync(
+            buyer, supplier, reviewer, bookingId);
+        await AssertBuyerSafeBookingProjectionAsync(client, bookingId);
         using var campaignReady = await ReadAsync(
             buyer, BuyerTenantId, $"campaigns/{campaignId}");
         Assert.Equal("campaign_confirm_bookings", campaignReady.RootElement
@@ -169,6 +172,8 @@ public sealed partial class MarketplaceAcceptanceTests
         await AssertCampaignDeliveryProofAsync(
             buyer, client, supplier, other, campaignId, bookingId, readyVersion,
             clock, connectionString);
+        await ChangeClientBookingRoleAsync(connectionString);
+        await AssertBuyerSafeBookingProjectionAsync(client, bookingId);
     }
 
     [Fact]

@@ -13,7 +13,7 @@ public sealed partial class PlanningCommands
         CommandEnvelope<SelectCampaignModeCommand> envelope,
         CancellationToken cancellationToken)
     {
-        await LoadApprovedBriefAsync(briefVersionId, envelope, cancellationToken);
+        await LoadPlanningReadyBriefAsync(briefVersionId, envelope, cancellationToken);
         var existing = await store.FindCampaignModeAsync(
             envelope.TenantId, briefVersionId, cancellationToken);
         if (existing is not null || await store.HasPlanningArtifactsAsync(

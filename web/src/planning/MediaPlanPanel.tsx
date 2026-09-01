@@ -1,7 +1,7 @@
 import type { MediaPlan } from '../api/planning-schemas'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { masterDataCodes } from '../generated/master-data-codes'
-import { formatMoney } from '../presentation/format'
+import { formatDate, formatMoney } from '../presentation/format'
 import { mediaVisual } from './media-visuals'
 
 export function MediaPlanPanel({ plan, busy, onResolve, onApprove }: {
@@ -18,8 +18,7 @@ export function MediaPlanPanel({ plan, busy, onResolve, onApprove }: {
       <p>Exact selected inventory, running periods, supply confidence and commercial totals.</p></div>
       <div className="plan-total"><span>Total</span><strong>{formatMoney(plan.totalMinor, plan.currency)}</strong>
         <small>{plan.supplyConfidence.replaceAll('_', ' ')} supply confidence</small></div></div>
-    <div className="plan-money-strip"><Money label="Media" amount={plan.subtotalMinor} currency={plan.currency} />
-      <Money label="Fees" amount={plan.feesMinor} currency={plan.currency} />
+    <div className="plan-money-strip"><Money label="Fees" amount={plan.feesMinor} currency={plan.currency} />
       <Money label="VAT" amount={plan.vatMinor} currency={plan.currency} />
       <Money label="Total" amount={plan.totalMinor} currency={plan.currency} /></div>
     <div className="plan-lines">{plan.lines.map(line => {
@@ -30,8 +29,7 @@ export function MediaPlanPanel({ plan, busy, onResolve, onApprove }: {
         <div className="plan-line-periods">{line.runningPeriods.map(period =>
           <span key={`${period.start}-${period.end}`}>{formatDate(period.start)} – {formatDate(period.end)}</span>)}</div>
         <div className="plan-line-commercial"><span>Qty <strong>{line.quantity}</strong></span>
-          <span>Media <strong>{formatMoney(line.supplierCostMinor, plan.currency)}</strong></span>
-          <span>Client <strong>{formatMoney(line.clientPriceMinor, plan.currency)}</strong></span>
+          <span>Client price <strong>{formatMoney(line.clientPriceMinor, plan.currency)}</strong></span>
           <span>Supply <strong>{line.supplyConfidence.replaceAll('_', ' ')}</strong></span></div>
       </article>
     })}</div>
@@ -52,9 +50,4 @@ export function MediaPlanPanel({ plan, busy, onResolve, onApprove }: {
 
 function Money({ label, amount, currency }: { label: string; amount: number; currency: string }) {
   return <div><span>{label}</span><strong>{formatMoney(amount, currency)}</strong></div>
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
-    .format(new Date(`${value}T00:00:00Z`))
 }

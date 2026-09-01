@@ -41,7 +41,8 @@ public sealed partial class DeliveryProofRecordStore
         }
         catch (PostgresException exception) when (
             exception.SqlState == PostgresErrorCodes.UniqueViolation &&
-            exception.ConstraintName == "ux_delivery_proof_exact_content")
+            exception.ConstraintName is "ux_delivery_proof_exact_content"
+                or "ux_delivery_proof_active_booking")
         {
             throw new DeliveryProofBlockedException();
         }

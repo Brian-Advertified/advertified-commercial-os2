@@ -38,7 +38,7 @@ public sealed class BrowserSessionAuthenticationHandler(
 
         var session = await sessionStore.ResolveAsync(token, Context.RequestAborted);
         return session is null
-            ? AuthenticateResult.Fail("The local browser session is invalid or expired.")
+            ? AuthenticateResult.Fail("The browser session is invalid or expired.")
             : AuthenticateResult.Success(CreateTicket(session));
     }
 
@@ -60,12 +60,19 @@ public sealed class BrowserSessionAuthenticationHandler(
             "TENANT_FORBIDDEN");
     }
 
-    private bool IsEnabled() =>
-        string.Equals(
-            configuration["Authentication:Mode"],
-            LocalIdentityDefaults.DeterministicSessionMode,
-            StringComparison.Ordinal)
-        && (environment.IsDevelopment() || environment.IsEnvironment("Test"));
+    private bool IsEnabled()
+    {
+        var mode = configuration["Authentication:Mode"];
+        if (string.Equals(mode, LocalIdentityDefaults.OidcMode, StringComparison.Ordinal))
+        {
+            return true;
+        }
+        return string.Equals(
+                mode,
+                LocalIdentityDefaults.DeterministicSessionMode,
+                StringComparison.Ordinal) &&
+            (environment.IsDevelopment() || environment.IsEnvironment("Test"));
+    }
 
     private static AuthenticationTicket CreateTicket(BrowserSessionIdentity session)
     {

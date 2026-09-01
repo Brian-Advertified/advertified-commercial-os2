@@ -57,6 +57,7 @@ def test_deterministic_description_lists_only_implemented_agents(
         "brief_drafting",
         "audience",
         "media_planning",
+        "inventory_intelligence",
         "proposal_narrative",
         "creative",
         "measurement",

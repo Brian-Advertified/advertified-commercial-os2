@@ -24,7 +24,7 @@ public sealed class HttpMeasurementAgentClient(
                 AgentRuntimeHttpSupport.CreateInvocation(
                     input.TenantId, input.ActorId, input.RunId, input.StepId,
                     input.CorrelationId, MasterDataCodes.AgentTypes.Measurement,
-                    ResourceReferences(input), metricIds),
+                    ResourceReferences(input), metricIds, options.Value),
                 new MeasurementContext(
                     input.CampaignId, input.CampaignVersion, input.MeasurementPlan,
                     input.DeliveryProofs, input.EvidenceSets));
@@ -48,7 +48,8 @@ public sealed class HttpMeasurementAgentClient(
                 output.Usage.IncrementalCostMinor,
                 output.Usage.CacheStatus,
                 ContractVersion,
-                ContractVersion);
+                ContractVersion,
+                output.Usage.ProviderRequestId);
             MeasurementAgentValidation.Validate(input, proposal);
             return proposal;
         }

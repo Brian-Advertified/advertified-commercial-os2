@@ -82,6 +82,33 @@ public sealed partial class GovernanceDbContextModelSnapshot
                     "ck_outbox_aggregate_version",
                     "aggregate_version > 0");
                 table.HasCheckConstraint("ck_outbox_attempts", "attempts >= 0");
+                table.HasCheckConstraint(
+                    "ck_outbox_dispatch_claim_shape",
+                    "(claim_token IS NULL AND lease_owner IS NULL " +
+                    "AND lease_expires_at_utc IS NULL AND attempt_started_at_utc IS NULL) OR " +
+                    "(claim_token IS NOT NULL AND lease_owner IS NOT NULL " +
+                    "AND lease_expires_at_utc IS NOT NULL AND attempt_started_at_utc IS NOT NULL " +
+                    "AND lease_expires_at_utc > attempt_started_at_utc " +
+                    "AND next_attempt_at_utc IS NULL AND attempts > 0)");
+                table.HasCheckConstraint(
+                    "ck_outbox_dispatch_failure_shape",
+                    "(last_failure_code IS NULL AND last_failure_at_utc IS NULL) OR " +
+                    "(last_failure_code IS NOT NULL AND last_failure_at_utc IS NOT NULL)");
+                table.HasCheckConstraint(
+                    "ck_outbox_dispatch_terminal_shape",
+                    "NOT (published_at_utc IS NOT NULL AND dead_lettered_at_utc IS NOT NULL) " +
+                    "AND ((published_at_utc IS NULL AND dead_lettered_at_utc IS NULL) OR " +
+                    "(claim_token IS NULL AND next_attempt_at_utc IS NULL)) " +
+                    "AND (dead_lettered_at_utc IS NULL OR (attempts > 0 " +
+                    "AND last_failure_code IS NOT NULL AND last_failure_at_utc IS NOT NULL))");
+                table.HasCheckConstraint(
+                    "ck_outbox_dispatch_transport_reference",
+                    "transport_reference IS NULL OR " +
+                    "(published_at_utc IS NOT NULL AND btrim(transport_reference) <> '')");
+                table.HasCheckConstraint(
+                    "ck_outbox_dispatch_failure_code",
+                    "last_failure_code IS NULL OR last_failure_code " +
+                    "~ '^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$'");
             });
             builder.HasKey(item => item.Id).HasName("pk_outbox_messages");
             builder.Property(item => item.Id).HasColumnName("id").ValueGeneratedNever();
@@ -106,8 +133,38 @@ public sealed partial class GovernanceDbContextModelSnapshot
             builder.Property(item => item.PublishedAtUtc).HasColumnName("published_at_utc")
                 .HasColumnType("timestamp with time zone");
             builder.Property(item => item.Attempts).HasColumnName("attempts");
-            builder.HasIndex(item => new { item.PublishedAtUtc, item.OccurredAtUtc, item.Id })
-                .HasDatabaseName("ix_outbox_unpublished_time");
+            builder.Property(item => item.NextAttemptAtUtc).HasColumnName("next_attempt_at_utc")
+                .HasColumnType("timestamp with time zone");
+            builder.Property(item => item.ClaimToken).HasColumnName("claim_token");
+            builder.Property(item => item.LeaseOwner).HasColumnName("lease_owner");
+            builder.Property(item => item.LeaseExpiresAtUtc)
+                .HasColumnName("lease_expires_at_utc")
+                .HasColumnType("timestamp with time zone");
+            builder.Property(item => item.AttemptStartedAtUtc)
+                .HasColumnName("attempt_started_at_utc")
+                .HasColumnType("timestamp with time zone");
+            builder.Property(item => item.TransportReference)
+                .HasColumnName("transport_reference").HasMaxLength(300);
+            builder.Property(item => item.LastFailureCode)
+                .HasColumnName("last_failure_code").HasMaxLength(100);
+            builder.Property(item => item.LastFailureAtUtc)
+                .HasColumnName("last_failure_at_utc")
+                .HasColumnType("timestamp with time zone");
+            builder.Property(item => item.DeadLetteredAtUtc)
+                .HasColumnName("dead_lettered_at_utc")
+                .HasColumnType("timestamp with time zone");
+            builder.HasIndex(item => new
+            {
+                item.NextAttemptAtUtc,
+                item.LeaseExpiresAtUtc,
+                item.OccurredAtUtc,
+                item.Id,
+            })
+                .HasDatabaseName("ix_outbox_dispatch_due")
+                .HasFilter("published_at_utc IS NULL AND dead_lettered_at_utc IS NULL");
+            builder.HasIndex(item => item.ClaimToken).IsUnique()
+                .HasDatabaseName("ux_outbox_dispatch_claim_token")
+                .HasFilter("claim_token IS NOT NULL");
             builder.HasIndex(item => item.TenantId)
                 .HasDatabaseName("IX_outbox_messages_tenant_id");
             builder.HasOne<Domain.Commercial.Tenant>().WithMany()

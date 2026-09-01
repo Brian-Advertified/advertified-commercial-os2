@@ -24,7 +24,8 @@ public sealed partial class MeasurementReportRecordStore
                 measurement_plan_json, evidence_versions_json, metric_ids,
                 interpretation_json, limitations_json, input_hash, output_hash,
                 agent_contract_version, prompt_version, provider_code, model_code,
-                tool_calls, incremental_cost_minor, output_validated, status_code,
+                tool_calls, incremental_cost_minor, provider_request_id,
+                output_validated, status_code,
                 approver_user_id, generated_by, generated_at_utc, version, updated_at_utc)
             SELECT {report.ReportId}, {source.TenantId}, {source.CampaignId},
                 COALESCE(max(existing.version_no), 0) + 1, {report.RunId},
@@ -34,7 +35,7 @@ public sealed partial class MeasurementReportRecordStore
                 {report.InputHash}, {report.OutputHash}, {report.Proposal.ContractVersion},
                 {report.Proposal.PromptVersion}, {report.Proposal.Provider},
                 {report.Proposal.Model}, {report.Proposal.ToolCalls},
-                {report.Proposal.IncrementalCostMinor}, true,
+                {report.Proposal.IncrementalCostMinor}, {report.Proposal.ProviderRequestId}, true,
                 {MasterDataCodes.LifecycleStatuses.ReviewRequired},
                 {source.ApproverUserId}, {envelope.ActorId.Value}, {now}, 1, {now}
             FROM commercial.measurement_report_versions existing
@@ -107,11 +108,12 @@ public sealed partial class MeasurementReportRecordStore
             INSERT INTO commercial.ai_usage_ledger (
                 id, tenant_id, run_id, step_id, provider_code, model_code,
                 units, tool_calls, incremental_cost_minor, cache_status_code,
-                recorded_at_utc)
+                provider_request_id, recorded_at_utc)
             VALUES ({Guid.NewGuid()}, {source.TenantId}, {report.RunId}, {report.StepId},
                 {report.Proposal.Provider}, {report.Proposal.Model},
                 {report.Proposal.Units}, {report.Proposal.ToolCalls},
-                {report.Proposal.IncrementalCostMinor}, {report.Proposal.CacheStatus}, {now})
+                {report.Proposal.IncrementalCostMinor}, {report.Proposal.CacheStatus},
+                {report.Proposal.ProviderRequestId}, {now})
             """, cancellationToken);
     }
 }

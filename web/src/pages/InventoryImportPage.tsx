@@ -10,6 +10,7 @@ import { useWorkspace } from '../auth/workspace-state'
 import { InventoryCandidateReview } from '../components/InventoryCandidateReview'
 import { LoadingState, MessageState } from '../components/PageState'
 import { notifications } from '../notifications/notifications'
+import { formatDateTime, humanizeCode } from '../presentation/format'
 
 const reviewRoles = new Set<string>([
   inventoryCodes.role.platformAdmin,
@@ -36,21 +37,35 @@ function ImportRecord({ tenantId, importId, canReview }: {
   const { record, error } = model
   if (error && !record) return <MessageState title="Import could not be loaded" message={error} />
   if (!record) return <LoadingState label="Loading inventory import" />
-  return <section aria-labelledby="import-title">
+  return <section className="inventory-import-page" aria-labelledby="import-title">
     <Link className="text-action back-link" to="/inventory">← Inventory</Link>
-    <header className="page-heading page-heading-split"><div><p className="eyebrow">Source review</p>
+    <header className="inventory-import-header"><div><p className="eyebrow">Inventory source review</p>
       <h1 id="import-title">{record.fileName}</h1>
-      <p>{record.supplierName} · SHA-256 {record.sourceHash.slice(0, 12)}…</p>
-    </div><span className="status-chip">{record.status.replaceAll('_', ' ')}</span></header>
+      <p>{record.supplierName} · file-integrity evidence retained</p></div>
+      <div className="inventory-import-state"><span className="status-chip">
+        {record.status.replaceAll('_', ' ')}</span>
+        <small>Updated {formatDateTime(record.updatedAtUtc)}</small></div>
+    </header>
+    <nav className="inventory-record-tabs" aria-label="Import review sections">
+      <a href="#import-overview">Source overview</a>
+      <a href="#candidate-review">Candidate review</a>
+      <a href="#publication-action">Publication</a>
+    </nav>
     {error && <p className="inline-alert" role="alert">{error}</p>}
     <ImportSummary record={record} />
     <ImportExtractAction tenantId={tenantId} record={record} actions={actions} />
-    <div className="candidate-stack">{record.candidates.map((candidate) =>
-      <InventoryCandidateReview key={candidate.id} candidate={candidate}
-        canReview={canReview && candidate.status === inventoryCodes.candidateStatus.reviewRequired}
-        busy={actions.busy} review={actions.review} />)}</div>
-    <ImportCompletionActions tenantId={tenantId} record={record}
-      model={model} actions={actions} />
+    <section className="inventory-candidate-ledger" id="candidate-review">
+      <header><div><p className="eyebrow">Extracted records</p><h2>Candidate review</h2></div>
+        <span>{record.candidateCounts.total} candidate(s)</span></header>
+      {record.candidates.length === 0
+        ? <p className="inventory-candidate-empty">No candidates have been extracted from this source yet.</p>
+        : <div className="candidate-stack">{record.candidates.map((candidate) =>
+          <InventoryCandidateReview key={candidate.id} candidate={candidate}
+            canReview={canReview && candidate.status === inventoryCodes.candidateStatus.reviewRequired}
+            busy={actions.busy} review={actions.review} />)}</div>}
+    </section>
+    <div id="publication-action"><ImportCompletionActions tenantId={tenantId} record={record}
+      model={model} actions={actions} /></div>
   </section>
 }
 
@@ -169,14 +184,14 @@ function mergeCandidatePage(current: InventoryImport, next: InventoryImport): In
 }
 
 function ImportSummary({ record }: { record: InventoryImport }) {
-  return <article className="detail-card import-summary"><div><span>Protection</span>
-    <strong>{record.scanStatus}</strong></div><div><span>Detected type</span>
-      <strong>{record.documentClass ?? 'Not classified'}</strong></div><div><span>Size</span>
-      <strong>{new Intl.NumberFormat().format(record.sourceSize)} bytes</strong></div>
-    <div><span>Candidates</span><strong>{record.candidateCounts.total}</strong></div>
-    <div><span>Awaiting review</span><strong>{record.candidateCounts.reviewRequired}</strong></div>
-    <div><span>Pipeline</span><strong>{record.steps.length} completed step(s)</strong></div>
-    {record.failureCode && <p className="inline-alert">The source was isolated:
-      {' '}{record.failureCode.replaceAll('_', ' ')}.</p>}
-  </article>
+  return <dl className="import-summary" id="import-overview"><div><dt>Protection</dt>
+    <dd>{humanizeCode(record.scanStatus, true)}</dd></div><div><dt>Detected type</dt>
+      <dd>{record.documentClass ?? 'Not classified'}</dd></div><div><dt>Source size</dt>
+      <dd>{new Intl.NumberFormat().format(record.sourceSize)} bytes</dd></div>
+    <div><dt>Candidates</dt><dd>{record.candidateCounts.total}</dd></div>
+    <div><dt>Awaiting review</dt><dd>{record.candidateCounts.reviewRequired}</dd></div>
+    <div><dt>Pipeline records</dt><dd>{record.steps.length}</dd></div>
+    {record.failureCode && <div className="import-summary-failure"><dt>Source status</dt>
+      <dd>The source was isolated: {humanizeCode(record.failureCode, true)}.</dd></div>}
+  </dl>
 }

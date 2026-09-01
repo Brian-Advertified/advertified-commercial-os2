@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: 9871ab9712e5f37ced5ec2f19d284001b198e10d1945cb0e8d7101bda9a10c1f
+# source-sha256: 44a842135719da2c3000aee3d1377e03004e653d4c52c37eb1fb12ea6e8ec88b
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.9.0"
+REGISTRY_VERSION = "2.12.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -355,12 +355,15 @@ class EmailAutomationStatuses(StrEnum):
 class EmailAutomationCheckpoints(StrEnum):
     SOURCE_CAPTURED = "SOURCE_CAPTURED"
     BRIEF_APPROVED = "BRIEF_APPROVED"
+    BRIEF_READY = "BRIEF_READY"
     STP_APPROVED = "STP_APPROVED"
     MIX_APPROVED = "MIX_APPROVED"
     SHORTLIST_APPROVED = "SHORTLIST_APPROVED"
     PLAN_APPROVED = "PLAN_APPROVED"
     PROPOSAL_APPROVED = "PROPOSAL_APPROVED"
     DOCUMENT_RENDERED = "DOCUMENT_RENDERED"
+    DELIVERY_REQUESTED = "DELIVERY_REQUESTED"
+    DELIVERY_ACCEPTED = "DELIVERY_ACCEPTED"
     SENT = "SENT"
 
 class AutomationFailureReasons(StrEnum):
@@ -377,6 +380,8 @@ class AutomationFailureReasons(StrEnum):
     PLAN_UNREADY = "PLAN_UNREADY"
     PROPOSAL_UNREADY = "PROPOSAL_UNREADY"
     DELIVERY_FAILED = "DELIVERY_FAILED"
+    DELIVERY_AMBIGUOUS = "DELIVERY_AMBIGUOUS"
+    DELIVERY_RECORDING_REQUIRED = "DELIVERY_RECORDING_REQUIRED"
 
 class EmailAutomationPolicies(StrEnum):
     OOH_INBOUND_PROPOSAL_V1 = "OOH_INBOUND_PROPOSAL_V1"
@@ -489,6 +494,7 @@ class CommercialActions(StrEnum):
     CAMPAIGN_BRIEF_CREATED = "campaign_brief.created"
     BRIEF_VERSION_CREATED = "brief_version.created"
     BRIEF_VERSION_SUBMITTED = "brief_version.submitted"
+    BRIEF_VERSION_READY = "brief_version.ready"
     BRIEF_VERSION_APPROVED = "brief_version.approved"
     BRIEF_VERSION_REJECTED = "brief_version.rejected"
     INVENTORY_IMPORT_CREATED = "inventory_import.created"
@@ -515,6 +521,8 @@ class CommercialActions(StrEnum):
     INBOUND_MAILBOX_CONFIGURED = "inbound_mailbox.configured"
     INBOUND_EMAIL_RECEIVED = "inbound_email.received"
     EMAIL_AUTOMATION_STARTED = "email_automation.started"
+    EMAIL_AUTOMATION_DELIVERY_REQUESTED = "email_automation.delivery_requested"
+    EMAIL_AUTOMATION_DELIVERY_ACCEPTED = "email_automation.delivery_accepted"
     EMAIL_AUTOMATION_REVIEW_REQUIRED = "email_automation.review_required"
     EMAIL_AUTOMATION_SENT = "email_automation.sent"
     EMAIL_AUTOMATION_FAILED = "email_automation.failed"
@@ -575,6 +583,7 @@ class CommercialEventTypes(StrEnum):
     CAMPAIGN_BRIEF_CREATED = "CampaignBriefCreated"
     BRIEF_VERSION_CREATED = "BriefVersionCreated"
     BRIEF_SUBMITTED = "BriefSubmitted"
+    BRIEF_READY = "BriefReady"
     BRIEF_APPROVED = "BriefApproved"
     BRIEF_REJECTED = "BriefRejected"
     INVENTORY_IMPORT_CREATED = "InventoryImportCreated"
@@ -601,6 +610,8 @@ class CommercialEventTypes(StrEnum):
     INBOUND_MAILBOX_CONFIGURED = "InboundMailboxConfigured"
     INBOUND_CAMPAIGN_EMAIL_RECEIVED = "InboundCampaignEmailReceived"
     EMAIL_PROPOSAL_AUTOMATION_STARTED = "EmailProposalAutomationStarted"
+    EMAIL_PROPOSAL_DELIVERY_REQUESTED = "EmailProposalDeliveryRequested"
+    EMAIL_PROPOSAL_DELIVERY_ACCEPTED = "EmailProposalDeliveryAccepted"
     EMAIL_PROPOSAL_AUTOMATION_REVIEW_REQUIRED = "EmailProposalAutomationReviewRequired"
     EMAIL_PROPOSAL_AUTOMATION_SENT = "EmailProposalAutomationSent"
     EMAIL_PROPOSAL_AUTOMATION_FAILED = "EmailProposalAutomationFailed"
@@ -813,4 +824,11 @@ class VatStatuses(StrEnum):
     REGISTERED = "REGISTERED"
     EXEMPT = "EXEMPT"
     NOT_APPLICABLE = "NOT_APPLICABLE"
+
+CURRENCY_MINOR_UNIT_DIGITS: dict[str, int] = {
+    "ZAR": 2,
+    "USD": 2,
+    "EUR": 2,
+    "GBP": 2,
+}
 

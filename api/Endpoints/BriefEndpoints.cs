@@ -32,6 +32,10 @@ public static class BriefEndpoints
             .WithName("SubmitBriefVersion")
             .Produces<BriefVersionView>()
             .WithCommandProblems(requiresVersion: true);
+        group.MapPost("/brief-versions/{versionId:guid}:ready", MarkReadyAsync)
+            .WithName("MarkBriefVersionReady")
+            .Produces<BriefVersionView>()
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/brief-versions/{versionId:guid}:approve", ApproveAsync)
             .WithName("ApproveBriefVersion")
             .Produces<BriefVersionView>()
@@ -106,6 +110,18 @@ public static class BriefEndpoints
         TimeProvider clock,
         CancellationToken cancellationToken) => ExecuteVersionedAsync(
             tenantId, versionId, command, context, identity, commands.SubmitAsync,
+            clock, cancellationToken);
+
+    private static Task<IResult> MarkReadyAsync(
+        Guid tenantId,
+        Guid versionId,
+        MarkBriefVersionReadyCommand command,
+        HttpContext context,
+        ICurrentIdentity identity,
+        IBriefCommands commands,
+        TimeProvider clock,
+        CancellationToken cancellationToken) => ExecuteVersionedAsync(
+            tenantId, versionId, command, context, identity, commands.MarkReadyAsync,
             clock, cancellationToken);
 
     private static Task<IResult> ApproveAsync(

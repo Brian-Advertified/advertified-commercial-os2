@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import type { MediaAllocation, MediaMix, RunningPeriod } from '../api/planning-schemas'
 import { masterDataCodes } from '../generated/master-data-codes'
-import { formatMoney } from '../presentation/format'
+import { formatMoney, majorAmountToMinor, minorAmountToInput } from '../presentation/format'
 import { mediaVisual } from './media-visuals'
 
 const periodSchema = z.object({ start: z.iso.date(), end: z.iso.date() })
@@ -92,9 +92,11 @@ function AllocationCard({ allocation, currency, editable, onChange }: {
   return <article className={`media-allocation-card media-tone-${visual.tone}`}>
     <header><div className="media-identity"><MediaTypeIcon channel={allocation.channel} />
       <div><h3>{visual.label}</h3><small>{allocation.channel}</small></div></div></header>
-    <label>Budget <span>{currency}</span><input type="number" min="0" step="100"
-      disabled={!editable} value={(allocation.budgetMinor / 100).toString()}
-      onChange={(event) => onChange({ budgetMinor: Math.round(Number(event.target.value || 0) * 100) })} /></label>
+    <label>Budget <span>{currency}</span><input type="number" min="0" step="any"
+      disabled={!editable} value={minorAmountToInput(allocation.budgetMinor, currency)}
+      onChange={(event) => onChange({
+        budgetMinor: majorAmountToMinor(Number(event.target.value || 0), currency),
+      })} /></label>
     <label>Role in the plan<input type="text" disabled={!editable} value={allocation.role}
       onChange={(event) => onChange({ role: event.target.value })} /></label>
     <div className="running-period-editor"><div className="period-heading"><strong>Running periods</strong>

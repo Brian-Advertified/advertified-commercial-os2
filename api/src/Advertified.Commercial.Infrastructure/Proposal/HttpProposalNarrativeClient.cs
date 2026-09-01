@@ -27,7 +27,8 @@ public sealed class HttpProposalNarrativeClient(
                 input.CorrelationId,
                 agentCode,
                 ResourceReferences(input),
-                input.EvidenceItemIds),
+                input.EvidenceItemIds,
+                options.Value),
             new ProposalContext(
                 input.BriefVersionId,
                 input.BriefObjective,

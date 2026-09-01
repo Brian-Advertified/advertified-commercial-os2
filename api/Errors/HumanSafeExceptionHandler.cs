@@ -282,7 +282,7 @@ public sealed class HumanSafeExceptionHandler(
             EmailAutomationNotRetryableException => new(
                 StatusCodes.Status409Conflict,
                 "This request cannot be retried",
-                "Only a failed or review-required request can be retried.",
+                "Refresh the request and use its available safe recovery action.",
                 "EMAIL_AUTOMATION_NOT_RETRYABLE"),
             EmailAttachmentBlockedException => new(
                 StatusCodes.Status409Conflict,
@@ -294,6 +294,11 @@ public sealed class HumanSafeExceptionHandler(
                 "Email content is unavailable",
                 "Retrieve or resubmit the complete email before processing it.",
                 "EMAIL_PAYLOAD_UNAVAILABLE"),
+            EmailDeliveryAcceptanceUnknownException => new(
+                StatusCodes.Status409Conflict,
+                "Delivery status needs checking",
+                "The provider may have accepted this email. Reconcile the existing delivery and do not resend it.",
+                MasterDataCodes.AutomationFailureReasons.DeliveryAmbiguous),
             EmailProviderUnavailableException or EmailDeliveryFailedException => new(
                 StatusCodes.Status503ServiceUnavailable,
                 "Email service is unavailable",

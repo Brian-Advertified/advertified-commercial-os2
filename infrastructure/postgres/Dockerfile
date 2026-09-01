@@ -1,7 +1,10 @@
-FROM pgvector/pgvector:0.8.6-pg16-bookworm
+FROM pgvector/pgvector:0.8.6-pg16-bookworm@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
         postgresql-16-postgis-3 \
         postgresql-16-postgis-3-scripts \
     && rm -rf /var/lib/apt/lists/*
+
+COPY healthcheck.sh /usr/local/bin/advertified-healthcheck
+RUN chmod 0755 /usr/local/bin/advertified-healthcheck

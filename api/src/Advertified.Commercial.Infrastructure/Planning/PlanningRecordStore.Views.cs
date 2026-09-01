@@ -77,6 +77,7 @@ public sealed partial class PlanningRecordStore
                 candidate.currency_code AS "Currency", candidate.is_eligible AS "IsEligible",
                 candidate.rejection_reason_code AS "RejectionReason",
                 candidate.rejection_detail AS "RejectionDetail", candidate.score AS "Score",
+                recommendation.rationale AS "Rationale",
                 selection.is_selected AS "IsSelected", benchmark.id AS "BenchmarkId",
                 benchmark.policy_version AS "BenchmarkPolicy",
                 benchmark.geography_basis AS "BenchmarkGeography",
@@ -85,6 +86,9 @@ public sealed partial class PlanningRecordStore
                 benchmark.confidence AS "BenchmarkConfidence",
                 benchmark.exclusions_json::text AS "BenchmarkExclusionsJson"
             FROM commercial.inventory_shortlist_candidates candidate
+            LEFT JOIN commercial.recommendation_bindings recommendation
+              ON recommendation.tenant_id = candidate.tenant_id
+             AND recommendation.shortlist_candidate_id = candidate.id
             LEFT JOIN commercial.shortlist_selections selection
               ON selection.tenant_id = candidate.tenant_id
              AND selection.shortlist_candidate_id = candidate.id
@@ -185,7 +189,7 @@ public sealed partial class PlanningRecordStore
             .Select(item => ToObjectionView(item, resolutions)).ToArray();
         return new MediaPlanVersionView(
             plan.Id, plan.BriefVersionId, plan.MixVersionId, plan.ShortlistVersionId,
-            plan.VersionNumber, plan.SubtotalMinor, plan.FeesMinor, plan.VatMinor,
+            plan.VersionNumber, plan.FeesMinor, plan.VatMinor,
             plan.TotalMinor, plan.Currency, plan.SupplyConfidence, plan.InputHash, plan.Status,
             Read<string[]>(plan.AssumptionsJson), lines, objections, plan.CreatedBy,
             plan.ApprovedBy, plan.Version, plan.CreatedAtUtc);
@@ -209,7 +213,7 @@ public sealed partial class PlanningRecordStore
             row.InventoryProductId, row.ProductVersionId, row.RateId, row.AvailabilityId,
             row.Name, row.Channel, row.Geography, row.RateAmountMinor, row.Currency,
             row.IsEligible, row.RejectionReason, row.RejectionDetail, row.Score,
-            row.IsSelected, benchmark);
+            row.Rationale, row.IsSelected, benchmark);
     }
 
     private static PlanObjectionView ToObjectionView(
@@ -228,7 +232,7 @@ public sealed partial class PlanningRecordStore
         row.InventoryProductId, row.ProductVersionId, row.RateId, row.AvailabilityId,
         row.Name, row.Channel, row.Geography,
         Read<MediaRunningPeriodView[]>(row.RunningPeriodsJson),
-        row.Quantity, row.SupplierCostMinor, row.ClientPriceMinor,
+        row.Quantity, row.ClientPriceMinor,
         row.FeesMinor, row.VatMinor, row.Availability, row.RateFreshness,
         row.SupplySource, row.LastConfirmedAtUtc, row.SupplyConfidence);
 

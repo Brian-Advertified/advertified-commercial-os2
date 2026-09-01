@@ -87,9 +87,14 @@ public sealed class OpenApiContractTests
         Assert.NotNull(paths["/api/v1/tenants/{tenantId}/briefs/{briefId}"]!["get"]);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/briefs/{briefId}/versions"]!["post"]);
+        var readyBrief = paths[
+            "/api/v1/tenants/{tenantId}/brief-versions/{versionId}:ready"]!["post"]!;
+        AssertHeaderParameter(readyBrief["parameters"]!.AsArray(), "If-Match", true);
         var confirmBrief = paths[
             "/api/v1/tenants/{tenantId}/brief-versions/{versionId}:approve"]!["post"]!;
         AssertHeaderParameter(confirmBrief["parameters"]!.AsArray(), "If-Match", true);
+        var briefSummary = contract["components"]!["schemas"]!["CampaignBriefSummaryView"]!;
+        Assert.NotNull(briefSummary["properties"]!["readyVersionId"]);
         var submitBrief = contract["components"]!["schemas"]!["SubmitBriefVersionCommand"]!;
         Assert.NotNull(submitBrief["properties"]!["confirmerUserId"]);
         Assert.Null(submitBrief["properties"]!["approverUserId"]);
@@ -118,6 +123,9 @@ public sealed class OpenApiContractTests
             "/api/v1/tenants/{tenantId}/proposal-versions/{proposalVersionId}:select-option"]);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/brief-versions/{briefVersionId}/planning"]!["get"]);
+        var planningSchemas = contract["components"]!["schemas"]!;
+        Assert.Null(planningSchemas["MediaPlanVersionView"]!["properties"]!["subtotalMinor"]);
+        Assert.Null(planningSchemas["MediaPlanLineView"]!["properties"]!["supplierCostMinor"]);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/brief-versions/{briefVersionId}/campaign-mode:select"]!["post"]);
         Assert.NotNull(paths[
@@ -136,6 +144,10 @@ public sealed class OpenApiContractTests
             "/api/v1/tenants/{tenantId}/proposal-versions/{proposalVersionId}:share"]!["post"]);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/proposal-versions/{proposalVersionId}:select-option"]!["post"]);
+        var processInboundEmail = paths[
+            "/api/v1/tenants/{tenantId}/email-automation/messages/{inboundEmailId}:process"]!["post"]!;
+        AssertHeaderParameter(
+            processInboundEmail["parameters"]!.AsArray(), "If-Match", true);
         Assert.NotNull(paths["/api/v1/tenants/{tenantId}/marketplace-listings"]!["get"]);
         var publishListing = paths[
             "/api/v1/tenants/{tenantId}/marketplace-listings/{listingId}:publish"]!["post"]!;
@@ -164,6 +176,9 @@ public sealed class OpenApiContractTests
         AssertHeaderParameter(reconcilePayment["parameters"]!.AsArray(), "If-Match", true);
         Assert.NotNull(paths["/api/v1/tenants/{tenantId}/campaigns"]!["get"]);
         Assert.NotNull(paths["/api/v1/tenants/{tenantId}/campaigns/{campaignId}"]!["get"]);
+        var bookingView = contract["components"]!["schemas"]!["BookingView"]!;
+        AssertNullableOptionalProperty(bookingView, "supplierCostMinor");
+        AssertNullableOptionalProperty(bookingView, "supplierNote");
         var confirmCampaignBookings = paths[
             "/api/v1/tenants/{tenantId}/campaigns/{campaignId}:confirm-bookings"]!["post"]!;
         AssertHeaderParameter(
@@ -208,6 +223,8 @@ public sealed class OpenApiContractTests
         AssertHeaderParameter(reviewProof["parameters"]!.AsArray(), "If-Match", true);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/delivery-proofs/{proofId}"]!["get"]);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/delivery-proof-requests"]!["get"]);
         var submitPerformance = paths[
             "/api/v1/tenants/{tenantId}/campaigns/{campaignId}/performance-evidence"]!["post"]!;
         Assert.DoesNotContain(
@@ -239,5 +256,13 @@ public sealed class OpenApiContractTests
             item?["in"]?.GetValue<string>() == "header" &&
             item["name"]?.GetValue<string>() == name);
         Assert.Equal(required, parameter!["required"]?.GetValue<bool>() ?? false);
+    }
+
+    private static void AssertNullableOptionalProperty(JsonNode schema, string propertyName)
+    {
+        Assert.True(schema["properties"]![propertyName]!["nullable"]!.GetValue<bool>());
+        var required = schema["required"] as JsonArray;
+        Assert.True(required is null || required.All(item =>
+            item?.GetValue<string>() != propertyName));
     }
 }

@@ -24,7 +24,10 @@ public sealed partial class EmailAutomationRecordStore(GovernanceDbContext dbCon
             clarifications_json::text AS "ClarificationsJson",
             failure_code AS "FailureCode", failure_message AS "FailureMessage",
             delivery_idempotency_key AS "DeliveryIdempotencyKey",
+            delivery_provider_code AS "DeliveryProviderCode",
             delivery_provider_id AS "DeliveryProviderId",
+            delivery_requested_at_utc AS "DeliveryRequestedAtUtc",
+            delivery_accepted_at_utc AS "DeliveryAcceptedAtUtc",
             incremental_ai_cost_minor AS "IncrementalAiCostMinor",
             version AS "Version", created_at_utc AS "CreatedAtUtc",
             updated_at_utc AS "UpdatedAtUtc"
@@ -177,6 +180,7 @@ public sealed partial class EmailAutomationRecordStore(GovernanceDbContext dbCon
                    AND attachment.inbound_email_id = email.id) AS "AttachmentCount",
                 run.id AS "RunId",
                 run.status_code AS "RunStatus", run.checkpoint_code AS "Checkpoint",
+                run.failure_code AS "FailureCode",
                 run.version AS "RunVersion", run.understanding_json::text AS "UnderstandingJson",
                 run.clarifications_json::text AS "ClarificationsJson",
                 run.client_account_id AS "ClientAccountId",
@@ -188,7 +192,10 @@ public sealed partial class EmailAutomationRecordStore(GovernanceDbContext dbCon
                 run.proposal_version_id AS "ProposalVersionId",
                 run.document_id AS "DocumentId",
                 run.delivery_idempotency_key AS "DeliveryIdempotencyKey",
+                run.delivery_provider_code AS "DeliveryProviderCode",
                 run.delivery_provider_id AS "DeliveryProviderId",
+                run.delivery_requested_at_utc AS "DeliveryRequestedAtUtc",
+                run.delivery_accepted_at_utc AS "DeliveryAcceptedAtUtc",
                 run.incremental_ai_cost_minor AS "IncrementalAiCostMinor"
             FROM commercial.inbound_campaign_emails email
             JOIN commercial.inbound_mailboxes mailbox

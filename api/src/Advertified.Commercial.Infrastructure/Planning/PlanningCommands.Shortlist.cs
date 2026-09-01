@@ -23,7 +23,7 @@ public sealed partial class PlanningCommands
         CommandEnvelope<GenerateShortlistCommand> envelope,
         CancellationToken cancellationToken)
     {
-        var brief = await LoadApprovedBriefAsync(
+        var brief = await LoadPlanningReadyBriefAsync(
             briefVersionId, envelope, cancellationToken);
         var mix = await store.FindLatestMixAsync(
             envelope.TenantId, briefVersionId, cancellationToken);
@@ -51,6 +51,8 @@ public sealed partial class PlanningCommands
             mix.Currency, inputHash);
         prepared = await AttachBenchmarksAsync(
             envelope.TenantId, prepared, inventory, cancellationToken);
+        prepared = await AttachInventoryInterpretationsAsync(
+            brief, envelope, id, prepared, cancellationToken);
         await PlanningShortlistPersistence.InsertCandidatesAsync(
             store.DbContext, envelope.TenantId, id, briefVersionId,
             planningPolicy.BenchmarkVersion, now, prepared, cancellationToken);
@@ -99,7 +101,7 @@ public sealed partial class PlanningCommands
                 item, geographies, allocations, currency, planningPolicy);
             return new PreparedShortlistCandidate(
                 Guid.NewGuid(), item, allocation, eligibility,
-                PlanningHash.ForInventory(item, shortlistInputHash), null);
+                PlanningHash.ForInventory(item, shortlistInputHash), string.Empty, null);
         }).ToArray();
 
     private async Task<PreparedShortlistCandidate[]> AttachBenchmarksAsync(
@@ -121,6 +123,69 @@ public sealed partial class PlanningCommands
                     byTarget[candidate.Inventory.ProductVersionId].ToArray(),
                     planningPolicy),
             }).ToArray();
+    }
+
+    private async Task<PreparedShortlistCandidate[]> AttachInventoryInterpretationsAsync(
+        PlanningBriefRow brief,
+        CommandEnvelope<GenerateShortlistCommand> envelope,
+        Guid shortlistId,
+        PreparedShortlistCandidate[] candidates,
+        CancellationToken cancellationToken)
+    {
+        var proposal = await planningAgent.InterpretInventoryAsync(
+            new InventoryIntelligenceInput(
+                BuildBriefInput(brief, envelope),
+                shortlistId,
+                1,
+                candidates.Select(ToInventoryIntelligenceInput).ToArray()),
+            cancellationToken);
+        var interpretations = proposal.Interpretations;
+        var returnedIds = interpretations.Select(item => item.CandidateId).ToArray();
+        if (proposal.IncrementalCostMinor < 0 ||
+            interpretations.Count != candidates.Length ||
+            returnedIds.Distinct().Count() != returnedIds.Length ||
+            !returnedIds.ToHashSet().SetEquals(candidates.Select(item => item.Id)))
+        {
+            throw new InvalidOperationException(
+                "The Inventory Intelligence proposal changed the governed candidate set.");
+        }
+        var byCandidate = interpretations.ToDictionary(item => item.CandidateId);
+        return candidates.Select(candidate => candidate with
+        {
+            Rationale = OpportunityCommandSupport.Required(
+                byCandidate[candidate.Id].Rationale,
+                1_000,
+                nameof(InventoryCandidateInterpretationProposal.Rationale)),
+        }).ToArray();
+    }
+
+    private InventoryIntelligenceCandidateInput ToInventoryIntelligenceInput(
+        PreparedShortlistCandidate candidate)
+    {
+        var benchmark = candidate.Benchmark;
+        return new InventoryIntelligenceCandidateInput(
+            candidate.Id,
+            candidate.Inventory.ProductVersionId,
+            candidate.Inventory.Name,
+            candidate.Inventory.Channel,
+            candidate.Inventory.Geography,
+            candidate.Inventory.RateAmountMinor,
+            candidate.Inventory.Currency,
+            candidate.Eligibility.IsEligible,
+            candidate.Eligibility.RejectionReason,
+            candidate.Eligibility.RejectionDetail,
+            candidate.Eligibility.Score,
+            benchmark is null
+                ? null
+                : new InventoryBenchmarkInput(
+                    planningPolicy.BenchmarkVersion,
+                    benchmark.GeographyBasis,
+                    benchmark.Statistics.CohortSize,
+                    benchmark.Statistics.MedianMinor,
+                    benchmark.Statistics.Percentile,
+                    benchmark.Position,
+                    benchmark.Confidence,
+                    benchmark.Exclusions));
     }
 
     private async Task<List<PlanningSpatialPeerRow>> LoadSpatialPeersAsync(
@@ -152,7 +217,7 @@ public sealed partial class PlanningCommands
         var shortlist = await store.FindShortlistAsync(
             envelope.TenantId, shortlistVersionId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Shortlist access denied.");
-        await LoadApprovedBriefAsync(
+        await LoadPlanningReadyBriefAsync(
             shortlist.BriefVersionId, envelope, cancellationToken);
         EnsureSelectionRequest(shortlist, envelope.Command);
         var current = await store.BuildShortlistViewAsync(
