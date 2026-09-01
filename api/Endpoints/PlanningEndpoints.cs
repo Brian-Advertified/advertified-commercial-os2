@@ -1,3 +1,4 @@
+using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Planning;
@@ -22,10 +23,12 @@ public static class PlanningEndpoints
         group.MapPost("/brief-versions/{briefVersionId:guid}/audiences:generate",
                 GenerateAudiencesAsync)
             .WithName("GenerateAudiences").Produces<AudienceDefinitionSetView>()
+            .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
             .WithCommandProblems(requiresVersion: false);
         group.MapPost("/brief-versions/{briefVersionId:guid}/media-mixes:generate",
                 GenerateMixAsync)
             .WithName("GenerateMediaMix").Produces<MediaMixVersionView>()
+            .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
             .WithCommandProblems(requiresVersion: false);
         group.MapPost("/media-mix-versions/{mixVersionId:guid}:update", UpdateMixAsync)
             .WithName("UpdateMediaMix").Produces<MediaMixVersionView>()
@@ -37,6 +40,7 @@ public static class PlanningEndpoints
                 GenerateShortlistAsync)
             .WithName("GenerateInventoryShortlist")
             .Produces<InventoryShortlistVersionView>()
+            .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
             .WithCommandProblems(requiresVersion: false);
         group.MapPost("/shortlist-versions/{shortlistVersionId:guid}:select", SelectShortlistAsync)
             .WithName("SelectInventoryShortlist")
@@ -45,6 +49,7 @@ public static class PlanningEndpoints
         group.MapPost("/brief-versions/{briefVersionId:guid}/media-plans:generate",
                 GeneratePlanAsync)
             .WithName("GenerateMediaPlan").Produces<MediaPlanVersionView>()
+            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
             .WithCommandProblems(requiresVersion: false);
         group.MapGet("/media-plans/{planVersionId:guid}", GetPlanAsync)
             .WithName("GetMediaPlan").Produces<MediaPlanVersionView>()

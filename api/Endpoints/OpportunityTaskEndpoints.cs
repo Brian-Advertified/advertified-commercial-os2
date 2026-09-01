@@ -2,6 +2,7 @@ using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Brief;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Opportunity;
+using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.Constants;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
@@ -29,6 +30,7 @@ public static class OpportunityTaskEndpoints
         IOpportunityCommands opportunityCommands,
         IOpportunityWorkflowCommands workflowCommands,
         IBriefCommands briefCommands,
+        IProposalCommands proposalCommands,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
@@ -59,6 +61,9 @@ public static class OpportunityTaskEndpoints
                 timeProvider, cancellationToken),
             MasterDataCodes.HumanTaskTypes.BriefApproval => await CompleteBriefAsync(
                 task, request, action, context, tenant, identity, briefCommands,
+                timeProvider, cancellationToken),
+            MasterDataCodes.HumanTaskTypes.ProposalApproval => await CompleteProposalAsync(
+                task, request, action, context, tenant, identity, proposalCommands,
                 timeProvider, cancellationToken),
             MasterDataCodes.HumanTaskTypes.RunRecovery => await CompleteRunAsync(
                 task, request, action, context, tenant, identity, workflowCommands,
@@ -141,6 +146,31 @@ public static class OpportunityTaskEndpoints
             task, new ApproveStrategyCommand(request.Reason), context, tenant, identity, clock,
             (envelope, cancellation) => commands.ApproveStrategyAsync(
                 task.ResourceId, envelope, cancellation), token);
+    }
+
+    private static Task<IResult> CompleteProposalAsync(
+        HumanTaskView task, CompleteHumanTaskRequest request, string action, HttpContext context,
+        TenantId tenant, ICurrentIdentity identity, IProposalCommands commands,
+        TimeProvider clock, CancellationToken token)
+    {
+        if (action is not (MasterDataCodes.EvidenceReviewDecisions.Approve or
+            MasterDataCodes.EvidenceReviewDecisions.Reject))
+        {
+            throw new ArgumentException("The proposal action must be APPROVE or REJECT.");
+        }
+        return action == MasterDataCodes.EvidenceReviewDecisions.Reject
+            ? ExecuteAsync(
+                task,
+                new RejectProposalApprovalCommand(
+                    request.Reason ?? throw new ArgumentException("A rejection reason is required.")),
+                context, tenant, identity, clock,
+                (envelope, cancellation) => commands.RejectApprovalAsync(
+                    task.ResourceId, envelope, cancellation), token)
+            : ExecuteAsync(
+                task, new ApproveProposalCommand(request.Reason),
+                context, tenant, identity, clock,
+                (envelope, cancellation) => commands.ApproveAsync(
+                    task.ResourceId, envelope, cancellation), token);
     }
 
     private static Task<IResult> CompleteRunAsync(

@@ -172,6 +172,7 @@ public sealed class BriefRecordStore(GovernanceDbContext dbContext)
                 AS "EvidenceItemIds",
             version.status_code AS "Status", version.created_by AS "CreatedBy",
             version.submitted_by AS "SubmittedBy", version.approved_by AS "ApprovedBy",
+            version.approval_mode_code AS "ApprovalMode",
             version.rejected_by AS "RejectedBy", version.rejection_reason AS "RejectionReason",
             version.requested_changes AS "RequestedChanges", version.version AS "Version",
             version.created_at_utc AS "CreatedAtUtc"

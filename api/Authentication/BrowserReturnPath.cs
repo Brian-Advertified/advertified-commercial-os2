@@ -11,7 +11,7 @@ internal static class BrowserReturnPath
             return DefaultPath;
         }
         var candidate = value.Trim();
-        return candidate.StartsWith('/', StringComparison.Ordinal) &&
+        return candidate.StartsWith('/') &&
             !candidate.StartsWith("//", StringComparison.Ordinal) &&
             !candidate.Contains('\\') &&
             !candidate.Contains('\r') &&

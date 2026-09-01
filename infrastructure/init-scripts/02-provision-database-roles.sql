@@ -17,10 +17,17 @@ BEGIN
             NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
     END IF;
 
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_roles WHERE rolname = 'advertified_worker'
+    ) THEN
+        CREATE ROLE advertified_worker
+            NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+    END IF;
+
     IF EXISTS (
         SELECT 1
         FROM pg_roles
-        WHERE rolname IN ('advertified_migrator', 'advertified_app')
+        WHERE rolname IN ('advertified_migrator', 'advertified_app', 'advertified_worker')
           AND (
               rolcanlogin
               OR rolsuper

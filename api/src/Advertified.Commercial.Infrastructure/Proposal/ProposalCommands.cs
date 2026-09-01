@@ -1,6 +1,7 @@
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Proposal;
+using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Foundation;
@@ -12,6 +13,7 @@ public sealed partial class ProposalCommands(
     ProposalRecordStore store,
     PlanningRecordStore planningStore,
     CommandDispatcher dispatcher,
+    ITenantAuthorizer authorizer,
     IProposalNarrativeClient narrativeClient,
     IProposalDeliveryClient deliveryClient,
     ProposalPolicy proposalPolicy,
@@ -29,11 +31,27 @@ public sealed partial class ProposalCommands(
             envelope, MasterDataReferences.Permissions.ProposalEdit,
             token => UpdateOutcomeAsync(proposalVersionId, envelope, token), cancellationToken);
 
+    public Task<CommandResult<ProposalVersionView>> SubmitForApprovalAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<SubmitProposalForApprovalCommand> envelope,
+        CancellationToken cancellationToken) => DispatchAsync(
+            envelope, MasterDataReferences.Permissions.ProposalEdit,
+            token => SubmitForApprovalOutcomeAsync(
+                proposalVersionId, envelope, token), cancellationToken);
+
     public Task<CommandResult<ProposalVersionView>> ApproveAsync(
         Guid proposalVersionId, CommandEnvelope<ApproveProposalCommand> envelope,
         CancellationToken cancellationToken) => DispatchAsync(
             envelope, MasterDataReferences.Permissions.ProposalApprove,
             token => ApproveOutcomeAsync(proposalVersionId, envelope, token), cancellationToken);
+
+    public Task<CommandResult<ProposalVersionView>> RejectApprovalAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<RejectProposalApprovalCommand> envelope,
+        CancellationToken cancellationToken) => DispatchAsync(
+            envelope, MasterDataReferences.Permissions.ProposalApprove,
+            token => RejectApprovalOutcomeAsync(
+                proposalVersionId, envelope, token), cancellationToken);
 
     public Task<CommandResult<ProposalVersionView>> RenderAsync(
         Guid proposalVersionId, CommandEnvelope<RenderProposalCommand> envelope,

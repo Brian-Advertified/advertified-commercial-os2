@@ -11,7 +11,8 @@ public sealed record SaveCommercialPolicyCommand(
     int VatRateBasisPoints,
     bool PricesIncludeVat,
     string Currency,
-    long BookingApprovalThresholdMinor);
+    long BookingApprovalThresholdMinor,
+    bool AllowSelfApproval);
 
 public sealed record CommercialPolicyView(
     Guid Id,
@@ -25,6 +26,7 @@ public sealed record CommercialPolicyView(
     bool PricesIncludeVat,
     string Currency,
     long BookingApprovalThresholdMinor,
+    bool AllowSelfApproval,
     Guid CreatedBy,
     DateTimeOffset CreatedAtUtc,
     long Version);

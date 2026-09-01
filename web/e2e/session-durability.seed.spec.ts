@@ -7,7 +7,7 @@ import {
 test('seed durable browser session before API restart', async ({ page }) => {
   await prepareDurableSessionStatePath()
   await page.goto('/sign-in')
-  await page.getByRole('button', { name: /Continue to local workspace/ }).click()
+  await page.getByRole('button', { name: /Continue to Advertified/ }).click()
   await page.getByRole('button', { name: /Advertified Local/ }).click()
   await expect(page.getByRole('heading', { name: 'Work dashboard', exact: true }))
     .toBeVisible()

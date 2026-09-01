@@ -15,6 +15,7 @@ internal sealed record CommercialPolicyRow(
     bool PricesIncludeVat,
     string Currency,
     long BookingApprovalThresholdMinor,
+    bool AllowSelfApproval,
     Guid CreatedBy,
     DateTimeOffset CreatedAtUtc,
     long Version)
@@ -31,6 +32,7 @@ internal sealed record CommercialPolicyRow(
         PricesIncludeVat,
         Currency,
         BookingApprovalThresholdMinor,
+        AllowSelfApproval,
         CreatedBy,
         CreatedAtUtc,
         Version);
@@ -44,4 +46,5 @@ internal sealed record ValidatedCommercialPolicy(
     int VatRateBasisPoints,
     bool PricesIncludeVat,
     string Currency,
-    long BookingApprovalThresholdMinor);
+    long BookingApprovalThresholdMinor,
+    bool AllowSelfApproval);

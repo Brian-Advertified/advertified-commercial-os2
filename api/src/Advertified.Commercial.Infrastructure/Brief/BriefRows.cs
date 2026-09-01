@@ -60,6 +60,7 @@ internal sealed record BriefVersionRow
     public Guid CreatedBy { get; set; }
     public Guid? SubmittedBy { get; set; }
     public Guid? ApprovedBy { get; set; }
+    public string? ApprovalMode { get; set; }
     public Guid? RejectedBy { get; set; }
     public string? RejectionReason { get; set; }
     public string? RequestedChanges { get; set; }
@@ -92,7 +93,7 @@ internal static class BriefRowMapper
         Read<BriefUnknownInput>(row.UnknownsJson),
         Read<BriefAssumptionInput>(row.AssumptionsJson),
         Read<BriefConflictInput>(row.ConflictsJson), row.EvidenceItemIds, row.Status,
-        row.CreatedBy, row.SubmittedBy, row.ApprovedBy, row.RejectedBy,
+        row.CreatedBy, row.SubmittedBy, row.ApprovedBy, row.ApprovalMode, row.RejectedBy,
         row.RejectionReason, row.RequestedChanges, row.Version, row.CreatedAtUtc);
 
     private static T[] Read<T>(string value) =>

@@ -21,7 +21,7 @@ test.beforeEach(async ({ page }) => {
 test('authenticated workspace and profile journey remains truthful', async ({ page }) => {
   await page.goto('/sign-in')
   await expect(page.getByRole('heading', { name: 'The calm centre of campaign delivery.' })).toBeVisible()
-  await page.getByRole('button', { name: /Continue to local workspace/ }).click()
+  await page.getByRole('button', { name: /Continue to Advertified/ }).click()
   await expect(page.getByRole('heading', { name: 'Where are you working today?' })).toBeVisible()
 
   const workspace = page.getByRole('button', { name: /Northstar Agency/ })
@@ -53,7 +53,7 @@ test('authenticated workspace and profile journey remains truthful', async ({ pa
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page.getByRole('heading', { name: 'Enter your Advertified workspace' })).toBeVisible()
 
-  await page.getByRole('button', { name: /Continue to local workspace/ }).click()
+  await page.getByRole('button', { name: /Continue to Advertified/ }).click()
   await page.getByRole('button', { name: /Northstar Agency/ }).click()
   await page.evaluate(() => window.expireProfileSession())
   await page.getByRole('link', { name: 'Profile', exact: true }).click()

@@ -54,6 +54,7 @@ public sealed record BriefVersionView(
     Guid CreatedBy,
     Guid? SubmittedBy,
     Guid? ApprovedBy,
+    string? ApprovalMode,
     Guid? RejectedBy,
     string? RejectionReason,
     string? RequestedChanges,

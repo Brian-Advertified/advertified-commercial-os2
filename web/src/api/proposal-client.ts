@@ -2,10 +2,12 @@ import type { ZodType } from 'zod'
 import { request } from './client'
 import {
   approvedPlanChoicesSchema,
+  proposalApproversSchema,
   proposalRecipientsSchema,
   proposalSchema,
   type ApprovedPlanChoice,
   type Proposal,
+  type ProposalApprover,
   type ProposalDraftInput,
   type ProposalOption,
   type ProposalRecipient,
@@ -51,6 +53,13 @@ export const proposalApi = {
     return (await request(
       `/api/v1/tenants/${tenantId}/proposal-recipients`,
       proposalRecipientsSchema,
+    )).data
+  },
+
+  async listApprovers(tenantId: string): Promise<ProposalApprover[]> {
+    return (await request(
+      `/api/v1/tenants/${tenantId}/proposal-approvers`,
+      proposalApproversSchema,
     )).data
   },
 
@@ -103,11 +112,41 @@ export const proposalApi = {
     )
   },
 
+  submitForApproval(
+    tenantId: string,
+    proposal: Proposal,
+    approverUserId: string,
+    token: string,
+  ): Promise<Proposal> {
+    return mutate(
+      `/api/v1/tenants/${tenantId}/proposal-versions/${proposal.id}:submit`,
+      proposalSchema,
+      { approverUserId, comment: 'Please review this exact proposal version.' },
+      token,
+      proposal.version,
+    )
+  },
+
   approve(tenantId: string, proposal: Proposal, token: string): Promise<Proposal> {
     return mutate(
       `/api/v1/tenants/${tenantId}/proposal-versions/${proposal.id}:approve`,
       proposalSchema,
       { reason: 'Client wording, commercial totals and approved plan bindings reviewed.' },
+      token,
+      proposal.version,
+    )
+  },
+
+  rejectApproval(
+    tenantId: string,
+    proposal: Proposal,
+    reason: string,
+    token: string,
+  ): Promise<Proposal> {
+    return mutate(
+      `/api/v1/tenants/${tenantId}/proposal-versions/${proposal.id}:reject`,
+      proposalSchema,
+      { reason },
       token,
       proposal.version,
     )

@@ -51,7 +51,14 @@ public sealed partial class ProposalRecordStore(GovernanceDbContext dbContext)
                 executive_summary AS "ExecutiveSummary", terms AS "Terms",
                 expiry_at_utc AS "ExpiryAtUtc", status_code AS "Status",
                 input_hash AS "InputHash", created_by AS "CreatedBy",
-                approved_by AS "ApprovedBy", recipient_user_id AS "RecipientUserId",
+                approved_by AS "ApprovedBy", approval_mode_code AS "ApprovalMode",
+                approval_assignee_user_id AS "ApprovalAssigneeUserId",
+                approval_requested_by AS "ApprovalRequestedBy",
+                approval_requested_at_utc AS "ApprovalRequestedAtUtc",
+                approval_rejected_by AS "ApprovalRejectedBy",
+                approval_rejection_reason AS "ApprovalRejectionReason",
+                approval_rejected_at_utc AS "ApprovalRejectedAtUtc",
+                recipient_user_id AS "RecipientUserId",
                 version AS "Version", created_at_utc AS "CreatedAtUtc"
             FROM commercial.proposal_versions
             WHERE tenant_id = {tenantId.Value} AND id = {proposalVersionId}
@@ -134,6 +141,25 @@ public sealed partial class ProposalRecordStore(GovernanceDbContext dbContext)
             WHERE membership.tenant_id = {tenantId.Value}
               AND membership.user_id = {userId}
             """).SingleOrDefaultAsync(cancellationToken);
+
+    internal Task<List<ProposalRecipientRow>> ListApproversAsync(
+        TenantId tenantId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<ProposalRecipientRow>($"""
+            SELECT users.id AS "UserId", users.display_name AS "DisplayName",
+                users.email AS "Email", membership.role_code AS "Role",
+                membership.status_code AS "Status"
+            FROM commercial.memberships membership
+            JOIN commercial.users users ON users.id = membership.user_id
+            WHERE membership.tenant_id = {tenantId.Value}
+              AND membership.status_code = {MasterDataCodes.LifecycleStatuses.Active}
+              AND membership.role_code IN (
+                  {MasterDataCodes.Roles.PlatformAdmin},
+                  {MasterDataCodes.Roles.InternalPlanner},
+                  {MasterDataCodes.Roles.AgencyAdmin},
+                  {MasterDataCodes.Roles.AgencyCampaignUser})
+            ORDER BY users.display_name, users.id
+            """).ToListAsync(cancellationToken);
 
     internal Task<List<ProposalRecipientRow>> ListRecipientsAsync(
         TenantId tenantId,

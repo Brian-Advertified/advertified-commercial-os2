@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
-import { humanMessage } from '../api/client'
+import { api, humanMessage } from '../api/client'
 import { proposalApi } from '../api/proposal-client'
-import type { Proposal, ProposalRecipient, ProposalUpdateInput } from '../api/proposal-schemas'
+import type { Proposal, ProposalApprover, ProposalRecipient, ProposalUpdateInput } from '../api/proposal-schemas'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
 import { LoadingState, MessageState } from '../components/PageState'
@@ -52,6 +52,8 @@ function ProposalRecord(context: ProposalContext) {
 function useProposalRecord({ tenantId, proposalId, canPrepare }: ProposalContext) {
   const [proposal, setProposal] = useState<Proposal | null>(null)
   const [recipients, setRecipients] = useState<ProposalRecipient[]>([])
+  const [approvers, setApprovers] = useState<ProposalApprover[]>([])
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const load = useCallback(async () => {
@@ -61,10 +63,18 @@ function useProposalRecord({ tenantId, proposalId, canPrepare }: ProposalContext
   useEffect(() => {
     let active = true
     const recipientRequest = canPrepare ? proposalApi.listRecipients(tenantId) : Promise.resolve([])
-    void Promise.all([proposalApi.get(tenantId, proposalId), recipientRequest])
-      .then(([record, choices]) => {
-        if (active) { setProposal(record); setRecipients(choices) }
-      })
+    const approverRequest = canPrepare ? proposalApi.listApprovers(tenantId) : Promise.resolve([])
+    const userRequest = canPrepare
+      ? api.getCurrentUser().then(result => result.user.id)
+      : Promise.resolve(null)
+    void Promise.all([
+      proposalApi.get(tenantId, proposalId), recipientRequest, approverRequest, userRequest,
+    ]).then(([record, clientChoices, approvalChoices, userId]) => {
+      if (active) {
+        setProposal(record); setRecipients(clientChoices); setApprovers(approvalChoices)
+        setCurrentUserId(userId)
+      }
+    })
       .catch((failure: unknown) => { if (active) setError(humanMessage(failure)) })
     return () => { active = false }
   }, [tenantId, proposalId, canPrepare])
@@ -74,12 +84,14 @@ function useProposalRecord({ tenantId, proposalId, canPrepare }: ProposalContext
     catch (failure) { setError(humanMessage(failure)) }
     finally { setBusy(false) }
   }
-  return { proposal, recipients, error, busy, act }
+  return { proposal, recipients, approvers, currentUserId, error, busy, act }
 }
 
 type ProposalContentProps = ProposalContext & {
   proposal: Proposal
   recipients: ProposalRecipient[]
+  approvers: ProposalApprover[]
+  currentUserId: string | null
   error: string | null
   busy: boolean
   act: ProposalAction
@@ -110,8 +122,12 @@ function AgencyProposalContent(props: ProposalContentProps) {
       <ProposalSummary proposal={proposal} clientView={false} tenantId={tenantId} />}</div>
     <ProposalPreview proposal={proposal} busy={busy} />
     <div id="proposal-action"><ProposalAgencyActions tenantId={tenantId} proposal={proposal}
-      recipients={props.recipients} busy={busy}
+      recipients={props.recipients} approvers={props.approvers}
+      currentUserId={props.currentUserId} busy={busy}
+      onSubmitForApproval={approverUserId => act(() => proposalApi.submitForApproval(
+        tenantId, proposal, approverUserId, token))}
       onApprove={() => act(() => proposalApi.approve(tenantId, proposal, token))}
+      onReject={reason => act(() => proposalApi.rejectApproval(tenantId, proposal, reason, token))}
       onRender={() => act(() => proposalApi.render(tenantId, proposal, token))}
       onShare={recipientUserId => act(() => proposalApi.share(
         tenantId, proposal, recipientUserId, token))} /></div>

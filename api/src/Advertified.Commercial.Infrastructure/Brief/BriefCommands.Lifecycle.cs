@@ -5,6 +5,7 @@ using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Constants;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Infrastructure.CommercialSettings;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,6 +31,11 @@ public sealed partial class BriefCommands
         EnsureNoCriticalConflict(row);
         var confirmerId = envelope.Command.ConfirmerUserId ?? envelope.ActorId.Value;
         await EnsureEligibleConfirmerAsync(envelope, confirmerId, cancellationToken);
+        if (confirmerId == brief.OwnerUserId)
+        {
+            await CommercialApprovalPolicy.EnsureSelfApprovalAllowedAsync(
+                store.DbContext, envelope.TenantId, cancellationToken);
+        }
         var now = timeProvider.GetUtcNow();
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.brief_versions
@@ -124,10 +130,19 @@ public sealed partial class BriefCommands
         var (row, brief) = await LoadDecisionContextAsync(
             versionId, envelope.ActorId.Value, envelope.TenantId, cancellationToken);
         EnsureNoCriticalConflict(row);
+        var selfApproval = envelope.ActorId.Value == brief.OwnerUserId;
+        if (selfApproval)
+        {
+            await CommercialApprovalPolicy.EnsureSelfApprovalAllowedAsync(
+                store.DbContext, envelope.TenantId, cancellationToken);
+        }
+        var approvalMode = selfApproval
+            ? MasterDataCodes.ApprovalModes.Self
+            : MasterDataCodes.ApprovalModes.Independent;
         var now = timeProvider.GetUtcNow();
         await ChangeDecisionAsync(
             row, envelope.ExpectedVersion, MasterDataCodes.LifecycleStatuses.Approved,
-            envelope.ActorId.Value, null, null, envelope.TenantId.Value, now,
+            envelope.ActorId.Value, approvalMode, null, null, envelope.TenantId.Value, now,
             cancellationToken);
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.campaign_briefs
@@ -149,6 +164,7 @@ public sealed partial class BriefCommands
         {
             Status = MasterDataCodes.LifecycleStatuses.Approved,
             ApprovedBy = envelope.ActorId.Value,
+            ApprovalMode = approvalMode,
             Version = row.Version + 1,
         };
         return OpportunityCommandSupport.Outcome(
@@ -172,7 +188,7 @@ public sealed partial class BriefCommands
         var now = timeProvider.GetUtcNow();
         await ChangeDecisionAsync(
             row, envelope.ExpectedVersion, MasterDataCodes.LifecycleStatuses.Rejected, null,
-            envelope.ActorId.Value, reason, envelope.TenantId.Value, now,
+            null, envelope.ActorId.Value, reason, envelope.TenantId.Value, now,
             cancellationToken, requested);
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.campaign_briefs
@@ -302,6 +318,7 @@ public sealed partial class BriefCommands
         long expectedVersion,
         string status,
         Guid? approvedBy,
+        string? approvalMode,
         Guid? rejectedBy,
         string? reason,
         Guid tenantId,
@@ -313,7 +330,7 @@ public sealed partial class BriefCommands
             UPDATE commercial.brief_versions
             SET status_code = {status}, approved_by = {approvedBy},
                 approved_at_utc = {(approvedBy.HasValue ? now : (DateTimeOffset?)null)},
-                rejected_by = {rejectedBy},
+                approval_mode_code = {approvalMode}, rejected_by = {rejectedBy},
                 rejected_at_utc = {(rejectedBy.HasValue ? now : (DateTimeOffset?)null)},
                 rejection_reason = {reason}, requested_changes = {requestedChanges},
                 version = version + 1

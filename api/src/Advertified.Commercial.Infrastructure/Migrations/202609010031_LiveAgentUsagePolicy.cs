@@ -12,6 +12,35 @@ public sealed class LiveAgentUsagePolicy : Migration
     {
         migrationBuilder.Sql(
             """
+            CREATE FUNCTION commercial.valid_agent_usage_metadata(
+                provider_code varchar,
+                model_code varchar,
+                incremental_cost_minor bigint,
+                provider_request_id varchar)
+            RETURNS boolean
+            LANGUAGE sql
+            IMMUTABLE
+            PARALLEL SAFE
+            AS $valid_agent_usage_metadata$
+                SELECT COALESCE(
+                    incremental_cost_minor >= 0 AND (
+                        (provider_code = 'deterministic'
+                            AND model_code = 'fixture-v1'
+                            AND incremental_cost_minor = 0
+                            AND provider_request_id IS NULL)
+                        OR
+                        (provider_code = 'bedrock'
+                            AND btrim(COALESCE(model_code, '')) <> ''
+                            AND model_code <> 'fixture-v1'
+                            AND btrim(COALESCE(provider_request_id, '')) <> '')
+                    ),
+                    FALSE);
+            $valid_agent_usage_metadata$;
+            REVOKE ALL ON FUNCTION commercial.valid_agent_usage_metadata(
+                varchar, varchar, bigint, varchar) FROM PUBLIC;
+            GRANT EXECUTE ON FUNCTION commercial.valid_agent_usage_metadata(
+                varchar, varchar, bigint, varchar) TO advertified_app;
+
             ALTER TABLE commercial.ai_usage_ledger
                 DROP CONSTRAINT ck_ai_usage_gate4_cost,
                 ALTER COLUMN model_code TYPE varchar(300),
@@ -94,6 +123,9 @@ public sealed class LiveAgentUsagePolicy : Migration
                 DROP COLUMN provider_request_id,
                 ALTER COLUMN model_code TYPE varchar(100),
                 ADD CONSTRAINT ck_ai_usage_gate4_cost CHECK (incremental_cost_minor = 0);
+
+            DROP FUNCTION commercial.valid_agent_usage_metadata(
+                varchar, varchar, bigint, varchar);
             """);
     }
 }

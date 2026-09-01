@@ -1,23 +1,38 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { proposalApi } from '../api/proposal-client'
-import type { Proposal, ProposalRecipient } from '../api/proposal-schemas'
+import type { Proposal, ProposalApprover, ProposalRecipient } from '../api/proposal-schemas'
 import { masterDataCodes } from '../generated/master-data-codes'
 
 type ActionProps = {
   tenantId: string
   proposal: Proposal
   recipients: ProposalRecipient[]
+  approvers: ProposalApprover[]
+  currentUserId: string | null
   busy: boolean
+  onSubmitForApproval: (approverUserId: string) => Promise<void>
   onApprove: () => Promise<void>
+  onReject: (reason: string) => Promise<void>
   onRender: () => Promise<void>
   onShare: (recipientUserId: string) => Promise<void>
 }
 
 export function ProposalAgencyActions(props: ActionProps) {
   const [recipient, setRecipient] = useState(props.recipients[0]?.userId ?? '')
+  const eligibleApprovers = useMemo(
+    () => props.approvers.filter(item => item.userId !== props.currentUserId),
+    [props.approvers, props.currentUserId],
+  )
+  const [approver, setApprover] = useState(
+    eligibleApprovers[0]?.userId ?? '',
+  )
+  const [rejectionReason, setRejectionReason] = useState('')
   return <aside className="proposal-action-panel" aria-label="Proposal actions">
-    <ActionExplanation proposal={props.proposal} />
-    <PrimaryAction {...props} recipient={recipient} setRecipient={setRecipient} />
+    <ActionExplanation proposal={props.proposal} approvers={props.approvers} />
+    <PrimaryAction {...props} recipient={recipient} setRecipient={setRecipient}
+      approver={approver} setApprover={setApprover}
+      eligibleApprovers={eligibleApprovers}
+      rejectionReason={rejectionReason} setRejectionReason={setRejectionReason} />
     {props.proposal.document && <a className="secondary-button proposal-document-link"
       href={proposalApi.documentUrl(props.tenantId, props.proposal.document.id)}
       target="_blank" rel="noreferrer">Open proposal PDF</a>}
@@ -27,11 +42,23 @@ export function ProposalAgencyActions(props: ActionProps) {
 function PrimaryAction(props: ActionProps & {
   recipient: string
   setRecipient: (value: string) => void
+  approver: string
+  setApprover: (value: string) => void
+  eligibleApprovers: ProposalApprover[]
+  rejectionReason: string
+  setRejectionReason: (value: string) => void
 }) {
   const { proposal, busy } = props
   if (proposal.status === masterDataCodes.lifecycleStatuses.draft) {
-    return <button className="primary-button" type="button" disabled={busy}
-      onClick={() => void props.onApprove()}>{busy ? 'Approving…' : 'Approve proposal'}</button>
+    return <DraftApprovalActions {...props} />
+  }
+  if (proposal.status === masterDataCodes.lifecycleStatuses.inReview) {
+    return <IndependentReviewActions {...props} />
+  }
+  if (proposal.status === masterDataCodes.lifecycleStatuses.rejected) {
+    return <div className="inline-alert" role="status">
+      {proposal.approvalRejectionReason ?? 'The proposal was not approved.'}
+    </div>
   }
   if (proposal.status !== masterDataCodes.lifecycleStatuses.approved) return null
   if (!proposal.document) {
@@ -49,16 +76,85 @@ function PrimaryAction(props: ActionProps & {
       onClick={() => void props.onShare(props.recipient)}>{busy ? 'Sharing…' : 'Share with client'}</button></div>
 }
 
-function ActionExplanation({ proposal }: { proposal: Proposal }) {
-  const copy = actionCopy(proposal)
+function DraftApprovalActions(props: ActionProps & {
+  approver: string
+  setApprover: (value: string) => void
+  eligibleApprovers: ProposalApprover[]
+}) {
+  return <div className="proposal-share-control">
+    <button className="primary-button" type="button" disabled={props.busy}
+      onClick={() => void props.onApprove()}>
+      {props.busy ? 'Approving…' : 'Approve now'}
+    </button>
+    <label>Or choose a different approver
+      <select value={props.approver} onChange={event => props.setApprover(event.target.value)}>
+        <option value="">Choose an approver</option>
+        {props.eligibleApprovers.map(item => <option value={item.userId} key={item.userId}>
+          {item.displayName} · {item.email}
+        </option>)}
+      </select>
+    </label>
+    <button className="secondary-button" type="button"
+      disabled={props.busy || !props.approver}
+      onClick={() => void props.onSubmitForApproval(props.approver)}>
+      {props.busy ? 'Sending…' : 'Send for approval'}
+    </button>
+    <p className="field-note">Approving your own work is allowed only when this workspace permits it.</p>
+  </div>
+}
+
+function IndependentReviewActions(props: ActionProps & {
+  rejectionReason: string
+  setRejectionReason: (value: string) => void
+}) {
+  const assigned = props.proposal.approvalAssigneeUserId === props.currentUserId
+  if (!assigned) {
+    const approver = props.approvers.find(
+      item => item.userId === props.proposal.approvalAssigneeUserId)
+    return <p className="field-note">
+      Waiting for {approver?.displayName ?? 'the assigned approver'} to review this proposal.
+    </p>
+  }
+  return <div className="proposal-share-control">
+    <button className="primary-button" type="button" disabled={props.busy}
+      onClick={() => void props.onApprove()}>
+      {props.busy ? 'Approving…' : 'Approve proposal'}
+    </button>
+    <label>Reason if you cannot approve it
+      <textarea value={props.rejectionReason} maxLength={1000}
+        onChange={event => props.setRejectionReason(event.target.value)}
+        placeholder="Explain what needs to change." />
+    </label>
+    <button className="secondary-button" type="button"
+      disabled={props.busy || !props.rejectionReason.trim()}
+      onClick={() => void props.onReject(props.rejectionReason.trim())}>
+      Reject and return
+    </button>
+  </div>
+}
+
+function ActionExplanation({ proposal, approvers }: {
+  proposal: Proposal
+  approvers: ProposalApprover[]
+}) {
+  const copy = actionCopy(proposal, approvers)
   return <div><p className="eyebrow eyebrow-light">Next action</p>
     <h2>{copy.title}</h2><p>{copy.detail}</p></div>
 }
 
-function actionCopy(proposal: Proposal) {
+function actionCopy(proposal: Proposal, approvers: ProposalApprover[]) {
   if (proposal.status === masterDataCodes.lifecycleStatuses.draft) {
-    return { title: 'Approve the exact proposal version',
-      detail: 'Approval freezes the wording and exact approved media-plan bindings.' }
+    return { title: 'Choose how this proposal is approved',
+      detail: 'Approve it now when your workspace permits self-approval, or send this exact version to a named approver.' }
+  }
+  if (proposal.status === masterDataCodes.lifecycleStatuses.inReview) {
+    const approver = approvers.find(item => item.userId === proposal.approvalAssigneeUserId)
+    return { title: 'Approval is in progress',
+      detail: `${approver?.displayName ?? 'The assigned approver'} is reviewing this exact proposal version.` }
+  }
+  if (proposal.status === masterDataCodes.lifecycleStatuses.rejected) {
+    return { title: 'Approval was not granted',
+      detail: 'Review the reason below and prepare a new proposal version when the required changes are ready.' }
   }
   if (proposal.status === masterDataCodes.lifecycleStatuses.approved && !proposal.document) {
     return { title: 'Create the client document',

@@ -61,7 +61,8 @@ public sealed partial class OpportunityRecordStore
         CancellationToken cancellationToken) =>
         DbContext.Database.SqlQuery<HumanTaskRow>($"""
             SELECT task.id AS "Id", task.opportunity_id AS "OpportunityId",
-                brief_version.brief_id AS "BriefId", task.task_type_code AS "TaskType",
+                COALESCE(brief_version.brief_id, proposal_version.brief_id) AS "BriefId",
+                task.task_type_code AS "TaskType",
                 task.status_code AS "Status", task.title AS "Title",
                 task.why_it_matters AS "WhyItMatters",
                 task.resource_type_code AS "ResourceType", task.resource_id AS "ResourceId",
@@ -72,6 +73,9 @@ public sealed partial class OpportunityRecordStore
             LEFT JOIN commercial.brief_versions brief_version
               ON brief_version.tenant_id = task.tenant_id
              AND brief_version.id = task.resource_id
+            LEFT JOIN commercial.proposal_versions proposal_version
+              ON proposal_version.tenant_id = task.tenant_id
+             AND proposal_version.id = task.resource_id
             WHERE task.tenant_id = {tenantId.Value} AND task.assignee_user_id = {actorId}
             ORDER BY CASE WHEN task.status_code = {MasterDataCodes.LifecycleStatuses.Pending} THEN 0 ELSE 1 END,
                 task.created_at_utc DESC, task.id
@@ -85,7 +89,8 @@ public sealed partial class OpportunityRecordStore
         CancellationToken cancellationToken) =>
         DbContext.Database.SqlQuery<HumanTaskRow>($"""
             SELECT task.id AS "Id", task.opportunity_id AS "OpportunityId",
-                brief_version.brief_id AS "BriefId", task.task_type_code AS "TaskType",
+                COALESCE(brief_version.brief_id, proposal_version.brief_id) AS "BriefId",
+                task.task_type_code AS "TaskType",
                 task.status_code AS "Status", task.title AS "Title",
                 task.why_it_matters AS "WhyItMatters",
                 task.resource_type_code AS "ResourceType", task.resource_id AS "ResourceId",
@@ -96,6 +101,9 @@ public sealed partial class OpportunityRecordStore
             LEFT JOIN commercial.brief_versions brief_version
               ON brief_version.tenant_id = task.tenant_id
              AND brief_version.id = task.resource_id
+            LEFT JOIN commercial.proposal_versions proposal_version
+              ON proposal_version.tenant_id = task.tenant_id
+             AND proposal_version.id = task.resource_id
             WHERE task.tenant_id = {tenantId.Value} AND task.assignee_user_id = {actorId}
               AND task.id = {taskId}
             """).SingleOrDefaultAsync(cancellationToken);

@@ -13,6 +13,13 @@ internal sealed record ProposalRow(
     string InputHash,
     Guid CreatedBy,
     Guid? ApprovedBy,
+    string? ApprovalMode,
+    Guid? ApprovalAssigneeUserId,
+    Guid? ApprovalRequestedBy,
+    DateTimeOffset? ApprovalRequestedAtUtc,
+    Guid? ApprovalRejectedBy,
+    string? ApprovalRejectionReason,
+    DateTimeOffset? ApprovalRejectedAtUtc,
     Guid? RecipientUserId,
     long Version,
     DateTimeOffset CreatedAtUtc);

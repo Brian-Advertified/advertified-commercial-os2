@@ -8,9 +8,9 @@ import os
 from decimal import Decimal, ROUND_CEILING, ROUND_FLOOR
 from typing import Generic, TypeVar
 
-import boto3
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
+from botocore.session import get_session
 from pydantic import BaseModel, ValidationError
 
 from agent_registry import AgentCode
@@ -123,7 +123,7 @@ def _client(timeout_seconds: int, max_attempts: int):
         read_timeout=timeout_seconds,
         retries={"total_max_attempts": max_attempts, "mode": "standard"},
     )
-    return boto3.client("bedrock-runtime", region_name=region, config=config)
+    return get_session().create_client("bedrock-runtime", region_name=region, config=config)
 
 
 def _allowlist() -> frozenset[str]:
@@ -142,7 +142,7 @@ def _pricing(model: str) -> BedrockPricing:
     try:
         payload = json.loads(raw)
         item = payload[model]
-        pricing = BedrockPricing.model_validate(item)
+        pricing = BedrockPricing.model_validate_json(json.dumps(item))
     except (json.JSONDecodeError, KeyError, TypeError, ValidationError) as error:
         raise BedrockProviderError("Bedrock model pricing is not configured safely.") from error
     if pricing.input_per_million_usd <= 0 or pricing.output_per_million_usd <= 0:

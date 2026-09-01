@@ -7,13 +7,14 @@ These instructions bind every human or AI contributor working in this repository
 Use this source order when requirements conflict:
 
 1. The repository owner's latest explicit instruction.
-2. This `AGENTS.md`.
-3. The normative v1.1 specification indexed at `docs/spec/README.md`.
-4. A genuinely approved ADR.
-5. Executable contracts, migrations, and tests.
-6. Plans, status reports, and commentary.
+2. `ADVERTIFIED.md` — the single normative source for the Advertified business, product, commercial rules, governance, workflows, AI, UX, architecture and production intent.
+3. This `AGENTS.md` — contributor behaviour and mutation authority only; it does not redefine product truth.
+4. Executable contracts, migrations and tests as implementation evidence.
+5. Git history and legacy Advertified artefacts as read-only historical evidence.
 
-Do not silently choose between conflicting sources. Record the conflict, keep the affected capability blocked, and ask its named owner. A missing fact remains unknown. A failed check remains failed. A scaffold is not an implementation. An implementation is not verified until repeatable evidence exists.
+Only `ADVERTIFIED.md` and `AGENTS.md` are retained as repository Markdown documents. Do not create a competing ADR/spec/work-packet Markdown source. A material product or architecture decision must be incorporated into the appropriate governed section/change record of `ADVERTIFIED.md` after owner approval.
+
+Within `ADVERTIFIED.md`, `[Hypothesis]` content is non-normative business validation material: it is not implementation authority, a release requirement, or a production-readiness condition unless a retained Section 32 resolution record deliberately promotes it to a Principle or Policy. A missing fact remains unknown. A failed check remains failed. A scaffold is not an implementation. An implementation is not verified until repeatable evidence exists.
 
 The clean parent history is the rollback reference. Inspect `git status` and the relevant files before editing. Preserve unrelated user work. Never copy code, schema, migrations, secrets, or configuration from older Advertified repositories.
 
@@ -52,12 +53,14 @@ For authored source files:
 - Hard limit: 400 physical lines per file.
 - Target: 300 lines or fewer.
 - Target: functions under 40 nonblank, noncomment lines.
-- Hard function limit: 60 nonblank, noncomment lines unless an approved ADR explains why.
+- Hard function limit: 60 nonblank, noncomment lines.
 - Cyclomatic complexity target: 10 or lower.
 - No god classes, god hooks, god services, or miscellaneous utility dumping grounds.
 - Split by business responsibility, not arbitrary numbered fragments.
+- Line limits are maintainability guardrails, not a reason to fragment one cohesive business rule artificially.
+- A genuinely cohesive rule or named algorithm may exceed a normal file/function limit only with explicit owner approval, a written rationale adjacent to the implementation, and evidence that the exception is clearer than an artificial split. The exception is narrow and does not become precedent automatically.
 
-Generated files and the split normative specification are exempt only where the generator or document index says so. Do not hand-edit generated output.
+Generated files are exempt only where they are clearly generated and must not be hand-edited. `ADVERTIFIED.md` is intentionally exempt from source-code line limits because it is the single canonical specification.
 
 No magic domain strings or unexplained numbers in application logic. Lifecycle states, roles, permissions, channels, rejection reasons, proposal tiers, rate types, currencies, feature keys, integration types, and other governed vocabularies belong in versioned master/reference data with:
 
@@ -74,7 +77,7 @@ Constants are acceptable only for technical protocol values local to one boundar
 
 ## 5. Commercial and AI safety
 
-No autonomous spend, publication, supplier commitment, booking, payment, invoice, external communication, or material commercial change. Each requires the correct named human approval, exact immutable artefact version, tenant context, and audit event.
+No autonomous spend, publication, supplier commitment, booking, payment, invoice, external communication, or material commercial change outside the authority model defined in `ADVERTIFIED.md`. Consequential actions require either an authorised human decision (self-approval or independent approval as applicable) or an explicitly human-owned bounded automation policy that passes deterministic readiness guards. Exact immutable artefact version, tenant context, authority basis and audit event are always required. AI/service identities may never approve their own output.
 
 AI output is untrusted proposal data. Validate it against typed schemas, evidence citations, authorised tools, budgets, tenant scope, and lifecycle rules. Persist input versions, prompt/config version, model/provider identity, tool calls, cost estimate, validation outcome, and human disposition when those capabilities are implemented.
 

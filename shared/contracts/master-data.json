@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.12.0",
+  "registryVersion": "2.13.0",
   "effectiveFrom": "2026-09-01",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
@@ -155,6 +155,10 @@
       {"code":"REJECT","displayLabel":"Reject","isActive":true,"sortOrder":20},
       {"code":"EDIT","displayLabel":"Edit and Approve","isActive":true,"sortOrder":30}
     ],
+    "approvalModes": [
+      {"code":"SELF","displayLabel":"Self-approval","isActive":true,"sortOrder":10},
+      {"code":"INDEPENDENT","displayLabel":"Independent approval","isActive":true,"sortOrder":20}
+    ],
     "opportunityAngleStatuses": [
       {"code":"PROPOSED","displayLabel":"Proposed","isActive":true,"sortOrder":10},
       {"code":"SELECTED","displayLabel":"Selected","isActive":true,"sortOrder":20},
@@ -185,7 +189,8 @@
       {"code":"MEDIA_PLAN_APPROVAL","displayLabel":"Approve Media Plan","isActive":true,"sortOrder":120},
       {"code":"DELIVERY_PROOF_REVIEW","displayLabel":"Review Delivery Proof","isActive":true,"sortOrder":130},
       {"code":"PERFORMANCE_FACT_REVIEW","displayLabel":"Review Performance Facts","isActive":true,"sortOrder":140},
-      {"code":"MEASUREMENT_REPORT_REVIEW","displayLabel":"Review Measurement Report","isActive":true,"sortOrder":150}
+      {"code":"MEASUREMENT_REPORT_REVIEW","displayLabel":"Review Measurement Report","isActive":true,"sortOrder":150},
+      {"code":"PROPOSAL_APPROVAL","displayLabel":"Approve Proposal","isActive":true,"sortOrder":160}
     ],
     "evidenceClassifications": [
       {"code":"FACT","displayLabel":"Confirmed Fact","isActive":true,"sortOrder":10},
@@ -513,6 +518,7 @@
       {"code":"proposal.generated","displayLabel":"Proposal Generated","isActive":true,"sortOrder":400},
       {"code":"proposal.updated","displayLabel":"Proposal Updated","isActive":true,"sortOrder":410},
       {"code":"proposal.approved","displayLabel":"Proposal Approved","isActive":true,"sortOrder":420},
+      {"code":"proposal.rejected","displayLabel":"Proposal Approval Rejected","isActive":true,"sortOrder":425},
       {"code":"proposal.rendered","displayLabel":"Proposal Rendered","isActive":true,"sortOrder":430},
       {"code":"proposal.shared","displayLabel":"Proposal Shared for Client Review","isActive":true,"sortOrder":440},
       {"code":"proposal.selected","displayLabel":"Proposal Option Selected","isActive":true,"sortOrder":450},
@@ -602,6 +608,7 @@
       {"code":"ProposalGenerated","displayLabel":"Proposal Generated","isActive":true,"sortOrder":400},
       {"code":"ProposalUpdated","displayLabel":"Proposal Updated","isActive":true,"sortOrder":410},
       {"code":"ProposalApproved","displayLabel":"Proposal Approved","isActive":true,"sortOrder":420},
+      {"code":"ProposalRejected","displayLabel":"Proposal Approval Rejected","isActive":true,"sortOrder":425},
       {"code":"ProposalRendered","displayLabel":"Proposal Rendered","isActive":true,"sortOrder":430},
       {"code":"ProposalShared","displayLabel":"Proposal Shared","isActive":true,"sortOrder":440},
       {"code":"ProposalOptionSelected","displayLabel":"Proposal Option Selected","isActive":true,"sortOrder":450},

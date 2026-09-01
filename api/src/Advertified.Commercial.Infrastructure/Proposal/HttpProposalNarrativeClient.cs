@@ -57,7 +57,10 @@ public sealed class HttpProposalNarrativeClient(
         ValidateNarrative(artifact.ExecutiveSummary, input);
         return new ProposalNarrative(
             artifact.ExecutiveSummary,
-            output.Usage.IncrementalCostMinor);
+            output.Usage.IncrementalCostMinor,
+            output.Usage.Provider,
+            output.Usage.Model,
+            output.Usage.ProviderRequestId);
     }
 
     private void EnsureInput(ProposalNarrativeInput input)

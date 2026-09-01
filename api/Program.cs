@@ -50,6 +50,7 @@ using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+var processRole = builder.AddAdvertifiedProcessRole();
 var authenticationMode = builder.Configuration["Authentication:Mode"];
 var agentRuntime = builder.Configuration
     .GetSection(AgentRuntimeOptions.SectionName)
@@ -142,6 +143,7 @@ builder.Services.AddScoped<IProposalCommands, ProposalCommands>();
 builder.Services.AddScoped<DeterministicProposalNarrativeClient>();
 builder.Services.AddScoped<IProposalDeliveryClient, DeterministicProposalDeliveryClient>();
 builder.AddEmailAutomation(emailAutomation);
+builder.AddCommercialWorkers(processRole);
 builder.AddInventoryExtraction(inventoryExtraction);
 builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = inventoryProtection.MaximumSourceBytes + 1_048_576);
@@ -216,7 +218,7 @@ builder.Services.AddScoped<IMeasurementAgentClient>(serviceProvider =>
     agentRuntime.UsesHttp
         ? serviceProvider.GetRequiredService<HttpMeasurementAgentClient>()
         : serviceProvider.GetRequiredService<DeterministicMeasurementAgentClient>());
-if (agentRuntime.Mode != AgentRuntimeOptions.DisabledMode)
+if (agentRuntime.Mode != AgentRuntimeOptions.DisabledMode && processRole.RunsWorkers)
 {
     builder.Services.AddHostedService<OpportunityRunDispatcher>();
 }
@@ -310,37 +312,43 @@ app.UseRateLimiter();
 app.UseMiddleware<BrowserSessionProtectionMiddleware>();
 app.UseAuthorization();
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() && processRole.RunsApi)
 {
     app.UseSwagger();
     app.UseSwaggerUI(options =>
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "Advertified API v1"));
 }
 
-app.MapGet("/", () => Results.Ok(new ServiceDescription(
-    "Advertified Commercial API",
-    "inventory-and-planning",
-    "Tenant-safe commercial operations with a local browser-session boundary.")))
-    .WithTags("Service");
-
-app.MapHealthEndpoints();
-app.MapBrowserSessionEndpoints();
-app.MapIdentityEndpoints();
-app.MapFoundationEndpoints();
-app.MapOpportunityEndpoints();
-app.MapBriefEndpoints();
-app.MapCommercialPolicyEndpoints();
-app.MapBookingEndpoints();
-app.MapCampaignEndpoints();
-app.MapCreativeEndpoints();
-app.MapDeliveryEndpoints();
-app.MapMeasurementEndpoints();
-app.MapFundingEndpoints();
-app.MapInventoryEndpoints();
-app.MapMarketplaceEndpoints();
-app.MapPlanningEndpoints();
-app.MapProposalEndpoints();
-app.MapEmailAutomationEndpoints();
+if (processRole.RunsApi)
+{
+    app.MapGet("/", () => Results.Ok(new ServiceDescription(
+        "Advertified Commercial API",
+        "inventory-and-planning",
+        "Tenant-safe commercial operations with a secure server-side session boundary.")))
+        .WithTags("Service");
+    app.MapHealthEndpoints();
+    app.MapBrowserSessionEndpoints();
+    app.MapIdentityEndpoints();
+    app.MapFoundationEndpoints();
+    app.MapOpportunityEndpoints();
+    app.MapBriefEndpoints();
+    app.MapCommercialPolicyEndpoints();
+    app.MapBookingEndpoints();
+    app.MapCampaignEndpoints();
+    app.MapCreativeEndpoints();
+    app.MapDeliveryEndpoints();
+    app.MapMeasurementEndpoints();
+    app.MapFundingEndpoints();
+    app.MapInventoryEndpoints();
+    app.MapMarketplaceEndpoints();
+    app.MapPlanningEndpoints();
+    app.MapProposalEndpoints();
+    app.MapEmailAutomationEndpoints();
+}
+else
+{
+    app.MapWorkerHealthEndpoints();
+}
 
 static void ConfigureAgentRuntimeHttpClient(
     IServiceProvider serviceProvider,

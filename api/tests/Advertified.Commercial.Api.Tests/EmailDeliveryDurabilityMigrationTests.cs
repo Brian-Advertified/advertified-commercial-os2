@@ -99,6 +99,8 @@ public sealed class EmailDeliveryDurabilityMigrationTests
                 NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
             CREATE ROLE advertified_app
                 NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+            CREATE ROLE advertified_worker
+                NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
             GRANT advertified_migrator TO {DatabaseUser};
             GRANT CREATE ON DATABASE {DatabaseName} TO advertified_migrator;
             GRANT CREATE ON SCHEMA public TO advertified_migrator;

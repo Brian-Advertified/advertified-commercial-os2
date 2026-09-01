@@ -6,6 +6,7 @@ using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Advertified.Commercial.Infrastructure.Identity;
 
@@ -62,7 +63,7 @@ public sealed class OidcIdentityResolver(
         return ToResolution(existing);
     }
 
-    private async Task<BindingRow?> FindBindingAsync(
+    private static async Task<BindingRow?> FindBindingAsync(
         DbConnection connection,
         string provider,
         string subjectHash,
@@ -132,7 +133,14 @@ public sealed class OidcIdentityResolver(
         Add(command, "subject_hash", subjectHash);
         Add(command, "user_id", userId);
         Add(command, "now_utc", timeProvider.GetUtcNow());
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        try
+        {
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+        catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.UniqueViolation)
+        {
+            throw new UnauthorizedAccessException("Identity access denied.", exception);
+        }
     }
 
     private async Task RecordLoginAsync(

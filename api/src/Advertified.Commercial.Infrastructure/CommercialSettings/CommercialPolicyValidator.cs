@@ -37,7 +37,8 @@ internal static class CommercialPolicyValidator
             command.VatRateBasisPoints,
             command.PricesIncludeVat,
             currency,
-            command.BookingApprovalThresholdMinor);
+            command.BookingApprovalThresholdMinor,
+            command.AllowSelfApproval);
     }
 
     private static HashSet<string> LoadCodes(string collection) =>

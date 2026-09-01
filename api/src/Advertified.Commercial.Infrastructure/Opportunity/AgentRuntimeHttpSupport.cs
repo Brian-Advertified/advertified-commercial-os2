@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.MasterData;
 
 namespace Advertified.Commercial.Infrastructure.Opportunity;
@@ -173,14 +174,17 @@ internal static class AgentRuntimeHttpSupport
         if (expected.Provider == AgentRuntimeOptions.DeterministicProvider)
         {
             if (usage.Units != 0 || usage.IncrementalCostMinor != 0 ||
-                usage.CacheStatus != "FIXTURE" || usage.ProviderRequestId is not null)
+                usage.CacheStatus != AgentProviderMetadata.FixtureCacheStatus ||
+                usage.ProviderRequestId is not null)
             {
                 throw new InvalidOperationException(
                     "The deterministic agent provider exceeded its zero-cost policy.");
             }
             return;
         }
-        if (usage.Units <= 0 || usage.CacheStatus is not ("LIVE" or "CACHE_HIT") ||
+        if (usage.Units <= 0 ||
+            usage.CacheStatus is not (AgentProviderMetadata.LiveCacheStatus or
+                AgentProviderMetadata.CacheHitStatus) ||
             string.IsNullOrWhiteSpace(usage.ProviderRequestId))
         {
             throw new InvalidOperationException("The live agent provider usage is incomplete.");

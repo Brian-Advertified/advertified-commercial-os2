@@ -1,3 +1,4 @@
+using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Measurement;
@@ -21,6 +22,7 @@ public static class MeasurementEndpoints
             .WithCommandProblems(requiresVersion: true);
         campaigns.MapPost("/{campaignId:guid}/measurement-reports:generate", GenerateReportAsync)
             .WithName("GenerateMeasurementReport").Produces<MeasurementReportView>()
+            .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
             .WithCommandProblems(requiresVersion: false);
         campaigns.MapPost(
                 "/{campaignId:guid}/measurement-reports/{reportId:guid}:review",

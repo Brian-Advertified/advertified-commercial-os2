@@ -1,3 +1,4 @@
+using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.MasterData;
 
 namespace Advertified.Commercial.Application.Measurement;
@@ -61,16 +62,20 @@ public static class MeasurementAgentValidation
 
     private static void ValidateUsage(MeasurementAgentProposal proposal)
     {
-        var deterministic = proposal.Provider == "deterministic" &&
-            proposal.Model == "fixture-v1" && proposal.Units == 0 &&
-            proposal.IncrementalCostMinor == 0 && proposal.CacheStatus == "FIXTURE" &&
+        var deterministic = proposal.Provider == AgentProviderMetadata.DeterministicProvider &&
+            proposal.Model == AgentProviderMetadata.FixtureModel && proposal.Units == 0 &&
+            proposal.IncrementalCostMinor == 0 &&
+            proposal.CacheStatus == AgentProviderMetadata.FixtureCacheStatus &&
             proposal.ProviderRequestId is null;
-        var live = proposal.Provider == "bedrock" && proposal.Model != "fixture-v1" &&
+        var live = proposal.Provider == AgentProviderMetadata.BedrockProvider &&
+            proposal.Model != AgentProviderMetadata.FixtureModel &&
             proposal.Units > 0 && proposal.IncrementalCostMinor >= 0 &&
-            proposal.CacheStatus is "LIVE" or "CACHE_HIT" &&
+            proposal.CacheStatus is AgentProviderMetadata.LiveCacheStatus or
+                AgentProviderMetadata.CacheHitStatus &&
             !string.IsNullOrWhiteSpace(proposal.ProviderRequestId);
         if ((!deterministic && !live) || proposal.ToolCalls != 0 ||
-            proposal.ContractVersion != "1.0.0" || proposal.PromptVersion != "1.0.0")
+            proposal.ContractVersion != AgentProviderMetadata.ContractVersion ||
+            proposal.PromptVersion != AgentProviderMetadata.ContractVersion)
             throw new MeasurementAgentOutputRejectedException();
     }
 

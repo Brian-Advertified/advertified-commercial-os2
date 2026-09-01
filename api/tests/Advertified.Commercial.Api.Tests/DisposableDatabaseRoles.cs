@@ -14,6 +14,8 @@ internal static class DisposableDatabaseRoles
                 NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
             CREATE ROLE advertified_app
                 NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+            CREATE ROLE advertified_worker
+                NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
             """,
             connection);
         await command.ExecuteNonQueryAsync();

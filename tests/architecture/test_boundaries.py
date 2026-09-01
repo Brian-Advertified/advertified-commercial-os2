@@ -29,11 +29,14 @@ GENERATED_PARTS = {
 SOURCE_SUFFIXES = {".cs", ".css", ".js", ".jsx", ".py", ".ts", ".tsx"}
 FORBIDDEN_AGENT_PACKAGES = {
     "asyncpg",
-    "boto3",
     "langchain",
     "psycopg",
     "psycopg2-binary",
     "sqlalchemy",
+}
+APPROVED_AGENT_PROVIDER_PACKAGES = {"boto3"}
+GOVERNED_LITERAL_OVERLAP_ALLOWLIST = {
+    "api/src/Advertified.Commercial.Application/Opportunity/AgentProviderMetadata.cs": {"LIVE"},
 }
 from tests.architecture.master_data_contract import (
     REQUIRED_MASTER_COLLECTIONS,
@@ -169,7 +172,7 @@ def test_commercial_api_contains_no_model_prompts() -> None:
     assert not violations, f"Model prompt content found in Commercial API: {violations}"
 
 
-def test_agent_runtime_has_no_direct_database_or_provider_sdk() -> None:
+def test_agent_runtime_keeps_database_and_provider_sdks_inside_owned_boundaries() -> None:
     violations = python_import_violations(REPO_ROOT / "agent-runtime")
 
     requirements = (REPO_ROOT / "agent-runtime" / "requirements.txt").read_text(
@@ -184,6 +187,7 @@ def test_agent_runtime_has_no_direct_database_or_provider_sdk() -> None:
 
     assert not violations, f"Forbidden agent imports: {violations}"
     assert not forbidden_packages, f"Forbidden runtime packages: {forbidden_packages}"
+    assert APPROVED_AGENT_PROVIDER_PACKAGES <= packages
 
 
 def test_master_data_registry_is_coherent() -> None:
@@ -251,9 +255,11 @@ def test_governed_codes_are_not_inline_application_literals() -> None:
             match.group("value")
             for match in literal_pattern.finditer(path.read_text(encoding="utf-8"))
         }
-        found = sorted(literals.intersection(governed_codes))
+        path_name = relative(path)
+        allowed_overlap = GOVERNED_LITERAL_OVERLAP_ALLOWLIST.get(path_name, set())
+        found = sorted(literals.intersection(governed_codes) - allowed_overlap)
         if found:
-            violations.append(f"{relative(path)}: {found}")
+            violations.append(f"{path_name}: {found}")
 
     assert not violations, f"Governed master-data codes used inline: {violations}"
 
@@ -296,10 +302,12 @@ def test_live_provider_and_cost_defaults_are_closed() -> None:
     environment = (REPO_ROOT / "infrastructure" / "env.example").read_text(encoding="utf-8")
     runtime = (REPO_ROOT / "agent-runtime" / "main.py").read_text(encoding="utf-8")
 
-    assert "AWS_BEDROCK_ENABLED=false" in environment
+    assert "ADVERTIFIED_AGENT_RUNTIME_MODE=disabled" in environment
+    assert "ADVERTIFIED_BEDROCK_MODEL_ALLOWLIST=" in environment
+    assert "ADVERTIFIED_BEDROCK_PRICING_JSON={}" in environment
     assert "AI_COST_CAP_MINOR=0" in environment
-    assert 'provider_mode="disabled"' in runtime
-    assert "implemented_agents=[]" in runtime
+    assert 'DISABLED_MODE = "disabled"' in runtime
+    assert "os.environ.get(RUNTIME_MODE_KEY, DISABLED_MODE)" in runtime
 
 
 def test_ci_has_no_placeholder_success_or_floating_main_actions() -> None:

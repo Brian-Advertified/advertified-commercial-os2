@@ -197,10 +197,11 @@ jobs:
           set -euo pipefail
           network=advertified-ci-packaging
           api=advertified-ci-api
+          worker=advertified-ci-worker
           runtime=advertified-ci-agent-runtime
           web=advertified-ci-web
           cleanup() {
-            docker rm --force "$api" "$runtime" "$web" >/dev/null 2>&1 || true
+            docker rm --force "$api" "$worker" "$runtime" "$web" >/dev/null 2>&1 || true
             docker network rm "$network" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
@@ -208,6 +209,27 @@ jobs:
           docker run --detach --name "$api" --network "$network" --publish 127.0.0.1:18080:8080 \
             --env ASPNETCORE_ENVIRONMENT=Production \
             --env 'ConnectionStrings__CommercialDatabase=Host=127.0.0.1;Port=1;Database=closed;Username=closed;Password=closed;Timeout=1' \
+            --env Authentication__Mode=Disabled \
+            --env 'AllowedHosts=localhost;127.0.0.1' \
+            --env ReverseProxy__KnownProxies__0=127.0.0.1 \
+            --env InventoryProtection__ObjectStoreMode=Minio \
+            --env InventoryProtection__ScannerMode=ClamAv \
+            --env InventoryProtection__Endpoint=closed.invalid:443 \
+            --env InventoryProtection__AccessKey=closed \
+            --env InventoryProtection__SecretKey=closed \
+            --env InventoryProtection__Bucket=closed \
+            --env InventoryProtection__UseTls=true \
+            --env InventoryProtection__ClamAvHost=closed.invalid \
+            --env InventoryProtection__ClamAvPort=3310 \
+            --env InventoryExtraction__Mode=Docling \
+            --env InventoryExtraction__BaseUrl=https://closed.invalid \
+            --env InventoryExtraction__ApiKey=closed \
+            advertified/commercial-api:ci-verification
+          docker run --detach --name "$worker" --network "$network" --publish 127.0.0.1:18083:8080 \
+            --env ASPNETCORE_ENVIRONMENT=Production \
+            --env Process__Role=Worker \
+            --env 'ConnectionStrings__CommercialDatabase=Host=127.0.0.1;Port=1;Database=closed;Username=closed;Password=closed;Timeout=1' \
+            --env 'ConnectionStrings__WorkerSchedulerDatabase=Host=127.0.0.1;Port=1;Database=closed;Username=closed;Password=closed;Timeout=1' \
             --env Authentication__Mode=Disabled \
             --env 'AllowedHosts=localhost;127.0.0.1' \
             --env ReverseProxy__KnownProxies__0=127.0.0.1 \
@@ -234,7 +256,8 @@ jobs:
           for endpoint in \
             http://127.0.0.1:18080/health/live \
             http://127.0.0.1:18081/health/live \
-            http://127.0.0.1:18082/health/live; do
+            http://127.0.0.1:18082/health/live \
+            http://127.0.0.1:18083/health/live; do
             for attempt in $(seq 1 30); do
               curl --fail --silent "$endpoint" >/dev/null && break
               test "$attempt" -lt 30
@@ -269,6 +292,7 @@ jobs:
             exit 1
           fi
           test "$(docker exec "$api" id -u)" != "0"
+          test "$(docker exec "$worker" id -u)" != "0"
           test "$(docker exec "$runtime" id -u)" != "0"
           test "$(docker exec "$web" id -u)" != "0"
           set +e

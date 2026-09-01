@@ -15,7 +15,7 @@ test('connected clear Brief reaches OOH planning without a fake approval', async
   const sessionResponsePromise = page.waitForResponse(response =>
     response.url().endsWith('/api/v1/session') &&
     response.request().method() === 'POST')
-  await page.getByRole('button', { name: /Continue to local workspace/ }).click()
+  await page.getByRole('button', { name: /Continue to Advertified/ }).click()
   const sessionResponse = await sessionResponsePromise
   expect(sessionResponse.status(), await sessionResponse.text()).toBe(200)
 

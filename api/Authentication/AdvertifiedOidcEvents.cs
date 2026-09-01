@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Claims;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Infrastructure.Identity;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Extensions.Options;
 
@@ -58,7 +59,7 @@ public sealed partial class AdvertifiedOidcEvents(
             sessionOptions.Value,
             session.Token,
             session.Identity.ExpiresAtUtc);
-        context.Response.Redirect(BrowserReturnPath.Normalize(context.Properties.RedirectUri));
+        context.Response.Redirect(BrowserReturnPath.Normalize(context.Properties?.RedirectUri));
         context.HandleResponse();
     }
 

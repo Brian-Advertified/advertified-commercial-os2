@@ -62,6 +62,12 @@ def live() -> HealthResponse:
 @app.get("/health/ready", response_model=HealthResponse)
 def ready() -> HealthResponse:
     mode = _runtime_mode()
+    if mode == DISABLED_MODE:
+        return HealthResponse(
+            status="ready",
+            service="advertified-agent-runtime",
+            checks=["process", "provider-disabled"],
+        )
     if not _provider_configuration_ready(mode):
         raise HTTPException(status_code=503, detail="Agent provider is not ready.")
     check = "deterministic-zero-cost" if mode == DETERMINISTIC_MODE else "bedrock-configured"

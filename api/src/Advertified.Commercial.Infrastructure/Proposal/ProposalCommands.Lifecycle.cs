@@ -69,39 +69,11 @@ public sealed partial class ProposalCommands
             timeProvider.GetUtcNow());
     }
 
-    private async Task<CommandOutcome> ApproveOutcomeAsync(
+    private Task<CommandOutcome> ApproveOutcomeAsync(
         Guid proposalVersionId,
         CommandEnvelope<ApproveProposalCommand> envelope,
-        CancellationToken cancellationToken)
-    {
-        var proposal = await LoadOwnedProposalAsync(proposalVersionId, envelope, cancellationToken);
-        if (proposal.Status != MasterDataCodes.LifecycleStatuses.Draft ||
-            proposal.ExpiryAtUtc <= timeProvider.GetUtcNow())
-        {
-            throw new InvalidLifecycleTransitionException();
-        }
-        await EnsureProposalPlansCurrentAsync(envelope.TenantId, proposalVersionId, cancellationToken);
-        var now = timeProvider.GetUtcNow();
-        var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            UPDATE commercial.proposal_versions
-            SET status_code = {MasterDataCodes.LifecycleStatuses.Approved},
-                approved_by = {envelope.ActorId.Value}, approved_at_utc = {now}, version = version + 1
-            WHERE tenant_id = {envelope.TenantId.Value} AND id = {proposalVersionId}
-              AND status_code = {MasterDataCodes.LifecycleStatuses.Draft}
-              AND version = {envelope.ExpectedVersion}
-            """, cancellationToken);
-        if (changed != 1) throw new VersionConflictException();
-        var updated = proposal with
-        {
-            Status = MasterDataCodes.LifecycleStatuses.Approved,
-            ApprovedBy = envelope.ActorId.Value,
-            Version = proposal.Version + 1,
-        };
-        var view = await store.BuildViewAsync(envelope.TenantId, updated, cancellationToken);
-        return ProposalOutcome(envelope, view, proposalVersionId, updated.Version,
-            MasterDataReferences.CommercialActions.ProposalApproved,
-            MasterDataReferences.CommercialEventTypes.ProposalApproved, now);
-    }
+        CancellationToken cancellationToken) =>
+        ApproveWithGovernanceAsync(proposalVersionId, envelope, cancellationToken);
 
     private async Task<ProposalRow> LoadOwnedProposalAsync<TCommand>(
         Guid proposalVersionId,

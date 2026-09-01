@@ -1,3 +1,4 @@
+using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.Governance;
@@ -17,7 +18,12 @@ public static class ProposalEndpoints
             .WithQueryProblems();
         group.MapPost("/briefs/{briefId:guid}/proposals:generate", GenerateAsync)
             .WithName("GenerateProposal").Produces<ProposalVersionView>()
+            .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
             .WithCommandProblems(requiresVersion: false);
+        group.MapGet("/proposal-approvers", ListApproversAsync)
+            .WithName("ListProposalApprovers")
+            .Produces<IReadOnlyList<ProposalApproverView>>()
+            .WithQueryProblems();
         group.MapGet("/proposal-recipients", ListRecipientsAsync)
             .WithName("ListProposalRecipients")
             .Produces<IReadOnlyList<ProposalRecipientView>>()
@@ -28,15 +34,23 @@ public static class ProposalEndpoints
         group.MapPost("/proposal-versions/{proposalVersionId:guid}:update", UpdateAsync)
             .WithName("UpdateProposal").Produces<ProposalVersionView>()
             .WithCommandProblems(requiresVersion: true);
+        group.MapPost("/proposal-versions/{proposalVersionId:guid}:submit", SubmitForApprovalAsync)
+            .WithName("SubmitProposalForApproval").Produces<ProposalVersionView>()
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/proposal-versions/{proposalVersionId:guid}:approve", ApproveAsync)
             .WithName("ApproveProposal").Produces<ProposalVersionView>()
             .WithCommandProblems(requiresVersion: true);
+        group.MapPost("/proposal-versions/{proposalVersionId:guid}:reject", RejectApprovalAsync)
+            .WithName("RejectProposalApproval").Produces<ProposalVersionView>()
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/proposal-versions/{proposalVersionId:guid}:render", RenderAsync)
             .WithName("RenderProposal").Produces<ProposalVersionView>()
+            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
             .WithCommandProblems(requiresVersion: true);
         group.MapPost("/proposal-versions/{proposalVersionId:guid}:share", ShareAsync)
             .WithName("ShareProposal")
             .Produces<ProposalVersionView>()
+            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
             .WithCommandProblems(requiresVersion: true);
         group.MapPost("/proposal-versions/{proposalVersionId:guid}:select-option", SelectAsync)
             .WithName("SelectProposalOption").Produces<ProposalVersionView>()
@@ -67,6 +81,14 @@ public static class ProposalEndpoints
             (envelope, token) => commands.UpdateAsync(proposalVersionId, envelope, token),
             cancellationToken);
 
+    private static Task<IResult> SubmitForApprovalAsync(
+        Guid tenantId, Guid proposalVersionId, SubmitProposalForApprovalCommand command,
+        HttpContext context, ICurrentIdentity identity, IProposalCommands commands,
+        TimeProvider clock, CancellationToken cancellationToken) => ExecuteAsync(
+            tenantId, command, context, identity, clock, true,
+            (envelope, token) => commands.SubmitForApprovalAsync(
+                proposalVersionId, envelope, token), cancellationToken);
+
     private static Task<IResult> ApproveAsync(
         Guid tenantId, Guid proposalVersionId, ApproveProposalCommand command,
         HttpContext context, ICurrentIdentity identity, IProposalCommands commands,
@@ -74,6 +96,14 @@ public static class ProposalEndpoints
             tenantId, command, context, identity, clock, true,
             (envelope, token) => commands.ApproveAsync(proposalVersionId, envelope, token),
             cancellationToken);
+
+    private static Task<IResult> RejectApprovalAsync(
+        Guid tenantId, Guid proposalVersionId, RejectProposalApprovalCommand command,
+        HttpContext context, ICurrentIdentity identity, IProposalCommands commands,
+        TimeProvider clock, CancellationToken cancellationToken) => ExecuteAsync(
+            tenantId, command, context, identity, clock, true,
+            (envelope, token) => commands.RejectApprovalAsync(
+                proposalVersionId, envelope, token), cancellationToken);
 
     private static Task<IResult> RenderAsync(
         Guid tenantId, Guid proposalVersionId, RenderProposalCommand command,
@@ -106,6 +136,12 @@ public static class ProposalEndpoints
             tenantId, command, context, identity, clock, true,
             (envelope, token) => commands.DeclineAsync(proposalVersionId, envelope, token),
             cancellationToken);
+
+    private static async Task<IResult> ListApproversAsync(
+        Guid tenantId, ICurrentIdentity identity,
+        IProposalReader reader, CancellationToken cancellationToken) =>
+        Results.Ok(await reader.ListApproversAsync(
+            identity.ActorId, new TenantId(tenantId), cancellationToken));
 
     private static async Task<IResult> ListRecipientsAsync(
         Guid tenantId, ICurrentIdentity identity,

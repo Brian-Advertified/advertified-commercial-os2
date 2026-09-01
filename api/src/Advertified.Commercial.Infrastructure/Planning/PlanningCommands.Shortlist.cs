@@ -149,6 +149,19 @@ public sealed partial class PlanningCommands
             throw new InvalidOperationException(
                 "The Inventory Intelligence proposal changed the governed candidate set.");
         }
+        var updated = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE commercial.inventory_shortlist_versions
+            SET agent_provider_code = {proposal.Provider},
+                agent_model_code = {proposal.Model},
+                agent_incremental_cost_minor = {proposal.IncrementalCostMinor},
+                agent_provider_request_id = {proposal.ProviderRequestId}
+            WHERE tenant_id = {envelope.TenantId.Value} AND id = {shortlistId}
+            """, cancellationToken);
+        if (updated != 1)
+        {
+            throw new InvalidOperationException(
+                "The Inventory Intelligence usage lineage could not be persisted.");
+        }
         var byCandidate = interpretations.ToDictionary(item => item.CandidateId);
         return candidates.Select(candidate => candidate with
         {

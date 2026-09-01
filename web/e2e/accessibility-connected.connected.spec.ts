@@ -8,10 +8,10 @@ test('connected critical shell has usable keyboard and accessibility semantics',
     name: 'The calm centre of campaign delivery.',
   })).toBeVisible()
   await expect(page.getByRole('button', {
-    name: /Continue to local workspace/,
+    name: /Continue to Advertified/,
   })).toBeVisible()
 
-  await page.getByRole('button', { name: /Continue to local workspace/ }).click()
+  await page.getByRole('button', { name: /Continue to Advertified/ }).click()
   await page.getByRole('button', { name: /Advertified Local/ }).click()
   await expect(page.getByRole('heading', { name: 'Work dashboard', exact: true }))
     .toBeVisible()

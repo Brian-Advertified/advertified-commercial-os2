@@ -1,3 +1,4 @@
+using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Application.Brief;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Identity;
@@ -15,6 +16,7 @@ public static class BriefEndpoints
         group.MapPost("/briefs:understand", UnderstandBriefAsync)
             .WithName("UnderstandSuppliedBrief")
             .Produces<SuppliedBriefUnderstandingView>()
+            .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
             .WithQueryProblems();
         group.MapPost("/briefs", CreateBriefAsync)
             .WithName("CreateCampaignBrief")

@@ -1,3 +1,4 @@
+using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Opportunity;
@@ -22,18 +23,22 @@ public static class OpportunityWorkflowEndpoints
         group.MapPost("/opportunities/{opportunityId:guid}/interpret", QueueInterpretationAsync)
             .WithName("QueueBusinessInterpretation")
             .Produces<AgentRunView>(StatusCodes.Status202Accepted)
+            .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
             .WithCommandProblems(requiresVersion: false);
         group.MapPost("/opportunities/{opportunityId:guid}/angles:generate", QueueAnglesAsync)
             .WithName("QueueOpportunityAngles")
             .Produces<AgentRunView>(StatusCodes.Status202Accepted)
+            .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
             .WithCommandProblems(requiresVersion: false);
         group.MapPost("/opportunities/{opportunityId:guid}/strategies:generate", QueueStrategyAsync)
             .WithName("QueueOpportunityStrategy")
             .Produces<AgentRunView>(StatusCodes.Status202Accepted)
+            .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
             .WithCommandProblems(requiresVersion: false);
         group.MapPost("/opportunities/{opportunityId:guid}/briefs:draft", QueueBriefAsync)
             .WithName("QueueOpportunityBrief")
             .Produces<AgentRunView>(StatusCodes.Status202Accepted)
+            .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
             .WithCommandProblems(requiresVersion: false);
     }
 
@@ -70,6 +75,7 @@ public static class OpportunityWorkflowEndpoints
         group.MapPost("/agent-runs/{runId:guid}:resume", ResumeRunAsync)
             .WithName("ResumeAgentRun")
             .Produces<AgentRunView>()
+            .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
             .WithCommandProblems(requiresVersion: true);
         group.MapPost("/agent-runs/{runId:guid}:cancel", CancelRunAsync)
             .WithName("CancelAgentRun")

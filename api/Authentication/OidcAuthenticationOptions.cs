@@ -51,7 +51,7 @@ public sealed class OidcAuthenticationOptions
         string.IsNullOrEmpty(uri.UserInfo);
 
     private static bool IsSafePath(string value) =>
-        value.StartsWith('/', StringComparison.Ordinal) &&
+        value.StartsWith('/') &&
         !value.StartsWith("//", StringComparison.Ordinal) &&
         !value.Contains('\\');
 

@@ -25,6 +25,7 @@ type FormState = {
   pricesIncludeVat: boolean
   currency: string
   bookingApprovalThreshold: string
+  allowSelfApproval: boolean
 }
 
 type PolicyUpdate = <K extends keyof FormState>(key: K, value: FormState[K]) => void
@@ -32,6 +33,7 @@ type PolicyUpdate = <K extends keyof FormState>(key: K, value: FormState[K]) => 
 const emptyForm: FormState = {
   markup: '', managementFee: '', commission: '', vatStatus: '', vatRate: '',
   pricesIncludeVat: false, currency: '', bookingApprovalThreshold: '',
+  allowSelfApproval: false,
 }
 
 export function CommercialPolicyPage() {
@@ -183,6 +185,12 @@ function ApprovalFields({ form, update }: { form: FormState; update: PolicyUpdat
           onChange={(event) => update('bookingApprovalThreshold', event.target.value)} />
         <p className="field-note">Bookings at or above this amount require the governed approval step.</p>
       </div>
+      <label className="checkbox-field operations-checkbox-field">
+        <input type="checkbox" checked={form.allowSelfApproval}
+          onChange={(event) => update('allowSelfApproval', event.target.checked)} />
+        Allow authorised creators to approve their own Briefs and proposals
+      </label>
+      <p className="field-note">Leave this off when a different named approver must review commercial work.</p>
     </div>
   </section>
 }
@@ -219,6 +227,7 @@ function toInput(form: FormState): CommercialPolicyInput {
     pricesIncludeVat: form.pricesIncludeVat,
     currency: form.currency,
     bookingApprovalThresholdMinor: moneyToMinor(form.bookingApprovalThreshold, form.currency),
+    allowSelfApproval: form.allowSelfApproval,
   }
 }
 
@@ -255,6 +264,7 @@ function toForm(policy: CommercialPolicy): FormState {
     currency: policy.currency,
     bookingApprovalThreshold: minorAmountToInput(
       policy.bookingApprovalThresholdMinor, policy.currency),
+    allowSelfApproval: policy.allowSelfApproval,
   }
 }
 

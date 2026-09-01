@@ -17,6 +17,7 @@ public sealed partial class ProposalAcceptanceTests
     private static readonly Guid OperatorId = Guid.Parse("82000000-0000-0000-0000-000000000001");
     private static readonly Guid ClientUserId = Guid.Parse("82000000-0000-0000-0000-000000000002");
     private static readonly Guid OtherUserId = Guid.Parse("82000000-0000-0000-0000-000000000003");
+    private static readonly Guid ReviewerUserId = Guid.Parse("82000000-0000-0000-0000-000000000004");
     private static readonly Guid ClientId = Guid.Parse("83000000-0000-0000-0000-000000000001");
     private static readonly Guid BriefId = Guid.Parse("84000000-0000-0000-0000-000000000001");
     private static readonly Guid BriefVersionId = Guid.Parse("84000000-0000-0000-0000-000000000002");
@@ -52,16 +53,41 @@ public sealed partial class ProposalAcceptanceTests
         db.Users.AddRange(
             CreateUser(OperatorId, "operator@proposal.example", "Agency Operator"),
             CreateUser(ClientUserId, "client@proposal.example", "Client Approver"),
-            CreateUser(OtherUserId, "other@proposal.example", "Other User"));
+            CreateUser(OtherUserId, "other@proposal.example", "Other User"),
+            CreateUser(ReviewerUserId, "reviewer@proposal.example", "Proposal Reviewer"));
         db.Memberships.AddRange(
             CreateMembership(OperatorId, "agency_admin", 1),
             CreateMembership(ClientUserId, "advertiser_approver", 2),
-            CreateMembership(OtherUserId, "advertiser_approver", 3));
+            CreateMembership(OtherUserId, "advertiser_approver", 3),
+            CreateMembership(ReviewerUserId, "agency_campaign_user", 4));
         db.ClientAccounts.Add(new ClientAccount(
             new ClientAccountId(ClientId), new TenantId(TenantId), "proposal-client",
             "Proposal Client", "Proposal Client", null, null, "{}",
             new LifecycleStatusCode("ACTIVE"), Now));
         await db.SaveChangesAsync();
+        await db.Database.ExecuteSqlRawAsync("""
+            INSERT INTO commercial.commercial_policies (
+                id, tenant_id, current_version_id, version, created_at_utc, updated_at_utc)
+            VALUES (
+                '88000000-0000-0000-0000-000000000001',
+                '81000000-0000-0000-0000-000000000001', NULL, 1,
+                clock_timestamp(), clock_timestamp());
+            INSERT INTO commercial.commercial_policy_versions (
+                id, tenant_id, policy_id, version_number, markup_basis_points,
+                management_fee_basis_points, commission_basis_points, vat_status_code,
+                vat_rate_basis_points, prices_include_vat, currency_code,
+                booking_approval_threshold_minor, allow_self_approval,
+                created_by, created_at_utc)
+            VALUES (
+                '88000000-0000-0000-0000-000000000002',
+                '81000000-0000-0000-0000-000000000001',
+                '88000000-0000-0000-0000-000000000001', 1,
+                0, 0, 0, 'REGISTERED', 1500, false, 'ZAR', 100000000, true,
+                '82000000-0000-0000-0000-000000000001', clock_timestamp());
+            UPDATE commercial.commercial_policies
+            SET current_version_id = '88000000-0000-0000-0000-000000000002'
+            WHERE tenant_id = '81000000-0000-0000-0000-000000000001';
+            """);
         await SeedProposalPrerequisitesAsync(connectionString);
     }
 

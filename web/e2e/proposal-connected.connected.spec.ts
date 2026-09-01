@@ -63,7 +63,7 @@ test('connected Brief becomes an approved, rendered and shared proposal', async 
 
 async function signIn(page: import('@playwright/test').Page) {
   await page.goto('/sign-in')
-  await page.getByRole('button', { name: /Continue to local workspace/ }).click()
+  await page.getByRole('button', { name: /Continue to Advertified/ }).click()
   await page.getByRole('button', { name: /Advertified Local/ }).click()
   await expect(page.getByRole('heading', { name: 'Work dashboard', exact: true }))
     .toBeVisible()

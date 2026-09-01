@@ -80,6 +80,21 @@ public sealed class ProposalReader(
             item.UserId, item.DisplayName, item.Email, item.Role)).ToArray();
     }
 
+    public async Task<IReadOnlyList<ProposalApproverView>> ListApproversAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        CancellationToken cancellationToken)
+    {
+        await RequireAsync(actorId, tenantId,
+            MasterDataReferences.Permissions.ProposalEdit, cancellationToken);
+        await using var transaction = await store.BeginSessionAsync(
+            actorId, tenantId, cancellationToken);
+        var rows = await store.ListApproversAsync(tenantId, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return rows.Select(item => new ProposalApproverView(
+            item.UserId, item.DisplayName, item.Email, item.Role)).ToArray();
+    }
+
     public async Task<ProposalDocumentContent> GetDocumentAsync(
         ActorId actorId,
         TenantId tenantId,

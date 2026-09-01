@@ -82,7 +82,9 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       Logging__Console__FormatterName: simple
       Logging__Console__FormatterOptions__SingleLine: "true"
+      Process__Role: Combined
       ConnectionStrings__CommercialDatabase: Host=postgres
+      ConnectionStrings__WorkerSchedulerDatabase: Host=postgres
       PGPORT: "5432"
       PGDATABASE: advertified
       PGUSER: advertified
@@ -110,7 +112,7 @@ services:
       AgentRuntime__BaseUrl: http://agent-runtime:8080
       AgentRuntime__ServiceKey: advertified-agent-runtime-local-only
       EmailAutomation__Mode: Deterministic
-      EmailAutomation__ProcessInline: "true"
+      EmailAutomation__ProcessInline: "false"
     ports:
       - "127.0.0.1:5097:8080"
     depends_on:

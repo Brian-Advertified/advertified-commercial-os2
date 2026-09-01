@@ -11,11 +11,10 @@ function useSessionExpiry(reload: () => Promise<void>) {
   }, [reload])
 }
 
-export function SessionProvider({ children }: { children: React.ReactNode }) {
+function useSessionStore() {
   const [session, setSession] = useState<BrowserSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
   const reload = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -39,9 +38,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     })
     return () => { active = false }
   }, [])
-
   useSessionExpiry(reload)
+  return { session, setSession, loading, setLoading, error, setError, reload }
+}
 
+function useSessionActions(store: ReturnType<typeof useSessionStore>) {
+  const { session, setSession, setLoading, setError } = store
   const signIn = useCallback(async (returnTo?: string) => {
     if (!session) return false
     if (session.signInPath) {
@@ -62,7 +64,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [session])
+  }, [session, setError, setLoading, setSession])
 
   const signOut = useCallback(async () => {
     if (!session) return false
@@ -79,11 +81,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [session])
+  }, [session, setLoading, setSession])
+  return { signIn, signOut }
+}
 
+export function SessionProvider({ children }: { children: React.ReactNode }) {
+  const store = useSessionStore()
+  const actions = useSessionActions(store)
   const value = useMemo(
-    () => ({ session, loading, error, signIn, signOut, reload }),
-    [error, loading, reload, session, signIn, signOut],
+    () => ({ session: store.session, loading: store.loading, error: store.error,
+      signIn: actions.signIn, signOut: actions.signOut, reload: store.reload }),
+    [actions.signIn, actions.signOut, store.error, store.loading, store.reload, store.session],
   )
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }

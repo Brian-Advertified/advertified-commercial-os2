@@ -10,37 +10,43 @@ public static class OutboxDispatchRegistration
     {
         var section = builder.Configuration.GetSection(OutboxDispatchOptions.SectionName);
         var configured = section.Get<OutboxDispatchOptions>() ?? new OutboxDispatchOptions();
-        EnsureLocalTransportBoundary(builder.Environment, configured);
+        EnsureEnvironmentBoundary(builder.Environment, configured);
 
         builder.Services.AddOptions<OutboxDispatchOptions>()
             .Bind(section)
-            .Validate(
-                OutboxDispatchOptions.HasSupportedMode,
+            .Validate(OutboxDispatchOptions.HasSupportedMode,
                 "The outbox dispatch mode is invalid.")
-            .Validate(
-                OutboxDispatchOptions.HasSupportedTiming,
+            .Validate(OutboxDispatchOptions.HasSupportedTiming,
                 "The outbox dispatch timing is invalid.")
-            .Validate(
-                OutboxDispatchOptions.HasRequiredTenant,
-                "Enabled outbox dispatch requires one tenant ID.")
+            .Validate(OutboxDispatchOptions.HasValidLocalTenant,
+                "The outbox dispatch tenant is invalid.")
+            .Validate(OutboxDispatchOptions.HasSafeTransportConfiguration,
+                "The outbox transport configuration is unsafe.")
             .ValidateOnStart();
         builder.Services.AddSingleton<DeterministicOutboxTransport>();
         builder.Services.AddSingleton<DisabledOutboxTransport>();
-        builder.Services.AddSingleton<IOutboxTransport>(services =>
-            configured.Mode == OutboxDispatchOptions.DeterministicMode
-                ? services.GetRequiredService<DeterministicOutboxTransport>()
-                : services.GetRequiredService<DisabledOutboxTransport>());
+        builder.Services.AddSingleton<EventBridgeOutboxTransport>();
+        builder.Services.AddSingleton<IOutboxTransport>(services => configured.Mode switch
+        {
+            OutboxDispatchOptions.DeterministicMode =>
+                services.GetRequiredService<DeterministicOutboxTransport>(),
+            OutboxDispatchOptions.EventBridgeMode =>
+                services.GetRequiredService<EventBridgeOutboxTransport>(),
+            _ => services.GetRequiredService<DisabledOutboxTransport>(),
+        });
         builder.Services.AddSingleton<OutboxDispatchMetrics>();
         builder.Services.AddSingleton<OutboxDispatchReadiness>();
         builder.Services.AddScoped<OutboxDispatchStore>();
         builder.Services.AddScoped<OutboxDispatchProcessor>();
-        if (configured.IsEnabled)
+
+        if (configured.Mode == OutboxDispatchOptions.DeterministicMode &&
+            configured.TenantId is not null)
         {
             builder.Services.AddHostedService<OutboxDispatchDispatcher>();
         }
     }
 
-    private static void EnsureLocalTransportBoundary(
+    private static void EnsureEnvironmentBoundary(
         IWebHostEnvironment environment,
         OutboxDispatchOptions options)
     {

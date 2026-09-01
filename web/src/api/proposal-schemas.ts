@@ -27,6 +27,8 @@ export const proposalRecipientSchema = z.object({
   role: requiredText,
 }).strict()
 
+export const proposalApproverSchema = proposalRecipientSchema
+
 export const proposalOptionSchema = z.object({
   id: z.guid(),
   label: requiredText,
@@ -73,12 +75,20 @@ export const proposalSchema = z.object({
   decision: proposalDecisionSchema.nullable(),
   createdBy: z.guid(),
   approvedBy: z.guid().nullable(),
+  approvalMode: requiredText.nullable(),
+  approvalAssigneeUserId: z.guid().nullable(),
+  approvalRequestedBy: z.guid().nullable(),
+  approvalRequestedAtUtc: z.iso.datetime({ offset: true }).nullable(),
+  approvalRejectedBy: z.guid().nullable(),
+  approvalRejectionReason: z.string().nullable(),
+  approvalRejectedAtUtc: z.iso.datetime({ offset: true }).nullable(),
   version: z.number().int().positive(),
   createdAtUtc: z.iso.datetime({ offset: true }),
 }).strict()
 
 export const approvedPlanChoicesSchema = z.array(approvedPlanChoiceSchema)
 export const proposalRecipientsSchema = z.array(proposalRecipientSchema)
+export const proposalApproversSchema = z.array(proposalApproverSchema)
 
 export const proposalUpdateInputSchema = z.object({
   title: requiredText.max(300),
@@ -108,6 +118,7 @@ export const proposalDraftInputSchema = z.object({
 
 export type ApprovedPlanChoice = z.infer<typeof approvedPlanChoiceSchema>
 export type ProposalRecipient = z.infer<typeof proposalRecipientSchema>
+export type ProposalApprover = z.infer<typeof proposalApproverSchema>
 export type ProposalOption = z.infer<typeof proposalOptionSchema>
 export type Proposal = z.infer<typeof proposalSchema>
 export type ProposalDraftInput = z.infer<typeof proposalDraftInputSchema>

@@ -6,6 +6,13 @@ import pytest
 from pydantic import ConfigDict, TypeAdapter, ValidationError
 
 from agent_registry import AgentCode
+from bedrock_provider import (
+    ALLOWLIST_KEY,
+    MAX_TOKENS_KEY,
+    PRICING_KEY,
+    REGION_KEY,
+    bedrock_configuration_ready,
+)
 from contracts import (
     AgentInvocationEnvelope,
     ContractModel,
@@ -61,14 +68,52 @@ def test_unmatched_invocation_fails_without_fallback_or_live_call() -> None:
         asyncio.run(provider.invoke(changed))
 
 
-def test_live_or_paid_provider_policy_is_schema_invalid() -> None:
+def test_provider_policy_keeps_deterministic_zero_cost_and_bounds_bedrock() -> None:
     fixture = load_fixture()
-    unsafe_policy = fixture.invocation.provider_policy.model_dump()
-    unsafe_policy["allow_live"] = True
-    unsafe_policy["cost_cap_minor"] = 1
-
+    unsafe_deterministic = fixture.invocation.provider_policy.model_dump()
+    unsafe_deterministic["allow_live"] = True
+    unsafe_deterministic["cost_cap_minor"] = 1
     with pytest.raises(ValidationError):
-        ProviderPolicy.model_validate(unsafe_policy)
+        ProviderPolicy.model_validate(unsafe_deterministic)
+
+    live = ProviderPolicy.model_validate({
+        "provider": "bedrock",
+        "model": "us.amazon.nova-lite-v1:0",
+        "temperature": 0,
+        "timeout_seconds": 30,
+        "max_attempts": 2,
+        "cost_cap_minor": 50,
+        "allow_live": True,
+    })
+    assert live.provider == "bedrock"
+    assert live.cost_cap_minor == 50
+
+    for changed in (
+        {"cost_cap_minor": 0},
+        {"allow_live": False},
+        {"model": "fixture-v1"},
+    ):
+        payload = live.model_dump() | changed
+        with pytest.raises(ValidationError):
+            ProviderPolicy.model_validate(payload)
+
+
+def test_bedrock_configuration_is_verified_without_network(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = "us.amazon.nova-lite-v1:0"
+    monkeypatch.setenv(REGION_KEY, "af-south-1")
+    monkeypatch.setenv(ALLOWLIST_KEY, model)
+    monkeypatch.setenv(MAX_TOKENS_KEY, "2048")
+    monkeypatch.setenv(
+        PRICING_KEY,
+        '{"us.amazon.nova-lite-v1:0":{"input_per_million_usd":"0.10",'
+        '"output_per_million_usd":"0.40"}}',
+    )
+    assert bedrock_configuration_ready()
+
+    monkeypatch.setenv(PRICING_KEY, "{}")
+    assert not bedrock_configuration_ready()
 
 
 def test_material_field_without_evidence_assumption_or_unknown_is_invalid() -> None:

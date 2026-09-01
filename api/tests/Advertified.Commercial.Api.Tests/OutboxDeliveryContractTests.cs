@@ -1,5 +1,7 @@
 using Advertified.Commercial.Application.Outbox;
+using Advertified.Commercial.Api.Startup;
 using Advertified.Commercial.Infrastructure.Outbox;
+using Advertified.Commercial.Infrastructure.Worker;
 using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
@@ -46,5 +48,28 @@ public sealed class OutboxDeliveryContractTests
             LeaseSeconds = 5,
             HeartbeatSeconds = 3,
         }));
+    }
+
+    [Fact]
+    public void ProductionWorkerAndTransportConfigurationFailClosed()
+    {
+        Assert.True(ProcessRoleOptions.IsSupported(new ProcessRoleOptions
+        {
+            Role = ProcessRoleOptions.WorkerRole,
+        }));
+        Assert.False(WorkerDispatchOptions.HasSafeTiming(new WorkerDispatchOptions
+        {
+            MaxEmailAttempts = 0,
+        }));
+        Assert.False(OutboxDispatchOptions.HasSafeTransportConfiguration(
+            new OutboxDispatchOptions { Mode = OutboxDispatchOptions.EventBridgeMode }));
+        Assert.True(OutboxDispatchOptions.HasSafeTransportConfiguration(
+            new OutboxDispatchOptions
+            {
+                Mode = OutboxDispatchOptions.EventBridgeMode,
+                AwsRegion = "af-south-1",
+                EventBusName = "advertified-commercial",
+                EventSource = "advertified.commercial",
+            }));
     }
 }

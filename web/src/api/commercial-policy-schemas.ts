@@ -14,6 +14,7 @@ export const commercialPolicySchema = z.object({
   pricesIncludeVat: z.boolean(),
   currency: requiredCode,
   bookingApprovalThresholdMinor: z.number().int().nonnegative(),
+  allowSelfApproval: z.boolean(),
   createdBy: z.guid(),
   createdAtUtc: z.iso.datetime({ offset: true }),
   version: z.number().int().positive(),
@@ -29,4 +30,5 @@ export type CommercialPolicyInput = Pick<CommercialPolicy,
   | 'vatRateBasisPoints'
   | 'pricesIncludeVat'
   | 'currency'
-  | 'bookingApprovalThresholdMinor'>
+  | 'bookingApprovalThresholdMinor'
+  | 'allowSelfApproval'>

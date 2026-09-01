@@ -41,7 +41,7 @@ class ToolPolicy(ContractModel):
 
 class ProviderPolicy(ContractModel):
     provider: Literal["deterministic", "bedrock"]
-    model: Annotated[str, Field(min_length=1, max_length=300, pattern=r"^\\S+$")]
+    model: Annotated[str, Field(min_length=1, max_length=300, pattern=r"^\S+$")]
     temperature: Literal[0]
     timeout_seconds: Annotated[int, Field(ge=1, le=120)]
     max_attempts: Annotated[int, Field(ge=1, le=3)]
@@ -138,7 +138,7 @@ class SuggestedNextAction(ContractModel):
 
 class ProviderUsage(ContractModel):
     provider: Literal["deterministic", "bedrock"]
-    model: Annotated[str, Field(min_length=1, max_length=300, pattern=r"^\\S+$")]
+    model: Annotated[str, Field(min_length=1, max_length=300, pattern=r"^\S+$")]
     units: NonNegativeInt
     tool_calls: NonNegativeInt
     incremental_cost_minor: NonNegativeInt

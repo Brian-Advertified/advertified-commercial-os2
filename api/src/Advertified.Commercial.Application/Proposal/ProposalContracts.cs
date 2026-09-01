@@ -27,7 +27,13 @@ public sealed record UpdateProposalCommand(
     DateTimeOffset ExpiryAtUtc,
     IReadOnlyList<ProposalOptionEdit> Options);
 
+public sealed record SubmitProposalForApprovalCommand(
+    Guid ApproverUserId,
+    string? Comment);
+
 public sealed record ApproveProposalCommand(string? Reason);
+
+public sealed record RejectProposalApprovalCommand(string Reason);
 
 public sealed record RenderProposalCommand;
 
@@ -58,9 +64,19 @@ public interface IProposalCommands
         CommandEnvelope<UpdateProposalCommand> envelope,
         CancellationToken cancellationToken);
 
+    Task<CommandResult<ProposalVersionView>> SubmitForApprovalAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<SubmitProposalForApprovalCommand> envelope,
+        CancellationToken cancellationToken);
+
     Task<CommandResult<ProposalVersionView>> ApproveAsync(
         Guid proposalVersionId,
         CommandEnvelope<ApproveProposalCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<ProposalVersionView>> RejectApprovalAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<RejectProposalApprovalCommand> envelope,
         CancellationToken cancellationToken);
 
     Task<CommandResult<ProposalVersionView>> RenderAsync(
@@ -108,6 +124,11 @@ public interface IProposalReader
         TenantId tenantId,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<ProposalApproverView>> ListApproversAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        CancellationToken cancellationToken);
+
     Task<ProposalDocumentContent> GetDocumentAsync(
         ActorId actorId,
         TenantId tenantId,
@@ -116,6 +137,12 @@ public interface IProposalReader
 }
 
 public sealed record ProposalRecipientView(
+    Guid UserId,
+    string DisplayName,
+    string Email,
+    string Role);
+
+public sealed record ProposalApproverView(
     Guid UserId,
     string DisplayName,
     string Email,
@@ -179,6 +206,13 @@ public sealed record ProposalVersionView(
     ProposalDecisionView? Decision,
     Guid CreatedBy,
     Guid? ApprovedBy,
+    string? ApprovalMode,
+    Guid? ApprovalAssigneeUserId,
+    Guid? ApprovalRequestedBy,
+    DateTimeOffset? ApprovalRequestedAtUtc,
+    Guid? ApprovalRejectedBy,
+    string? ApprovalRejectionReason,
+    DateTimeOffset? ApprovalRejectedAtUtc,
     long Version,
     DateTimeOffset CreatedAtUtc);
 
@@ -210,7 +244,10 @@ public sealed record ProposalOptionNarrativeInput(
 
 public sealed record ProposalNarrative(
     string ExecutiveSummary,
-    long IncrementalCostMinor);
+    long IncrementalCostMinor,
+    string Provider = "deterministic",
+    string Model = "fixture-v1",
+    string? ProviderRequestId = null);
 
 public interface IProposalNarrativeClient
 {

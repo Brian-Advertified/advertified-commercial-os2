@@ -242,7 +242,8 @@ export const briefVersionSchema = z.object({
   unknowns: z.array(briefUnknownSchema), assumptions: z.array(briefAssumptionSchema),
   conflicts: z.array(briefConflictSchema), evidenceItemIds: z.array(z.guid()),
   status: requiredText, createdBy: z.guid(), submittedBy: z.guid().nullable(),
-  approvedBy: z.guid().nullable(), rejectedBy: z.guid().nullable(),
+  approvedBy: z.guid().nullable(), approvalMode: nullableText,
+  rejectedBy: z.guid().nullable(),
   rejectionReason: nullableText, requestedChanges: nullableText,
   version: z.number().int().positive(), createdAtUtc: z.iso.datetime({ offset: true }),
 }).strict()

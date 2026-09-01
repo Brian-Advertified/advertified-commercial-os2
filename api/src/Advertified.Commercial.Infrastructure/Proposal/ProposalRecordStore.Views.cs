@@ -27,7 +27,11 @@ public sealed partial class ProposalRecordStore
             decision is null ? null : new ProposalDecisionView(
                 decision.Decision, decision.OptionId, decision.Reason,
                 decision.DecidedBy, decision.DecidedAtUtc),
-            proposal.CreatedBy, proposal.ApprovedBy, proposal.Version, proposal.CreatedAtUtc);
+            proposal.CreatedBy, proposal.ApprovedBy, proposal.ApprovalMode,
+            proposal.ApprovalAssigneeUserId, proposal.ApprovalRequestedBy,
+            proposal.ApprovalRequestedAtUtc, proposal.ApprovalRejectedBy,
+            proposal.ApprovalRejectionReason, proposal.ApprovalRejectedAtUtc,
+            proposal.Version, proposal.CreatedAtUtc);
     }
 
     private static ProposalOptionView ToOptionView(ProposalOptionRow row) => new(

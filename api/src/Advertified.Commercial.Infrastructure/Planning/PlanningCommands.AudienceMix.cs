@@ -52,11 +52,13 @@ public sealed partial class PlanningCommands
             INSERT INTO commercial.audience_definition_sets (
                 id, tenant_id, brief_version_id, version_no,
                 target_audience_ids_json, targeting_rationale,
-                positioning_statement, input_hash,
+                positioning_statement, input_hash, agent_provider_code, agent_model_code,
+                agent_incremental_cost_minor, agent_provider_request_id,
                 status_code, created_by, created_at_utc)
             VALUES ({id}, {envelope.TenantId.Value}, {briefVersionId}, {versionNumber},
                 {targetAudienceIdsJson}::jsonb, {targetingRationale},
-                {positioningStatement}, {inputHash},
+                {positioningStatement}, {inputHash}, {proposal.Provider}, {proposal.Model},
+                {proposal.IncrementalCostMinor}, {proposal.ProviderRequestId},
                 {MasterDataCodes.LifecycleStatuses.Approved}, {envelope.ActorId.Value}, {now})
             """, cancellationToken);
         await PlanningAudiencePersistence.InsertAsync(
@@ -112,13 +114,15 @@ public sealed partial class PlanningCommands
             INSERT INTO commercial.media_mix_versions (
                 id, tenant_id, brief_version_id, audience_set_id, version_no,
                 total_budget_minor, currency_code, allocations_json, channel_roles_json,
-                assumptions_json, evidence_item_ids_json, input_hash, status_code,
-                created_by, version, created_at_utc)
+                assumptions_json, evidence_item_ids_json, input_hash,
+                agent_provider_code, agent_model_code, agent_incremental_cost_minor,
+                agent_provider_request_id, status_code, created_by, version, created_at_utc)
             VALUES ({id}, {envelope.TenantId.Value}, {briefVersionId}, {audience.Id},
                 {versionNumber}, {brief.BudgetMinor.Value}, {brief.Currency},
                 {allocationsJson}::jsonb, {rolesJson}::jsonb, {assumptionsJson}::jsonb,
-                {evidenceJson}::jsonb, {inputHash}, {MasterDataCodes.LifecycleStatuses.Draft},
-                {envelope.ActorId.Value}, 1, {now})
+                {evidenceJson}::jsonb, {inputHash}, {proposal.Provider}, {proposal.Model},
+                {proposal.IncrementalCostMinor}, {proposal.ProviderRequestId},
+                {MasterDataCodes.LifecycleStatuses.Draft}, {envelope.ActorId.Value}, 1, {now})
             """, cancellationToken);
         var row = await store.FindMixAsync(envelope.TenantId, id, cancellationToken)
             ?? throw new InvalidOperationException("The media mix was not persisted.");

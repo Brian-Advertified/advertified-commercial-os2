@@ -45,6 +45,7 @@ public sealed class CommercialPolicyRecordStore(GovernanceDbContext dbContext)
                 version.prices_include_vat AS "PricesIncludeVat",
                 version.currency_code AS "Currency",
                 version.booking_approval_threshold_minor AS "BookingApprovalThresholdMinor",
+                version.allow_self_approval AS "AllowSelfApproval",
                 version.created_by AS "CreatedBy", version.created_at_utc AS "CreatedAtUtc",
                 policy.version AS "Version"
             FROM commercial.commercial_policies policy
@@ -120,11 +121,13 @@ public sealed class CommercialPolicyRecordStore(GovernanceDbContext dbContext)
                 id, tenant_id, policy_id, version_number, markup_basis_points,
                 management_fee_basis_points, commission_basis_points,
                 vat_status_code, vat_rate_basis_points, prices_include_vat,
-                currency_code, booking_approval_threshold_minor, created_by, created_at_utc)
+                currency_code, booking_approval_threshold_minor, allow_self_approval,
+                created_by, created_at_utc)
             VALUES ({versionId}, {tenantId.Value}, {policyId}, {versionNumber},
                 {policy.MarkupBasisPoints}, {policy.ManagementFeeBasisPoints},
                 {policy.CommissionBasisPoints}, {policy.VatStatus},
                 {policy.VatRateBasisPoints}, {policy.PricesIncludeVat}, {policy.Currency},
-                {policy.BookingApprovalThresholdMinor}, {actorId.Value}, {now})
+                {policy.BookingApprovalThresholdMinor}, {policy.AllowSelfApproval},
+                {actorId.Value}, {now})
             """, cancellationToken);
 }
