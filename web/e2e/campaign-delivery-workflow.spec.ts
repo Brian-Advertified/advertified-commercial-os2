@@ -33,7 +33,8 @@ async function completeFunding(page: Page) {
   await page.goto(`/funding?${query}`);
   await expect(page.getByRole('heading', {
     name: 'Turn an accepted proposal into accountable funding.',
-  })).toBeVisible();
+  })).toBeVisible({ timeout: 15_000 });
+  await expectOohCampaignFlow(page);
   await page.getByLabel('Purchase order number').fill('PO-DELIVERY-001');
   await page.getByLabel('Signed purchase order').setInputFiles(pdf);
   await page.getByRole('button', { name: 'Submit for review' }).click();
@@ -48,6 +49,7 @@ async function completeFunding(page: Page) {
   await page.getByRole('button', { name: 'Confirm reconciled payment' }).click();
   await page.getByRole('link', { name: 'Open campaigns' }).click();
   await page.getByRole('link', { name: /Gauteng Growth Campaign/ }).click();
+  await expectOohCampaignFlow(page);
 }
 
 async function completeCreativeReadiness(page: Page) {
@@ -87,6 +89,7 @@ async function approveSupplierCreative(page: Page) {
   const title = 'Review the exact production file for your booked format.';
   await page.goto(`/creative-assets/${deliveryIds.asset}`);
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
+  await expectOohCampaignFlow(page);
   await page.getByLabel('Technical evidence reference').fill('supplier-review:001');
   await page.getByLabel('Decision reason')
     .fill('The file meets the confirmed format and delivery specification.');
@@ -105,6 +108,7 @@ async function completeDeliveryProof(page: Page) {
   await page.getByRole('button', { name: 'Complete and request proof' }).click();
   await page.goto('/delivery-proof-requests');
   await page.getByRole('link', { name: 'Submit delivery proof' }).click();
+  await expectOohCampaignFlow(page);
   await page.getByLabel('Proof type').selectOption('PHOTO');
   await page.getByLabel('Captured at').fill('2026-08-31T09:00');
   await page.getByLabel('Location description').fill('N1 digital billboard, Johannesburg');
@@ -115,10 +119,12 @@ async function completeDeliveryProof(page: Page) {
   await page.getByRole('button', { name: 'Submit delivery proof' }).click();
   await page.getByLabel('Review reason').fill('Proof matches the exact Booking and flight.');
   await page.getByRole('button', { name: 'Approve proof' }).click();
+  await expectOohCampaignFlow(page);
 }
 
 async function completeMeasurement(page: Page) {
   await page.goto(`/campaigns/${deliveryIds.campaign}`);
+  await expectOohCampaignFlow(page);
   await page.getByLabel('Source reference').fill('platform-export:campaign-001');
   await page.getByLabel('Captured at').fill('2026-08-31T09:30');
   await page.getByLabel('Evidence quality').selectOption('VERIFIED');
@@ -142,4 +148,10 @@ async function completeMeasurement(page: Page) {
   await page.getByLabel('Report review reason')
     .fill('The report retains every approved fact and limitation.');
   await page.getByRole('button', { name: 'Approve client report' }).click();
+}
+
+async function expectOohCampaignFlow(page: Page) {
+  await expect(page.getByRole('region', { name: 'OOH-only Campaign Flow' }))
+    .toHaveAttribute('data-campaign-mode', 'OOH_ONLY');
+  await expect(page.getByRole('region', { name: 'Full Campaign Flow' })).toHaveCount(0);
 }

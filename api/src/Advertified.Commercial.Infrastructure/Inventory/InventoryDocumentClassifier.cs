@@ -70,6 +70,11 @@ internal static class InventoryDocumentClassifier
                 return new(MasterDataCodes.DocumentClasses.Docx,
                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
             }
+            if (archive.GetEntry("ppt/presentation.xml") is not null)
+            {
+                return new(MasterDataCodes.DocumentClasses.Pptx,
+                    "application/vnd.openxmlformats-officedocument.presentationml.presentation");
+            }
         }
         catch (InvalidDataException)
         {

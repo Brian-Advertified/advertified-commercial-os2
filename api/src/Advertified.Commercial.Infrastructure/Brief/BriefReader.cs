@@ -10,6 +10,25 @@ public sealed class BriefReader(
     BriefRecordStore store,
     ITenantAuthorizer authorizer) : IBriefReader
 {
+    public async Task<IReadOnlyList<CampaignBriefSummaryView>> ListAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        CancellationToken cancellationToken)
+    {
+        var decision = await authorizer.AuthorizeAsync(
+            actorId, tenantId, MasterDataReferences.Permissions.BriefView, cancellationToken);
+        if (!decision.IsAllowed)
+        {
+            throw new UnauthorizedAccessException("Brief access denied.");
+        }
+
+        await using var transaction = await store.BeginSessionAsync(
+            actorId, tenantId, cancellationToken);
+        var rows = await store.ListBriefsAsync(tenantId, actorId.Value, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return rows.Select(row => row.ToView()).ToArray();
+    }
+
     public async Task<CampaignBriefView> GetAsync(
         ActorId actorId,
         TenantId tenantId,

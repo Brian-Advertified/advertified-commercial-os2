@@ -2,6 +2,16 @@ using Advertified.Commercial.Application.Planning;
 
 namespace Advertified.Commercial.Infrastructure.Planning;
 
+internal sealed record PlanningSummaryRow(
+    Guid BriefId,
+    Guid BriefVersionId,
+    string ClientName,
+    string BriefTitle,
+    string AudienceStatus,
+    string? MediaMixStatus,
+    string? MediaPlanStatus,
+    DateTimeOffset UpdatedAtUtc);
+
 internal sealed record PlanningBriefRow(
     Guid Id,
     Guid TenantId,
@@ -52,11 +62,14 @@ internal sealed record AudienceDefinitionRow(
     string? Language,
     string? LifeStage,
     string? LsmSem,
+    string? LsmSemTaxonomy,
+    string? LsmSemTaxonomyVersion,
     string Classification,
     string ExclusionsJson,
     string EvidenceIdsJson,
     decimal Confidence,
-    string Status);
+    string Status,
+    bool LsmSemMandatory);
 
 internal sealed record MediaMixRow(
     Guid Id,
@@ -102,6 +115,15 @@ internal sealed record ShortlistCandidateRow(
     string? RejectionReason,
     string? RejectionDetail,
     decimal? Score,
+    string AudienceFitJson,
+    string CommercialReadinessJson,
+    string? SupplierCommercialJson,
+    string? CommercialTermsJson,
+    string? DeliverableJson,
+    string? SpatialJson,
+    string SpatialMatchJson,
+    string SuitabilityJson,
+    Guid? LogoAssetId,
     string? Rationale,
     bool? IsSelected,
     Guid? BenchmarkId,
@@ -131,7 +153,8 @@ internal sealed record MediaPlanRow(
     Guid CreatedBy,
     Guid? ApprovedBy,
     long Version,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    Guid? CommercialPolicyVersionId);
 
 internal sealed record MediaPlanLineRow(
     Guid PlanVersionId,
@@ -158,7 +181,12 @@ internal sealed record MediaPlanLineRow(
     string RateFreshness,
     string SupplySource,
     DateTimeOffset? LastConfirmedAtUtc,
-    string SupplyConfidence);
+    string SupplyConfidence,
+    string? SupplierCommercialJson,
+    string? CommercialTermsJson,
+    string? DeliverableJson,
+    string? SpatialJson,
+    Guid? LogoAssetId);
 
 internal sealed record ObjectionResolutionRow(
     Guid PlanVersionId,
@@ -185,16 +213,42 @@ internal sealed record PlanningInventoryRow(
     long? RateAmountMinor,
     DateOnly? EffectiveFrom,
     DateOnly? EffectiveTo,
+    string? RateSource,
     Guid? AvailabilityId,
     string? Availability,
     DateTimeOffset? ObservedAtUtc,
     DateTimeOffset? ValidUntilUtc,
-    string? AvailabilitySource);
+    string? AvailabilitySource,
+    string UnavailablePeriodsJson,
+    string? AudienceProfileJson,
+    string? SupplierVatStatus,
+    string? SupplierCommercialJson,
+    string? VatTreatment,
+    string? CommercialTermsJson,
+    string? DeliverableJson,
+    string? SpatialJson,
+    Guid? LogoAssetId);
 
 internal sealed record PlanningSpatialPeerRow(
     Guid TargetProductVersionId,
     Guid ProductVersionId,
     decimal DistanceKilometres);
+
+internal sealed record PlanningSpatialMatchRow(
+    Guid InventoryTenantId,
+    Guid? MarketplaceListingVersionId,
+    Guid ProductVersionId,
+    string RequiredRequirementIdsJson,
+    string MatchedRequiredRequirementIdsJson,
+    string PreferredRequirementIdsJson,
+    string MatchedPreferredRequirementIdsJson,
+    string ExcludedRequirementIdsJson,
+    string MatchedExcludedRequirementIdsJson);
+
+internal sealed record InventoryUnavailablePeriod(
+    DateOnly Start,
+    DateOnly End,
+    string Reason);
 
 internal sealed record BenchmarkStatistics(
     int CohortSize,

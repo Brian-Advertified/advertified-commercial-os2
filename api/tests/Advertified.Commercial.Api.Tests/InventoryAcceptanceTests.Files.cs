@@ -12,11 +12,20 @@ public sealed partial class InventoryAcceptanceTests
         string MediaType,
         byte[] Content);
 
-    private static FileFixture CsvFixture(string code = "OOH-001") => new(
+    private static FileFixture CsvFixture(
+        string code = "OOH-001",
+        string name = "Bree Street Gantry") => new(
         "CSV", "held-out-sites.csv", "text/csv", Encoding.UTF8.GetBytes(
             "product_code,name,channel,geography,latitude,longitude,rate_type,currency," +
-            $"rate_minor,availability\n{code},Bree Street Gantry,OOH,Johannesburg," +
-            "-26.2041,28.0473,MONTH_RATE,ZAR,125000,UNKNOWN\n"));
+            "rate_minor,availability,spoken_languages,life_stages,lsm_sem," +
+            "audience_taxonomy,audience_taxonomy_version,audience_universe," +
+            "audience_source,audience_period,audience_methodology,audience_limitations," +
+            "reach,reach_unit,footfall,footfall_unit\n" +
+            $"{code},{name},OOH,Johannesburg," +
+            "-26.2041,28.0473,MONTH_RATE,ZAR,125000,UNKNOWN,English:80%," +
+            "Business decision makers:60%,SEM 8-10:70%,TGI SEM,2026," +
+            "Johannesburg adults,Fixture audience study,2026 Q2," +
+            "Weighted aggregate survey,Test fixture only,125000,PEOPLE,42000,PEOPLE\n"));
 
     private static FileFixture CandidatePageFixture() => new(
         "CSV", "candidate-pages.csv", "text/csv", Encoding.UTF8.GetBytes(
@@ -42,6 +51,9 @@ public sealed partial class InventoryAcceptanceTests
         new("DOCX", "held-out-radio.docx",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             BuildDocx()),
+        new("PPTX", "held-out-radio.pptx",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            BuildPptx()),
         new("PDF", "held-out-radio.pdf", "application/pdf", BuildPdf()),
         new("PNG", "held-out-site.png", "image/png",
             [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]),
@@ -76,6 +88,23 @@ public sealed partial class InventoryAcceptanceTests
                 <w:tr><w:tc><w:p><w:r><w:t>product_code</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>name</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>channel</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>geography</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>rate_type</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>currency</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>rate_minor</w:t></w:r></w:p></w:tc></w:tr>
                 <w:tr><w:tc><w:p><w:r><w:t>RAD-DOCX</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>702</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>RADIO</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>Gauteng</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>SPOT_RATE</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>ZAR</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>20000</w:t></w:r></w:p></w:tc></w:tr>
                 </w:tbl></w:body></w:document>
+                """);
+        }
+        return result.ToArray();
+    }
+
+    private static byte[] BuildPptx()
+    {
+        using var result = new MemoryStream();
+        using (var archive = new ZipArchive(result, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            AddZipText(archive, "ppt/presentation.xml", "<p:presentation xmlns:p=\"urn:p\"/>");
+            AddZipText(archive, "ppt/slides/slide1.xml", """
+                <p:sld xmlns:p="urn:p"><p:cSld><p:spTree>
+                <p:sp><p:txBody>supplier: Fixture Media; product_code: RAD-PPTX;
+                name: Power FM; channel: RADIO; geography: Gauteng;
+                rate_type: SPOT_RATE; currency: ZAR; rate_minor: 23000</p:txBody></p:sp>
+                </p:spTree></p:cSld></p:sld>
                 """);
         }
         return result.ToArray();

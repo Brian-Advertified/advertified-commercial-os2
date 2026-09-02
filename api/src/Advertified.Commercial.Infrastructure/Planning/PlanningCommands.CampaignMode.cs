@@ -13,7 +13,18 @@ public sealed partial class PlanningCommands
         CommandEnvelope<SelectCampaignModeCommand> envelope,
         CancellationToken cancellationToken)
     {
-        await LoadPlanningReadyBriefAsync(briefVersionId, envelope, cancellationToken);
+        var brief = await LoadPlanningReadyBriefAsync(
+            briefVersionId, envelope, cancellationToken);
+        var mode = campaignModePolicy.Require(envelope.Command.Mode);
+        await store.LockCampaignBriefAsync(
+            envelope.TenantId, brief.BriefId, cancellationToken);
+        var lockedModes = await store.ListCampaignModesForBriefAsync(
+            envelope.TenantId, brief.BriefId, cancellationToken);
+        if (lockedModes.Any(locked =>
+                !string.Equals(locked, mode.Code, StringComparison.Ordinal)))
+        {
+            throw new CampaignModeLockedException();
+        }
         var existing = await store.FindCampaignModeAsync(
             envelope.TenantId, briefVersionId, cancellationToken);
         if (existing is not null || await store.HasPlanningArtifactsAsync(
@@ -22,7 +33,6 @@ public sealed partial class PlanningCommands
             throw new CampaignModeLockedException();
         }
 
-        var mode = campaignModePolicy.Require(envelope.Command.Mode);
         if (!mode.ImmutableAfterSelection)
         {
             throw new InvalidOperationException(

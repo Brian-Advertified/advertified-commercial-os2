@@ -27,6 +27,20 @@ public sealed record BriefSourceView(
     Guid CreatedBy,
     DateTimeOffset CreatedAtUtc);
 
+public sealed record BriefSpatialRequirementView(
+    Guid Id,
+    string Type,
+    string Priority,
+    string Label,
+    string GeoJson,
+    decimal? RadiusMetres,
+    decimal? CoverageThreshold,
+    bool BufferInferred,
+    string? BoundarySource,
+    string? BoundaryVersion,
+    string SourceLocator,
+    bool IsVerified);
+
 public sealed record BriefVersionView(
     Guid Id,
     Guid BriefId,
@@ -59,7 +73,8 @@ public sealed record BriefVersionView(
     string? RejectionReason,
     string? RequestedChanges,
     long Version,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    IReadOnlyList<BriefSpatialRequirementView>? SpatialRequirements = null);
 
 public sealed record CampaignBriefView(
     CampaignBriefSummaryView Brief,
@@ -68,6 +83,11 @@ public sealed record CampaignBriefView(
 
 public interface IBriefReader
 {
+    Task<IReadOnlyList<CampaignBriefSummaryView>> ListAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        CancellationToken cancellationToken);
+
     Task<CampaignBriefView> GetAsync(
         ActorId actorId,
         TenantId tenantId,

@@ -36,7 +36,13 @@ type State = {
   document: boolean
   recipientUserId: string | null
   selectedOptionId: string | null
+  externalDecision: null | {
+    optionId: string
+    evidenceReference: string
+    reason: string | null
+  }
   options: OptionState[]
+  campaignMode: 'OOH_ONLY' | 'FULL_CAMPAIGN'
 }
 
 test('agency prepares three approved-plan choices and client selects one', async ({ page }) => {
@@ -48,6 +54,8 @@ test('agency prepares three approved-plan choices and client selects one', async
 
   await page.goto(`/briefs/${briefId}/proposals/new`)
   await expect(page.getByRole('heading', { name: 'Build clear choices from approved plans' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Full Campaign Flow' }))
+    .toHaveAttribute('data-campaign-mode', 'FULL_CAMPAIGN')
   await page.getByText('Plan 1', { exact: true }).click()
   await page.getByText('Plan 2', { exact: true }).click()
   await page.getByText('Plan 3', { exact: true }).click()
@@ -58,7 +66,7 @@ test('agency prepares three approved-plan choices and client selects one', async
   await page.getByLabel('Executive summary').fill(
     'Choose the route that best balances visibility, trust and measurable response.')
   await page.getByRole('button', { name: 'Save wording' }).click()
-  await page.getByRole('button', { name: 'Approve proposal' }).click()
+  await page.getByRole('button', { name: 'Approve now' }).click()
   await page.getByRole('button', { name: 'Create branded PDF' }).click()
   await expect(page.getByRole('link', { name: 'Open proposal PDF' })).toBeVisible()
   await page.getByLabel('Client recipient').selectOption(clientUserId)
@@ -77,13 +85,48 @@ test('agency prepares three approved-plan choices and client selects one', async
   await expect(digitalChoice.getByText('Selected by the client')).toBeVisible()
 })
 
+test('Rapid OOH operator records the verified external client reply', async ({ page }) => {
+  const state = initialState()
+  state.status = 'SENT'
+  state.version = 6
+  state.document = true
+  state.options = [{
+    planVersionId: planIds[0],
+    label: 'OOH launch route',
+    outcome: 'Reach the priority commuting audience.',
+  }]
+  state.campaignMode = 'OOH_ONLY'
+  await page.addInitScript((id) => {
+    sessionStorage.setItem('advertified.workspace', JSON.stringify({ tenantId: id }))
+  }, tenantId)
+  await page.route('**/api/v1/**', route => handleApi(route, state))
+
+  await page.goto(`/proposals/${proposalId}`)
+  await expect(page.getByRole('region', { name: 'OOH-only Campaign Flow' }))
+    .toHaveAttribute('data-campaign-mode', 'OOH_ONLY')
+  await expect(page.getByRole('heading', { name: 'Record the verified client reply' }))
+    .toBeVisible()
+  await page.getByLabel('Evidence reference').fill('mailhog-message-42')
+  await page.getByLabel('Decision note').fill('Client selected the OOH launch route by reply email.')
+  await page.getByRole('button', { name: 'Record verified client decision' }).click()
+
+  await expect(page.getByRole('heading', {
+    name: 'Continue with purchase order and funding',
+  })).toBeVisible()
+  await expect(page.getByText(
+    'Verified external reply from rapid-client@example.com · Evidence: mailhog-message-42',
+  )).toBeVisible()
+  await expect(page.getByRole('link', { name: /Open funding/ })).toBeVisible()
+})
+
 function initialState(): State {
   return {
     role: 'agency_admin', userId: agencyUserId, status: 'DRAFT', version: 1,
     title: 'Media proposal', summary: 'Three approved media-plan routes are ready for review.',
     terms: 'Rates and availability remain bound to approved plan evidence.',
     expiryAtUtc: '2026-09-28T21:59:59.000Z', document: false,
-    recipientUserId: null, selectedOptionId: null, options: [],
+    recipientUserId: null, selectedOptionId: null, externalDecision: null, options: [],
+    campaignMode: 'FULL_CAMPAIGN',
   }
 }
 
@@ -97,9 +140,13 @@ async function handleApi(route: Route, state: State) {
 async function handleRead(route: Route, state: State, path: string) {
   if (path === '/api/v1/session') return json(route, sessionFixture())
   if (path === '/api/v1/workspaces') return json(route, [workspaceFixture(state.role)])
-  if (path === '/api/v1/me') return json(route, userFixture(state))
+  if (path === '/api/v1/me') return json(route, userFixture(state), 200, { ETag: '"1"' })
   if (path.endsWith(`/briefs/${briefId}/approved-plans`)) return json(route, planFixtures())
+  if (path.endsWith(`/brief-versions/${briefVersionId}/planning`)) {
+    return json(route, planningFixture(state.campaignMode))
+  }
   if (path.endsWith('/proposal-recipients')) return json(route, recipientFixtures())
+  if (path.endsWith('/proposal-approvers')) return json(route, approverFixtures())
   if (path.endsWith(`/proposals/${proposalId}`)) return json(route, proposalFixture(state))
   if (path.endsWith(`/proposal-documents/${documentId}`)) {
     return route.fulfill({ status: 200, contentType: 'application/pdf', body: '%PDF-1.4\n%%EOF' })
@@ -116,6 +163,9 @@ async function handleWrite(route: Route, state: State, path: string) {
     return json(route, proposalFixture(state))
   }
   if (path.endsWith(`${proposalId}:share`)) return share(route, state)
+  if (path.endsWith(`${proposalId}:record-external-decision`)) {
+    return recordExternalDecision(route, state)
+  }
   if (path.endsWith(`${proposalId}:select-option`)) return selectOption(route, state)
   return json(route, { code: 'NOT_FOUND', status: 404 }, 404)
 }
@@ -156,6 +206,28 @@ async function share(route: Route, state: State) {
   return transition(route, state, 'SENT')
 }
 
+async function recordExternalDecision(route: Route, state: State) {
+  const body = route.request().postDataJSON() as {
+    optionId: string
+    declined: boolean
+    evidenceReference: string
+    reason: string | null
+  }
+  expect(body).toEqual({
+    optionId: optionIds[0],
+    declined: false,
+    evidenceReference: 'mailhog-message-42',
+    reason: 'Client selected the OOH launch route by reply email.',
+  })
+  state.selectedOptionId = body.optionId
+  state.externalDecision = {
+    optionId: body.optionId,
+    evidenceReference: body.evidenceReference,
+    reason: body.reason,
+  }
+  return transition(route, state, 'SELECTED')
+}
+
 async function selectOption(route: Route, state: State) {
   const body = route.request().postDataJSON() as { optionId: string }
   state.selectedOptionId = body.optionId
@@ -173,13 +245,58 @@ function proposalFixture(state: State) {
       sizeBytes: 2048, createdAtUtc: now,
     } : null,
     recipientUserId: state.recipientUserId,
-    decision: state.selectedOptionId ? {
-      decision: 'SELECTED', optionId: state.selectedOptionId,
-      reason: 'Client selected this proposal route.', decidedBy: clientUserId, decidedAtUtc: now,
-    } : null,
+    decision: decisionFixture(state),
     createdBy: agencyUserId,
     approvedBy: state.status === 'DRAFT' ? null : agencyUserId,
+    approvalMode: state.status === 'DRAFT' ? null : 'SELF',
+    approvalAssigneeUserId: null,
+    approvalRequestedBy: null,
+    approvalRequestedAtUtc: null,
+    approvalRejectedBy: null,
+    approvalRejectionReason: null,
+    approvalRejectedAtUtc: null,
     version: state.version, createdAtUtc: now,
+  }
+}
+
+function planningFixture(mode: State['campaignMode']) {
+  return {
+    briefId,
+    briefVersionId,
+    clientName: 'Proposal Client',
+    campaignMode: {
+      id: '93000000-0000-0000-0000-000000000003',
+      briefVersionId,
+      mode,
+      allowedChannels: mode === 'OOH_ONLY' ? ['OOH', 'DOOH'] : [
+        'OOH', 'DOOH', 'RADIO', 'DIGITAL',
+      ],
+      isLocked: true,
+      decisionSource: 'SUPPLIED_BRIEF_EVIDENCE',
+      confidence: 1,
+      reason: 'The supplied media requirement establishes the campaign mode.',
+      selectedBy: agencyUserId,
+      selectedAtUtc: now,
+    },
+    audience: null,
+    mediaMix: null,
+    shortlist: null,
+    mediaPlan: null,
+  }
+}
+
+function decisionFixture(state: State) {
+  if (!state.selectedOptionId) return null
+  const external = state.externalDecision
+  return {
+    decision: 'SELECTED',
+    optionId: state.selectedOptionId,
+    reason: external?.reason ?? 'Client selected this proposal route.',
+    decidedBy: external ? agencyUserId : clientUserId,
+    decidedAtUtc: now,
+    recordedForExternalParty: Boolean(external),
+    externalPartyEmail: external ? 'rapid-client@example.com' : null,
+    evidenceReference: external?.evidenceReference ?? null,
   }
 }
 
@@ -191,6 +308,7 @@ function optionFixture(item: OptionState, index: number) {
     budgetMinor: plan.totalMinor, currency: plan.currency, displayOrder: index + 1,
     channels: plan.channels, runningPeriods: plan.runningPeriods,
     inventoryNames: [`${plan.channels[0]} approved placement`],
+    inventory: [],
   }
 }
 
@@ -217,6 +335,11 @@ function recipientFixtures() {
     email: 'client@example.com', role: 'advertiser_approver' }]
 }
 
+function approverFixtures() {
+  return [{ userId: agencyUserId, displayName: 'Agency Operator',
+    email: 'agency@example.com', role: 'agency_admin' }]
+}
+
 function requiresVersion(path: string) {
   return !path.endsWith('/proposals:generate')
 }
@@ -229,7 +352,7 @@ function assertMutation(route: Route, versioned: boolean) {
 }
 
 function sessionFixture() {
-  return { authenticated: true, antiforgeryToken: 'csrf-proposal', expiresAtUtc: '2026-08-30T02:00:00Z' }
+  return { authenticated: true, antiforgeryToken: 'csrf-proposal', expiresAtUtc: '2026-08-30T02:00:00Z', signInPath: null, signOutPath: null }
 }
 
 function workspaceFixture(role: Role) {
@@ -243,6 +366,11 @@ function userFixture(state: State) {
     phone: null, mfaEnabled: true, version: 1 }
 }
 
-async function json(route: Route, body: unknown, status = 200) {
-  await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
+async function json(
+  route: Route,
+  body: unknown,
+  status = 200,
+  headers?: Record<string, string>,
+) {
+  await route.fulfill({ status, headers, contentType: 'application/json', body: JSON.stringify(body) })
 }

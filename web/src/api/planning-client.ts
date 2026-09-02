@@ -6,12 +6,14 @@ import {
   mediaMixSchema,
   mediaPlanSchema,
   campaignModeSchema,
+  planningSummariesSchema,
   planningWorkspaceSchema,
   shortlistSchema,
   type MediaAllocation,
   type MediaMix,
   type MediaPlan,
   type CampaignMode,
+  type PlanningSummary,
   type PlanningWorkspace,
   type Shortlist,
 } from './planning-schemas'
@@ -40,6 +42,13 @@ async function mutate<T>(
 }
 
 export const planningApi = {
+  async list(tenantId: string): Promise<PlanningSummary[]> {
+    return (await request(
+      `/api/v1/tenants/${tenantId}/planning`,
+      planningSummariesSchema,
+    )).data
+  },
+
   async getWorkspace(tenantId: string, briefVersionId: string): Promise<PlanningWorkspace> {
     return (await request(
       `/api/v1/tenants/${tenantId}/brief-versions/${briefVersionId}/planning`,

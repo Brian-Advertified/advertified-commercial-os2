@@ -59,7 +59,9 @@ class ProviderPolicy(ContractModel):
             ):
                 raise ValueError("Deterministic provider policy must remain zero-cost and local.")
         elif self.model == "fixture-v1" or self.cost_cap_minor <= 0 or not self.allow_live:
-            raise ValueError("Bedrock policy requires an explicit live model and positive cost cap.")
+            raise ValueError(
+                "Bedrock policy requires an explicit live model and positive cost cap."
+            )
         return self
 
 

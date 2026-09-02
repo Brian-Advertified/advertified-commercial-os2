@@ -21,6 +21,47 @@ public sealed class BriefRecordStore(GovernanceDbContext dbContext)
         return transaction;
     }
 
+    internal Task<List<CampaignBriefRow>> ListBriefsAsync(
+        TenantId tenantId,
+        Guid actorId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<CampaignBriefRow>($"""
+            SELECT brief.id AS "Id", brief.tenant_id AS "TenantId",
+                brief.client_account_id AS "ClientId",
+                COALESCE(NULLIF(BTRIM(client.trading_name), ''), client.legal_name)
+                    AS "ClientName",
+                brief.opportunity_id AS "OpportunityId", brief.title AS "Title",
+                brief.owner_user_id AS "OwnerUserId", brief.status_code AS "Status",
+                brief.current_draft_version_id AS "CurrentDraftVersionId",
+                brief.ready_version_id AS "ReadyVersionId",
+                brief.approved_version_id AS "ApprovedVersionId", brief.version AS "Version",
+                brief.updated_at_utc AS "UpdatedAtUtc"
+            FROM commercial.campaign_briefs brief
+            JOIN commercial.client_accounts client
+              ON client.tenant_id = brief.tenant_id
+             AND client.id = brief.client_account_id
+            WHERE brief.tenant_id = {tenantId.Value}
+              AND (
+                brief.owner_user_id = {actorId}
+                OR EXISTS (
+                    SELECT 1 FROM commercial.client_account_assignments assignment
+                    WHERE assignment.tenant_id = brief.tenant_id
+                      AND assignment.client_account_id = brief.client_account_id
+                      AND assignment.user_id = {actorId}
+                      AND assignment.effective_from_utc <= now()
+                      AND (assignment.effective_to_utc IS NULL
+                        OR assignment.effective_to_utc > now()))
+                OR EXISTS (
+                    SELECT 1 FROM commercial.human_tasks task
+                    JOIN commercial.brief_versions candidate
+                      ON candidate.tenant_id = task.tenant_id
+                     AND candidate.id = task.resource_id
+                    WHERE task.tenant_id = brief.tenant_id
+                      AND candidate.brief_id = brief.id
+                      AND task.assignee_user_id = {actorId}))
+            ORDER BY brief.updated_at_utc DESC, brief.id
+            """).ToListAsync(cancellationToken);
+
     internal Task<CampaignBriefRow?> FindBriefAsync(
         TenantId tenantId,
         Guid briefId,
@@ -167,6 +208,23 @@ public sealed class BriefRecordStore(GovernanceDbContext dbContext)
             version.facts_json::text AS "FactsJson", version.unknowns_json::text AS "UnknownsJson",
             version.assumptions_json::text AS "AssumptionsJson",
             version.conflicts_json::text AS "ConflictsJson",
+            COALESCE((SELECT jsonb_agg(jsonb_build_object(
+                'id', spatial.id, 'type', spatial.requirement_type_code,
+                'priority', spatial.priority_code, 'label', spatial.label,
+                'geo_json', COALESCE(ST_AsGeoJSON(spatial.geometry),
+                    spatial.raw_geometry_text),
+                'radius_metres', spatial.radius_metres,
+                'coverage_threshold', spatial.coverage_threshold,
+                'buffer_inferred', spatial.buffer_inferred,
+                'boundary_source', spatial.boundary_source,
+                'boundary_version', spatial.boundary_version,
+                'source_locator', spatial.source_locator,
+                'is_verified', spatial.is_verified)
+                ORDER BY spatial.priority_code, spatial.label, spatial.id)
+                FROM commercial.brief_spatial_requirements spatial
+                WHERE spatial.tenant_id = version.tenant_id
+                  AND spatial.brief_version_id = version.id), '[]'::jsonb)::text
+                AS "SpatialRequirementsJson",
             COALESCE(array_agg(link.evidence_item_id)
                 FILTER (WHERE link.evidence_item_id IS NOT NULL), ARRAY[]::uuid[])
                 AS "EvidenceItemIds",

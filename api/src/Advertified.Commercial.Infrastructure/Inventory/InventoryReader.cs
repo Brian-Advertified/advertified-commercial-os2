@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
-public sealed class InventoryReader(
+public sealed partial class InventoryReader(
     InventoryRecordStore store,
     ITenantAuthorizer authorizer,
     TimeProvider timeProvider,
@@ -77,8 +77,12 @@ public sealed class InventoryReader(
         var detail = await FindDetailAsync(tenantId, productId, now, cancellationToken)
             ?? throw new UnauthorizedAccessException("Inventory product access denied.");
         var assets = await ListAssetsAsync(tenantId, productId, cancellationToken);
+        var contacts = await ListSupplierContactsAsync(tenantId, summary.SupplierId, cancellationToken);
+        var packages = await ListPackagesAsync(tenantId, productId, cancellationToken);
+        var exceptions = await ListAvailabilityExceptionsAsync(
+            tenantId, productId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return ToProductView(summary, detail, assets);
+        return ToProductView(summary, detail, assets, contacts, packages, exceptions, now);
     }
 
     private async Task EnsureAllowedAsync(
@@ -110,6 +114,10 @@ public sealed class InventoryReader(
             ? """
                 WHERE product.tenant_id = {0}
                   AND product.status_code = {1}
+                  AND NOT EXISTS (
+                      SELECT 1 FROM commercial.inventory_product_identity_links identity_link
+                      WHERE identity_link.tenant_id = product.tenant_id
+                        AND identity_link.duplicate_product_id = product.id)
                   AND ({2}::text IS NULL OR version.name ILIKE '%' || {2} || '%'
                        OR product.supplier_product_code ILIKE '%' || {2} || '%')
                   AND ({3}::text IS NULL OR version.channel_code = {3})
@@ -120,6 +128,10 @@ public sealed class InventoryReader(
             : """
                 WHERE product.tenant_id = {0}
                   AND product.status_code = {1}
+                  AND NOT EXISTS (
+                      SELECT 1 FROM commercial.inventory_product_identity_links identity_link
+                      WHERE identity_link.tenant_id = product.tenant_id
+                        AND identity_link.duplicate_product_id = product.id)
                   AND ({2}::text IS NULL OR version.name ILIKE '%' || {2} || '%'
                        OR product.supplier_product_code ILIKE '%' || {2} || '%')
                   AND ({3}::text IS NULL OR version.channel_code = {3})
@@ -154,10 +166,19 @@ public sealed class InventoryReader(
         DateTimeOffset now,
         CancellationToken cancellationToken) =>
         store.DbContext.Database.SqlQuery<InventoryProductDetailRow>($"""
-            SELECT version.address AS "Address", version.latitude AS "Latitude",
+            SELECT version.id AS "ProductVersionId", version.address AS "Address",
+                version.latitude AS "Latitude",
                 version.longitude AS "Longitude", version.extension_json::text AS "ExtensionJson",
+                version.description AS "Description",
+                version.deliverable_json::text AS "DeliverableJson",
+                version.spatial_json::text AS "SpatialJson",
+                version.audience_profile_json::text AS "AudienceProfileJson",
+                candidate.source_locator AS "AudienceSourceLocator",
                 rate.rate_type_code AS "RateType", rate.currency_code AS "Currency",
                 rate.amount_minor AS "AmountMinor", rate.source_locator AS "RateLocator",
+                rate.effective_from AS "EffectiveFrom", rate.effective_to AS "EffectiveTo",
+                rate.vat_treatment_code AS "VatTreatment",
+                rate.commercial_terms_json::text AS "CommercialTermsJson",
                 availability.availability_code AS "Availability",
                 availability.observed_at_utc AS "ObservedAtUtc",
                 availability.valid_until_utc AS "ValidUntilUtc",
@@ -165,10 +186,27 @@ public sealed class InventoryReader(
                 version.source_import_id AS "SourceImportId",
                 version.source_candidate_id AS "SourceCandidateId",
                 version.version_number AS "VersionNumber",
-                version.published_at_utc AS "PublishedAtUtc"
+                version.published_at_utc AS "PublishedAtUtc",
+                supplier_version.version_number AS "SupplierVersionNumber",
+                supplier_version.vat_status_code AS "SupplierVatStatus",
+                supplier_version.vat_number AS "SupplierVatNumber",
+                supplier_version.commission_terms AS "SupplierCommissionTerms",
+                supplier_version.payment_terms AS "SupplierPaymentTerms",
+                supplier_version.cancellation_terms AS "SupplierCancellationTerms",
+                supplier_version.booking_deadline_terms AS "SupplierBookingDeadlineTerms",
+                supplier_version.source_import_id AS "SupplierSourceImportId",
+                supplier_version.published_at_utc AS "SupplierPublishedAtUtc"
             FROM commercial.inventory_products product
             JOIN commercial.inventory_product_versions version
               ON version.tenant_id = product.tenant_id AND version.id = product.current_version_id
+            JOIN commercial.inventory_candidates candidate
+              ON candidate.tenant_id = version.tenant_id
+             AND candidate.id = version.source_candidate_id
+            LEFT JOIN commercial.inventory_suppliers supplier
+              ON supplier.tenant_id = product.tenant_id AND supplier.id = product.supplier_id
+            LEFT JOIN commercial.inventory_supplier_versions supplier_version
+              ON supplier_version.tenant_id = supplier.tenant_id
+             AND supplier_version.id = supplier.current_commercial_version_id
             JOIN LATERAL (
                 SELECT item.* FROM commercial.inventory_rates item
                 WHERE item.tenant_id = version.tenant_id
@@ -189,38 +227,156 @@ public sealed class InventoryReader(
             WHERE product.tenant_id = {tenantId.Value} AND product.id = {productId}
             """).SingleOrDefaultAsync(cancellationToken);
 
-    private Task<List<InventoryAssetRow>> ListAssetsAsync(
+    private Task<List<InventorySupplierContactRow>> ListSupplierContactsAsync(
+        TenantId tenantId,
+        Guid supplierId,
+        CancellationToken cancellationToken) =>
+        store.DbContext.Database.SqlQuery<InventorySupplierContactRow>($"""
+            SELECT id AS "Id", name AS "Name", role AS "Role", region AS "Region",
+                email AS "Email", phone AS "Phone", website AS "Website",
+                social_handle AS "SocialHandle", observed_at_utc AS "ObservedAtUtc"
+            FROM commercial.inventory_supplier_contacts
+            WHERE tenant_id = {tenantId.Value} AND supplier_id = {supplierId}
+            ORDER BY observed_at_utc DESC, id LIMIT 100
+            """).ToListAsync(cancellationToken);
+
+    private Task<List<InventoryAvailabilityExceptionRow>> ListAvailabilityExceptionsAsync(
         TenantId tenantId,
         Guid productId,
         CancellationToken cancellationToken) =>
-        store.DbContext.Database.SqlQuery<InventoryAssetRow>($"""
-            SELECT asset.asset_type_code AS "AssetType", asset.media_type AS "MediaType",
-                asset.content_hash AS "ContentHash",
-                'inventory-import:' || asset.source_import_id::text AS "SourceReference"
+        store.DbContext.Database.SqlQuery<InventoryAvailabilityExceptionRow>($"""
+            SELECT exception.id AS "Id", product.id AS "ProductId",
+                exception.product_version_id AS "ProductVersionId",
+                exception.exception_type_code AS "ExceptionType",
+                exception.starts_on AS "StartsOn", exception.ends_on AS "EndsOn",
+                exception.source_locator AS "SourceLocator",
+                exception.evidence_hash AS "EvidenceHash",
+                exception.recorded_by AS "RecordedBy",
+                exception.recorded_at_utc AS "RecordedAtUtc"
             FROM commercial.inventory_products product
-            JOIN commercial.inventory_assets asset
-              ON asset.tenant_id = product.tenant_id
-             AND asset.product_version_id = product.current_version_id
+            JOIN commercial.inventory_availability_exceptions exception
+              ON exception.tenant_id = product.tenant_id
+             AND exception.product_id = product.id
             WHERE product.tenant_id = {tenantId.Value} AND product.id = {productId}
-            ORDER BY asset.id
+            ORDER BY exception.starts_on, exception.ends_on, exception.id
+            """).ToListAsync(cancellationToken);
+
+    private Task<List<InventoryPackageRow>> ListPackagesAsync(
+        TenantId tenantId,
+        Guid productId,
+        CancellationToken cancellationToken) =>
+        store.DbContext.Database.SqlQuery<InventoryPackageRow>($"""
+            SELECT package.id AS "Id", package.package_code AS "PackageCode",
+                package.version_number AS "VersionNumber", package.name AS "Name",
+                package.discount_rule AS "DiscountRule",
+                package.conditions_json::text AS "ConditionsJson",
+                COALESCE(jsonb_agg(component_product.supplier_product_code)
+                    FILTER (WHERE component_product.id IS NOT NULL), '[]')::text
+                    AS "ComponentProductCodesJson"
+            FROM commercial.inventory_packages package
+            JOIN commercial.inventory_rates rate
+              ON rate.tenant_id = package.tenant_id AND rate.id = package.rate_id
+            JOIN commercial.inventory_product_versions version
+              ON version.tenant_id = rate.tenant_id AND version.id = rate.product_version_id
+            LEFT JOIN commercial.inventory_package_components component
+              ON component.tenant_id = package.tenant_id AND component.package_id = package.id
+            LEFT JOIN commercial.inventory_products component_product
+              ON component_product.tenant_id = component.tenant_id
+             AND component_product.id = component.product_id
+            WHERE package.tenant_id = {tenantId.Value}
+              AND (version.product_id = {productId} OR component.product_id = {productId})
+            GROUP BY package.id, package.package_code, package.version_number,
+                package.name, package.discount_rule, package.conditions_json
+            ORDER BY package.package_code, package.version_number DESC
             """).ToListAsync(cancellationToken);
 
     private static InventoryProductView ToProductView(
         InventoryProductSummaryRow summary,
         InventoryProductDetailRow detail,
-        IReadOnlyList<InventoryAssetRow> assets) => new(
-        summary.ToView(), detail.Address, detail.Latitude, detail.Longitude,
+        IReadOnlyList<InventoryAssetRow> assets,
+        IReadOnlyList<InventorySupplierContactRow> contacts,
+        IReadOnlyList<InventoryPackageRow> packages,
+        IReadOnlyList<InventoryAvailabilityExceptionRow> exceptions,
+        DateTimeOffset now) => new(
+        summary.ToView(), detail.ProductVersionId, detail.Address,
+        detail.Latitude, detail.Longitude,
         JsonSerializer.Deserialize<Dictionary<string, string>>(
             detail.ExtensionJson, InventoryRowMapper.StoredJson) ?? [],
         new InventoryRateView(
-            detail.RateType, detail.Currency, detail.AmountMinor, detail.RateLocator),
+            detail.RateType, detail.Currency, detail.AmountMinor, detail.RateLocator,
+            detail.EffectiveFrom, detail.EffectiveTo, detail.VatTreatment,
+            Read<InventoryCommercialTermsValues>(detail.CommercialTermsJson)),
         new InventoryAvailabilityView(
             detail.Availability, detail.ObservedAtUtc, detail.ValidUntilUtc,
             detail.AvailabilityLocator),
+        ToAudienceView(detail),
         assets.Select(item => new InventoryAssetView(
-            item.AssetType, item.MediaType, item.ContentHash, item.SourceReference)).ToArray(),
+            item.AssetType, item.MediaType, item.ContentHash, item.SourceReference,
+            item.Id, item.RightsStatus, item.RightsBasis, item.LicensedUntil,
+            item.RightsStatus == MasterDataCodes.AssetRightsStatuses.Approved &&
+            Read<string[]>(item.RightsScopesJson).Contains(
+                MasterDataCodes.AssetRightsScopes.NamedClientProposal,
+                StringComparer.Ordinal) &&
+            item.EffectiveOn.HasValue && item.EffectiveOn <=
+                DateOnly.FromDateTime(now.UtcDateTime) &&
+            (item.UntilRevoked || item.LicensedUntil.HasValue &&
+                item.LicensedUntil.Value >= DateOnly.FromDateTime(now.UtcDateTime)),
+            item.RightsVersion,
+            Read<string[]>(item.RightsScopesJson), item.TerritoryCode,
+            item.EffectiveOn, item.UntilRevoked)).ToArray(),
         detail.SourceImportId, detail.SourceCandidateId,
-        detail.VersionNumber, detail.PublishedAtUtc);
+        detail.VersionNumber, detail.PublishedAtUtc, detail.Description,
+        ToSupplierCommercialView(detail), contacts.Select(item =>
+            new InventorySupplierContactView(item.Id, item.Name, item.Role, item.Region,
+                item.Email, item.Phone, item.Website, item.SocialHandle,
+                item.ObservedAtUtc)).ToArray(),
+        Read<InventoryDeliverableValues>(detail.DeliverableJson),
+        Read<InventorySpatialValues>(detail.SpatialJson),
+        packages.Select(ToPackageView).ToArray(),
+        exceptions.Select(item => new InventoryAvailabilityExceptionView(
+            item.Id, item.ProductId, item.ProductVersionId, item.ExceptionType,
+            item.StartsOn, item.EndsOn, item.SourceLocator, item.EvidenceHash,
+            item.RecordedBy, item.RecordedAtUtc, 1)).ToArray());
+
+    private static InventorySupplierCommercialView? ToSupplierCommercialView(
+        InventoryProductDetailRow detail) => !detail.SupplierVersionNumber.HasValue ||
+        !detail.SupplierSourceImportId.HasValue || !detail.SupplierPublishedAtUtc.HasValue
+        ? null
+        : new(detail.SupplierVersionNumber.Value, detail.SupplierVatStatus,
+            detail.SupplierVatNumber, detail.SupplierCommissionTerms,
+            detail.SupplierPaymentTerms, detail.SupplierCancellationTerms,
+            detail.SupplierBookingDeadlineTerms, detail.SupplierSourceImportId.Value,
+            detail.SupplierPublishedAtUtc.Value);
+
+    private static InventoryPackageView ToPackageView(InventoryPackageRow row) => new(
+        row.Id, row.PackageCode, row.VersionNumber, row.Name, row.DiscountRule,
+        JsonSerializer.Deserialize<string[]>(row.ConditionsJson,
+            InventoryRowMapper.StoredJson) ?? [],
+        JsonSerializer.Deserialize<string[]>(row.ComponentProductCodesJson,
+            InventoryRowMapper.StoredJson) ?? []);
+
+    private static T? Read<T>(string? json) where T : class =>
+        json is null ? null : JsonSerializer.Deserialize<T>(
+            json, InventoryRowMapper.StoredJson);
+
+    private static InventoryAudienceProfileView? ToAudienceView(
+        InventoryProductDetailRow detail)
+    {
+        if (detail.AudienceProfileJson is null)
+        {
+            return null;
+        }
+        var profile = JsonSerializer.Deserialize<InventoryAudienceProfileValues>(
+            detail.AudienceProfileJson, InventoryRowMapper.StoredJson)
+            ?? throw new InvalidOperationException("Stored audience profile is invalid.");
+        return new InventoryAudienceProfileView(
+            profile.SpokenLanguages, profile.UnderstoodLanguages,
+            profile.LifeStages, profile.LsmSemSegments,
+            profile.TaxonomyName, profile.TaxonomyVersion, profile.Universe,
+            profile.MeasurementSource, profile.MeasurementPeriod,
+            profile.Methodology, profile.Limitations, profile.Measurements ?? [],
+            detail.AudienceSourceLocator);
+    }
 
     private const string SummarySelect = """
         SELECT product.id AS "Id", product.supplier_id AS "SupplierId",

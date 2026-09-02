@@ -26,7 +26,7 @@ public sealed partial class InventoryAcceptanceTests
         using var other = otherFactory.CreateClient();
 
         await AssertProtectionBoundariesAsync(importer);
-        await AssertDocumentCorpusAsync(importer);
+        await AssertWorkflowDocumentClassesAsync(importer);
         await AssertCandidatePagingAsync(importer);
         await AssertRejectedBlockingCandidateDoesNotBlockPublicationAsync(importer, reviewer);
         var imported = await CreateAndExecuteAsync(importer, CsvFixture());
@@ -93,7 +93,7 @@ public sealed partial class InventoryAcceptanceTests
         Assert.Equal("MALWARE_DETECTED", unsafeJson.RootElement.GetProperty("failureCode").GetString());
     }
 
-    private static async Task AssertDocumentCorpusAsync(HttpClient importer)
+    private static async Task AssertWorkflowDocumentClassesAsync(HttpClient importer)
     {
         var ordinal = 0;
         foreach (var fixture in CorpusFixtures())
@@ -247,6 +247,31 @@ public sealed partial class InventoryAcceptanceTests
     {
         var supplierId = published.GetProperty("supplierId").GetGuid();
         var importId = published.GetProperty("id").GetGuid();
+        using var publishedResponse = await reviewer.GetAsync(
+            $"/api/v1/tenants/{TenantId}/inventory-products?pageSize=1&search=OOH-001");
+        using var publishedPage = await ReadJsonAsync(publishedResponse);
+        var publishedProductId = publishedPage.RootElement.GetProperty("items")[0]
+            .GetProperty("id").GetGuid();
+        using var publishedDetailResponse = await reviewer.GetAsync(
+            $"/api/v1/tenants/{TenantId}/inventory-products/{publishedProductId}");
+        using var publishedDetail = await ReadJsonAsync(publishedDetailResponse);
+        var profile = publishedDetail.RootElement.GetProperty("audienceProfile");
+        Assert.Equal("English", profile.GetProperty("spokenLanguages")[0]
+            .GetProperty("label").GetString());
+        Assert.Equal(80m, profile.GetProperty("spokenLanguages")[0]
+            .GetProperty("sharePercent").GetDecimal());
+        Assert.Equal("TGI SEM", profile.GetProperty("taxonomyName").GetString());
+        Assert.Equal("Fixture audience study",
+            profile.GetProperty("measurementSource").GetString());
+        var measurements = profile.GetProperty("measurements");
+        Assert.Equal(2, measurements.GetArrayLength());
+        Assert.Contains(measurements.EnumerateArray(), item =>
+            item.GetProperty("metricType").GetString() == "REACH" &&
+            item.GetProperty("value").GetDecimal() == 125_000m &&
+            item.GetProperty("unit").GetString() == "PEOPLE");
+        Assert.Contains(measurements.EnumerateArray(), item =>
+            item.GetProperty("metricType").GetString() == "FOOTFALL" &&
+            item.GetProperty("value").GetDecimal() == 42_000m);
         await SeedScaleProductsAsync(
             connectionString, supplierId, importId, candidateId);
         using var firstResponse = await reviewer.GetAsync(
@@ -340,18 +365,24 @@ public sealed partial class InventoryAcceptanceTests
         await using var read = new NpgsqlCommand(
             """
             SELECT adapter_code, adapter_version, schema_version,
-                length(source_hash), length(output_hash)
+                length(source_hash), length(provider_output_hash),
+                length(canonical_output_hash), canonical_json::text
             FROM commercial.inventory_extractions
             WHERE import_id = $1
             """, connection);
         read.Parameters.AddWithValue(importId);
         await using var row = await read.ExecuteReaderAsync();
         Assert.True(await row.ReadAsync());
-        Assert.Equal("advertified-deterministic-fixture", row.GetString(0));
+        Assert.Equal("advertified-test-fixture", row.GetString(0));
         Assert.Equal("1.0.0", row.GetString(1));
         Assert.Equal(InventoryExtractionOptions.CurrentSchemaVersion, row.GetString(2));
         Assert.Equal(64, row.GetInt32(3));
         Assert.Equal(64, row.GetInt32(4));
+        Assert.Equal(64, row.GetInt32(5));
+        using var canonical = JsonDocument.Parse(row.GetString(6));
+        Assert.Equal(InventoryExtractionOptions.CurrentSchemaVersion,
+            canonical.RootElement.GetProperty("schemaVersion").GetString());
+        Assert.NotEmpty(canonical.RootElement.GetProperty("rows").EnumerateArray());
         await row.CloseAsync();
         await using var mutate = new NpgsqlCommand(
             "UPDATE commercial.inventory_extractions SET adapter_version = 'changed' " +

@@ -1,0 +1,305 @@
+/* One authenticated page geometry. Page modules may not invent their own canvas width. */
+.approved-page-frame > :is(
+  .approved-dashboard,
+  .approved-opportunity-page,
+  .operations-page,
+  .brief-intake-page,
+  .brief-record-page,
+  .approved-stp-page,
+  .planning-page,
+  .approved-media-planning-page,
+  .proposal-page,
+  .marketplace-workbench,
+  .inventory-workbench-page,
+  .inventory-import-page,
+  .inventory-record-page,
+  .booking-workbench-page,
+  .funding-page,
+  .campaign-list-page,
+  .campaign-workspace-page,
+  .proof-request-page,
+  .proof-submission-page,
+  .supplier-creative-page,
+  .review-resource-page,
+  .ooh-inbox-page
+) {
+  box-sizing: border-box;
+  width: min(1500px, 100%) !important;
+  max-width: 1500px !important;
+  margin-inline: auto !important;
+}
+
+/* One page-header language. Old hero class names are retained only as implementation hooks. */
+.approved-page-frame :is(
+  .approved-work-index-header,
+  .page-heading,
+  .operations-command-header,
+  .brief-intake-heading,
+  .approved-brief-page-title,
+  .approved-stp-header,
+  .approved-media-planning-header,
+  .campaign-list-hero,
+  .campaign-workspace-hero,
+  .proposal-hero,
+  .ooh-inbox-hero,
+  .funding-hero,
+  .marketplace-command-header,
+  .proof-request-hero,
+  .proof-submission-hero,
+  .supplier-creative-hero,
+  .approved-import-hero,
+  .approved-product-title
+) {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 72px;
+  margin: 0 0 16px;
+  padding: 0 2px 14px;
+  color: var(--approved-body);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--approved-line);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.approved-page-frame :is(
+  .approved-work-index-header,
+  .page-heading,
+  .operations-command-header,
+  .brief-intake-heading,
+  .approved-brief-page-title,
+  .approved-stp-header,
+  .approved-media-planning-header,
+  .campaign-list-hero,
+  .campaign-workspace-hero,
+  .proposal-hero,
+  .ooh-inbox-hero,
+  .funding-hero,
+  .marketplace-command-header,
+  .proof-request-hero,
+  .proof-submission-hero,
+  .supplier-creative-hero,
+  .approved-import-hero,
+  .approved-product-title
+) h1 {
+  margin: 0;
+  color: var(--approved-ink);
+  font-size: var(--ui-font-page) !important;
+  line-height: 1.2;
+  letter-spacing: -.025em;
+}
+
+.approved-page-frame :is(
+  .approved-work-index-header,
+  .page-heading,
+  .operations-command-header,
+  .brief-intake-heading,
+  .approved-brief-page-title,
+  .approved-stp-header,
+  .approved-media-planning-header,
+  .campaign-list-hero,
+  .campaign-workspace-hero,
+  .proposal-hero,
+  .ooh-inbox-hero,
+  .funding-hero,
+  .marketplace-command-header,
+  .proof-request-hero,
+  .proof-submission-hero,
+  .supplier-creative-hero,
+  .approved-import-hero,
+  .approved-product-title
+) p:not(.eyebrow) {
+  margin-top: 5px;
+  color: var(--approved-muted);
+  font-size: var(--ui-font-sm);
+}
+
+/* Metrics belong below/alongside the shared header, not in a different visual universe. */
+.proposal-hero :is(.proposal-builder-metrics, .proposal-record-metrics),
+.funding-hero dl,
+.marketplace-command-header .marketplace-access,
+.proof-request-hero .campaign-count {
+  box-shadow: none;
+}
+
+/* Guided Brief review: section state and deterministic step navigation. */
+.approved-brief-localnav a {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+}
+.approved-brief-localnav .approved-brief-step-number {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d7dce5;
+  border-radius: 999px;
+  font-size: var(--ui-font-xs);
+}
+.approved-brief-localnav a > :is(
+  .approved-brief-step-copy,
+  .approved-brief-step-state
+) {
+  width: auto;
+  height: auto;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  place-items: normal;
+}
+.approved-brief-localnav a.is-active > :is(
+  .approved-brief-step-copy,
+  .approved-brief-step-state
+) {
+  color: inherit;
+  background: transparent;
+  border: 0;
+}
+.approved-brief-localnav .approved-brief-step-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+.approved-brief-localnav .approved-brief-step-copy small {
+  color: var(--approved-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+.approved-brief-localnav .approved-brief-step-state {
+  color: #b54708;
+  font-weight: 800;
+}
+.approved-brief-localnav a.is-complete .approved-brief-step-number,
+.approved-brief-localnav a.is-complete .approved-brief-step-state {
+  color: #067647;
+  border-color: #a6f4c5;
+}
+.approved-brief-localnav a.is-active .approved-brief-step-copy small {
+  color: inherit;
+}
+.approved-brief-section > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+.approved-section-state {
+  flex: none;
+  padding: 5px 8px;
+  color: #b54708;
+  background: #fffaeb;
+  border: 1px solid #fedf89;
+  border-radius: 999px;
+  font-size: var(--ui-font-xs);
+  font-weight: 750;
+}
+.approved-section-state.is-complete {
+  color: #067647;
+  background: #ecfdf3;
+  border-color: #a6f4c5;
+}
+.approved-brief-step-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #edf0f4;
+}
+.approved-brief-step-actions > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.approved-brief-blocker {
+  max-width: 390px;
+  color: #b54708;
+  font-size: var(--ui-font-xs);
+  line-height: 1.4;
+}
+.approved-brief-final-actions {
+  align-items: center;
+  padding-top: 0;
+}
+
+@media (max-width: 760px) {
+  .approved-brief-step-actions,
+  .approved-brief-step-actions > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .approved-brief-step-actions > div:last-child {
+    width: 100%;
+  }
+  .approved-brief-step-actions button,
+  .approved-brief-step-actions a {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.media-channel-picker {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 14px 0;
+  padding: 12px;
+  background: #fafbfc;
+  border: 1px solid var(--approved-line);
+  border-radius: 8px;
+}
+.media-channel-picker label {
+  min-width: 260px;
+  display: grid;
+  gap: 5px;
+  color: var(--approved-body);
+  font-size: var(--ui-font-xs);
+  font-weight: 700;
+}
+.media-channel-picker select {
+  min-height: var(--ui-control-height);
+}
+.media-allocation-card > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+@media (max-width: 980px) {
+  .approved-brief-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .approved-brief-localnav {
+    grid-template-columns: repeat(11, minmax(140px, 1fr));
+    overflow-x: auto;
+  }
+  .approved-brief-main,
+  .approved-brief-summary {
+    min-width: 0;
+  }
+  .approved-brief-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .media-channel-picker {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .media-channel-picker label {
+    min-width: 0;
+  }
+  .approved-brief-summary {
+    grid-template-columns: 1fr;
+  }
+}

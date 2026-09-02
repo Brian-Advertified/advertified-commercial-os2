@@ -35,6 +35,7 @@ internal sealed record BookingSourceRow(
     Guid ProposalDecisionId,
     Guid PlanVersionId,
     Guid MediaPlanLineId,
+    Guid CommercialPolicyVersionId,
     Guid SupplierTenantId,
     Guid MarketplaceListingVersionId,
     Guid SupplierId,
@@ -54,7 +55,13 @@ internal sealed record BookingSourceRow(
     long ClientPriceMinor,
     long FeesMinor,
     long VatMinor,
-    string Currency);
+    string Currency,
+    string? SupplierCommercialJson,
+    string? VatTreatment,
+    string? CommercialTermsJson,
+    string? DeliverableJson,
+    string? SpatialJson,
+    Guid? LogoAssetId);
 
 internal sealed record BookingRow(
     Guid Id,
@@ -66,6 +73,8 @@ internal sealed record BookingRow(
     Guid? PlanVersionId,
     Guid? MediaPlanLineId,
     Guid MarketplaceListingVersionId,
+    Guid InventoryProductId,
+    Guid ProductVersionId,
     Guid CommercialPolicyVersionId,
     string SupplierName,
     string ProductName,
@@ -81,6 +90,12 @@ internal sealed record BookingRow(
     long? VatMinor,
     string Currency,
     string Terms,
+    string? SupplierCommercialJson,
+    string? VatTreatment,
+    string? CommercialTermsJson,
+    string? DeliverableJson,
+    string? SpatialJson,
+    Guid? LogoAssetId,
     string Status,
     Guid CreatedBy,
     DateTimeOffset CreatedAtUtc,
@@ -103,5 +118,9 @@ internal sealed record BookingRow(
         ClientPriceMinor, FeesMinor, VatMinor, Currency, Terms, Status, CreatedBy,
         CreatedAtUtc, RequestedBy, RequestedAtUtc, RequestReason, ConfirmedBy,
         ConfirmedAtUtc, ConfirmationReason, SupplierNote, TermsAccepted, Version,
-        UpdatedAtUtc);
+        UpdatedAtUtc,
+        BookingJson.ReadSupplier(SupplierCommercialJson),
+        BookingJson.ReadTerms(CommercialTermsJson),
+        BookingJson.ReadDeliverable(DeliverableJson),
+        BookingJson.ReadSpatial(SpatialJson), VatTreatment, LogoAssetId);
 }

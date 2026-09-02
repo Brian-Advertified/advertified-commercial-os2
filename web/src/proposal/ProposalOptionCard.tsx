@@ -21,7 +21,20 @@ export function ProposalOptionCard({ option, selected, decisionMode, busy, onSel
         <span>{item.periods.join(' · ')}</span></div>)}</div>
     {option.inventoryNames.length > 0 && <details className="proposal-inventory-detail">
       <summary>View included media</summary>
-      <ul>{option.inventoryNames.map(name => <li key={name}>{name}</li>)}</ul>
+      {option.inventory.length === 0
+        ? <ul>{option.inventoryNames.map(name => <li key={name}>{name}</li>)}</ul>
+        : <ul>{option.inventory.map(item => <li key={item.productVersionId}>
+          <strong>{item.name}</strong> · {item.geography} · {formatMoney(item.clientPriceMinor, option.currency)}
+          {item.deliverable && <small>Deliverable: {[item.deliverable.format,
+            item.deliverable.buyingUnit, item.deliverable.dimensions,
+            item.deliverable.placement].filter(Boolean).join(' · ')}</small>}
+          {item.commercialTerms && item.commercialTerms.conditions.length > 0 &&
+            <small>Conditions: {item.commercialTerms.conditions.join('; ')}</small>}
+          {item.spatial && <small>Location: {[item.spatial.venue, item.spatial.road,
+            item.spatial.route, item.spatial.trafficDirection].filter(Boolean).join(' · ')}</small>}
+          {item.logoAssetId && <small>Rights-approved supplier logo selected.</small>}
+          {item.uncertainties.map(value => <small key={value}>Unresolved: {value}</small>)}
+        </li>)}</ul>}
     </details>}
     {selected && <p className="proposal-selected-mark">Selected by the client</p>}
     {decisionMode && !selected && onSelect && <button className="primary-button proposal-select-button"

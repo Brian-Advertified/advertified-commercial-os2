@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Advertified.Commercial.Application.Foundation;
+using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Governance;
 
 namespace Advertified.Commercial.Application.Booking;
@@ -75,7 +76,13 @@ public sealed record BookingView(
     string? SupplierNote,
     bool TermsAccepted,
     long Version,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    InventorySupplierCommercialValues? SupplierCommercial = null,
+    InventoryCommercialTermsValues? CommercialTerms = null,
+    InventoryDeliverableValues? Deliverable = null,
+    InventorySpatialValues? Spatial = null,
+    string? VatTreatment = null,
+    Guid? LogoAssetId = null);
 
 public interface IBookingCommands
 {

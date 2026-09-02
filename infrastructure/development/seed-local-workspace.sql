@@ -95,7 +95,6 @@ UPDATE commercial.commercial_policies
 SET current_version_id = '10000000-0000-0000-0000-000000000007',
     updated_at_utc = clock_timestamp()
 WHERE tenant_id = '10000000-0000-0000-0000-000000000002'
-  AND id = '10000000-0000-0000-0000-000000000006'
   AND current_version_id IS NULL;
 
 -- Governed local proposal prerequisite. These records are deliberately named Local Demo,

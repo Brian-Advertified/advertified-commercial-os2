@@ -47,6 +47,27 @@ public sealed partial class MarketplaceAcceptanceTests
             SET current_draft_version_id = $1, approved_version_id = $1
             WHERE id = $2
             """, BuyerBriefVersionId, BuyerBriefId);
+        var policyId = Guid.Parse("93000000-0000-0000-0000-000000000006");
+        var policyVersionId = Guid.Parse("93000000-0000-0000-0000-000000000007");
+        Add(batch, """
+            INSERT INTO commercial.commercial_policies (
+                id, tenant_id, version, created_at_utc, updated_at_utc)
+            VALUES ($1, $2, 1, $3, $3)
+            """, policyId, BuyerTenantId, InitialTime);
+        Add(batch, """
+            INSERT INTO commercial.commercial_policy_versions (
+                id, tenant_id, policy_id, version_number, markup_basis_points,
+                management_fee_basis_points, commission_basis_points, vat_status_code,
+                vat_rate_basis_points, prices_include_vat, currency_code,
+                booking_approval_threshold_minor, allow_self_approval,
+                created_by, created_at_utc)
+            VALUES ($1, $2, $3, 1, 0, 40, 0, 'REGISTERED', 1500, false,
+                'ZAR', 2000000, true, $4, $5)
+            """, policyVersionId, BuyerTenantId, policyId, BuyerUserId, InitialTime);
+        Add(batch,
+            "UPDATE commercial.commercial_policies SET current_version_id = $1 " +
+            "WHERE tenant_id = $2 AND id = $3",
+            policyVersionId, BuyerTenantId, policyId);
         await batch.ExecuteNonQueryAsync();
     }
 
@@ -120,7 +141,7 @@ public sealed partial class MarketplaceAcceptanceTests
         Assert.Equal(SupplierTenantId, line.GetProperty("inventoryTenantId").GetGuid());
         Assert.Equal(listingVersionId,
             line.GetProperty("marketplaceListingVersionId").GetGuid());
-        Assert.Equal("MARKETPLACE_LISTING", line.GetProperty("supplySource").GetString());
+        Assert.Equal("private-confirmation", line.GetProperty("supplySource").GetString());
 
         var planId = plan.RootElement.GetProperty("id").GetGuid();
         var version = plan.RootElement.GetProperty("version").GetInt64();

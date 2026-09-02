@@ -20,7 +20,8 @@ public sealed partial class BookingCommands
         var source = await store.FindSelectedSourceAsync(
             envelope.TenantId, envelope.Command, now, cancellationToken)
             ?? throw new BookingReviewRequiredException();
-        var policy = await policyStore.FindCurrentAsync(envelope.TenantId, cancellationToken)
+        var policy = await policyStore.FindVersionAsync(
+            envelope.TenantId, source.CommercialPolicyVersionId, cancellationToken)
             ?? throw new CommercialPolicyNotConfiguredException();
         var money = Calculate(policy, source);
         var terms = BookingPolicy.RequiredTerms(envelope.Command.Terms);

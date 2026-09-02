@@ -91,6 +91,23 @@ public sealed class SuppliedBriefBudgetParsingTests
         Assert.Equal(currency, result.Draft.Currency);
     }
 
+    [Fact]
+    public async Task InclusiveVatWordingDoesNotInventARegistrationStatus()
+    {
+        var result = await UnderstandAsync("Budget: R 100,000 including VAT");
+
+        Assert.Equal(10_000_000L, result.Draft.BudgetMinor);
+        Assert.Null(result.Draft.VatStatus);
+    }
+
+    [Fact]
+    public async Task ExplicitVatRegistrationIsRetained()
+    {
+        var result = await UnderstandAsync("Budget: R 100,000. Client is VAT registered.");
+
+        Assert.Equal(MasterDataCodes.VatStatuses.Registered, result.Draft.VatStatus);
+    }
+
     private static Task<SuppliedBriefUnderstandingView> UnderstandAsync(
         string budgetLine,
         IReadOnlyList<BriefClarificationInput>? clarifications = null,

@@ -1,10 +1,13 @@
 using Npgsql;
+using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
 
 public sealed partial class CanonicalPlanningAcceptanceTests
 {
-    private static async Task SeedPlanningPrerequisitesAsync(string connectionString)
+    private static async Task SeedPlanningPrerequisitesAsync(
+        string connectionString,
+        long briefBudgetMinor)
     {
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync();
@@ -35,10 +38,11 @@ public sealed partial class CanonicalPlanningAcceptanceTests
                 created_by, approved_by, approved_at_utc, version, created_at_utc)
             VALUES ($1, $2, $3, $4, 1, 'Create qualified local demand',
                 'Increase qualified enquiries', '["Local business decision makers"]',
-                '["Johannesburg"]', 'September 2026', 1000000, false, 'ZAR',
+                '["Johannesburg"]', 'September 2026', $7, false, 'ZAR',
                 'REGISTERED', 5000, '[]', '[]', '["Owner supplied objective"]',
                 '[]', '[]', '[]', '[]', 'APPROVED', $5, $5, $6, 1, $6)
-            """, BriefVersionId, TenantId, BriefId, BriefSourceId, OperatorId, Now);
+            """, BriefVersionId, TenantId, BriefId, BriefSourceId, OperatorId, Now,
+            briefBudgetMinor);
         AddCommand(batch,
             """
             UPDATE commercial.campaign_briefs
@@ -71,6 +75,45 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             VALUES ($1, $2, $3, 1, 'APPROVED', '{}', '{}', '[]', 'csv#row=2',
                 $4, 1, $5, $5)
             """, CandidateId, TenantId, ImportId, OperatorId, Now);
+        var supplierVersionId = Guid.Parse("75000000-0000-0000-0000-000000000004");
+        AddCommand(batch,
+            """
+            INSERT INTO commercial.inventory_supplier_versions (
+                id, tenant_id, supplier_id, version_number, vat_status_code,
+                vat_number, commission_terms, payment_terms, cancellation_terms,
+                booking_deadline_terms, source_import_id, published_by, published_at_utc)
+            VALUES ($1, $2, $3, 1, 'REGISTERED', '4123456789',
+                'No supplier commission is included.', 'Payment within 30 days.',
+                'Cancellation fees apply after confirmation.',
+                'Book five business days before start.', $4, $5, $6)
+            """, supplierVersionId, TenantId, SupplierId, ImportId, OperatorId, Now);
+        AddCommand(batch,
+            "UPDATE commercial.inventory_suppliers SET current_commercial_version_id = $1 " +
+            "WHERE tenant_id = $2 AND id = $3",
+            supplierVersionId, TenantId, SupplierId);
+        var policyId = Guid.Parse("75000000-0000-0000-0000-000000000005");
+        var policyVersionId = Guid.Parse("75000000-0000-0000-0000-000000000006");
+        AddCommand(batch,
+            """
+            INSERT INTO commercial.commercial_policies (
+                id, tenant_id, version, created_at_utc, updated_at_utc)
+            VALUES ($1, $2, 1, $3, $3)
+            """, policyId, TenantId, Now);
+        AddCommand(batch,
+            """
+            INSERT INTO commercial.commercial_policy_versions (
+                id, tenant_id, policy_id, version_number, markup_basis_points,
+                management_fee_basis_points, commission_basis_points, vat_status_code,
+                vat_rate_basis_points, prices_include_vat, currency_code,
+                booking_approval_threshold_minor, allow_self_approval, created_by,
+                created_at_utc)
+            VALUES ($1, $2, $3, 1, 0, 500, 0, 'REGISTERED', 1500, false,
+                'ZAR', 1000000, true, $4, $5)
+            """, policyVersionId, TenantId, policyId, OperatorId, Now);
+        AddCommand(batch,
+            "UPDATE commercial.commercial_policies SET current_version_id = $1 " +
+            "WHERE tenant_id = $2 AND id = $3",
+            policyVersionId, TenantId, policyId);
         await batch.ExecuteNonQueryAsync();
 
         var rates = new long[] { 100_000, 120_000, 140_000, 160_000, 180_000, 90_000 };
@@ -93,6 +136,11 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         var effectiveTo = index == 4
             ? new DateOnly(2026, 8, 31)
             : new DateOnly(2027, 1, 1);
+        var audienceProfile = index == 0
+            ? """
+              {"spokenLanguages":[{"label":"English","sharePercent":80}],"understoodLanguages":[],"lifeStages":[{"label":"Business decision makers","sharePercent":60}],"lsmSemSegments":[{"label":"SEM 8-10","sharePercent":70}],"taxonomyName":"TGI SEM","taxonomyVersion":"2026","universe":"Johannesburg adults","measurementSource":"Fixture audience study","measurementPeriod":"2026 Q2","methodology":"Weighted aggregate survey","limitations":"Test fixture only","measurements":[{"metricType":"REACH","value":125000,"unit":"PEOPLE","universe":"Johannesburg adults","measurementSource":"Fixture audience study","measurementPeriod":"2026 Q2","methodology":"Weighted aggregate survey","limitations":"Test fixture only"}]}
+              """
+            : null;
         await using var batch = new NpgsqlBatch(connection);
         AddCommand(batch,
             """
@@ -105,13 +153,18 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             """
             INSERT INTO commercial.inventory_product_versions (
                 id, tenant_id, product_id, version_number, name, channel_code,
-                product_type_code, geography, latitude, longitude, verification_code,
+                product_type_code, geography, latitude, longitude, audience_profile_json,
+                verification_code, deliverable_json, spatial_json,
                 source_import_id, source_candidate_id, published_by, published_at_utc)
-            VALUES ($1, $2, $3, 1, $4, 'OOH', 'OOH_SITE', $5, $6, $7,
-                'HUMAN_VERIFIED', $8, $9, $10, $11)
+            VALUES ($1, $2, $3, 1, $4, 'OOH', 'OOH_SITE', $5, $6, $7, $8::jsonb,
+                'HUMAN_VERIFIED',
+                '{"format":"Static billboard","buyingUnit":"site/month","dimensions":"3m x 6m","placement":"Roadside","quantity":1}'::jsonb,
+                '{"country":"South Africa","province":"Gauteng","municipality":"Johannesburg","locality":"Johannesburg","road":"Bree Street","trafficDirection":"Northbound","facingBearingDegrees":15,"pointsOfInterest":[{"name":"Central business district","category":"BUSINESS_DISTRICT","latitude":-26.2041,"longitude":28.0473}]}'::jsonb,
+                $9, $10, $11, $12)
             """, versionId, TenantId, productId, $"{geography} Site {index + 1}", geography,
             index == 5 ? -33.9249m : -26.2041m,
             index == 5 ? 18.4241m : 28.0473m,
+            audienceProfile is null ? DBNull.Value : audienceProfile,
             ImportId, CandidateId, OperatorId, Now);
         AddCommand(batch,
             "UPDATE commercial.inventory_products SET current_version_id = $1 WHERE id = $2",
@@ -120,14 +173,18 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             """
             INSERT INTO commercial.inventory_rates (
                 id, tenant_id, product_version_id, rate_type_code, currency_code,
-                amount_minor, effective_from, effective_to, source_locator)
+                amount_minor, effective_from, effective_to, source_locator,
+                vat_treatment_code, commercial_terms_json)
             VALUES ($1, $2, $3, 'MONTH_RATE', 'ZAR', $4, '2026-01-01', $5,
-                'csv#row=2')
+                'csv#row=2', 'INCLUSIVE',
+                '{"vatTreatment":"INCLUSIVE","minimumOrder":1,"inclusions":["Media placement"],"exclusions":["Creative production"],"conditions":["Subject to written supplier confirmation"],"bookingLeadTimeDays":5}'::jsonb)
             """, rateId, TenantId, versionId, rate, effectiveTo);
-        var availability = index == 0 ? "AVAILABLE" : "UNKNOWN";
+        var availability = index is 0 or 1 ? "AVAILABLE" : "UNKNOWN";
         var validUntil = index == 0
             ? new DateTimeOffset(2026, 10, 31, 23, 59, 59, TimeSpan.Zero)
-            : (DateTimeOffset?)null;
+            : index == 1
+                ? new DateTimeOffset(2026, 8, 31, 23, 59, 59, TimeSpan.Zero)
+                : (DateTimeOffset?)null;
         var availabilitySource = index == 0
             ? "supplier-confirmation:email-001"
             : "supplier-rate-card";
@@ -140,6 +197,45 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             """, availabilityId, TenantId, versionId, availability, Now,
             validUntil.HasValue ? validUntil.Value : DBNull.Value, availabilitySource);
         await batch.ExecuteNonQueryAsync();
+    }
+
+    private static async Task SeedStructuredAudienceSetAsync(string connectionString)
+    {
+        var audienceSetId = Guid.Parse("7b000000-0000-0000-0000-000000000001");
+        var definitionId = Guid.Parse("7b000000-0000-0000-0000-000000000002");
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var batch = new NpgsqlBatch(connection);
+        AddCommand(batch,
+            """
+            INSERT INTO commercial.audience_definition_sets (
+                id, tenant_id, brief_version_id, version_no,
+                target_audience_ids_json, targeting_rationale,
+                positioning_statement, input_hash, agent_provider_code,
+                agent_model_code, agent_incremental_cost_minor,
+                status_code, created_by, created_at_utc)
+            VALUES ($1, $2, $3, 2, jsonb_build_array($4::uuid),
+                'Fixture target backed by a supplied aggregate study.',
+                'Reach the approved structured target without individual inference.',
+                repeat('c', 64), 'deterministic', 'fixture-v1', 0,
+                'APPROVED', $5, $6)
+            """, audienceSetId, TenantId, BriefVersionId, definitionId, OperatorId,
+            Now.AddSeconds(1));
+        AddCommand(batch,
+            """
+            INSERT INTO commercial.audience_definitions (
+                id, tenant_id, audience_set_id, name, description, need_state,
+                buying_context, geography_json, language, life_stage, lsm_sem,
+                lsm_sem_taxonomy, lsm_sem_taxonomy_version, classification_code,
+                exclusions_json, evidence_item_ids_json, confidence, status_code)
+            VALUES ($1, $2, $3, 'Local business decision makers',
+                'Aggregate audience described by the approved fixture evidence.',
+                'Increase qualified enquiries', 'Business purchase decision',
+                '["Johannesburg"]', 'English', 'Business decision makers', 'SEM 8-10',
+                'TGI SEM', '2026', 'FACT', '[]', jsonb_build_array($4::uuid),
+                0.9, 'APPROVED')
+            """, definitionId, TenantId, audienceSetId, BriefSourceId);
+        Assert.Equal(2, await batch.ExecuteNonQueryAsync());
     }
 
     private static void AddCommand(NpgsqlBatch batch, string sql, params object[] parameters)

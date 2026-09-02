@@ -40,7 +40,7 @@ public interface ICommercialPolicyCommands
 
 public interface ICommercialPolicyReader
 {
-    Task<CommercialPolicyView> GetCurrentAsync(
+    Task<CommercialPolicyView?> GetCurrentAsync(
         ActorId actorId,
         TenantId tenantId,
         CancellationToken cancellationToken);

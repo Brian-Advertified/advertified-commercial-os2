@@ -24,6 +24,50 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
         return transaction;
     }
 
+    internal Task<List<PlanningSummaryRow>> ListPlanningAsync(
+        TenantId tenantId,
+        Guid actorId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<PlanningSummaryRow>($"""
+            SELECT brief.id AS "BriefId", version.id AS "BriefVersionId",
+                COALESCE(NULLIF(BTRIM(client.trading_name), ''), client.legal_name)
+                    AS "ClientName",
+                brief.title AS "BriefTitle",
+                (SELECT audience.status_code
+                    FROM commercial.audience_definition_sets audience
+                    WHERE audience.tenant_id = version.tenant_id
+                      AND audience.brief_version_id = version.id
+                    ORDER BY audience.version_no DESC
+                    LIMIT 1) AS "AudienceStatus",
+                (SELECT mix.status_code
+                    FROM commercial.media_mix_versions mix
+                    WHERE mix.tenant_id = version.tenant_id
+                      AND mix.brief_version_id = version.id
+                    ORDER BY mix.version_no DESC
+                    LIMIT 1) AS "MediaMixStatus",
+                (SELECT plan.status_code
+                    FROM commercial.media_plan_versions plan
+                    WHERE plan.tenant_id = version.tenant_id
+                      AND plan.brief_version_id = version.id
+                    ORDER BY plan.version_no DESC
+                    LIMIT 1) AS "MediaPlanStatus",
+                brief.updated_at_utc AS "UpdatedAtUtc"
+            FROM commercial.campaign_briefs brief
+            JOIN commercial.brief_versions version
+              ON version.tenant_id = brief.tenant_id
+             AND version.id = COALESCE(brief.approved_version_id, brief.ready_version_id)
+            JOIN commercial.client_accounts client
+              ON client.tenant_id = brief.tenant_id
+             AND client.id = brief.client_account_id
+            WHERE brief.tenant_id = {tenantId.Value}
+              AND brief.owner_user_id = {actorId}
+              AND EXISTS (
+                SELECT 1 FROM commercial.audience_definition_sets audience
+                WHERE audience.tenant_id = version.tenant_id
+                  AND audience.brief_version_id = version.id)
+            ORDER BY brief.updated_at_utc DESC, brief.id
+            """).ToListAsync(cancellationToken);
+
     internal Task<PlanningBriefRow?> FindBriefAsync(
         TenantId tenantId,
         Guid briefVersionId,
@@ -69,6 +113,38 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
             FROM commercial.campaign_mode_selections
             WHERE tenant_id = {tenantId.Value} AND brief_version_id = {briefVersionId}
             """).SingleOrDefaultAsync(cancellationToken);
+
+    internal async Task LockCampaignBriefAsync(
+        TenantId tenantId,
+        Guid briefId,
+        CancellationToken cancellationToken)
+    {
+        var rows = await dbContext.Database.SqlQuery<Guid>($"""
+            SELECT id AS "Value"
+            FROM commercial.campaign_briefs
+            WHERE tenant_id = {tenantId.Value} AND id = {briefId}
+            FOR UPDATE
+            """).ToListAsync(cancellationToken);
+        if (rows.Count != 1)
+        {
+            throw new UnauthorizedAccessException("Campaign Brief access denied.");
+        }
+    }
+
+    internal Task<List<string>> ListCampaignModesForBriefAsync(
+        TenantId tenantId,
+        Guid briefId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<string>($"""
+            SELECT DISTINCT selection.mode_code AS "Value"
+            FROM commercial.campaign_mode_selections selection
+            JOIN commercial.brief_versions version
+              ON version.tenant_id = selection.tenant_id
+             AND version.id = selection.brief_version_id
+            WHERE selection.tenant_id = {tenantId.Value}
+              AND version.brief_id = {briefId}
+            ORDER BY "Value"
+            """).ToListAsync(cancellationToken);
 
     internal Task<bool> HasPlanningArtifactsAsync(
         TenantId tenantId,
@@ -151,6 +227,24 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
             FROM commercial.audience_definition_sets
             WHERE tenant_id = {tenantId.Value} AND brief_version_id = {briefVersionId}
             ORDER BY version_no DESC LIMIT 1
+            """).ToListAsync(cancellationToken);
+        return rows.SingleOrDefault();
+    }
+
+    internal async Task<AudienceSetRow?> FindAudienceAsync(
+        TenantId tenantId,
+        Guid audienceSetId,
+        CancellationToken cancellationToken)
+    {
+        var rows = await dbContext.Database.SqlQuery<AudienceSetRow>($"""
+            SELECT id AS "Id", brief_version_id AS "BriefVersionId",
+                version_no AS "VersionNumber",
+                target_audience_ids_json::text AS "TargetAudienceIdsJson",
+                targeting_rationale AS "TargetingRationale",
+                positioning_statement AS "PositioningStatement", input_hash AS "InputHash",
+                status_code AS "Status", created_at_utc AS "CreatedAtUtc"
+            FROM commercial.audience_definition_sets
+            WHERE tenant_id = {tenantId.Value} AND id = {audienceSetId}
             """).ToListAsync(cancellationToken);
         return rows.SingleOrDefault();
     }
@@ -291,7 +385,8 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
             assumptions_json::text AS "AssumptionsJson",
             critic_report_json::text AS "CriticReportJson", created_by AS "CreatedBy",
             approved_by AS "ApprovedBy", version AS "Version",
-            created_at_utc AS "CreatedAtUtc"
+            created_at_utc AS "CreatedAtUtc",
+            commercial_policy_version_id AS "CommercialPolicyVersionId"
         FROM commercial.media_plan_versions
         """;
 }

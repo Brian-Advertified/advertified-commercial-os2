@@ -5,6 +5,7 @@ using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Proposal;
+using Advertified.Commercial.Infrastructure.Planning;
 using Microsoft.Extensions.Options;
 
 namespace Advertified.Commercial.Infrastructure.EmailAutomation;
@@ -21,9 +22,10 @@ public sealed partial class EmailProposalAutomationProcessor(
     IEmailProviderResolver emailProviders,
     IAutomationCommandEnvelopeFactory envelopes,
     IStpReadinessEvaluator stpReadiness,
-    EmailAutomationInventorySelector inventorySelector,
+    IEmailAutomationInventorySelector inventorySelector,
     EmailAutomationPolicy policy,
     ProposalPolicy proposalPolicy,
+    PlanningPolicy planningPolicy,
     IOptions<EmailAutomationOptions> options,
     TimeProvider timeProvider) : IEmailProposalAutomationProcessor
 {
@@ -161,6 +163,12 @@ public sealed partial class EmailProposalAutomationProcessor(
     private void ValidateEntry(EmailAutomationContextRow context)
     {
         ValidateProviderMode(context.Provider);
+        if (InboundCampaignIntentDetector.ContainsMultipleExplicitBriefs(context.BodyText))
+        {
+            throw new EmailAutomationReviewRequiredException(
+                MasterDataCodes.AutomationFailureReasons.IncompleteBrief,
+                "This email contains multiple campaign Briefs that must be separated before planning.");
+        }
         if (!context.MailboxEnabled || !context.AutoSendEnabled ||
             !policy.AllowAutomaticExternalSend)
         {

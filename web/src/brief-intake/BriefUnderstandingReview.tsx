@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { SuppliedBriefUnderstanding } from '../api/brief-understanding-schemas'
 import { Icon, type IconName } from '../components/Icon'
+import { masterDataCodes } from '../generated/master-data-codes'
 import { humanizeCode } from '../presentation/format'
 import {
   campaignModeLabel,
@@ -8,6 +9,7 @@ import {
   understandingBudgetLabel,
   understandingTaxLabel,
 } from './brief-intake-presentation'
+import { BriefSpatialEditor, type BriefSpatialDraft } from './BriefSpatialEditor'
 
 export function BriefUnderstandingReview({
   understanding,
@@ -15,16 +17,22 @@ export function BriefUnderstandingReview({
   onApprove,
   onEdit,
   onCorrectMode,
+  spatialRequirements,
+  onSpatialRequirementsChange,
 }: {
   understanding: SuppliedBriefUnderstanding
   busy: boolean
   onApprove: () => Promise<void>
   onEdit: () => void
   onCorrectMode: () => void
+  spatialRequirements: BriefSpatialDraft[]
+  onSpatialRequirementsChange: (values: BriefSpatialDraft[]) => void
 }) {
   return <div className="brief-understanding-review">
     <UnderstandingReviewHero understanding={understanding} />
     <UnderstandingDetailGrid understanding={understanding} />
+    <BriefSpatialEditor values={spatialRequirements}
+      onChange={onSpatialRequirementsChange} />
     <KnowledgePanel understanding={understanding} />
     <ApprovalBar busy={busy} onApprove={onApprove} onEdit={onEdit}
       onCorrectMode={onCorrectMode} />
@@ -34,14 +42,18 @@ export function BriefUnderstandingReview({
 function UnderstandingReviewHero({ understanding }: {
   understanding: SuppliedBriefUnderstanding
 }) {
+  const modeEvidence = understanding.evidence.find(item => item.fieldPath === 'campaignMode')
+  const suppliedFact = modeEvidence?.kind === masterDataCodes.evidenceClassifications.fact &&
+    modeEvidence.sourceLocator === 'supplied:brief'
   return <header className="understanding-review-hero"><div>
     <p className="eyebrow eyebrow-light">Brief ready for review</p>
     <h2>Confirm what Advertified understood before planning begins.</h2>
     <p>The original source remains unchanged. Approving this view creates the retained Brief version and locks the campaign media scope for planning.</p>
-  </div><div className="understanding-decision"><span><Icon name="shield" /> Campaign mode decision</span>
+  </div><div className="understanding-decision"><span><Icon name="shield" /> Campaign type</span>
     <strong>{campaignModeLabel(understanding.campaignMode)}</strong>
-    <small>Locks when approved · {Math.round(understanding.campaignModeConfidence * 100)}% confidence</small>
+    <small>{suppliedFact ? 'Source: Original Brief · No mode choice required' : 'Advertified interpretation · Correct only if the Brief is unclear'}</small>
     <p>{understanding.campaignModeRationale}</p>
+    {suppliedFact && modeEvidence?.excerpt && <p>“{modeEvidence.excerpt}”</p>}
   </div></header>
 }
 

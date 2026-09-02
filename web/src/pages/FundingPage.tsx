@@ -2,6 +2,7 @@ import { Navigate, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
+import { ProposalFlowBinding } from '../campaign-flow/CampaignFlowBindings'
 import { LoadingState, MessageState } from '../components/PageState'
 import { FundingWorkspace, type FundingSelection } from '../funding/FundingWorkspace'
 import {
@@ -46,6 +47,8 @@ function FundingRecord({ tenantId, token, roleCode, selection }: {
   }
   if (!model.workspace) return <LoadingState label="Loading funding records" />
   return <>
+    {selection && <ProposalFlowBinding tenantId={tenantId}
+      proposalId={selection.proposalVersionId} />}
     {model.error && <p className="inline-alert" role="alert">{model.error}</p>}
     <FundingWorkspace tenantId={tenantId} token={token} workspace={model.workspace}
       selection={selection} busy={model.busy} run={model.run}

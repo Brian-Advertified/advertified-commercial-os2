@@ -44,7 +44,7 @@ def test_application_packaging_inputs_exist() -> None:
         "api/Dockerfile",
         "agent-runtime/Dockerfile",
         "web/Dockerfile",
-        "docs/operations/SUPPLY_CHAIN_UPDATE_POLICY.md",
+        "ADVERTIFIED.md",
         *PROJECT_LOCKS,
     )
 
@@ -182,7 +182,7 @@ def test_web_cache_policy_only_marks_fingerprinted_bundles_immutable() -> None:
 
 def test_ci_generates_retains_and_scans_final_image_sboms() -> None:
     workflow = read(".github/workflows/ci.yml")
-    policy = read("docs/operations/SUPPLY_CHAIN_UPDATE_POLICY.md")
+    policy = read("ADVERTIFIED.md")
     syft = (
         "ghcr.io/anchore/syft:v1.50.0@sha256:"
         "1288ea4c8b38767b4e620c1e312c8cb26b6e887a99b4f07ab6cd19fc6f225026"
@@ -201,8 +201,8 @@ def test_ci_generates_retains_and_scans_final_image_sboms() -> None:
     assert "--timeout 20m" in workflow
     assert "cyclonedx-json" in workflow
     assert "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02" in workflow
-    assert "automatic merge is\n  forbidden" in policy
-    assert "Signing,\nprovenance attestation" in policy
+    assert "build provenance/SBOM/dependency and secret scans" in policy
+    assert "One unresolved release-blocking check remains a NO-GO" in policy
 
 
 def test_ci_runs_a_pinned_blocking_secret_scan_and_retains_the_report() -> None:

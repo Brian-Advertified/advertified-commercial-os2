@@ -59,54 +59,15 @@ def test_language_analyzers_enforce_complexity_and_function_size() -> None:
     assert web_config["rules"]["eslint/max-lines-per-function"][1]["max"] == 60
 
 
-def test_gate_evidence_manifests_match_the_closed_schema_contract() -> None:
-    evidence_root = REPO_ROOT / "docs" / "evidence"
-    schema = json.loads(
-        (evidence_root / "manifest.schema.json").read_text(encoding="utf-8")
-    )
-    manifest_paths = [
-        evidence_root / "manifest.template.json",
-        *sorted(evidence_root.glob("*/manifest.json")),
-    ]
-    manifests = [
-        json.loads(path.read_text(encoding="utf-8")) for path in manifest_paths
-    ]
-    allowed_fields = set(schema["properties"])
-    required_fields = set(schema["required"])
-    check_schema = schema["properties"]["checks"]["items"]
-    allowed_check_fields = set(check_schema["properties"])
-    required_check_fields = set(check_schema["required"])
-    allowed_outcomes = set(check_schema["properties"]["outcome"]["enum"])
-    allowed_working_tree_states = set(
-        schema["properties"]["workingTreeState"]["enum"]
-    )
-    review_schema = schema["properties"]["ownerReview"]
-    allowed_review_statuses = set(
-        review_schema["properties"]["status"]["enum"]
-    )
+def test_governed_document_boundary_matches_repository_policy() -> None:
+    markdown = {
+        path.relative_to(REPO_ROOT).as_posix()
+        for path in REPO_ROOT.rglob("*.md")
+        if not {".git", "node_modules", ".artifacts", ".pytest_cache", "test-results"}
+        .intersection(path.parts)
+    }
 
-    for manifest in manifests:
-        assert required_fields <= set(manifest)
-        assert set(manifest) <= allowed_fields
-        assert manifest["schemaVersion"] == "1.0.0"
-        assert manifest["workingTreeState"] in allowed_working_tree_states
-        for check in manifest["checks"]:
-            assert required_check_fields <= set(check)
-            assert set(check) <= allowed_check_fields
-            assert check["outcome"] in allowed_outcomes
-
-    for path, manifest in zip(manifest_paths[1:], manifests[1:], strict=True):
-        directory = path.parent.name
-        if directory.startswith("gate-"):
-            assert manifest["gate"] == int(directory.removeprefix("gate-"))
-        assert manifest["liveProviderUsed"] is False
-        assert manifest["productionResourcesUsed"] is False
-        assert manifest["incrementalAiCostMinor"] == 0
-        review = manifest["ownerReview"]
-        assert review["status"] in allowed_review_statuses
-        if review["status"] == "APPROVED":
-            assert review["owner"]
-            assert review["decisionDate"]
+    assert markdown == {"ADVERTIFIED.md", "AGENTS.md"}
 
 
 def test_accepted_adrs_require_actual_people_and_dates() -> None:

@@ -1,35 +1,36 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { api, humanMessage } from '../api/client'
+import { bookingApi } from '../api/booking-client'
+import type { Booking } from '../api/booking-schemas'
+import { campaignApi } from '../api/campaign-client'
+import type { Campaign } from '../api/campaign-schemas'
+import { inventoryApi } from '../api/inventory-client'
+import type { InventoryProductPage } from '../api/inventory-schemas'
 import { opportunityApi } from '../api/opportunity-client'
-import type { HumanTask, Opportunity, Tenant, Workspace } from '../api/schemas'
+import type { CurrentUser, HumanTask, Tenant, Workspace } from '../api/schemas'
 import { useWorkspace } from '../auth/workspace-state'
-import { bookingViewerRoles } from '../booking/booking-roles'
-import { Icon, type IconName } from '../components/Icon'
-import { marketplaceViewerRoles } from '../marketplace/marketplace-roles'
+import { Icon } from '../components/Icon'
 import { LoadingState, MessageState } from '../components/PageState'
-import { formatDateTime, humanizeCode } from '../presentation/format'
-
-type Counts = {
-  clientAccounts: number | null
-  agencies: number | null
-  contacts: number | null
-}
+import { masterDataCodes } from '../generated/master-data-codes'
+import { formatMoney, formatNumber, humanizeCode } from '../presentation/format'
 
 type DashboardData = {
   tenant: Tenant
-  counts: Counts | null
-  opportunities: Opportunity[] | null
-  tasks: HumanTask[] | null
-  limitedSections: number
+  user: CurrentUser
+  campaigns: Campaign[]
+  bookings: Booking[]
+  tasks: HumanTask[]
+  inventory: InventoryProductPage | null
 }
 
-type DashboardMetricData = {
-  label: string
-  value: number | null
-  note: string
-  icon: IconName
-}
+const thumbnails = [
+  '/assets/media-inventory/out-of-home-real.jpg',
+  '/assets/media-inventory/digital-real.jpg',
+  '/assets/media-inventory/radio-real.jpg',
+  '/assets/media-inventory/print-real.jpg',
+  '/assets/media-inventory/television-real.jpg',
+]
 
 export function HomePage() {
   const { selected, loading } = useWorkspace()
@@ -41,7 +42,6 @@ export function HomePage() {
 function HomeData({ workspace }: { workspace: Workspace }) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [error, setError] = useState<string | null>(null)
-
   useEffect(() => {
     let active = true
     void loadDashboard(workspace.tenantId)
@@ -49,205 +49,236 @@ function HomeData({ workspace }: { workspace: Workspace }) {
       .catch((failure: unknown) => { if (active) setError(humanMessage(failure)) })
     return () => { active = false }
   }, [workspace.tenantId])
-
   if (error) return <MessageState title="Your workspace could not be opened" message={error} />
   if (!data) return <LoadingState label={`Preparing ${workspace.name}`} />
-  return <HomeContent data={data} roleCode={workspace.roleCode} />
+  return <ApprovedDashboard data={data} />
 }
 
 async function loadDashboard(tenantId: string): Promise<DashboardData> {
-  const tenant = await api.getTenant(tenantId)
-  const results = await Promise.allSettled([
-    api.getFoundationCounts(tenantId),
-    opportunityApi.list(tenantId),
-    opportunityApi.listTasks(tenantId),
-  ] as const)
-  return {
-    tenant,
-    counts: fulfilled(results[0]),
-    opportunities: fulfilled(results[1]),
-    tasks: fulfilled(results[2]),
-    limitedSections: results.filter(result => result.status === 'rejected').length,
-  }
+  const [tenant, userProfile, campaigns, bookings, tasks, inventory] = await Promise.all([
+    api.getTenant(tenantId),
+    api.getCurrentUser(),
+    campaignApi.list(tenantId).catch(() => []),
+    bookingApi.list(tenantId).catch(() => []),
+    opportunityApi.listTasks(tenantId).catch(() => []),
+    inventoryApi.search(tenantId, {}).catch(() => null),
+  ])
+  return { tenant, user: userProfile.user, campaigns, bookings, tasks, inventory }
 }
 
-function fulfilled<T>(result: PromiseSettledResult<T>): T | null {
-  return result.status === 'fulfilled' ? result.value : null
-}
+type DashboardView = ReturnType<typeof dashboardView>
 
-function buildMetrics(data: DashboardData): DashboardMetricData[] {
-  return [
-    { label: 'Active opportunities', value: data.opportunities?.length ?? null,
-      note: 'Commercial work in progress', icon: 'target' },
-    { label: 'Assigned actions', value: data.tasks?.length ?? null,
-      note: 'Human decisions waiting', icon: 'tasks' },
-    { label: 'Client accounts', value: data.counts?.clientAccounts ?? null,
-      note: 'Visible in this workspace', icon: 'users' },
-    { label: 'Contacts', value: data.counts?.contacts ?? null,
-      note: 'Available to your role', icon: 'profile' },
-  ]
-}
-
-function DashboardActions({ hasAssignedTask }: { hasAssignedTask: boolean }) {
-  return <div className="dashboard-hero-actions">
-    {hasAssignedTask && <Link className="primary-button" to="/tasks">
-      Review assigned actions <Icon name="arrow" /></Link>}
-    <Link className={hasAssignedTask ? 'secondary-button' : 'primary-button'}
-      to="/briefs/new"><Icon name="plus" /> Understand a new Brief</Link>
-  </div>
-}
-
-function HomeContent({ data, roleCode }: { data: DashboardData; roleCode: string }) {
-  const { tenant, opportunities, tasks } = data
-  const hasAssignedTask = Boolean(tasks?.length)
-  const recentOpportunities = useMemo(() => [...(opportunities ?? [])]
-    .sort((left, right) => right.updatedAtUtc.localeCompare(left.updatedAtUtc))
-    .slice(0, 5), [opportunities])
-  const metrics = buildMetrics(data)
-  return <section className="work-dashboard" aria-labelledby="home-title">
-    <header className="dashboard-command-header">
-      <div><p className="eyebrow">Commercial operations</p>
-        <h1 id="home-title">Work dashboard</h1>
-        <p>Decisions, campaign activity and commercial work for {tenant.tradingName}.</p></div>
-      <DashboardActions hasAssignedTask={hasAssignedTask} />
+function ApprovedDashboard({ data }: { data: DashboardData }) {
+  const view = dashboardView(data)
+  return <section className="approved-dashboard" aria-labelledby="home-title">
+    <header className="approved-dashboard-greeting">
+      <h1 id="home-title">Good morning, {firstName(data.user.displayName)} 👋</h1>
+      <p>Here&apos;s what&apos;s happening with your media.</p>
     </header>
-
-    <dl className="dashboard-context-line" aria-label="Workspace market context">
-      <div><dt>Workspace</dt><dd>{tenant.tradingName}</dd></div>
-      <div><dt>Currency</dt><dd>{tenant.currencyCode}</dd></div>
-      <div><dt>Time zone</dt><dd>{tenant.timeZone}</dd></div>
-      <div><dt>Tax status</dt><dd>{humanizeCode(tenant.vatStatusCode, true)}</dd></div>
-    </dl>
-
-    {data.limitedSections > 0 && <p className="dashboard-access-note">
-      Some work queues are not available to this role. Available information is shown below.
-    </p>}
-
-    <div className="dashboard-metrics" aria-label="Workspace summary">
-      {metrics.map(metric => <DashboardMetric key={metric.label} {...metric} />)}
-    </div>
-
-    <div className="dashboard-main-grid">
-      <WorkQueue tasks={tasks} />
-      <OpportunityActivity opportunities={recentOpportunities} restricted={opportunities === null} />
-    </div>
-
-    <div className="dashboard-lower-grid">
-      <StageDistribution opportunities={opportunities} />
-      <QuickActions roleCode={roleCode} />
-    </div>
+    <DashboardKpis data={data} view={view} />
+    <DashboardGrid data={data} view={view} />
+    <GettingStarted />
+    <AssistantInsights campaigns={view.activeCampaigns.length}
+      tasks={data.tasks.length} inventory={data.inventory?.items.length ?? 0} />
   </section>
 }
 
-function DashboardMetric({ label, value, note, icon }: {
-  label: string
-  value: number | null
-  note: string
-  icon: IconName
+function DashboardKpis({ data, view }: { data: DashboardData; view: DashboardView }) {
+  return <div className="approved-kpi-grid">
+    <KpiCard label="Active Campaigns" value={String(view.activeCampaigns.length)}
+      trend={`${data.campaigns.length} total campaigns`}
+      points="4,18 16,29 28,20 40,35 52,14 64,24 76,8" />
+    <KpiCard label="Total Investment"
+      value={formatMoney(view.totalInvestmentMinor, view.currency, 0)}
+      trend="From persisted booking lines"
+      points="4,32 16,27 28,29 40,20 52,24 64,15 76,27" />
+    <KpiCard label="Planned Reach"
+      value={view.reach > 0 ? compact(view.reach) : '—'}
+      trend={view.reach > 0
+        ? 'From reviewed campaign evidence' : 'No reviewed reach evidence yet'}
+      points="4,29 16,19 28,24 40,14 52,18 64,9 76,20" />
+    <KpiCard label="Avg. CPM"
+      value={view.avgCpm === null
+        ? '—' : formatMoney(Math.round(view.avgCpm * 100), view.currency, 2)}
+      trend={view.avgCpm === null
+        ? 'Waiting for spend + impressions' : 'Calculated from persisted evidence'}
+      points="4,18 16,32 28,17 40,24 52,16 64,23 76,10" />
+  </div>
+}
+
+function DashboardGrid({ data, view }: { data: DashboardData; view: DashboardView }) {
+  return <div className="approved-dashboard-grid">
+    <ActiveCampaignsPanel campaigns={view.recentCampaigns}
+      totalCampaigns={data.campaigns.length} />
+    <DashboardCentre view={view} />
+    <DashboardRight data={data} campaigns={view.recentCampaigns} />
+  </div>
+}
+
+function ActiveCampaignsPanel({ campaigns, totalCampaigns }: {
+  campaigns: Campaign[]
+  totalCampaigns: number
 }) {
-  return <article className="dashboard-metric">
-    <span className="dashboard-metric-icon"><Icon name={icon} /></span>
-    <div><p>{label}</p><strong>{value ?? 'Restricted'}</strong><small>{value === null
-      ? 'Not available to your role' : note}</small></div>
-  </article>
+  return <Panel className="approved-active-campaigns" title="Active Campaigns"
+    action={<Link to="/campaigns">View all</Link>}>
+    {campaigns.length === 0
+      ? <Empty message="No campaigns yet." />
+      : campaigns.map((campaign, index) =>
+          <CampaignRow key={campaign.id} campaign={campaign} index={index} />)}
+    <footer>{campaigns.length > 0 &&
+      <span>Showing {campaigns.length} of {totalCampaigns} campaigns</span>}
+      <Link to="/campaigns">Go to campaigns →</Link></footer>
+  </Panel>
 }
 
-function WorkQueue({ tasks }: { tasks: HumanTask[] | null }) {
-  return <article className="workbench-panel">
-    <header className="workbench-panel-heading"><div><p className="eyebrow">Your action queue</p>
-      <h2>Decisions that need a person</h2><p>Only assigned, persisted checkpoints appear here.</p></div>
-      {tasks && <span className="status-chip status-warning">{tasks.length} open</span>}</header>
-    {tasks === null ? <RestrictedPanel /> : tasks.length === 0
-      ? <div className="dashboard-empty"><span>✓</span><div><strong>You are clear</strong>
-          <p>No decisions are currently assigned to you.</p></div></div>
-      : <div className="dashboard-queue">{tasks.slice(0, 5).map(task => <Link key={task.id}
-          to={task.briefId ? `/briefs/${task.briefId}` : `/opportunities/${task.opportunityId}`}>
-          <span className="queue-mark"><Icon name="tasks" /></span><span><strong>{task.title}</strong>
-            <small>{task.whyItMatters}</small></span><em>{humanizeCode(task.taskType, true)}</em>
-        </Link>)}</div>}
-    {tasks && tasks.length > 5 && <Link className="panel-footer-link" to="/tasks">
-      View all assigned actions <Icon name="arrow" /></Link>}
-  </article>
+function DashboardCentre({ view }: { view: DashboardView }) {
+  return <div className="approved-dashboard-centre">
+    <Panel title="Investment by Channel"
+      action={<span className="approved-period-select">This month⌄</span>}>
+      <InvestmentChart rows={view.channelSpend} total={view.totalInvestmentMinor}
+        currency={view.currency} />
+    </Panel>
+    <Panel title="Top Inventory Updates">
+      {view.recentInventory.length === 0
+        ? <Empty message="No published inventory updates yet." />
+        : <div className="approved-inventory-updates">
+            {view.recentInventory.map(InventoryUpdate)}
+          </div>}
+      <Link className="approved-panel-link" to="/inventory">Go to inventory →</Link>
+    </Panel>
+  </div>
 }
 
-function OpportunityActivity({ opportunities, restricted }: {
-  opportunities: Opportunity[]
-  restricted: boolean
+function InventoryUpdate(item: DashboardView['recentInventory'][number], index: number) {
+  return <Link key={item.id} to={`/inventory/products/${item.id}`}>
+    <span className={`approved-update-icon tone-${index + 1}`}>
+      <Icon name={index === 0 ? 'brief' : index === 1 ? 'search' : 'inventory'} />
+    </span>
+    <div><strong>{item.name}</strong>
+      <small>{item.geography} · {humanizeCode(item.channel, true)}</small></div>
+    <em>{index === 0 ? 'NEW RATES' : 'AVAILABILITY'}</em>
+    <time>{relative(item.updatedAtUtc)}</time>
+  </Link>
+}
+
+function DashboardRight({ data, campaigns }: {
+  data: DashboardData
+  campaigns: Campaign[]
 }) {
-  return <article className="workbench-panel">
-    <header className="workbench-panel-heading"><div><p className="eyebrow">Recent activity</p>
-      <h2>Opportunity pipeline</h2><p>Latest persisted commercial work, ordered by change date.</p></div></header>
-    {restricted ? <RestrictedPanel /> : opportunities.length === 0
-      ? <div className="dashboard-empty"><span>→</span><div><strong>No opportunities yet</strong>
-          <p>Start with a supplied Brief or create an evidence-led opportunity.</p></div></div>
-      : <div className="opportunity-activity-list">{opportunities.map(item => <Link
-          to={`/opportunities/${item.id}`} key={item.id}>
-          <span><strong>{item.title}</strong><small>{item.objectiveSummary ??
-            item.problemSummary ?? 'Open the opportunity to review its commercial context.'}</small></span>
-          <span><em>{humanizeCode(item.stage, true)}</em><small>{formatDateTime(item.updatedAtUtc)}</small></span>
-        </Link>)}</div>}
-    {!restricted && <Link className="panel-footer-link" to="/opportunities">
-      Open opportunities <Icon name="arrow" /></Link>}
-  </article>
+  return <div className="approved-dashboard-right">
+    <Panel title="Recent Activity" action={<Link to="/campaigns">View all</Link>}>
+      <div className="approved-activity-list">
+        {campaigns.slice(0, 5).map((item, index) => <Link
+          to={`/campaigns/${item.id}`} key={item.id}>
+          <span className={`approved-activity-icon tone-${(index % 4) + 1}`}>✓</span>
+          <div><strong>{item.title}</strong>
+            <small>{humanizeCode(item.status, true)} · {relative(item.updatedAtUtc)}</small>
+          </div>
+        </Link>)}
+      </div>
+      {campaigns.length === 0 &&
+        <Empty message="Activity will appear as campaigns move." />}
+    </Panel>
+    <Panel title="Tasks Needing Attention" action={<Link to="/tasks">View all</Link>}>
+      <div className="approved-attention-list">{data.tasks.slice(0, 4).map(task =>
+        <Link to={task.briefId
+          ? `/briefs/${task.briefId}` : `/opportunities/${task.opportunityId}`}
+          key={task.id}>
+          <span>✓</span><div><strong>{task.title}</strong>
+            <small>{task.whyItMatters}</small></div><em>1</em>
+        </Link>)}</div>
+      {data.tasks.length === 0 && <Empty message="No tasks need your attention." />}
+    </Panel>
+  </div>
 }
 
-function StageDistribution({ opportunities }: { opportunities: Opportunity[] | null }) {
-  const stageCounts = new Map<string, number>()
-  for (const opportunity of opportunities ?? []) {
-    stageCounts.set(opportunity.stage, (stageCounts.get(opportunity.stage) ?? 0) + 1)
+function GettingStarted() {
+  return <div className="approved-help-row">
+    <article className="approved-getting-started">
+      <button type="button" aria-label="Dismiss">×</button>
+      <h2>Need help getting started?</h2>
+      <p>Create a brief, explore inventory or let Adverti Assistant guide you.</p>
+      <div><Link to="/briefs/new"><Icon name="brief" /><span>
+        <strong>Create Brief</strong><small>Start a new campaign brief</small>
+      </span></Link>
+      <Link to="/inventory"><Icon name="inventory" /><span>
+        <strong>Explore Inventory</strong><small>Search sites and rates</small>
+      </span></Link>
+      <Link to="/opportunities"><span className="spark">✦</span><span>
+        <strong>Ask Adverti</strong><small>Get evidence-led insights</small>
+      </span></Link></div>
+    </article>
+  </div>
+}
+
+function dashboardView(data: DashboardData) {
+  const activeCampaigns = data.campaigns
+    .filter(item => item.status !== masterDataCodes.lifecycleStatuses.completed &&
+      item.status !== masterDataCodes.lifecycleStatuses.cancelled)
+  const totalInvestmentMinor = data.bookings
+    .reduce((sum, item) => sum + (item.clientPriceMinor ?? 0), 0)
+  const currency = data.bookings.find(item => item.currency)?.currency ??
+    data.tenant.currencyCode
+  const reach = metricTotal(data.campaigns, masterDataCodes.performanceMetricTypes.reach)
+  const impressions = metricTotal(data.campaigns, masterDataCodes.performanceMetricTypes.impressions)
+  return {
+    activeCampaigns,
+    totalInvestmentMinor,
+    currency,
+    reach,
+    avgCpm: impressions > 0
+      ? totalInvestmentMinor / 100 * 1000 / impressions : null,
+    channelSpend: investmentByChannel(data.bookings),
+    recentCampaigns: [...data.campaigns]
+      .sort((a, b) => b.updatedAtUtc.localeCompare(a.updatedAtUtc)).slice(0, 5),
+    recentInventory: [...(data.inventory?.items ?? [])]
+      .sort((a, b) => b.updatedAtUtc.localeCompare(a.updatedAtUtc)).slice(0, 3),
   }
-  const stages = [...stageCounts.entries()].sort((left, right) => right[1] - left[1])
-  const maximum = Math.max(...stages.map(([, count]) => count), 1)
-  return <article className="workbench-panel">
-    <header className="workbench-panel-heading"><div><p className="eyebrow">Flow visibility</p>
-      <h2>Where work is sitting</h2><p>Opportunity counts by current commercial stage.</p></div></header>
-    {opportunities === null ? <RestrictedPanel /> : stages.length === 0
-      ? <div className="dashboard-empty"><span>0</span><div><strong>No stage activity yet</strong>
-          <p>The distribution will appear as real work enters the pipeline.</p></div></div>
-      : <div className="stage-distribution">{stages.map(([stage, count]) => <div key={stage}>
-          <span><strong>{humanizeCode(stage, true)}</strong><em>{count}</em></span>
-          <span className="stage-distribution-track"><i style={{ width: `${count / maximum * 100}%` }} /></span>
-        </div>)}</div>}
+}
+
+function KpiCard({ label, value, trend, points }: { label: string; value: string; trend: string; points: string }) {
+  return <article className="approved-kpi-card"><div><span>{label}</span><strong>{value}</strong><small>{trend}</small></div>
+    <svg viewBox="0 0 80 42" aria-hidden="true"><polyline points={points} /></svg></article>
+}
+
+function Panel({ title, action, children, className = '' }: { title: string; action?: ReactNode; children: ReactNode; className?: string }) {
+  return <article className={`approved-panel ${className}`}><header><h2>{title}</h2>{action}</header>{children}</article>
+}
+
+function CampaignRow({ campaign, index }: { campaign: Campaign; index: number }) {
+  const progress = progressFor(campaign.status)
+  return <Link className="approved-campaign-row" to={`/campaigns/${campaign.id}`}>
+    <img src={thumbnails[index % thumbnails.length]} alt="" /><div><strong>{campaign.title}</strong>
+      <small>{formatDateRange(campaign.startDate, campaign.endDate)}</small><em>{humanizeCode(campaign.status, true)}</em></div>
+    <span className="approved-progress-copy"><strong>{progress}%</strong><small>{progress >= 100 ? 'Completed' : 'On track'}</small></span>
+    <span className="approved-progress-track"><i style={{ width: `${progress}%` }} /></span><b>⋮</b>
+  </Link>
+}
+
+function InvestmentChart({ rows, total, currency }: { rows: Array<[string, number]>; total: number; currency: string }) {
+  const colors = ['#6538f5', '#2089ff', '#27bfd3', '#f7a72f', '#ef75aa', '#8794a8']
+  const gradient = rows.length === 0 ? '#eef1f7 0 100%' : buildGradient(rows, total, colors)
+  return <div className="approved-investment-chart"><div className="approved-donut" style={{ background: `conic-gradient(${gradient})` }}>
+    <span><strong>{formatMoney(total, currency, 0)}</strong><small>Total</small></span></div>
+    <div className="approved-channel-legend">{rows.length === 0 ? <Empty message="No booked spend by channel yet." /> : rows.map(([channel, amount], index) =>
+      <div key={channel}><span style={{ background: colors[index % colors.length] }} /><strong>{humanizeCode(channel, true)}</strong>
+        <small>{formatMoney(amount, currency, 0)} ({Math.round(amount / Math.max(total, 1) * 100)}%)</small></div>)}</div></div>
+}
+
+function AssistantInsights({ campaigns, tasks, inventory }: { campaigns: number; tasks: number; inventory: number }) {
+  return <article className="approved-assistant-insights"><header><span>✦</span><div><strong>Adverti Assistant Insights</strong><small>Evidence-led workspace signals</small></div></header>
+    <div><span className="insight-icon">◔</span><p><strong>{campaigns} active campaign{campaigns === 1 ? '' : 's'}</strong><small>Open campaign work that may need monitoring.</small></p></div>
+    <div><span className="insight-icon orange">⌘</span><p><strong>{inventory} inventory item{inventory === 1 ? '' : 's'} visible</strong><small>Published supply available to this workspace.</small></p></div>
+    <div><span className="insight-icon purple">◆</span><p><strong>{tasks} task{tasks === 1 ? '' : 's'} waiting</strong><small>Only persisted human actions are counted.</small></p></div>
   </article>
 }
 
-function QuickActions({ roleCode }: { roleCode: string }) {
-  const actions = availableQuickActions(roleCode)
-  return <article className="workbench-panel quick-actions-panel">
-    <header className="workbench-panel-heading"><div><p className="eyebrow">Start work</p>
-      <h2>Common actions</h2><p>Enter at the point supported by the work you already have.</p></div></header>
-    <div className="dashboard-quick-actions">{actions.map(action => <Link to={action.to} key={action.to}>
-      <span><Icon name={action.icon} /></span><div><strong>{action.title}</strong><small>{action.copy}</small></div>
-      <Icon name="arrow" /></Link>)}</div>
-  </article>
-}
-
-type QuickAction = {
-  to: string
-  icon: IconName
-  title: string
-  copy: string
-}
-
-function availableQuickActions(roleCode: string): QuickAction[] {
-  const actions: QuickAction[] = [
-    { to: '/briefs/new', icon: 'brief', title: 'Understand a client Brief',
-      copy: 'Paste the original request and let Advertified structure what is clear.' },
-    { to: '/inventory', icon: 'inventory', title: 'Review media inventory',
-      copy: 'Search published supply, evidence, rates and availability.' },
-  ]
-  if (marketplaceViewerRoles.has(roleCode)) actions.push({
-    to: '/marketplace', icon: 'marketplace', title: 'Open supplier marketplace',
-    copy: 'Discover published supplier snapshots and manage RFQs.',
-  })
-  if (bookingViewerRoles.has(roleCode)) actions.push({
-    to: '/bookings', icon: 'reservation', title: 'Review bookings',
-    copy: 'Move selected proposal lines through explicit supplier confirmation.',
-  })
-  return actions
-}
-
-function RestrictedPanel() {
-  return <div className="dashboard-empty"><span>—</span><div><strong>Not available to this role</strong>
-    <p>The rest of your workspace remains available.</p></div></div>
-}
+function Empty({ message }: { message: string }) { return <p className="approved-empty">{message}</p> }
+function metricTotal(campaigns: Campaign[], metric: string) { return campaigns.flatMap(c => c.performanceEvidence).flatMap(e => e.metrics).filter(m => m.metricType === metric).reduce((sum, m) => sum + m.value, 0) }
+function investmentByChannel(bookings: Booking[]) { const totals = new Map<string, number>(); for (const item of bookings) totals.set(item.channel, (totals.get(item.channel) ?? 0) + (item.clientPriceMinor ?? 0)); return [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6) }
+function compact(value: number) { if (value >= 1_000_000) return `${formatNumber(value / 1_000_000, 1)}M`; if (value >= 1_000) return `${formatNumber(value / 1_000, 1)}K`; return formatNumber(value) }
+function progressFor(status: string) { const key = status.toUpperCase(); if (key === masterDataCodes.lifecycleStatuses.completed) return 100; if (key === masterDataCodes.lifecycleStatuses.live) return 78; if (key === masterDataCodes.lifecycleStatuses.ready) return 60; if (key === masterDataCodes.lifecycleStatuses.creativePending) return 50; if (key === masterDataCodes.lifecycleStatuses.booked) return 40; if (key === masterDataCodes.lifecycleStatuses.planned) return 20; return 8 }
+function relative(value: string) { const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000)); if (minutes < 60) return `${minutes}m ago`; const hours = Math.round(minutes / 60); if (hours < 24) return `${hours}h ago`; return `${Math.round(hours / 24)}d ago` }
+function formatDateRange(start: string, end: string) { return `${new Date(start).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} – ${new Date(end).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}` }
+function buildGradient(rows: Array<[string, number]>, total: number, colors: string[]) { let cursor = 0; return rows.map(([, amount], index) => { const start = cursor; cursor += amount / Math.max(total, 1) * 100; return `${colors[index % colors.length]} ${start}% ${cursor}%` }).join(', ') }
+function firstName(displayName: string) { return displayName.trim().split(/\s+/)[0] || 'there' }

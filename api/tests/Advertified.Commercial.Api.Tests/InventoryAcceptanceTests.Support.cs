@@ -1,11 +1,15 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -43,8 +47,16 @@ public sealed partial class InventoryAcceptanceTests
         builder.UseSetting("InventoryProtection:ObjectStoreMode", "InMemory");
         builder.UseSetting("InventoryProtection:ScannerMode", "Deterministic");
         builder.UseSetting("InventoryExtraction:Mode", "Deterministic");
+        builder.UseSetting("InventoryEmbedding:Mode", "Deterministic");
         builder.UseSetting("Logging:LogLevel:Default", "Warning");
         builder.UseSetting("Logging:LogLevel:Microsoft.EntityFrameworkCore", "Warning");
+        builder.ConfigureLogging(logging => logging.AddConsole());
+        builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<IInventoryDocumentExtractionAdapter>();
+            services.AddScoped<IInventoryDocumentExtractionAdapter,
+                InventoryWorkflowFixtureExtractionAdapter>();
+        });
     });
 
     private static async Task SeedAsync(string connectionString)

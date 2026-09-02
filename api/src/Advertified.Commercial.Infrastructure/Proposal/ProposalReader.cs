@@ -11,6 +11,30 @@ public sealed class ProposalReader(
     PlanningRecordStore planningStore,
     ITenantAuthorizer authorizer) : IProposalReader
 {
+    public async Task<IReadOnlyList<ProposalSummaryView>> ListAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        CancellationToken cancellationToken)
+    {
+        await RequireAsync(actorId, tenantId,
+            MasterDataReferences.Permissions.ProposalView, cancellationToken);
+        var canPrepare = await CanPrepareAsync(actorId, tenantId, cancellationToken);
+        await using var transaction = await store.BeginSessionAsync(
+            actorId, tenantId, cancellationToken);
+        var rows = await store.ListProposalsAsync(tenantId, cancellationToken);
+        var visible = rows.Where(proposal => canPrepare ||
+            (proposal.RecipientUserId == actorId.Value && proposal.Status is
+                (MasterDataCodes.LifecycleStatuses.Sent or
+                 MasterDataCodes.LifecycleStatuses.Selected or
+                 MasterDataCodes.LifecycleStatuses.Declined)))
+            .Select(proposal => new ProposalSummaryView(
+                proposal.Id, proposal.BriefId, proposal.VersionNumber,
+                proposal.Title, proposal.Status, proposal.CreatedAtUtc))
+            .ToArray();
+        await transaction.CommitAsync(cancellationToken);
+        return visible;
+    }
+
     public async Task<ProposalVersionView> GetAsync(
         ActorId actorId,
         TenantId tenantId,

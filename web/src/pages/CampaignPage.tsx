@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
+import { BriefVersionFlowBinding } from '../campaign-flow/CampaignFlowBindings'
 import { BookingReadinessSection } from '../campaign/BookingReadinessSection'
 import { CampaignDeliveryRail } from '../campaign/CampaignDeliveryRail'
 import { CampaignFundingSummary } from '../campaign/CampaignFundingSummary'
@@ -65,8 +66,10 @@ function CampaignRecord({ tenantId, campaignId, token, roleCode }: {
     return <MessageState title="Campaign could not be opened" message={state.error} />
   }
   if (!state.model) return <LoadingState label="Loading campaign delivery" />
-  return <CampaignWorkspace tenantId={tenantId} token={token} roleCode={roleCode}
-    model={state.model} busy={state.busy} error={state.error} run={state.run} />
+  return <><BriefVersionFlowBinding tenantId={tenantId}
+      briefVersionId={state.model.campaign.briefVersionId} />
+    <CampaignWorkspace tenantId={tenantId} token={token} roleCode={roleCode}
+      model={state.model} busy={state.busy} error={state.error} run={state.run} /></>
 }
 
 type WorkspaceProps = {

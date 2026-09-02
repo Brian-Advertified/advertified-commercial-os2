@@ -28,8 +28,11 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         await DisposableDatabaseRoles.ProvisionAsync(connectionString);
         await SeedAsync(connectionString);
         await using var factory = CreateFactory(
-            connectionString, OperatorId, enableEmailAutomation: true);
+            connectionString, OperatorId, enableEmailAutomation: true,
+            configureServices: ConfigureDeterministicEmailInventorySelection);
+        await using var reviewerFactory = CreateFactory(connectionString, ReviewerId);
         using var client = factory.CreateClient();
+        using var reviewer = reviewerFactory.CreateClient();
         var provider = factory.Services.GetRequiredService<DeterministicEmailProviderClient>();
 
         await ConfigureMailboxAsync(client);
@@ -42,13 +45,14 @@ public sealed partial class CanonicalPlanningAcceptanceTests
 
         using var receipt = await SendWebhookAsync(
             client, "event-ooh-001", "email-ooh-001");
-        Assert.Equal("SENT", receipt.RootElement.GetProperty("status").GetString());
-        Assert.False(receipt.RootElement.GetProperty("duplicate").GetBoolean());
         var inboundEmailId = receipt.RootElement.GetProperty("inboundEmailId").GetGuid();
-        var automationRunId = receipt.RootElement.GetProperty("automationRunId").GetGuid();
-
         using var detail = await GetJsonAsync(client, Path(
             $"email-automation/messages/{inboundEmailId}"));
+        Assert.True(receipt.RootElement.GetProperty("status").GetString() == "SENT",
+            detail.RootElement.GetRawText());
+        Assert.False(receipt.RootElement.GetProperty("duplicate").GetBoolean());
+        var automationRunId = receipt.RootElement.GetProperty("automationRunId").GetGuid();
+
         var run = detail.RootElement.GetProperty("run");
         Assert.Equal(automationRunId, run.GetProperty("id").GetGuid());
         Assert.Equal("OOH_ONLY", run.GetProperty("campaignMode").GetString());
@@ -89,6 +93,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(delivery.Attachment),
             StringComparison.Ordinal);
         await AssertAutomationConsequencesAsync(connectionString, automationRunId);
+        await AssertExternalDecisionRecordingAsync(client, reviewer, run);
 
         using var duplicate = await SendWebhookAsync(
             client, "event-ooh-duplicate", "email-ooh-001");
@@ -344,7 +349,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         Media: OOH billboard
         Measurement: Qualified enquiries
         Constraints: OOH only
-        Including VAT
+        Client is VAT registered.
         """;
 
     private const string IncompleteBriefBody = """
@@ -356,7 +361,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         Media: OOH billboard
         Measurement: Qualified enquiries
         Constraints: OOH only
-        Including VAT
+        Client is VAT registered.
         """;
 
     private const string MultiChannelBriefBody = """
@@ -369,6 +374,6 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         Media: OOH billboard, Radio
         Measurement: Qualified enquiries
         Constraints: Include radio support
-        Including VAT
+        Client is VAT registered.
         """;
 }

@@ -85,6 +85,11 @@ public sealed class CampaignModePolicy
         IReadOnlyList<MediaAllocationView> allocations)
     {
         var definition = Require(mode);
+        if (allocations.Any(allocation =>
+                !activeChannels.Contains(allocation.Channel, StringComparer.Ordinal)))
+        {
+            throw new ArgumentException("Choose an active media channel.");
+        }
         if (definition.AllowedChannels.Length > 0 && allocations.Any(allocation =>
                 !definition.AllowedChannels.Contains(
                     allocation.Channel, StringComparer.Ordinal)))

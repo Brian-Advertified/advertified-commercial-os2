@@ -6,6 +6,7 @@ import { proposalApi } from '../api/proposal-client'
 import type { Proposal, ProposalApprover, ProposalRecipient, ProposalUpdateInput } from '../api/proposal-schemas'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
+import { BriefVersionFlowBinding } from '../campaign-flow/CampaignFlowBindings'
 import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { ProposalAgencyActions } from '../proposal/ProposalAgencyActions'
@@ -46,7 +47,9 @@ function ProposalRecord(context: ProposalContext) {
     return <MessageState title="Proposal could not be opened" message={state.error} />
   }
   if (!state.proposal) return <LoadingState label="Loading proposal" />
-  return <ProposalContent {...context} {...state} proposal={state.proposal} />
+  return <><BriefVersionFlowBinding tenantId={context.tenantId}
+      briefVersionId={state.proposal.briefVersionId} />
+    <ProposalContent {...context} {...state} proposal={state.proposal} /></>
 }
 
 function useProposalRecord({ tenantId, proposalId, canPrepare }: ProposalContext) {
@@ -130,7 +133,14 @@ function AgencyProposalContent(props: ProposalContentProps) {
       onReject={reason => act(() => proposalApi.rejectApproval(tenantId, proposal, reason, token))}
       onRender={() => act(() => proposalApi.render(tenantId, proposal, token))}
       onShare={recipientUserId => act(() => proposalApi.share(
-        tenantId, proposal, recipientUserId, token))} /></div>
+        tenantId, proposal, recipientUserId, token))}
+      onRecordExternalDecision={(optionId, evidenceReference, reason) => act(() =>
+        proposalApi.recordExternalDecision(tenantId, proposal, {
+          optionId,
+          declined: optionId === null,
+          evidenceReference,
+          reason: reason || null,
+        }, token))} /></div>
   </>
 }
 
@@ -212,7 +222,10 @@ function ProposalFundingNextStep({ proposal, canPrepare }: {
     <h2>{canPrepare ? 'Continue with purchase order and funding' : 'The selected option is ready for funding'}</h2>
     <p>{canPrepare
       ? 'Funding remains tied to this exact option and approved commercial version.'
-      : 'The agency can now reconcile the purchase order and payment before campaign delivery begins.'}</p></div>
+      : 'The agency can now reconcile the purchase order and payment before campaign delivery begins.'}</p>
+    {canPrepare && proposal.decision?.recordedForExternalParty && <small>
+      Verified external reply from {proposal.decision.externalPartyEmail} · Evidence: {proposal.decision.evidenceReference}
+    </small>}</div>
     {canPrepare
       ? <Link className="primary-button" to={`/funding?${query}`}>Open funding <span aria-hidden="true">→</span></Link>
       : <span className="status-chip status-positive">Selection retained</span>}

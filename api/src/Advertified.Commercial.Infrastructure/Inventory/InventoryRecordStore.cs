@@ -220,7 +220,12 @@ public sealed partial class InventoryRecordStore(
         SELECT candidate_id AS "CandidateId", field_name AS "FieldName",
             raw_value AS "RawValue", normalized_value AS "NormalizedValue",
             transformation_code AS "Transformation", source_locator AS "SourceLocator",
-            source_hash AS "SourceHash"
+            source_hash AS "SourceHash", evidence_basis_code AS "EvidenceBasis",
+            verification_state_code AS "VerificationState",
+            required_action_code AS "RequiredAction",
+            captured_at_utc AS "CapturedAtUtc", effective_on AS "EffectiveOn",
+            fresh_until AS "FreshUntil", extraction_method_code AS "ExtractionMethod",
+            extraction_confidence AS "ExtractionConfidence"
         FROM commercial.inventory_candidate_fields
         """;
 }

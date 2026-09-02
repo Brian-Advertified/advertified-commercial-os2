@@ -12,6 +12,10 @@ public static class ProposalEndpoints
         var group = endpoints.MapGroup("/api/v1/tenants/{tenantId:guid}")
             .WithTags("Proposals and client decisions")
             .RequireAuthorization();
+        group.MapGet("/proposals", ListAsync)
+            .WithName("ListProposals")
+            .Produces<IReadOnlyList<ProposalSummaryView>>()
+            .WithQueryProblems();
         group.MapGet("/briefs/{briefId:guid}/approved-plans", ListApprovedPlansAsync)
             .WithName("ListApprovedPlansForProposal")
             .Produces<IReadOnlyList<ApprovedPlanChoiceView>>()
@@ -51,6 +55,12 @@ public static class ProposalEndpoints
             .WithName("ShareProposal")
             .Produces<ProposalVersionView>()
             .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
+            .WithCommandProblems(requiresVersion: true);
+        group.MapPost(
+                "/proposal-versions/{proposalVersionId:guid}:record-external-decision",
+                RecordExternalDecisionAsync)
+            .WithName("RecordExternalProposalDecision")
+            .Produces<ProposalVersionView>()
             .WithCommandProblems(requiresVersion: true);
         group.MapPost("/proposal-versions/{proposalVersionId:guid}:select-option", SelectAsync)
             .WithName("SelectProposalOption").Produces<ProposalVersionView>()
@@ -121,6 +131,19 @@ public static class ProposalEndpoints
             (envelope, token) => commands.ShareAsync(proposalVersionId, envelope, token),
             cancellationToken);
 
+    private static Task<IResult> RecordExternalDecisionAsync(
+        Guid tenantId,
+        Guid proposalVersionId,
+        RecordExternalProposalDecisionCommand command,
+        HttpContext context,
+        ICurrentIdentity identity,
+        IProposalCommands commands,
+        TimeProvider clock,
+        CancellationToken cancellationToken) => ExecuteAsync(
+            tenantId, command, context, identity, clock, true,
+            (envelope, token) => commands.RecordExternalDecisionAsync(
+                proposalVersionId, envelope, token), cancellationToken);
+
     private static Task<IResult> SelectAsync(
         Guid tenantId, Guid proposalVersionId, SelectProposalOptionCommand command,
         HttpContext context, ICurrentIdentity identity, IProposalCommands commands,
@@ -147,6 +170,12 @@ public static class ProposalEndpoints
         Guid tenantId, ICurrentIdentity identity,
         IProposalReader reader, CancellationToken cancellationToken) =>
         Results.Ok(await reader.ListRecipientsAsync(
+            identity.ActorId, new TenantId(tenantId), cancellationToken));
+
+    private static async Task<IResult> ListAsync(
+        Guid tenantId, ICurrentIdentity identity,
+        IProposalReader reader, CancellationToken cancellationToken) =>
+        Results.Ok(await reader.ListAsync(
             identity.ActorId, new TenantId(tenantId), cancellationToken));
 
     private static async Task<IResult> GetAsync(

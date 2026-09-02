@@ -1,5 +1,6 @@
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Foundation;
+using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Governance;
 
 namespace Advertified.Commercial.Application.Proposal;
@@ -52,6 +53,12 @@ public sealed record RecordAutomatedProposalDeliveryCommand(
     string RecipientEmail,
     string ProviderMessageId);
 
+public sealed record RecordExternalProposalDecisionCommand(
+    Guid? OptionId,
+    bool Declined,
+    string EvidenceReference,
+    string? Reason);
+
 public interface IProposalCommands
 {
     Task<CommandResult<ProposalVersionView>> GenerateAsync(
@@ -94,6 +101,11 @@ public interface IProposalCommands
         CommandEnvelope<RecordAutomatedProposalDeliveryCommand> envelope,
         CancellationToken cancellationToken);
 
+    Task<CommandResult<ProposalVersionView>> RecordExternalDecisionAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<RecordExternalProposalDecisionCommand> envelope,
+        CancellationToken cancellationToken);
+
     Task<CommandResult<ProposalVersionView>> SelectOptionAsync(
         Guid proposalVersionId,
         CommandEnvelope<SelectProposalOptionCommand> envelope,
@@ -107,6 +119,11 @@ public interface IProposalCommands
 
 public interface IProposalReader
 {
+    Task<IReadOnlyList<ProposalSummaryView>> ListAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        CancellationToken cancellationToken);
+
     Task<ProposalVersionView> GetAsync(
         ActorId actorId,
         TenantId tenantId,
@@ -136,6 +153,14 @@ public interface IProposalReader
         CancellationToken cancellationToken);
 }
 
+public sealed record ProposalSummaryView(
+    Guid Id,
+    Guid BriefId,
+    int VersionNumber,
+    string Title,
+    string Status,
+    DateTimeOffset CreatedAtUtc);
+
 public sealed record ProposalRecipientView(
     Guid UserId,
     string DisplayName,
@@ -163,6 +188,33 @@ public sealed record ProposalRunningPeriodView(
     DateOnly Start,
     DateOnly End);
 
+public sealed record ProposalInventoryLineView(
+    Guid InventoryTenantId,
+    Guid? MarketplaceListingVersionId,
+    Guid InventoryProductId,
+    Guid ProductVersionId,
+    Guid RateId,
+    Guid? AvailabilityId,
+    string Name,
+    string Channel,
+    string Geography,
+    IReadOnlyList<ProposalRunningPeriodView> RunningPeriods,
+    int Quantity,
+    long ClientPriceMinor,
+    long FeesMinor,
+    long VatMinor,
+    string Availability,
+    string RateFreshness,
+    string SupplyConfidence,
+    string SupplySource,
+    DateTimeOffset? LastConfirmedAtUtc,
+    IReadOnlyList<string> Uncertainties,
+    InventorySupplierCommercialValues? SupplierCommercial = null,
+    InventoryCommercialTermsValues? CommercialTerms = null,
+    InventoryDeliverableValues? Deliverable = null,
+    InventorySpatialValues? Spatial = null,
+    Guid? LogoAssetId = null);
+
 public sealed record ProposalOptionView(
     Guid Id,
     string Label,
@@ -174,7 +226,8 @@ public sealed record ProposalOptionView(
     int DisplayOrder,
     IReadOnlyList<string> Channels,
     IReadOnlyList<ProposalRunningPeriodView> RunningPeriods,
-    IReadOnlyList<string> InventoryNames);
+    IReadOnlyList<string> InventoryNames,
+    IReadOnlyList<ProposalInventoryLineView> Inventory);
 
 public sealed record ProposalDocumentView(
     Guid Id,
@@ -188,7 +241,10 @@ public sealed record ProposalDecisionView(
     Guid? OptionId,
     string? Reason,
     Guid DecidedBy,
-    DateTimeOffset DecidedAtUtc);
+    DateTimeOffset DecidedAtUtc,
+    bool RecordedForExternalParty,
+    string? ExternalPartyEmail,
+    string? EvidenceReference);
 
 public sealed record ProposalVersionView(
     Guid Id,

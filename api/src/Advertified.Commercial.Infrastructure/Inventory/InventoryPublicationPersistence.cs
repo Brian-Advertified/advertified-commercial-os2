@@ -83,30 +83,66 @@ internal static class InventoryPublicationPersistence
                 INSERT INTO commercial.inventory_product_versions (
                     id, tenant_id, product_id, version_number, name, channel_code,
                     product_type_code, geography, address, latitude, longitude,
-                    extension_json, verification_code, source_import_id,
+                    description, extension_json, audience_profile_json, deliverable_json,
+                    spatial_json, coverage_geometry, catchment_geometry, route_geometry,
+                    direction_geometry, verification_code, source_import_id,
                     source_candidate_id, published_by, published_at_utc)
                 SELECT value."versionId", {tenantId.Value}, value."productId",
                     value."versionNumber", value."name", value."channel",
                     value."productType", value."geography", value."address",
-                    value."latitude", value."longitude", value."extensionJson"::jsonb,
+                    value."latitude", value."longitude", value."description",
+                    value."extensionJson"::jsonb, value."audienceProfileJson"::jsonb,
+                    value."deliverableJson"::jsonb, value."spatialJson"::jsonb,
+                    CASE WHEN value."coverageGeoJson" IS NULL THEN NULL ELSE
+                        ST_Multi(ST_SetSRID(ST_GeomFromGeoJSON(value."coverageGeoJson"), 4326)) END,
+                    CASE WHEN value."catchmentGeoJson" IS NULL THEN NULL ELSE
+                        ST_Multi(ST_SetSRID(ST_GeomFromGeoJSON(value."catchmentGeoJson"), 4326)) END,
+                    CASE WHEN value."routeGeoJson" IS NULL THEN NULL ELSE
+                        ST_Multi(ST_SetSRID(ST_GeomFromGeoJSON(value."routeGeoJson"), 4326)) END,
+                    CASE WHEN value."directionGeoJson" IS NULL THEN NULL ELSE
+                        ST_SetSRID(ST_GeomFromGeoJSON(value."directionGeoJson"), 4326) END,
                     {MasterDataCodes.VerificationLevels.HumanVerified}, {importId},
                     value."candidateId", {publishedBy}, {now}
                 FROM jsonb_to_recordset({payload}::jsonb) AS value(
                     "productId" uuid, "versionId" uuid, "versionNumber" integer,
                     "candidateId" uuid, "name" text, "channel" text,
                     "productType" text, "geography" text, "address" text,
-                    "latitude" numeric, "longitude" numeric, "extensionJson" text);
+                    "latitude" numeric, "longitude" numeric, "description" text,
+                    "extensionJson" text, "audienceProfileJson" text,
+                    "deliverableJson" text, "spatialJson" text,
+                    "coverageGeoJson" text, "catchmentGeoJson" text,
+                    "routeGeoJson" text, "directionGeoJson" text);
 
                 INSERT INTO commercial.inventory_rates (
                     id, tenant_id, product_version_id, rate_type_code,
-                    currency_code, amount_minor, source_locator)
+                    currency_code, amount_minor, effective_from, effective_to,
+                    vat_treatment_code, commercial_terms_json, source_locator)
                 SELECT value."rateId", {tenantId.Value}, value."versionId",
                     value."rateType", value."currency", value."rateAmountMinor",
-                    value."sourceLocator"
+                    value."rateValidFrom", value."rateValidTo", value."vatTreatment",
+                    value."commercialTermsJson"::jsonb, value."sourceLocator"
                 FROM jsonb_to_recordset({payload}::jsonb) AS value(
                     "rateId" uuid, "versionId" uuid, "rateType" text,
                     "currency" text, "rateAmountMinor" bigint,
-                    "sourceLocator" text);
+                    "rateValidFrom" date, "rateValidTo" date, "vatTreatment" text,
+                    "commercialTermsJson" text, "sourceLocator" text);
+
+                INSERT INTO commercial.inventory_product_points_of_interest (
+                    id, tenant_id, product_version_id, name, category, location,
+                    source_import_id)
+                SELECT gen_random_uuid(), {tenantId.Value}, value."versionId",
+                    poi."name", poi."category",
+                    CASE WHEN poi."latitude" IS NULL OR poi."longitude" IS NULL THEN NULL
+                        ELSE ST_SetSRID(ST_MakePoint(
+                            poi."longitude", poi."latitude"), 4326)::geography END,
+                    {importId}
+                FROM jsonb_to_recordset({payload}::jsonb) AS value(
+                    "versionId" uuid, "spatialJson" text)
+                CROSS JOIN LATERAL jsonb_to_recordset(
+                    COALESCE(value."spatialJson"::jsonb->'pointsOfInterest', '[]'::jsonb))
+                    AS poi("name" text, "category" text,
+                        "latitude" numeric, "longitude" numeric)
+                WHERE value."spatialJson" IS NOT NULL;
 
                 INSERT INTO commercial.inventory_availability (
                     id, tenant_id, product_version_id, availability_code,
@@ -125,7 +161,39 @@ internal static class InventoryPublicationPersistence
                     value."mediaType", {importId}
                 FROM jsonb_to_recordset({payload}::jsonb) AS value(
                     "assetId" uuid, "versionId" uuid, "assetType" text,
-                    "objectKey" text, "sourceHash" text, "mediaType" text);
+                    "objectKey" text, "sourceHash" text, "mediaType" text)
+                WHERE value."assetId" IS NOT NULL;
+
+                INSERT INTO commercial.inventory_packages (
+                    id, tenant_id, supplier_id, package_code, version_number, name,
+                    rate_id, discount_rule, conditions_json, source_import_id)
+                SELECT value."packageId", {tenantId.Value}, {supplierId},
+                    value."packageCode",
+                    COALESCE((SELECT MAX(existing.version_number) + 1
+                        FROM commercial.inventory_packages existing
+                        WHERE existing.tenant_id = {tenantId.Value}
+                          AND existing.supplier_id = {supplierId}
+                          AND existing.package_code = value."packageCode"), 1),
+                    value."packageName", value."rateId", value."packageDiscountRule",
+                    value."packageConditionsJson"::jsonb, {importId}
+                FROM jsonb_to_recordset({payload}::jsonb) AS value(
+                    "packageId" uuid, "packageCode" text, "packageName" text,
+                    "rateId" uuid, "packageDiscountRule" text,
+                    "packageConditionsJson" text)
+                WHERE value."packageId" IS NOT NULL;
+
+                INSERT INTO commercial.inventory_package_components (
+                    id, tenant_id, package_id, product_id)
+                SELECT gen_random_uuid(), {tenantId.Value}, value."packageId", product.id
+                FROM jsonb_to_recordset({payload}::jsonb) AS value(
+                    "packageId" uuid, "packageComponentCodesJson" text)
+                CROSS JOIN LATERAL jsonb_array_elements_text(
+                    value."packageComponentCodesJson"::jsonb) component(code)
+                JOIN commercial.inventory_products product
+                  ON product.tenant_id = {tenantId.Value}
+                 AND product.supplier_id = {supplierId}
+                 AND product.supplier_product_code = component.code
+                WHERE value."packageId" IS NOT NULL;
                 """, cancellationToken);
 
             var changed = await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
@@ -143,8 +211,54 @@ internal static class InventoryPublicationPersistence
             {
                 throw new VersionConflictException();
             }
+            await DetectExactDuplicateCandidatesAsync(
+                dbContext, tenantId, batch.Select(item => item.ProductId).ToArray(),
+                now, cancellationToken);
         }
     }
+
+    private static Task<int> DetectExactDuplicateCandidatesAsync(
+        GovernanceDbContext dbContext,
+        TenantId tenantId,
+        Guid[] productIds,
+        DateTimeOffset now,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO commercial.inventory_duplicate_candidates (
+                id, tenant_id, left_product_id, right_product_id,
+                left_product_version_id, right_product_version_id,
+                method_code, similarity, evidence_json, status_code,
+                detected_at_utc, version)
+            SELECT gen_random_uuid(), {tenantId.Value},
+                LEAST(source.id, peer.id), GREATEST(source.id, peer.id),
+                CASE WHEN source.id < peer.id THEN source_version.id ELSE peer_version.id END,
+                CASE WHEN source.id < peer.id THEN peer_version.id ELSE source_version.id END,
+                {MasterDataCodes.InventoryDuplicateMethods.ExactNameLocation}, 1,
+                jsonb_build_object('name', source_version.name,
+                    'geography', source_version.geography,
+                    'productType', source_version.product_type_code),
+                {MasterDataCodes.InventoryDuplicateStatuses.Open}, {now}, 1
+            FROM commercial.inventory_products source
+            JOIN commercial.inventory_product_versions source_version
+              ON source_version.tenant_id = source.tenant_id
+             AND source_version.id = source.current_version_id
+            JOIN commercial.inventory_product_versions peer_version
+              ON peer_version.tenant_id = source_version.tenant_id
+             AND lower(btrim(peer_version.name)) = lower(btrim(source_version.name))
+             AND lower(btrim(peer_version.geography)) = lower(btrim(source_version.geography))
+             AND peer_version.product_type_code = source_version.product_type_code
+            JOIN commercial.inventory_products peer
+              ON peer.tenant_id = peer_version.tenant_id
+             AND peer.current_version_id = peer_version.id
+             AND peer.id <> source.id
+             AND peer.status_code = {MasterDataCodes.LifecycleStatuses.Active}
+            WHERE source.tenant_id = {tenantId.Value}
+              AND source.id = ANY({productIds})
+              AND source.status_code = {MasterDataCodes.LifecycleStatuses.Active}
+            ON CONFLICT (
+                tenant_id, left_product_version_id, right_product_version_id, method_code)
+                DO NOTHING
+            """, cancellationToken);
 }
 
 internal sealed record ExistingInventoryProductRow
@@ -174,16 +288,34 @@ internal sealed record PreparedInventoryPublication(
     string? Address,
     decimal? Latitude,
     decimal? Longitude,
+    string? Description,
     string ExtensionJson,
+    string? AudienceProfileJson,
+    string? DeliverableJson,
+    string? SpatialJson,
+    string? CoverageGeoJson,
+    string? CatchmentGeoJson,
+    string? RouteGeoJson,
+    string? DirectionGeoJson,
     Guid RateId,
     string RateType,
     string Currency,
     long RateAmountMinor,
+    DateOnly? RateValidFrom,
+    DateOnly? RateValidTo,
+    string? VatTreatment,
+    string? CommercialTermsJson,
     Guid AvailabilityId,
     string Availability,
-    Guid AssetId,
-    string AssetType,
-    string ObjectKey,
-    string SourceHash,
-    string MediaType,
-    string SourceLocator);
+    Guid? AssetId,
+    string? AssetType,
+    string? ObjectKey,
+    string? SourceHash,
+    string? MediaType,
+    string SourceLocator,
+    Guid? PackageId,
+    string? PackageCode,
+    string? PackageName,
+    string? PackageComponentCodesJson,
+    string? PackageDiscountRule,
+    string? PackageConditionsJson);

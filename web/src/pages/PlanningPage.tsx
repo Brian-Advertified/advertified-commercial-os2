@@ -5,16 +5,16 @@ import { planningApi } from '../api/planning-client'
 import type { MediaAllocation, MediaMix, MediaPlan, PlanningWorkspace, Shortlist } from '../api/planning-schemas'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
+import { CampaignModeBinding } from '../campaign-flow/CampaignFlowBindings'
 import { Icon } from '../components/Icon'
 import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { MediaMixEditor } from '../planning/MediaMixEditor'
 import { MediaPlanPanel } from '../planning/MediaPlanPanel'
 import { MediaTimeline } from '../planning/MediaTimeline'
-import { PlanningWorkbenchHeader } from '../planning/PlanningWorkbenchHeader'
 import { ShortlistPanel } from '../planning/ShortlistPanel'
 import { announcePlanningChanged } from '../planning/planning-events'
-import { humanizeCode } from '../presentation/format'
+import { formatMoney, humanizeCode } from '../presentation/format'
 
 export function PlanningPage() {
   const briefVersionId = useParams().briefVersionId
@@ -33,8 +33,12 @@ function PlanningWorkspaceRecord(props: PlanningContext) {
     return <MessageState title="Planning could not be opened" message={state.error} />
   }
   if (!state.workspace) return <LoadingState label="Loading media planning" />
-  return <PlanningWorkspaceContent {...props} workspace={state.workspace} busy={state.busy}
-    error={state.error} act={state.act} />
+  if (!state.workspace.campaignMode || !state.workspace.audience) {
+    return <Navigate to={`/stp/${props.briefVersionId}`} replace />
+  }
+  return <><CampaignModeBinding mode={state.workspace.campaignMode.mode} />
+    <PlanningWorkspaceContent {...props} workspace={state.workspace} busy={state.busy}
+      error={state.error} act={state.act} /></>
 }
 
 type PlanningContext = { tenantId: string; briefVersionId: string; token: string }
@@ -71,77 +75,60 @@ function PlanningWorkspaceContent(props: PlanningContext & {
   const mix = workspace.mediaMix
   const shortlist = currentShortlist(workspace, mix)
   const plan = currentPlan(workspace, mix)
-  return <section aria-labelledby="planning-title" className="planning-page planning-workbench-page">
-    <Link className="text-action back-link" to={`/briefs/${workspace.briefId}`}>← Back to Brief</Link>
-    <PlanningWorkbenchHeader workspace={workspace} mix={mix} shortlist={shortlist} plan={plan} />
+  return <section aria-labelledby="planning-title" className="planning-page approved-media-planning-page">
+    <Link className="text-action back-link" to={`/stp/${workspace.briefVersionId}`}>← Back to Strategy & STP</Link>
+    <header className="approved-media-planning-header"><div><p className="eyebrow">Integrated plan across all selected channels</p>
+      <h1 id="planning-title">Media Planning Overview</h1>
+      <p>Allocate investment, select eligible supply and reconcile the client-ready media plan.</p></div>
+      <span className="status-chip status-positive">{workspace.campaignMode?.mode === masterDataCodes.campaignModes.oohOnly ? 'OOH / DOOH only' : 'Full campaign'}</span></header>
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
-    <CampaignModeStage {...props} />
-    <div id="audience-section"><AudienceStage {...props} /></div>
-    <div id="media-mix"><MixStage {...props} mix={mix} /></div>
-    <div id="inventory-selection"><ShortlistStage {...props} mix={mix} shortlist={shortlist} /></div>
-    <div id="media-plan"><PlanStage {...props} shortlist={shortlist} plan={plan} /></div>
+    {mix && <ApprovedPlanningOverview mix={mix} plan={plan} />}
+    <MixStage {...props} mix={mix} />
+    <ShortlistStage {...props} mix={mix} shortlist={shortlist} />
+    <PlanStage {...props} shortlist={shortlist} plan={plan} />
   </section>
 }
 
-function CampaignModeStage(props: PlanningContext & {
-  workspace: PlanningWorkspace; busy: boolean; act: ActionRunner
-}) {
-  const campaignMode = props.workspace.campaignMode
-  if (campaignMode) return <section className="planning-mode-banner">
-    <span className="planning-mode-icon"><Icon name={campaignMode.mode ===
-      masterDataCodes.campaignModes.oohOnly ? 'inventory' : 'globe'} /></span>
-    <div><p className="eyebrow">Campaign media scope</p>
-      <h2>{campaignMode.mode === masterDataCodes.campaignModes.oohOnly
-        ? 'OOH and DOOH only' : 'Full campaign'}</h2>
-      <p>{campaignMode.mode === masterDataCodes.campaignModes.oohOnly
-        ? 'The standard planning workflow is restricted to out-of-home channels.'
-        : 'The standard planning workflow may use every channel configured for this market.'}</p></div>
-    <dl><div><dt>Decision</dt><dd>{humanizeCode(campaignMode.decisionSource, true)}</dd></div>
-      <div><dt>Confidence</dt><dd>{Math.round(campaignMode.confidence * 100)}%</dd></div>
-      <div><dt>Change policy</dt><dd>Start a new campaign</dd></div></dl>
-  </section>
-
-  return <section className="planning-section campaign-mode-choice" aria-labelledby="campaign-mode-title">
-    <div className="planning-section-heading"><div><p className="eyebrow">Media scope needs confirmation</p>
-      <h2 id="campaign-mode-title">The Brief did not establish the campaign scope</h2>
-      <p>Choose only because the available evidence was not strong enough for Advertified to decide. Both choices use the same audience, media mix, inventory, plan and proposal workflow.</p>
-    </div></div>
-    <div className="campaign-mode-options">
-      <button type="button" disabled={props.busy} onClick={() => void props.act(() =>
-        planningApi.selectCampaignMode(props.tenantId, props.briefVersionId,
-          masterDataCodes.campaignModes.oohOnly, props.token, {
-            source: masterDataCodes.campaignModeDecisionSources.humanClarification,
-            confidence: 1,
-            reason: 'The user resolved an unclear media requirement before planning.',
-          }))}>
-        <span className="campaign-mode-mark">OOH</span><strong>OOH and DOOH only</strong>
-        <small>Restrict inventory and allocation to out-of-home channels.</small>
-      </button>
-      <button type="button" disabled={props.busy} onClick={() => void props.act(() =>
-        planningApi.selectCampaignMode(props.tenantId, props.briefVersionId,
-          masterDataCodes.campaignModes.fullCampaign, props.token, {
-            source: masterDataCodes.campaignModeDecisionSources.humanClarification,
-            confidence: 1,
-            reason: 'The user resolved an unclear media requirement before planning.',
-          }))}>
-        <span className="campaign-mode-mark">360°</span><strong>Full campaign</strong>
-        <small>Allow any media channel configured for the selected market.</small>
-      </button>
+function ApprovedPlanningOverview({ mix, plan }: { mix: MediaMix; plan: MediaPlan | null }) {
+  const colors = ['#6538f5', '#2089ff', '#22bdd0', '#f5a524', '#ec6ba8', '#8f94a5']
+  const total = Math.max(mix.totalBudgetMinor, 1)
+  const selectedLines = plan?.lines ?? []
+  const gradient = mix.allocations.map((item, index) => {
+    const previous = mix.allocations.slice(0, index).reduce((sum, value) => sum + value.budgetMinor, 0)
+    const start = previous / total * 100
+    const end = (previous + item.budgetMinor) / total * 100
+    return `${colors[index % colors.length]} ${start}% ${end}%`
+  }).join(', ')
+  return <section className="approved-planning-overview" aria-labelledby="approved-planning-overview-title">
+    <header><div><p className="eyebrow">Media Planning Overview</p><h2 id="approved-planning-overview-title">Integrated plan across selected channels</h2></div>
+      <span>{humanizeCode(mix.status, true)}</span></header>
+    <div className="approved-planning-kpis">
+      <PlanKpi label="Total Investment" value={formatMoney(mix.totalBudgetMinor, mix.currency, 0)} note="Planning budget" />
+      <PlanKpi label="Total Reach" value="—" note="No verified reach forecast yet" />
+      <PlanKpi label="Avg. Frequency" value="—" note="Requires verified forecast" />
+      <PlanKpi label="Impressions" value="—" note="Requires verified forecast" />
     </div>
-    <p className="campaign-mode-warning">This decision is locked once planning begins. A changed requirement starts a new campaign from the Brief.</p>
+    <div className="approved-planning-visual-grid">
+      <article className="approved-planning-investment"><header><h3>Investment by Channel</h3></header>
+        <div><div className="approved-plan-donut" style={{ background: `conic-gradient(${gradient || '#edf0f4 0 100%'})` }}><span><strong>{formatMoney(mix.totalBudgetMinor, mix.currency, 0)}</strong><small>Total</small></span></div>
+          <div className="approved-plan-legend">{mix.allocations.map((item, index) => <div key={item.channel}><i style={{ background: colors[index % colors.length] }} />
+            <strong>{humanizeCode(item.channel, true)}</strong><span>{Math.round(item.budgetMinor / total * 100)}%</span><small>{formatMoney(item.budgetMinor, mix.currency, 0)}</small></div>)}</div></div></article>
+      <article className="approved-media-flight"><header><h3>Media Flight</h3></header><div>{mix.allocations.map((item, index) => {
+        const period = item.runningPeriods[0]
+        return <div key={item.channel}><strong>{humanizeCode(item.channel, true)}</strong><span><i style={{ width: `${Math.max(18, 88 - index * 9)}%`, background: colors[index % colors.length] }} /></span>
+          <small>{period ? `${period.start} → ${period.end}` : 'Dates not supplied'}</small></div>
+      })}</div></article>
+    </div>
+    <article className="approved-top-placements"><header><h3>Top Placements</h3><span>{selectedLines.length} planned line{selectedLines.length === 1 ? '' : 's'}</span></header>
+      {selectedLines.length === 0 ? <p className="approved-empty">Top placements will appear after inventory is selected and the plan is created.</p> : <div className="approved-placement-table"><div><span>Channel</span><span>Placement</span><span>Location</span><span>Flight</span><span>Investment</span></div>
+        {selectedLines.slice(0, 7).map(line => <div key={line.id}><strong>{humanizeCode(line.channel, true)}</strong><span>{line.name}</span><span>{line.geography}</span>
+          <span>{line.runningPeriods[0] ? `${line.runningPeriods[0].start} – ${line.runningPeriods[0].end}` : '—'}</span><strong>{formatMoney(line.clientPriceMinor, plan!.currency, 0)}</strong></div>)}</div>}
+    </article>
   </section>
 }
 
-function AudienceStage(props: PlanningContext & {
-  workspace: PlanningWorkspace; busy: boolean; act: ActionRunner
-}) {
-  if (!props.workspace.campaignMode) return null
-  if (props.workspace.audience) return <AudienceSummary workspace={props.workspace} />
-  return <StartCard eyebrow="Audience strategy" title="Define the audience direction"
-    copy="Turn the approved Brief into evidence-labelled segments, targeting priorities and a positioning statement before allocating media."
-    action="Build audience direction" busy={props.busy} icon="users"
-    onAction={() => props.act(() => planningApi.generateAudiences(
-      props.tenantId, props.briefVersionId, props.token))} />
+function PlanKpi({ label, value, note }: { label: string; value: string; note: string }) {
+  return <article><span>{label}</span><strong>{value}</strong><small>{note}</small></article>
 }
 
 function MixStage(props: PlanningContext & {
@@ -154,7 +141,8 @@ function MixStage(props: PlanningContext & {
     onAction={() => props.act(() => planningApi.generateMix(
       props.tenantId, props.briefVersionId, props.token))} />
   const mix = props.mix
-  return <><MediaMixEditor key={`${mix.id}-${mix.version}`} mix={mix} busy={props.busy}
+  return <><MediaMixEditor key={`${mix.id}-${mix.version}`} mix={mix}
+    allowedChannels={props.workspace.campaignMode?.allowedChannels ?? []} busy={props.busy}
     onSave={(allocations: MediaAllocation[]) => props.act(() => planningApi.updateMix(
       props.tenantId, mix, allocations, props.token))}
     onApprove={() => props.act(() => planningApi.approveMix(props.tenantId, mix, props.token))}
@@ -202,24 +190,6 @@ function PlanStage(props: PlanningContext & {
         Prepare proposal <Icon name="arrow" />
       </Link></article>}
   </>
-}
-
-function AudienceSummary({ workspace }: { workspace: PlanningWorkspace }) {
-  const audience = workspace.audience!
-  const targets = new Set(audience.targetAudienceIds)
-  return <section className="planning-section audience-summary"><div className="planning-section-heading"><div>
-    <p className="eyebrow">Segmentation, targeting and positioning</p>
-    <h2>Audience strategy for this campaign</h2>
-    <p>The same STP stage applies whether the campaign is OOH-only or permits every configured media channel.</p></div>
-    <span className="status-chip status-positive">{humanizeCode(audience.status, true)}</span></div>
-    <div className="stp-summary-grid">
-      <article><span>Segmentation</span><strong>{audience.definitions.length} segment{audience.definitions.length === 1 ? '' : 's'} · {audience.targetAudienceIds.length} targeted</strong>
-        <div className="audience-chip-grid">{audience.definitions.map(item => <div key={item.id}>
-          <strong>{item.name}</strong><p>{item.description}</p><small>{targets.has(item.id) ? 'Target audience · ' : ''}{humanizeCode(item.classification, true)} · {Math.round(item.confidence * 100)}% confidence</small>
-        </div>)}</div></article>
-      <article><span>Targeting</span><strong>Who the plan must prioritise</strong><p>{audience.targetingRationale}</p></article>
-      <article><span>Positioning</span><strong>What the campaign should establish</strong><p>{audience.positioningStatement}</p></article>
-    </div></section>
 }
 
 function StartCard({ eyebrow, title, copy, action, busy, icon, onAction }: {

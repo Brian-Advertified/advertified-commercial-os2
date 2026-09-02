@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: 44a842135719da2c3000aee3d1377e03004e653d4c52c37eb1fb12ea6e8ec88b
+# source-sha256: 778c1a9674f0c22df56ffa1f58c82ab951b13214c13bf31aecd41f3b65d42525
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.12.0"
+REGISTRY_VERSION = "2.26.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -70,6 +70,7 @@ class Permissions(StrEnum):
     INVENTORY_VIEW = "inventory_view"
     INVENTORY_IMPORT = "inventory_import"
     INVENTORY_REVIEW = "inventory_review"
+    INVENTORY_ASSET_RIGHTS_REVIEW = "inventory_asset_rights_review"
     INVENTORY_PUBLISH = "inventory_publish"
     PLAN_VIEW = "plan_view"
     PLAN_GENERATE = "plan_generate"
@@ -155,6 +156,10 @@ class EvidenceReviewDecisions(StrEnum):
     REJECT = "REJECT"
     EDIT = "EDIT"
 
+class ApprovalModes(StrEnum):
+    SELF = "SELF"
+    INDEPENDENT = "INDEPENDENT"
+
 class OpportunityAngleStatuses(StrEnum):
     PROPOSED = "PROPOSED"
     SELECTED = "SELECTED"
@@ -186,6 +191,9 @@ class HumanTaskTypes(StrEnum):
     DELIVERY_PROOF_REVIEW = "DELIVERY_PROOF_REVIEW"
     PERFORMANCE_FACT_REVIEW = "PERFORMANCE_FACT_REVIEW"
     MEASUREMENT_REPORT_REVIEW = "MEASUREMENT_REPORT_REVIEW"
+    PROPOSAL_APPROVAL = "PROPOSAL_APPROVAL"
+    SPATIAL_CLARIFICATION = "SPATIAL_CLARIFICATION"
+    ASSET_RIGHTS_REVALIDATION = "ASSET_RIGHTS_REVALIDATION"
 
 class EvidenceClassifications(StrEnum):
     FACT = "FACT"
@@ -213,6 +221,7 @@ class DocumentClasses(StrEnum):
     XLSX = "XLSX"
     PDF = "PDF"
     DOCX = "DOCX"
+    PPTX = "PPTX"
     PNG = "PNG"
     JPEG = "JPEG"
 
@@ -226,6 +235,47 @@ class AvailabilityStatuses(StrEnum):
     AVAILABLE = "AVAILABLE"
     LIMITED = "LIMITED"
     UNAVAILABLE = "UNAVAILABLE"
+
+class AvailabilityExceptionTypes(StrEnum):
+    NOT_AVAILABLE = "NOT_AVAILABLE"
+    BLACKOUT = "BLACKOUT"
+    CONFIRMED_BOOKING_CONFLICT = "CONFIRMED_BOOKING_CONFLICT"
+
+class SpatialRequirementTypes(StrEnum):
+    POINT_RADIUS = "POINT_RADIUS"
+    ADMIN_BOUNDARY = "ADMIN_BOUNDARY"
+    CATCHMENT = "CATCHMENT"
+    ROUTE_BUFFER = "ROUTE_BUFFER"
+
+class SpatialRequirementPriorities(StrEnum):
+    REQUIRED = "REQUIRED"
+    PREFERRED = "PREFERRED"
+    EXCLUDED = "EXCLUDED"
+
+class InventoryEvidenceBases(StrEnum):
+    SUPPLIER_SUPPLIED = "SUPPLIER_SUPPLIED"
+    DERIVED_POLICY = "DERIVED_POLICY"
+    HUMAN_CORRECTION = "HUMAN_CORRECTION"
+
+class InventoryEvidenceStates(StrEnum):
+    UNVERIFIED = "UNVERIFIED"
+    VERIFIED = "VERIFIED"
+    CONFLICTING = "CONFLICTING"
+    STALE = "STALE"
+    UNKNOWN = "UNKNOWN"
+
+class InventoryEvidenceActions(StrEnum):
+    NONE = "NONE"
+    REVIEW = "REVIEW"
+    CONFIRM_WITH_SUPPLIER = "CONFIRM_WITH_SUPPLIER"
+    HUMAN_DECISION = "HUMAN_DECISION"
+
+class InventoryExtractionMethods(StrEnum):
+    TABULAR = "TABULAR"
+    KEY_VALUE = "KEY_VALUE"
+    OCR = "OCR"
+    POLICY_DEFAULT = "POLICY_DEFAULT"
+    HUMAN_EDIT = "HUMAN_EDIT"
 
 class VerificationLevels(StrEnum):
     UNVERIFIED = "UNVERIFIED"
@@ -323,6 +373,8 @@ class BenchmarkExclusionReasons(StrEnum):
 
 class PlanningPolicies(StrEnum):
     OOH_LOCAL_PEER_V1 = "OOH_LOCAL_PEER_V1"
+    INVENTORY_AUTOMATED_SELECTION_DISABLED_V1 = "INVENTORY_AUTOMATED_SELECTION_DISABLED_V1"
+    INVENTORY_SUITABILITY_OOH_V1 = "INVENTORY_SUITABILITY_OOH_V1"
 
 class ProposalPolicies(StrEnum):
     CLIENT_OPTIONS_V1 = "CLIENT_OPTIONS_V1"
@@ -332,6 +384,7 @@ class CampaignModes(StrEnum):
     OOH_ONLY = "OOH_ONLY"
 
 class CampaignModeDecisionSources(StrEnum):
+    SUPPLIED_BRIEF_EVIDENCE = "SUPPLIED_BRIEF_EVIDENCE"
     AGENT = "AGENT"
     HUMAN_SELECTION = "HUMAN_SELECTION"
     HUMAN_CLARIFICATION = "HUMAN_CLARIFICATION"
@@ -416,6 +469,14 @@ class ValidationIssueTypes(StrEnum):
     AVAILABILITY_UNKNOWN = "AVAILABILITY_UNKNOWN"
     COORDINATES_INVALID = "COORDINATES_INVALID"
     OOH_COORDINATES_REQUIRED = "OOH_COORDINATES_REQUIRED"
+    AUDIENCE_PROFILE_INVALID = "AUDIENCE_PROFILE_INVALID"
+    AUDIENCE_EVIDENCE_INCOMPLETE = "AUDIENCE_EVIDENCE_INCOMPLETE"
+    SUPPLIER_COMMERCIAL_INCOMPLETE = "SUPPLIER_COMMERCIAL_INCOMPLETE"
+    COMMERCIAL_TERMS_INVALID = "COMMERCIAL_TERMS_INVALID"
+    SPATIAL_GEOMETRY_INVALID = "SPATIAL_GEOMETRY_INVALID"
+    EXTRACTION_CONFIDENCE_LOW = "EXTRACTION_CONFIDENCE_LOW"
+    EVIDENCE_POINTER_REQUIRED = "EVIDENCE_POINTER_REQUIRED"
+    SUPPLIER_IDENTITY_MISMATCH = "SUPPLIER_IDENTITY_MISMATCH"
 
 class AgentFailureReasons(StrEnum):
     AGENT_OUTPUT_INVALID = "AGENT_OUTPUT_INVALID"
@@ -468,6 +529,10 @@ class CommercialResourceTypes(StrEnum):
     DELIVERY_PROOF = "delivery_proof"
     PERFORMANCE_EVIDENCE = "performance_evidence"
     MEASUREMENT_REPORT = "measurement_report"
+    INVENTORY_ASSET = "inventory_asset"
+    INVENTORY_DUPLICATE_CANDIDATE = "inventory_duplicate_candidate"
+    INVENTORY_EMBEDDING = "inventory_embedding"
+    INVENTORY_AVAILABILITY_EXCEPTION = "inventory_availability_exception"
 
 class CommercialActions(StrEnum):
     TENANT_UPDATED = "tenant.updated"
@@ -501,6 +566,10 @@ class CommercialActions(StrEnum):
     INVENTORY_IMPORT_EXECUTED = "inventory_import.executed"
     INVENTORY_CANDIDATE_REVIEWED = "inventory_candidate.reviewed"
     INVENTORY_PUBLISHED = "inventory.published"
+    INVENTORY_ASSET_RIGHTS_REVIEWED = "inventory_asset.rights_reviewed"
+    INVENTORY_DUPLICATE_NOMINATED = "inventory_duplicate.nominated"
+    INVENTORY_DUPLICATE_REVIEWED = "inventory_duplicate.reviewed"
+    INVENTORY_EMBEDDING_SUBMITTED = "inventory_embedding.submitted"
     AUDIENCE_DEFINITIONS_GENERATED = "audience_definitions.generated"
     MEDIA_MIX_GENERATED = "media_mix.generated"
     MEDIA_MIX_APPROVED = "media_mix.approved"
@@ -513,6 +582,7 @@ class CommercialActions(StrEnum):
     PROPOSAL_GENERATED = "proposal.generated"
     PROPOSAL_UPDATED = "proposal.updated"
     PROPOSAL_APPROVED = "proposal.approved"
+    PROPOSAL_REJECTED = "proposal.rejected"
     PROPOSAL_RENDERED = "proposal.rendered"
     PROPOSAL_SHARED = "proposal.shared"
     PROPOSAL_SELECTED = "proposal.selected"
@@ -557,6 +627,8 @@ class CommercialActions(StrEnum):
     PERFORMANCE_EVIDENCE_REVIEWED = "performance_evidence.reviewed"
     MEASUREMENT_REPORT_GENERATED = "measurement_report.generated"
     MEASUREMENT_REPORT_REVIEWED = "measurement_report.reviewed"
+    INVENTORY_AVAILABILITY_EXCEPTION_RECORDED = "inventory_availability_exception.recorded"
+    INVENTORY_ASSET_UPLOADED = "inventory_asset.uploaded"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -590,6 +662,12 @@ class CommercialEventTypes(StrEnum):
     INVENTORY_IMPORT_EXECUTED = "InventoryImportExecuted"
     INVENTORY_CANDIDATE_REVIEWED = "InventoryCandidateReviewed"
     INVENTORY_PUBLISHED = "InventoryPublished"
+    INVENTORY_ASSET_UPLOADED = "InventoryAssetUploaded"
+    INVENTORY_ASSET_RIGHTS_REVIEWED = "InventoryAssetRightsReviewed"
+    INVENTORY_DUPLICATE_NOMINATED = "InventoryDuplicateNominated"
+    INVENTORY_DUPLICATE_REVIEWED = "InventoryDuplicateReviewed"
+    INVENTORY_EMBEDDING_SUBMITTED = "InventoryEmbeddingSubmitted"
+    INVENTORY_AVAILABILITY_EXCEPTION_RECORDED = "InventoryAvailabilityExceptionRecorded"
     AUDIENCE_DEFINITIONS_GENERATED = "AudienceDefinitionsGenerated"
     MEDIA_MIX_GENERATED = "MediaMixGenerated"
     MEDIA_MIX_APPROVED = "MediaMixApproved"
@@ -602,6 +680,7 @@ class CommercialEventTypes(StrEnum):
     PROPOSAL_GENERATED = "ProposalGenerated"
     PROPOSAL_UPDATED = "ProposalUpdated"
     PROPOSAL_APPROVED = "ProposalApproved"
+    PROPOSAL_REJECTED = "ProposalRejected"
     PROPOSAL_RENDERED = "ProposalRendered"
     PROPOSAL_SHARED = "ProposalShared"
     PROPOSAL_OPTION_SELECTED = "ProposalOptionSelected"
@@ -664,6 +743,24 @@ class AssetRightsStatuses(StrEnum):
     APPROVED = "APPROVED"
     UNKNOWN = "UNKNOWN"
     RESTRICTED = "RESTRICTED"
+    REVOKED = "REVOKED"
+
+class AssetRightsScopes(StrEnum):
+    INTERNAL_PLANNING = "INTERNAL_PLANNING"
+    NAMED_CLIENT_PROPOSAL = "NAMED_CLIENT_PROPOSAL"
+    MARKETPLACE_DISPLAY = "MARKETPLACE_DISPLAY"
+    PUBLIC_MARKETING_SOCIAL = "PUBLIC_MARKETING_SOCIAL"
+
+class InventoryDuplicateMethods(StrEnum):
+    EXACT_NAME_LOCATION = "EXACT_NAME_LOCATION"
+    SEMANTIC_VECTOR = "SEMANTIC_VECTOR"
+    HUMAN_REPORTED = "HUMAN_REPORTED"
+
+class InventoryDuplicateStatuses(StrEnum):
+    OPEN = "OPEN"
+    CONFIRMED_SAME_IDENTITY = "CONFIRMED_SAME_IDENTITY"
+    DISMISSED = "DISMISSED"
+    DEFERRED = "DEFERRED"
 
 class CreativeReviewTypes(StrEnum):
     BRAND_LEGAL_RIGHTS = "BRAND_LEGAL_RIGHTS"
@@ -682,6 +779,7 @@ class PerformanceMetricTypes(StrEnum):
     FOOTFALL = "FOOTFALL"
     CLICK_THROUGH_RATE = "CLICK_THROUGH_RATE"
     CONVERSION_RATE = "CONVERSION_RATE"
+    LISTENERSHIP = "LISTENERSHIP"
 
 class MeasurementUnits(StrEnum):
     COUNT = "COUNT"
@@ -807,6 +905,7 @@ class RejectionReasons(StrEnum):
     INELIGIBLE_ROUTE = "INELIGIBLE_ROUTE"
     INELIGIBLE_POI = "INELIGIBLE_POI"
     SUPPLIER_CONFIRMATION_REQUIRED = "SUPPLIER_CONFIRMATION_REQUIRED"
+    STALE_AVAILABILITY = "STALE_AVAILABILITY"
 
 class TaskPriorities(StrEnum):
     URGENT = "URGENT"
@@ -823,6 +922,11 @@ class Currencies(StrEnum):
 class VatStatuses(StrEnum):
     REGISTERED = "REGISTERED"
     EXEMPT = "EXEMPT"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+
+class VatTreatments(StrEnum):
+    INCLUSIVE = "INCLUSIVE"
+    EXCLUSIVE = "EXCLUSIVE"
     NOT_APPLICABLE = "NOT_APPLICABLE"
 
 CURRENCY_MINOR_UNIT_DIGITS: dict[str, int] = {

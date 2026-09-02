@@ -175,7 +175,11 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             connectionString,
             OtherUserId,
             enableEmailAutomation: true,
-            services => ConfigureAmbiguousProvider(services, ledger));
+            services =>
+            {
+                ConfigureDeterministicEmailInventorySelection(services);
+                ConfigureAmbiguousProvider(services, ledger);
+            });
         using var operatorClient = operatorFactory.CreateClient();
         const string key = "process-manual-second-operator";
         using var first = await ProcessMessageAsync(operatorClient, inboundEmailId, key);
@@ -202,7 +206,8 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         await DisposableDatabaseRoles.ProvisionAsync(connectionString);
         await SeedAsync(connectionString);
         await using var factory = CreateFactory(
-                connectionString, OperatorId, enableEmailAutomation: true)
+                connectionString, OperatorId, enableEmailAutomation: true,
+                configureServices: ConfigureDeterministicEmailInventorySelection)
             .WithWebHostBuilder(builder =>
                 builder.UseSetting("EmailAutomation:ProcessInline", "false"));
         using var client = factory.CreateClient();
@@ -233,6 +238,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             enableEmailAutomation: true,
             services =>
             {
+                ConfigureDeterministicEmailInventorySelection(services);
                 services.RemoveAll<IEmailProviderClient>();
                 services.AddSingleton<IEmailProviderClient>(provider =>
                     new RejectedEmailProviderClient(
@@ -299,7 +305,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             .UseNpgsql(connectionString).Options;
         await using var db = new GovernanceDbContext(options);
         db.Memberships.Add(CreateMembership(
-            TenantId, OtherUserId, MasterDataCodes.Roles.AgencyAdmin, 3));
+            TenantId, OtherUserId, MasterDataCodes.Roles.AgencyAdmin, 4));
         await db.SaveChangesAsync();
     }
 

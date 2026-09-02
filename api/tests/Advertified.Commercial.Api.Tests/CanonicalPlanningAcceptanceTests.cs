@@ -60,6 +60,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             .GetProperty("targetingRationale").GetString()));
         Assert.False(string.IsNullOrWhiteSpace(audience.RootElement
             .GetProperty("positioningStatement").GetString()));
+        await SeedStructuredAudienceSetAsync(connectionString);
 
         using var mix = await CommandAsync(
             client, Path($"brief-versions/{BriefVersionId}/media-mixes:generate"),
@@ -88,6 +89,27 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             });
         await AssertProblemAsync(
             invalidChannelMix, HttpStatusCode.Conflict, "CAMPAIGN_MODE_LOCKED");
+        using var unknownChannelMix = await RawCommandAsync(
+            client, Path($"media-mix-versions/{mixId}:update"),
+            "planning-mix-unknown-channel", 1, new
+            {
+                allocations = new[]
+                {
+                    new
+                    {
+                        channel = "UNREGISTERED_CHANNEL",
+                        budgetMinor = 1_000_000,
+                        role = "This channel is not active master data.",
+                        runningPeriods = new[]
+                        {
+                            new { start = "2026-09-01", end = "2026-09-30" },
+                        },
+                    },
+                },
+                reason = "An unregistered channel must not enter planning.",
+            });
+        await AssertProblemAsync(
+            unknownChannelMix, HttpStatusCode.BadRequest, "VALIDATION_FAILED");
         using var unbalancedMix = await RawCommandAsync(
             client, Path($"media-mix-versions/{mixId}:update"),
             "planning-mix-unbalanced", 1, new
@@ -146,9 +168,39 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         var stale = Assert.Single(candidates.EnumerateArray(), item =>
             !item.GetProperty("isEligible").GetBoolean() &&
             item.GetProperty("rejectionReason").GetString() == "STALE_RATE");
+        Assert.Contains(candidates.EnumerateArray(), item =>
+            item.GetProperty("isEligible").GetBoolean() &&
+            item.GetProperty("rateAmountMinor").GetInt64() == 120_000);
         var confirmed = candidates.EnumerateArray().Single(item =>
             item.GetProperty("isEligible").GetBoolean() &&
             item.GetProperty("rateAmountMinor").GetInt64() == 100_000);
+        Assert.Equal(0.8725m, confirmed.GetProperty("score").GetDecimal());
+        Assert.Empty(confirmed.GetProperty("commercialReadiness")
+            .GetProperty("evidenceGaps").EnumerateArray());
+        Assert.Equal("REGISTERED", confirmed.GetProperty("commercialReadiness")
+            .GetProperty("supplierVatStatus").GetString());
+        Assert.Equal("INCLUSIVE", confirmed.GetProperty("commercialReadiness")
+            .GetProperty("vatTreatment").GetString());
+        Assert.Equal("Static billboard", confirmed.GetProperty("deliverable")
+            .GetProperty("format").GetString());
+        Assert.Equal("Johannesburg", confirmed.GetProperty("spatial")
+            .GetProperty("municipality").GetString());
+        var audienceFit = confirmed.GetProperty("audienceFit");
+        Assert.Equal(0.8m, audienceFit.GetProperty("languageScore").GetDecimal());
+        Assert.Equal(0.6m, audienceFit.GetProperty("lifeStageScore").GetDecimal());
+        Assert.Equal(0.7m, audienceFit.GetProperty("lsmSemScore").GetDecimal());
+        Assert.Empty(audienceFit.GetProperty("evidenceGaps").EnumerateArray());
+        Assert.Empty(audienceFit.GetProperty("deliveryEvidenceGaps").EnumerateArray());
+        var delivery = Assert.Single(
+            audienceFit.GetProperty("deliveryMeasurements").EnumerateArray());
+        Assert.Equal("REACH", delivery.GetProperty("metricType").GetString());
+        Assert.Equal(125_000m, delivery.GetProperty("value").GetDecimal());
+        Assert.Equal("PEOPLE", delivery.GetProperty("unit").GetString());
+        Assert.Contains(candidates.EnumerateArray(), item =>
+            item.GetProperty("isEligible").GetBoolean() &&
+            item.GetProperty("audienceFit").GetProperty("evidenceGaps")
+                .EnumerateArray().Any(gap =>
+                    gap.GetString() == "inventory.audienceProfile"));
         Assert.Equal(3, confirmed.GetProperty("benchmark").GetProperty("cohortSize").GetInt32());
         var selectedProductId = confirmed.GetProperty("inventoryProductId").GetGuid();
         using var marketComparison = await client.GetAsync(
@@ -193,6 +245,12 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         Assert.Equal(5_000, plan.RootElement.GetProperty("feesMinor").GetInt64());
         Assert.Equal(15_750, plan.RootElement.GetProperty("vatMinor").GetInt64());
         Assert.Equal(120_750, plan.RootElement.GetProperty("totalMinor").GetInt64());
+        Assert.NotEqual(Guid.Empty,
+            plan.RootElement.GetProperty("commercialPolicyVersionId").GetGuid());
+        Assert.Equal("Static billboard", plan.RootElement.GetProperty("lines")[0]
+            .GetProperty("deliverable").GetProperty("format").GetString());
+        Assert.Equal("INCLUSIVE", plan.RootElement.GetProperty("lines")[0]
+            .GetProperty("commercialTerms").GetProperty("vatTreatment").GetString());
 
         await SeedInternalPlanReviewAsync(connectionString, planId);
         using var operatorPlanResponse = await client.GetAsync(Path($"media-plans/{planId}"));

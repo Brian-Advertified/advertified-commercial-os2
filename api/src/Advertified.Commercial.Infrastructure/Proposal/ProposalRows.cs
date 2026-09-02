@@ -52,7 +52,14 @@ internal sealed record ProposalDecisionRow(
     Guid? OptionId,
     string? Reason,
     Guid DecidedBy,
-    DateTimeOffset DecidedAtUtc);
+    DateTimeOffset DecidedAtUtc,
+    bool RecordedForExternalParty,
+    string? ExternalPartyEmail,
+    string? EvidenceReference);
+
+internal sealed record ExternalDecisionAuthorityRow(
+    Guid AutomationRunId,
+    string ExternalPartyEmail);
 
 internal sealed record PlanningReadyBriefReferenceRow(
     Guid BriefId,

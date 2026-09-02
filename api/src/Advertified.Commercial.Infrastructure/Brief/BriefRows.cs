@@ -55,6 +55,7 @@ internal sealed record BriefVersionRow
     public string UnknownsJson { get; set; } = "[]";
     public string AssumptionsJson { get; set; } = "[]";
     public string ConflictsJson { get; set; } = "[]";
+    public string SpatialRequirementsJson { get; set; } = "[]";
     public Guid[] EvidenceItemIds { get; set; } = [];
     public string Status { get; set; } = string.Empty;
     public Guid CreatedBy { get; set; }
@@ -94,7 +95,8 @@ internal static class BriefRowMapper
         Read<BriefAssumptionInput>(row.AssumptionsJson),
         Read<BriefConflictInput>(row.ConflictsJson), row.EvidenceItemIds, row.Status,
         row.CreatedBy, row.SubmittedBy, row.ApprovedBy, row.ApprovalMode, row.RejectedBy,
-        row.RejectionReason, row.RequestedChanges, row.Version, row.CreatedAtUtc);
+        row.RejectionReason, row.RequestedChanges, row.Version, row.CreatedAtUtc,
+        Read<BriefSpatialRequirementView>(row.SpatialRequirementsJson));
 
     private static T[] Read<T>(string value) =>
         JsonSerializer.Deserialize<T[]>(value, StoredJson) ?? [];

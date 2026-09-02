@@ -122,6 +122,7 @@ public sealed partial class ProposalCommands
         return existing.Select(row =>
         {
             var edit = byId[row.Id];
+            var inventory = ProposalRecordStore.ReadInventory(row.InventoryJson);
             return new ProposalOptionSnapshot(
                 edit.Label,
                 edit.Outcome,
@@ -130,7 +131,7 @@ public sealed partial class ProposalCommands
                     row.Currency, string.Empty,
                     ProposalRecordStore.Read<string[]>(row.ChannelsJson),
                     ProposalRecordStore.Read<ProposalRunningPeriodView[]>(row.RunningPeriodsJson),
-                    ProposalRecordStore.Read<string[]>(row.InventoryJson),
+                    inventory.Names, inventory.Lines,
                     row.PlanSignature, []),
                 row.DisplayOrder);
         }).ToArray();

@@ -44,11 +44,25 @@ internal sealed record MarketplaceProductSnapshotRow
     public string Channel { get; set; } = string.Empty;
     public string ProductType { get; set; } = string.Empty;
     public string Geography { get; set; } = string.Empty;
+    public string? AudienceProfileJson { get; set; }
     public string RateType { get; set; } = string.Empty;
     public long AmountMinor { get; set; }
     public string Currency { get; set; } = string.Empty;
     public DateOnly? RateEffectiveFrom { get; set; }
     public DateOnly? RateEffectiveTo { get; set; }
+    public string RateSourceLocator { get; set; } = string.Empty;
+    public string AvailabilitySourceLocator { get; set; } = string.Empty;
+    public string? SupplierVatStatus { get; set; }
+    public string? SupplierCommercialJson { get; set; }
+    public string? VatTreatment { get; set; }
+    public string? CommercialTermsJson { get; set; }
+    public string? DeliverableJson { get; set; }
+    public string? SpatialJson { get; set; }
+    public string? SpatialLocationGeoJson { get; set; }
+    public string? CoverageGeometryGeoJson { get; set; }
+    public string? CatchmentGeometryGeoJson { get; set; }
+    public string? RouteGeometryGeoJson { get; set; }
+    public Guid? LogoAssetId { get; set; }
     public string Availability { get; set; } = string.Empty;
     public DateTimeOffset? AvailabilityObservedAtUtc { get; set; }
     public DateTimeOffset? AvailabilityValidUntilUtc { get; set; }

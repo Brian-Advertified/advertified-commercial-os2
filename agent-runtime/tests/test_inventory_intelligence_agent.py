@@ -74,7 +74,19 @@ def eligible_candidate() -> dict:
         "is_eligible": True,
         "rejection_reason": None,
         "rejection_detail": None,
-        "score": 0.82,
+        "score": 0.9,
+        "audience_fit": {
+            "language_score": 0.8,
+            "life_stage_score": None,
+            "lsm_sem_score": None,
+            "evidence_gaps": [],
+            "measurement_source": "Fixture audience study",
+            "measurement_period": "2026 Q2",
+            "methodology": "Weighted aggregate survey",
+            "taxonomy_name": None,
+            "taxonomy_version": None,
+        },
+        "suitability": suitability(0.9),
         "benchmark": {
             "policy_version": "OOH_LOCAL_PEER_V1",
             "geography_basis": "RADIUS_5_KM",
@@ -96,6 +108,20 @@ def payload() -> dict:
             "shortlist_version_id": SHORTLIST_ID,
             "candidates": [eligible_candidate()],
         },
+    }
+
+
+def suitability(total: float) -> dict:
+    return {
+        "policy_version": "INVENTORY_SUITABILITY_V1",
+        "geography": total,
+        "audience_context": total,
+        "objective_format": total,
+        "budget_efficiency": total,
+        "evidence_quality_freshness": total,
+        "portfolio_coverage_diversity": total,
+        "total": total,
+        "evidence_gaps": [],
     }
 
 
@@ -148,6 +174,7 @@ def test_inventory_intelligence_preserves_deterministic_rejection(
         "rejection_reason": "STALE_RATE",
         "rejection_detail": "The published rate does not cover the planned period.",
         "benchmark": None,
+        "suitability": suitability(0),
     }
 
     response = asyncio.run(post(body))
@@ -175,3 +202,8 @@ def test_inventory_intelligence_requires_exact_resources_and_strict_facts(
     invented["inventory"]["candidates"][0]["invented_reach"] = 1_000_000
     invented_response = asyncio.run(post(invented))
     assert invented_response.status_code == 422
+
+    unscored = deepcopy(payload())
+    unscored["inventory"]["candidates"][0]["score"] = None
+    unscored_response = asyncio.run(post(unscored))
+    assert unscored_response.status_code == 422

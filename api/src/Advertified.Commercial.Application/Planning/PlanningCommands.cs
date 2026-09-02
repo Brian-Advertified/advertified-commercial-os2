@@ -94,6 +94,11 @@ public interface IPlanningCommands
 
 public interface IPlanningReader
 {
+    Task<IReadOnlyList<PlanningSummaryView>> ListAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        CancellationToken cancellationToken);
+
     Task<PlanningWorkspaceView> GetWorkspaceAsync(
         ActorId actorId,
         TenantId tenantId,

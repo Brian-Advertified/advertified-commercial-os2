@@ -33,6 +33,9 @@ public sealed partial class PlanningRecordStore
                 need_state AS "NeedState", buying_context AS "BuyingContext",
                 geography_json::text AS "GeographiesJson", language AS "Language",
                 life_stage AS "LifeStage", lsm_sem AS "LsmSem",
+                lsm_sem_taxonomy AS "LsmSemTaxonomy",
+                lsm_sem_taxonomy_version AS "LsmSemTaxonomyVersion",
+                lsm_sem_mandatory AS "LsmSemMandatory",
                 classification_code AS "Classification", exclusions_json::text AS "ExclusionsJson",
                 evidence_item_ids_json::text AS "EvidenceIdsJson",
                 confidence AS "Confidence", status_code AS "Status"
@@ -43,8 +46,10 @@ public sealed partial class PlanningRecordStore
         var definitions = rows.Select(row => new AudienceDefinitionView(
             row.Id, row.Name, row.Description, row.NeedState, row.BuyingContext,
             Read<string[]>(row.GeographiesJson), row.Language, row.LifeStage, row.LsmSem,
+            row.LsmSemTaxonomy, row.LsmSemTaxonomyVersion,
             row.Classification, Read<string[]>(row.ExclusionsJson),
-            Read<Guid[]>(row.EvidenceIdsJson), row.Confidence, row.Status)).ToArray();
+            Read<Guid[]>(row.EvidenceIdsJson), row.Confidence, row.Status,
+            row.LsmSemMandatory)).ToArray();
         return new AudienceDefinitionSetView(
             set.Id, set.BriefVersionId, set.VersionNumber,
             Read<Guid[]>(set.TargetAudienceIdsJson),
@@ -77,6 +82,15 @@ public sealed partial class PlanningRecordStore
                 candidate.currency_code AS "Currency", candidate.is_eligible AS "IsEligible",
                 candidate.rejection_reason_code AS "RejectionReason",
                 candidate.rejection_detail AS "RejectionDetail", candidate.score AS "Score",
+                candidate.audience_fit_json::text AS "AudienceFitJson",
+                candidate.commercial_readiness_json::text AS "CommercialReadinessJson",
+                candidate.supplier_commercial_json::text AS "SupplierCommercialJson",
+                candidate.commercial_terms_json::text AS "CommercialTermsJson",
+                candidate.deliverable_json::text AS "DeliverableJson",
+                candidate.spatial_json::text AS "SpatialJson",
+                candidate.spatial_match_json::text AS "SpatialMatchJson",
+                candidate.suitability_json::text AS "SuitabilityJson",
+                candidate.logo_asset_id AS "LogoAssetId",
                 recommendation.rationale AS "Rationale",
                 selection.is_selected AS "IsSelected", benchmark.id AS "BenchmarkId",
                 benchmark.policy_version AS "BenchmarkPolicy",
@@ -153,7 +167,12 @@ public sealed partial class PlanningRecordStore
                 supply.rate_freshness_code AS "RateFreshness",
                 supply.source_locator AS "SupplySource",
                 supply.last_confirmed_at_utc AS "LastConfirmedAtUtc",
-                plan.supply_confidence_code AS "SupplyConfidence"
+                plan.supply_confidence_code AS "SupplyConfidence",
+                line.supplier_commercial_json::text AS "SupplierCommercialJson",
+                line.commercial_terms_json::text AS "CommercialTermsJson",
+                line.deliverable_json::text AS "DeliverableJson",
+                line.spatial_json::text AS "SpatialJson",
+                line.logo_asset_id AS "LogoAssetId"
             FROM commercial.media_plan_lines line
             JOIN commercial.media_plan_versions plan
               ON plan.tenant_id = line.tenant_id AND plan.id = line.plan_version_id
@@ -192,7 +211,8 @@ public sealed partial class PlanningRecordStore
             plan.VersionNumber, plan.FeesMinor, plan.VatMinor,
             plan.TotalMinor, plan.Currency, plan.SupplyConfidence, plan.InputHash, plan.Status,
             Read<string[]>(plan.AssumptionsJson), lines, objections, plan.CreatedBy,
-            plan.ApprovedBy, plan.Version, plan.CreatedAtUtc);
+            plan.ApprovedBy, plan.Version, plan.CreatedAtUtc,
+            plan.CommercialPolicyVersionId);
     }
 
     private static InventoryShortlistCandidateView ToCandidateView(ShortlistCandidateRow row)
@@ -213,7 +233,19 @@ public sealed partial class PlanningRecordStore
             row.InventoryProductId, row.ProductVersionId, row.RateId, row.AvailabilityId,
             row.Name, row.Channel, row.Geography, row.RateAmountMinor, row.Currency,
             row.IsEligible, row.RejectionReason, row.RejectionDetail, row.Score,
-            row.Rationale, row.IsSelected, benchmark);
+            Read<InventoryAudienceFitView>(row.AudienceFitJson),
+            row.Rationale, row.IsSelected, benchmark, row.LogoAssetId,
+            Read<InventoryCommercialReadinessView>(row.CommercialReadinessJson),
+            ReadOptional<Advertified.Commercial.Application.Inventory.InventorySupplierCommercialValues>(
+                row.SupplierCommercialJson),
+            ReadOptional<Advertified.Commercial.Application.Inventory.InventoryCommercialTermsValues>(
+                row.CommercialTermsJson),
+            ReadOptional<Advertified.Commercial.Application.Inventory.InventoryDeliverableValues>(
+                row.DeliverableJson),
+            ReadOptional<Advertified.Commercial.Application.Inventory.InventorySpatialValues>(
+                row.SpatialJson),
+            Read<InventorySpatialMatchView>(row.SpatialMatchJson),
+            Read<InventorySuitabilityView>(row.SuitabilityJson));
     }
 
     private static PlanObjectionView ToObjectionView(
@@ -234,9 +266,21 @@ public sealed partial class PlanningRecordStore
         Read<MediaRunningPeriodView[]>(row.RunningPeriodsJson),
         row.Quantity, row.ClientPriceMinor,
         row.FeesMinor, row.VatMinor, row.Availability, row.RateFreshness,
-        row.SupplySource, row.LastConfirmedAtUtc, row.SupplyConfidence);
+        row.SupplySource, row.LastConfirmedAtUtc, row.SupplyConfidence,
+        ReadOptional<Advertified.Commercial.Application.Inventory.InventorySupplierCommercialValues>(
+            row.SupplierCommercialJson),
+        ReadOptional<Advertified.Commercial.Application.Inventory.InventoryCommercialTermsValues>(
+            row.CommercialTermsJson),
+        ReadOptional<Advertified.Commercial.Application.Inventory.InventoryDeliverableValues>(
+            row.DeliverableJson),
+        ReadOptional<Advertified.Commercial.Application.Inventory.InventorySpatialValues>(
+            row.SpatialJson),
+        row.LogoAssetId);
 
     private static T Read<T>(string json) =>
         JsonSerializer.Deserialize<T>(json, StoredJson)
         ?? throw new InvalidOperationException("Stored planning JSON is invalid.");
+
+    private static T? ReadOptional<T>(string? json) where T : class =>
+        json is null ? null : Read<T>(json);
 }

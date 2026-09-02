@@ -70,6 +70,8 @@ export function sessionFixture() {
     authenticated: true,
     antiforgeryToken: 'csrf-delivery',
     expiresAtUtc: '2026-08-31T20:00:00Z',
+    signInPath: null,
+    signOutPath: null,
   };
 }
 

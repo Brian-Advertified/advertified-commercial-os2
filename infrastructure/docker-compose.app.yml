@@ -108,6 +108,7 @@ services:
       InventoryExtraction__BaseUrl: http://docling:5001
       InventoryExtraction__ApiKey: advertified-docling-local-only
       InventoryExtraction__TimeoutSeconds: "180"
+      InventoryEmbedding__Mode: Deterministic
       AgentRuntime__Mode: HttpDeterministic
       AgentRuntime__BaseUrl: http://agent-runtime:8080
       AgentRuntime__ServiceKey: advertified-agent-runtime-local-only

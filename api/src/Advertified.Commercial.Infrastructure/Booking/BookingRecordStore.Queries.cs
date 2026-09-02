@@ -16,7 +16,9 @@ public sealed partial class BookingRecordStore
         DbContext.Database.SqlQuery<BookingSourceRow>($"""
             SELECT proposal.id AS "ProposalVersionId", option.id AS "ProposalOptionId",
                 decision.id AS "ProposalDecisionId", plan.id AS "PlanVersionId",
-                line.id AS "MediaPlanLineId", line.inventory_tenant_id AS "SupplierTenantId",
+                line.id AS "MediaPlanLineId",
+                plan.commercial_policy_version_id AS "CommercialPolicyVersionId",
+                line.inventory_tenant_id AS "SupplierTenantId",
                 line.marketplace_listing_version_id AS "MarketplaceListingVersionId",
                 snapshot.supplier_id AS "SupplierId",
                 line.inventory_product_id AS "InventoryProductId",
@@ -28,7 +30,13 @@ public sealed partial class BookingRecordStore
                 jsonb_array_length(line.running_periods_json)::integer AS "RunningPeriods",
                 line.quantity AS "Quantity", line.supplier_cost_minor AS "SupplierCostMinor",
                 line.client_price_minor AS "ClientPriceMinor", line.fees_minor AS "FeesMinor",
-                line.vat_minor AS "VatMinor", plan.currency_code AS "Currency"
+                line.vat_minor AS "VatMinor", plan.currency_code AS "Currency",
+                line.supplier_commercial_json::text AS "SupplierCommercialJson",
+                line.vat_treatment_code AS "VatTreatment",
+                line.commercial_terms_json::text AS "CommercialTermsJson",
+                line.deliverable_json::text AS "DeliverableJson",
+                line.spatial_json::text AS "SpatialJson",
+                line.logo_asset_id AS "LogoAssetId"
             FROM commercial.proposal_versions proposal
             JOIN commercial.proposal_options option
               ON option.tenant_id = proposal.tenant_id
@@ -65,6 +73,7 @@ public sealed partial class BookingRecordStore
               AND proposal.status_code = {MasterDataCodes.LifecycleStatuses.Selected}
               AND decision.decision_code = {MasterDataCodes.LifecycleStatuses.Selected}
               AND plan.status_code = {MasterDataCodes.LifecycleStatuses.Approved}
+              AND plan.commercial_policy_version_id IS NOT NULL
               AND campaign.status_code = {MasterDataCodes.LifecycleStatuses.Planned}
               AND payment.status_code = {MasterDataCodes.LifecycleStatuses.Confirmed}
               AND listing.status_code = {MasterDataCodes.MarketplaceListingStatuses.Published}

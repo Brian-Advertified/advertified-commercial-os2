@@ -45,9 +45,10 @@ public sealed partial class InventoryCommands
             envelope.TenantId, source.Id, extraction, cancellationToken);
         var rows = extraction.Rows;
         var codes = await InventoryCodeSets.LoadAsync(store.DbContext, cancellationToken);
-        var candidates = rows.Select(row => PrepareCandidate(
-            InventoryCandidateNormalizer.Normalize(row, source.SourceHash), codes)).ToArray();
         var now = timeProvider.GetUtcNow();
+        var candidates = rows.Select(row => PrepareCandidate(
+            InventoryCandidateNormalizer.Normalize(row, source.SourceHash, now),
+            source.SupplierName, codes)).ToArray();
         await InventoryCandidateBatchPersistence.PersistAsync(
             store.DbContext, envelope.TenantId, source.Id, reviewer, now,
             candidates, cancellationToken);
@@ -97,10 +98,17 @@ public sealed partial class InventoryCommands
         InventoryExtractionResult extraction,
         string expectedSourceHash)
     {
-        var actualOutputHash = Convert.ToHexStringLower(
-            SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(extraction.StructuredJson)));
+        InventoryExtractionContract.Replay(
+            extraction.CanonicalJson, InventoryExtractionOptions.CurrentSchemaVersion);
         if (!string.Equals(extraction.SourceHash, expectedSourceHash, StringComparison.Ordinal) ||
-            !string.Equals(extraction.OutputHash, actualOutputHash, StringComparison.Ordinal) ||
+            !string.Equals(extraction.ProviderOutputHash,
+                InventoryExtractionContract.Hash(extraction.ProviderJson), StringComparison.Ordinal) ||
+            !string.Equals(extraction.CanonicalOutputHash,
+                InventoryExtractionContract.Hash(extraction.CanonicalJson), StringComparison.Ordinal) ||
+            !string.Equals(extraction.CanonicalJson,
+                InventoryExtractionContract.Serialize(extraction.Document),
+                StringComparison.Ordinal) ||
+            extraction.SchemaVersion != InventoryExtractionOptions.CurrentSchemaVersion ||
             string.IsNullOrWhiteSpace(extraction.AdapterVersion))
         {
             throw new InventoryExtractionUnavailableException();
@@ -115,23 +123,49 @@ public sealed partial class InventoryCommands
         store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.inventory_extractions (
                 id, tenant_id, import_id, source_hash, adapter_code, adapter_version,
-                schema_version, structured_json, output_hash, completed_at_utc)
+                schema_version, provider_json, provider_output_hash,
+                canonical_json, canonical_output_hash, completed_at_utc)
             VALUES ({Guid.NewGuid()}, {tenantId.Value}, {importId}, {extraction.SourceHash},
                 {extraction.AdapterCode}, {extraction.AdapterVersion},
-                {extraction.SchemaVersion}, {extraction.StructuredJson}::jsonb,
-                {extraction.OutputHash}, {timeProvider.GetUtcNow()})
+                {extraction.SchemaVersion}, {extraction.ProviderJson}::jsonb,
+                {extraction.ProviderOutputHash}, {extraction.CanonicalJson}::jsonb,
+                {extraction.CanonicalOutputHash}, {timeProvider.GetUtcNow()})
             """, cancellationToken);
 
     private static PreparedInventoryCandidate PrepareCandidate(
         ExtractedInventoryCandidate extracted,
-        InventoryCodeSets codes) => new(
-        Guid.NewGuid(),
-        extracted.RowNumber,
-        extracted.Values,
-        InventoryCandidateValidator.Validate(extracted.Values, codes),
-        extracted.Locator,
-        extracted.Evidence,
-        Guid.NewGuid());
+        string selectedSupplier,
+        InventoryCodeSets codes)
+    {
+        var validation = InventoryCandidateValidator.Validate(extracted.Values, codes)
+            .Concat(InventoryExtractionEvidenceValidator.Validate(extracted.Evidence))
+            .Concat(ValidateSupplierIdentity(extracted.SupplierName, selectedSupplier))
+            .ToArray();
+        return new(
+            Guid.NewGuid(), extracted.RowNumber, extracted.Values, validation,
+            extracted.Locator, extracted.Evidence, Guid.NewGuid());
+    }
+
+    private static IReadOnlyList<InventoryValidationIssueView> ValidateSupplierIdentity(
+        string? extractedSupplier,
+        string selectedSupplier)
+    {
+        if (string.IsNullOrWhiteSpace(extractedSupplier) ||
+            string.Equals(NormalizeSupplier(extractedSupplier),
+                NormalizeSupplier(selectedSupplier), StringComparison.OrdinalIgnoreCase))
+        {
+            return [];
+        }
+        return [new(
+            "supplierName",
+            MasterDataCodes.ValidationIssueTypes.SupplierIdentityMismatch,
+            "The extracted supplier differs from the supplier selected for this import.",
+            false)];
+    }
+
+    private static string NormalizeSupplier(string value) =>
+        string.Join(' ', value.Split((char[]?)null,
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
     private async Task CompleteExecutionAsync(
         TenantId tenantId,

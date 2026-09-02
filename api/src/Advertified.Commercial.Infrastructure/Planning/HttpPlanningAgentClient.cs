@@ -114,11 +114,14 @@ public sealed partial class HttpPlanningAgentClient(
         item.Language,
         item.LifeStage,
         item.LsmSem,
+        item.LsmSemTaxonomy,
+        item.LsmSemTaxonomyVersion,
         item.Classification,
         item.Exclusions,
         item.EvidenceItemIds,
         item.Confidence,
-        item.IsTarget);
+        item.IsTarget,
+        item.LsmSemMandatory);
 
     private static void ValidateAudienceArtifact(
         AudienceArtifact artifact,
@@ -127,30 +130,21 @@ public sealed partial class HttpPlanningAgentClient(
     {
         if (artifact.Audiences is null || artifact.Audiences.Length == 0 ||
             string.IsNullOrWhiteSpace(artifact.TargetingRationale) ||
-            string.IsNullOrWhiteSpace(artifact.PositioningStatement))
+            string.IsNullOrWhiteSpace(artifact.PositioningStatement) ||
+            artifact.Audiences.Any(item => item is null || item.Geographies is null ||
+                item.Exclusions is null || item.EvidenceItemIds is null))
         {
             throw new InvalidOperationException("The audience artifact is incomplete.");
         }
-        var evidence = input.EvidenceItemIds.ToHashSet();
+        var proposals = artifact.Audiences.Select(ToProposal).ToArray();
+        PlanningAudienceProposalValidator.Validate(
+            proposals, input.Geographies, input.EvidenceItemIds);
         var boundEvidence = bindings
             .Where(binding => binding.FieldPath == "artifact.audiences")
             .SelectMany(binding => binding.EvidenceItemIds)
             .ToHashSet();
-        var geographies = input.Geographies.ToHashSet(StringComparer.Ordinal);
-        if (artifact.Audiences.Any(item => item is null ||
-                string.IsNullOrWhiteSpace(item.Name) ||
-                string.IsNullOrWhiteSpace(item.Description) ||
-                item.Geographies is null || item.Exclusions is null ||
-                item.EvidenceItemIds is null ||
-                item.Language is not null || item.LifeStage is not null ||
-                item.LsmSem is not null ||
-                item.Geographies.Any(value => !geographies.Contains(value)) ||
-                item.EvidenceItemIds.Any(value => !evidence.Contains(value)) ||
-                item.EvidenceItemIds.Any(value => !boundEvidence.Contains(value)) ||
-                (item.Classification != MasterDataCodes.EvidenceClassifications.Hypothesis &&
-                    item.EvidenceItemIds.Length == 0) ||
-                item.Confidence is < 0 or > 1 ||
-                !IsClassification(item.Classification)))
+        if (proposals.Any(item =>
+                item.EvidenceItemIds.Any(value => !boundEvidence.Contains(value))))
         {
             throw new InvalidOperationException("The audience artifact contains unapproved facts.");
         }
@@ -185,11 +179,6 @@ public sealed partial class HttpPlanningAgentClient(
                 "The media-mix artifact does not reconcile to the Brief budget.");
         }
     }
-
-    private static bool IsClassification(string classification) =>
-        classification is MasterDataCodes.EvidenceClassifications.Fact
-            or MasterDataCodes.EvidenceClassifications.Inference
-            or MasterDataCodes.EvidenceClassifications.Hypothesis;
 
     private static void EnsureCompleted(string status)
     {
@@ -240,6 +229,9 @@ public sealed partial class HttpPlanningAgentClient(
         public string? Language { get; init; }
         public string? LifeStage { get; init; }
         public string? LsmSem { get; init; }
+        public string? LsmSemTaxonomy { get; init; }
+        public string? LsmSemTaxonomyVersion { get; init; }
+        public bool LsmSemMandatory { get; init; }
         public required string Classification { get; init; }
         public required string[] Exclusions { get; init; }
         public required Guid[] EvidenceItemIds { get; init; }

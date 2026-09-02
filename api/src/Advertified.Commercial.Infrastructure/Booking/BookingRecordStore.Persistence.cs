@@ -3,6 +3,7 @@ using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.CommercialSettings;
+using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Advertified.Commercial.Infrastructure.Booking;
@@ -30,6 +31,8 @@ public sealed partial class BookingRecordStore
                 supplier_cost_minor, markup_minor, commission_minor,
                 management_fee_minor, client_price_minor, fees_minor, vat_minor,
                 booking_approval_threshold_minor, currency_code, terms,
+                supplier_commercial_json, vat_treatment_code, commercial_terms_json,
+                deliverable_json, spatial_json, logo_asset_id,
                 status_code, created_by, created_at_utc, version, updated_at_utc)
             VALUES (
                 {bookingId}, {envelope.TenantId.Value}, {source.SupplierTenantId},
@@ -44,7 +47,10 @@ public sealed partial class BookingRecordStore
                 {money.MarkupMinor}, {money.CommissionMinor}, {money.ManagementFeeMinor},
                 {money.TotalMinor}, {money.MarkupMinor + money.CommissionMinor + money.ManagementFeeMinor},
                 {money.VatMinor}, {policy.BookingApprovalThresholdMinor}, {policy.Currency},
-                {terms}, {MasterDataCodes.LifecycleStatuses.Draft},
+                {terms}, {source.SupplierCommercialJson}::jsonb, {source.VatTreatment},
+                {source.CommercialTermsJson}::jsonb, {source.DeliverableJson}::jsonb,
+                {source.SpatialJson}::jsonb, {source.LogoAssetId},
+                {MasterDataCodes.LifecycleStatuses.Draft},
                 {envelope.ActorId.Value}, {now}, 1, {now})
             ON CONFLICT (buyer_tenant_id, proposal_decision_id, media_plan_line_id)
                 DO NOTHING
@@ -88,5 +94,23 @@ public sealed partial class BookingRecordStore
               AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1) throw new VersionConflictException();
+        var evidenceHash = OpportunityCommandSupport.Hash(
+            $"booking:{booking.Id:N}|confirmed:{now:O}|{reason}");
+        await DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO commercial.inventory_availability_exceptions (
+                id, tenant_id, product_id, product_version_id, exception_type_code,
+                starts_on, ends_on, source_locator, evidence_hash,
+                recorded_by, recorded_at_utc)
+            VALUES ({Guid.NewGuid()}, {envelope.TenantId.Value},
+                {booking.InventoryProductId}, {booking.ProductVersionId},
+                {MasterDataCodes.AvailabilityExceptionTypes.ConfirmedBookingConflict},
+                {booking.FlightStart}, {booking.FlightEnd},
+                {"booking:" + booking.Id.ToString("N")}, {evidenceHash},
+                {envelope.ActorId.Value}, {now});
+            UPDATE commercial.inventory_products
+            SET version = version + 1, updated_at_utc = {now}
+            WHERE tenant_id = {envelope.TenantId.Value}
+              AND id = {booking.InventoryProductId};
+            """, cancellationToken);
     }
 }

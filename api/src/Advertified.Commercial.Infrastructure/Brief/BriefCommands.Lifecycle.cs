@@ -24,7 +24,9 @@ public sealed partial class BriefCommands
             envelope.TenantId, row.BriefId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Brief access denied.");
         EnsureOwner(brief, envelope.ActorId.Value);
-        if (brief.CurrentDraftVersionId != versionId || row.Status != MasterDataCodes.LifecycleStatuses.Draft)
+        if (brief.CurrentDraftVersionId != versionId ||
+            row.Status is not (MasterDataCodes.LifecycleStatuses.Draft or
+                MasterDataCodes.LifecycleStatuses.Ready))
         {
             throw new InvalidLifecycleTransitionException();
         }
@@ -42,7 +44,10 @@ public sealed partial class BriefCommands
             SET status_code = {MasterDataCodes.LifecycleStatuses.InReview}, submitted_by = {envelope.ActorId.Value},
                 submitted_at_utc = {now}, version = version + 1
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {versionId}
-              AND status_code = {MasterDataCodes.LifecycleStatuses.Draft} AND version = {envelope.ExpectedVersion}
+              AND status_code IN (
+                  {MasterDataCodes.LifecycleStatuses.Draft},
+                  {MasterDataCodes.LifecycleStatuses.Ready})
+              AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1)
         {
@@ -85,6 +90,11 @@ public sealed partial class BriefCommands
             throw new InvalidLifecycleTransitionException();
         }
         EnsurePlanningReady(row);
+        if (await BriefSpatialRequirements.HasUnverifiedAsync(
+                store.DbContext, envelope.TenantId.Value, versionId, cancellationToken))
+        {
+            throw new ApprovalRequiredException();
+        }
         var now = timeProvider.GetUtcNow();
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.brief_versions
@@ -130,6 +140,11 @@ public sealed partial class BriefCommands
         var (row, brief) = await LoadDecisionContextAsync(
             versionId, envelope.ActorId.Value, envelope.TenantId, cancellationToken);
         EnsureNoCriticalConflict(row);
+        if (await BriefSpatialRequirements.HasUnverifiedAsync(
+                store.DbContext, envelope.TenantId.Value, versionId, cancellationToken))
+        {
+            throw new ApprovalRequiredException();
+        }
         var selfApproval = envelope.ActorId.Value == brief.OwnerUserId;
         if (selfApproval)
         {

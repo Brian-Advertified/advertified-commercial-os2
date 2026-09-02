@@ -22,6 +22,10 @@ import './brief-workbench.css'
 import './brief-record.css'
 import './inventory-workbench.css'
 import './operations-workbench.css'
+import './approved-ui.css'
+import './approved-workflow.css'
+import './approved-workflow-extensions.css'
+import './global-search.css'
 import { LoadingState } from './components/PageState'
 import { SignInPage } from './pages/SignInPage'
 import { publicRoutes } from './public/publicRoutes'
@@ -50,6 +54,22 @@ const NewBriefPage = lazy(() => import('./pages/NewBriefPage')
   .then(module => ({ default: module.NewBriefPage })))
 const BriefPage = lazy(() => import('./pages/BriefPage')
   .then(module => ({ default: module.BriefPage })))
+const StpPage = lazy(() => import('./pages/StpPage')
+  .then(module => ({ default: module.StpPage })))
+const BriefsIndexPage = lazy(() => import('./pages/WorkIndexPages')
+  .then(module => ({ default: module.BriefsIndexPage })))
+const StrategyStpIndexPage = lazy(() => import('./pages/WorkIndexPages')
+  .then(module => ({ default: module.StrategyStpIndexPage })))
+const PlanningIndexPage = lazy(() => import('./pages/WorkIndexPages')
+  .then(module => ({ default: module.PlanningIndexPage })))
+const ProposalsIndexPage = lazy(() => import('./pages/WorkIndexPages')
+  .then(module => ({ default: module.ProposalsIndexPage })))
+const ApprovalsIndexPage = lazy(() => import('./pages/WorkIndexPages')
+  .then(module => ({ default: module.ApprovalsIndexPage })))
+const MeasurementIndexPage = lazy(() => import('./pages/WorkIndexPages')
+  .then(module => ({ default: module.MeasurementIndexPage })))
+const ReportsIndexPage = lazy(() => import('./pages/WorkIndexPages')
+  .then(module => ({ default: module.ReportsIndexPage })))
 const InventoryPage = lazy(() => import('./pages/InventoryPage')
   .then(module => ({ default: module.InventoryPage })))
 const InventoryImportPage = lazy(() => import('./pages/InventoryImportPage')
@@ -60,6 +80,8 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage')
   .then(module => ({ default: module.ProfilePage })))
 const TasksPage = lazy(() => import('./pages/TasksPage')
   .then(module => ({ default: module.TasksPage })))
+const SearchPage = lazy(() => import('./pages/SearchPage')
+  .then(module => ({ default: module.SearchPage })))
 
 const PlanningPage = lazy(() => import('./pages/PlanningPage')
   .then(module => ({ default: module.PlanningPage })))
@@ -118,12 +140,17 @@ function App() {
           <Route path="/opportunities/:opportunityId" element={deferredRoute(<OpportunityDetailPage />)} />
           <Route path="/strategies/:strategyId" element={deferredRoute(<StrategyPage />)} />
           <Route path="/runs/:runId" element={deferredRoute(<RunPage />)} />
+          <Route path="/briefs" element={deferredRoute(<BriefsIndexPage />)} />
           <Route path="/briefs/new" element={deferredRoute(<NewBriefPage />)} />
           <Route path="/briefs/:briefId" element={deferredRoute(<BriefPage />)} />
+          <Route path="/strategy-stp" element={deferredRoute(<StrategyStpIndexPage />)} />
+          <Route path="/stp/:briefVersionId" element={deferredRoute(<StpPage />)} />
           <Route path="/inventory" element={deferredRoute(<InventoryPage />)} />
           <Route path="/inventory/imports/:importId" element={deferredRoute(<InventoryImportPage />)} />
           <Route path="/inventory/products/:productId" element={deferredRoute(<InventoryProductPage />)} />
+          <Route path="/planning" element={deferredRoute(<PlanningIndexPage />)} />
           <Route path="/planning/:briefVersionId" element={deferredRoute(<PlanningPage />)} />
+          <Route path="/proposals" element={deferredRoute(<ProposalsIndexPage />)} />
           <Route path="/briefs/:briefId/proposals/new" element={deferredRoute(<NewProposalPage />)} />
           <Route path="/proposals/:proposalId" element={deferredRoute(<ProposalPage />)} />
           <Route path="/ooh-inbox" element={deferredRoute(<OohInboxPage />)} />
@@ -137,10 +164,14 @@ function App() {
           <Route path="/campaigns/:campaignId/bookings/:bookingId/delivery-proof/new" element={deferredRoute(<DeliveryProofSubmissionPage />)} />
           <Route path="/delivery-proofs/:proofId" element={deferredRoute(<DeliveryProofPage />)} />
           <Route path="/performance-evidence/:evidenceId" element={deferredRoute(<PerformanceEvidencePage />)} />
+          <Route path="/measurement" element={deferredRoute(<MeasurementIndexPage />)} />
+          <Route path="/reports" element={deferredRoute(<ReportsIndexPage />)} />
           <Route path="/measurement-reports/:reportId" element={deferredRoute(<MeasurementReportPage />)} />
           <Route path="/admin/commercial" element={deferredRoute(<CommercialPolicyPage />)} />
           <Route path="/profile" element={deferredRoute(<ProfilePage />)} />
           <Route path="/tasks" element={deferredRoute(<TasksPage />)} />
+          <Route path="/search" element={deferredRoute(<SearchPage />)} />
+          <Route path="/approvals" element={deferredRoute(<ApprovalsIndexPage />)} />
           <Route path="/notifications" element={deferredRoute(<DeferredPage destination="Notifications" />)} />
           <Route path="*" element={deferredRoute(<NotFoundPage />)} />
         </Route>

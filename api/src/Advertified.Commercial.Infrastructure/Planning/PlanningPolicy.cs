@@ -13,9 +13,12 @@ public sealed record PlanningPolicy(
     decimal LowBenchmarkConfidence,
     decimal MediumBenchmarkConfidence,
     decimal HighBenchmarkConfidence,
-    decimal EligibilityScoreBase,
-    decimal EligibilityPriceWeight,
-    decimal EligibilityAvailableSupplyBonus,
+    bool AutomatedSelectionEnabled,
+    string SuitabilityPolicyVersion,
+    long MaximumAutomatedClientValueMinor,
+    InventorySuitabilityWeights SuitabilityWeights,
+    decimal DefaultRouteBufferMetres,
+    decimal DefaultCoverageThreshold,
     decimal RegisteredVatRate,
     IReadOnlyDictionary<string, int> RateBillingDays)
 {
@@ -30,8 +33,13 @@ public sealed record PlanningPolicy(
             registry,
             MasterDataCodes.VatStatuses.Collection,
             MasterDataCodes.VatStatuses.Registered);
+        var selection = RequireItem(
+            registry,
+            MasterDataCodes.PlanningPolicies.Collection,
+            MasterDataCodes.PlanningPolicies.InventorySuitabilityOohV1);
         using var benchmarkMetadata = JsonDocument.Parse(benchmark.MetadataJson);
         using var vatMetadata = JsonDocument.Parse(vat.MetadataJson);
+        using var selectionMetadata = JsonDocument.Parse(selection.MetadataJson);
         var metadata = benchmarkMetadata.RootElement;
         var radii = metadata.GetProperty("radiiKilometres").EnumerateArray()
             .Select(item => item.GetDecimal()).ToArray();
@@ -41,18 +49,37 @@ public sealed record PlanningPolicy(
         var lowConfidence = metadata.GetProperty("lowConfidence").GetDecimal();
         var mediumConfidence = metadata.GetProperty("mediumConfidence").GetDecimal();
         var highConfidence = metadata.GetProperty("highConfidence").GetDecimal();
-        var scoreBase = metadata.GetProperty("scoreBase").GetDecimal();
-        var priceWeight = metadata.GetProperty("priceWeight").GetDecimal();
-        var supplyBonus = metadata.GetProperty("availableSupplyBonus").GetDecimal();
+        var automatedSelectionEnabled = selectionMetadata.RootElement
+            .GetProperty("automatedSelectionEnabled").GetBoolean();
+        var selectionRoot = selectionMetadata.RootElement;
+        var maximumAutomatedValue = selectionRoot
+            .GetProperty("maximumAutomatedClientValueMinor").GetInt64();
+        var weightsMetadata = selectionRoot.GetProperty("weights");
+        var weights = new InventorySuitabilityWeights(
+            weightsMetadata.GetProperty("geography").GetDecimal(),
+            weightsMetadata.GetProperty("audienceContext").GetDecimal(),
+            weightsMetadata.GetProperty("objectiveFormat").GetDecimal(),
+            weightsMetadata.GetProperty("budgetEfficiency").GetDecimal(),
+            weightsMetadata.GetProperty("evidenceQualityFreshness").GetDecimal(),
+            weightsMetadata.GetProperty("portfolioCoverageDiversity").GetDecimal());
+        var routeBuffer = selectionRoot.GetProperty("defaultRouteBufferMetres").GetDecimal();
+        var coverageThreshold = selectionRoot.GetProperty("defaultCoverageThreshold").GetDecimal();
         var vatRate = vatMetadata.RootElement.GetProperty("rate").GetDecimal();
         ValidateBenchmarkPolicy(
             radii, minimum, medium, high,
-            lowConfidence, mediumConfidence, highConfidence,
-            scoreBase, priceWeight, supplyBonus, vatRate);
+            lowConfidence, mediumConfidence, highConfidence, vatRate);
+        if (!automatedSelectionEnabled || maximumAutomatedValue <= 0 ||
+            weights.Total != 1m || routeBuffer <= 0 ||
+            coverageThreshold is <= 0 or > 1)
+        {
+            throw new InvalidOperationException(
+                "The governed inventory suitability policy is invalid.");
+        }
         return new(
             benchmark.Code, radii, minimum, medium, high,
             lowConfidence, mediumConfidence, highConfidence,
-            scoreBase, priceWeight, supplyBonus,
+            automatedSelectionEnabled, selection.Code, maximumAutomatedValue,
+            weights, routeBuffer, coverageThreshold,
             vatRate, LoadRateBillingDays(registry));
     }
 
@@ -83,9 +110,6 @@ public sealed record PlanningPolicy(
         decimal lowConfidence,
         decimal mediumConfidence,
         decimal highConfidence,
-        decimal scoreBase,
-        decimal priceWeight,
-        decimal supplyBonus,
         decimal vatRate)
     {
         if (radii.Length == 0 || radii.Any(radius => radius <= 0) ||
@@ -94,7 +118,6 @@ public sealed record PlanningPolicy(
             lowConfidence is < 0 or > 1 || mediumConfidence is < 0 or > 1 ||
             highConfidence is < 0 or > 1 ||
             lowConfidence > mediumConfidence || mediumConfidence > highConfidence ||
-            scoreBase <= 0 || priceWeight < 0 || supplyBonus < 0 ||
             vatRate is < 0 or > 1)
         {
             throw new InvalidOperationException("The canonical planning policy is invalid.");
@@ -109,4 +132,16 @@ public sealed record PlanningPolicy(
         .SingleOrDefault(item => item.Code == code && item.IsActive)
         ?? throw new InvalidOperationException(
             "The canonical planning policy is missing from master data.");
+}
+
+public sealed record InventorySuitabilityWeights(
+    decimal Geography,
+    decimal AudienceContext,
+    decimal ObjectiveFormat,
+    decimal BudgetEfficiency,
+    decimal EvidenceQualityFreshness,
+    decimal PortfolioCoverageDiversity)
+{
+    public decimal Total => Geography + AudienceContext + ObjectiveFormat +
+        BudgetEfficiency + EvidenceQualityFreshness + PortfolioCoverageDiversity;
 }

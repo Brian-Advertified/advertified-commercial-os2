@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { campaignApi } from '../api/campaign-client'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
+import { CampaignFlowBinding } from '../campaign-flow/CampaignFlowBindings'
 import { measurementReportReviewerRoles } from '../campaign/campaign-roles'
 import { MeasurementReportCard } from '../campaign/MeasurementReportCard'
 import { useResourceRecord } from '../campaign/useResourceRecord'
@@ -36,7 +37,8 @@ function MeasurementReportRecord({ tenantId, reportId, token, canReview }: {
     return <MessageState title="Measurement report could not be opened" message={model.error} />
   }
   if (!model.record) return <LoadingState label="Loading measurement report" />
-  return <section className="review-resource-page" aria-labelledby="report-review-title">
+  return <><CampaignFlowBinding tenantId={tenantId} campaignId={model.record.campaignId} />
+  <section className="review-resource-page" aria-labelledby="report-review-title">
     <Link className="text-action back-link" to="/tasks">← Back to assigned tasks</Link>
     <header className="page-heading"><p className="eyebrow">Client measurement report</p>
       <h1 id="report-review-title">Review the sourced interpretation</h1>
@@ -44,5 +46,5 @@ function MeasurementReportRecord({ tenantId, reportId, token, canReview }: {
     {model.error && <p className="inline-alert" role="alert">{model.error}</p>}
     <MeasurementReportCard tenantId={tenantId} token={token} report={model.record}
       busy={model.busy} canReview={canReview} run={model.run} />
-  </section>
+  </section></>
 }

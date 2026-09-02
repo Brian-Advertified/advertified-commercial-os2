@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { campaignApi } from '../api/campaign-client'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
+import { CampaignFlowBinding } from '../campaign-flow/CampaignFlowBindings'
 import { deliveryProofReviewerRoles } from '../campaign/campaign-roles'
 import { DeliveryProofCard } from '../campaign/DeliveryProofCard'
 import { useResourceRecord } from '../campaign/useResourceRecord'
@@ -36,7 +37,8 @@ function DeliveryProofRecord({ tenantId, proofId, token, canReview }: {
     return <MessageState title="Delivery proof could not be opened" message={model.error} />
   }
   if (!model.record) return <LoadingState label="Loading delivery proof" />
-  return <section className="review-resource-page" aria-labelledby="proof-review-title">
+  return <><CampaignFlowBinding tenantId={tenantId} campaignId={model.record.campaignId} />
+  <section className="review-resource-page" aria-labelledby="proof-review-title">
     <Link className="text-action back-link" to="/tasks">← Back to assigned tasks</Link>
     <header className="page-heading"><p className="eyebrow">Delivery evidence</p>
       <h1 id="proof-review-title">Review the exact supplier proof</h1>
@@ -44,5 +46,5 @@ function DeliveryProofRecord({ tenantId, proofId, token, canReview }: {
     {model.error && <p className="inline-alert" role="alert">{model.error}</p>}
     <DeliveryProofCard tenantId={tenantId} token={token} proof={model.record}
       busy={model.busy} canReview={canReview} run={model.run} />
-  </section>
+  </section></>
 }

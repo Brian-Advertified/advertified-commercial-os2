@@ -53,28 +53,54 @@ public sealed class MarketplaceRecordStore(GovernanceDbContext dbContext)
                 RfqSelect + " WHERE response.id = {6}", RfqParameters(now, responseId)))
             .SingleOrDefaultAsync(cancellationToken);
 
-    internal Task<MarketplaceProductSnapshotRow?> FindProductSnapshotAsync(
+    internal async Task<MarketplaceProductSnapshotRow?> FindProductSnapshotAsync(
         TenantId tenantId,
         Guid productId,
         DateOnly today,
         DateTimeOffset now,
-        CancellationToken cancellationToken) =>
-        dbContext.Database.SqlQuery<MarketplaceProductSnapshotRow>($"""
+        CancellationToken cancellationToken)
+    {
+        var snapshot = await dbContext.Database.SqlQuery<MarketplaceProductSnapshotRow>($"""
             SELECT product.id AS "ProductId", version.id AS "ProductVersionId",
                 product.supplier_id AS "SupplierId", rate.id AS "RateId",
                 availability.id AS "AvailabilityId",
                 supplier.name AS "SupplierName", version.name AS "ProductName",
                 version.channel_code AS "Channel", version.product_type_code AS "ProductType",
-                version.geography AS "Geography", rate.rate_type_code AS "RateType",
+                version.geography AS "Geography",
+                version.audience_profile_json::text AS "AudienceProfileJson",
+                rate.rate_type_code AS "RateType",
                 rate.amount_minor AS "AmountMinor", rate.currency_code AS "Currency",
                 rate.effective_from AS "RateEffectiveFrom",
                 rate.effective_to AS "RateEffectiveTo",
+                rate.source_locator AS "RateSourceLocator",
+                availability.source_locator AS "AvailabilitySourceLocator",
+                supplier_version.vat_status_code AS "SupplierVatStatus",
+                CASE WHEN supplier_version.id IS NULL THEN NULL ELSE jsonb_build_object(
+                    'vatStatus', supplier_version.vat_status_code,
+                    'vatNumber', supplier_version.vat_number,
+                    'commissionTerms', supplier_version.commission_terms,
+                    'paymentTerms', supplier_version.payment_terms,
+                    'cancellationTerms', supplier_version.cancellation_terms,
+                    'bookingDeadlineTerms', supplier_version.booking_deadline_terms)
+                    END::text AS "SupplierCommercialJson",
+                rate.vat_treatment_code AS "VatTreatment",
+                rate.commercial_terms_json::text AS "CommercialTermsJson",
+                version.deliverable_json::text AS "DeliverableJson",
+                version.spatial_json::text AS "SpatialJson",
+                ST_AsGeoJSON(version.spatial_location::geometry) AS "SpatialLocationGeoJson",
+                ST_AsGeoJSON(version.coverage_geometry) AS "CoverageGeometryGeoJson",
+                ST_AsGeoJSON(version.catchment_geometry) AS "CatchmentGeometryGeoJson",
+                ST_AsGeoJSON(version.route_geometry) AS "RouteGeometryGeoJson",
+                logo.id AS "LogoAssetId",
                 availability.availability_code AS "Availability",
                 availability.observed_at_utc AS "AvailabilityObservedAtUtc",
                 availability.valid_until_utc AS "AvailabilityValidUntilUtc"
             FROM commercial.inventory_products product
             JOIN commercial.inventory_suppliers supplier
               ON supplier.tenant_id = product.tenant_id AND supplier.id = product.supplier_id
+            LEFT JOIN commercial.inventory_supplier_versions supplier_version
+              ON supplier_version.tenant_id = supplier.tenant_id
+             AND supplier_version.id = supplier.current_commercial_version_id
             JOIN commercial.inventory_product_versions version
               ON version.tenant_id = product.tenant_id AND version.id = product.current_version_id
             JOIN LATERAL (
@@ -95,9 +121,30 @@ public sealed class MarketplaceRecordStore(GovernanceDbContext dbContext)
                     item.observed_at_utc <= {now}) DESC,
                     item.observed_at_utc DESC NULLS LAST, item.id DESC
                 LIMIT 1) availability ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT asset.id
+                FROM commercial.inventory_assets asset
+                WHERE asset.tenant_id = version.tenant_id
+                  AND asset.product_version_id = version.id
+                  AND asset.asset_type_code = {MasterDataCodes.AssetTypes.Logo}
+                  AND commercial.inventory_asset_rights_valid(
+                      asset.id, {MasterDataCodes.AssetRightsScopes.MarketplaceDisplay},
+                      'ZA', {today})
+                ORDER BY asset.id
+                LIMIT 1) logo ON TRUE
             WHERE product.tenant_id = {tenantId.Value} AND product.id = {productId}
               AND product.status_code = {MasterDataCodes.LifecycleStatuses.Active}
+              AND NOT EXISTS (
+                  SELECT 1 FROM commercial.inventory_product_identity_links identity_link
+                  WHERE identity_link.tenant_id = product.tenant_id
+                    AND identity_link.duplicate_product_id = product.id)
             """).SingleOrDefaultAsync(cancellationToken);
+        if (snapshot?.SpatialJson is not null)
+        {
+            snapshot.SpatialJson = MarketplaceSpatialProjection.Redact(snapshot.SpatialJson);
+        }
+        return snapshot;
+    }
 
     internal const string ListingSelect = """
         SELECT listing.id AS "Id", listing.supplier_tenant_id AS "SupplierTenantId",

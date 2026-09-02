@@ -14,8 +14,9 @@ public sealed partial class PlanningCommands
 {
     private static readonly string[] ShortlistAssumptions =
     [
-        "Hard eligibility runs before score calculation.",
-        "Unknown supply remains eligible but is never presented as confirmed.",
+        "Hard eligibility is evaluated before governed suitability scoring.",
+        "Inventory is planning-available unless an overlapping exception or confirmed booking conflict exists.",
+        "Suitability uses the versioned OOH policy and sponsored placement never changes rank.",
     ];
 
     private async Task<CommandOutcome> GenerateShortlistOutcomeAsync(
@@ -31,6 +32,21 @@ public sealed partial class PlanningCommands
         {
             throw new InvalidLifecycleTransitionException();
         }
+        var audienceRow = await store.FindAudienceAsync(
+            envelope.TenantId, mix.AudienceSetId, cancellationToken);
+        if (audienceRow is null ||
+            audienceRow.Status != MasterDataCodes.LifecycleStatuses.Approved)
+        {
+            throw new InvalidLifecycleTransitionException();
+        }
+        var audience = await store.BuildAudienceViewAsync(
+            envelope.TenantId, audienceRow, cancellationToken);
+        var targetIds = audience.TargetAudienceIds.ToHashSet();
+        var targets = audience.Definitions.Where(item => targetIds.Contains(item.Id)).ToArray();
+        if (targets.Length != targetIds.Count)
+        {
+            throw new InvalidOperationException("The approved target audience set is incomplete.");
+        }
         var inventory = await store.ListInventoryAsync(envelope.TenantId, cancellationToken);
         if (inventory.Count == 0)
         {
@@ -41,14 +57,17 @@ public sealed partial class PlanningCommands
         var latest = await store.FindLatestShortlistAsync(
             envelope.TenantId, briefVersionId, cancellationToken);
         var id = Guid.NewGuid();
-        var inputHash = PlanningHash.ForShortlist(mix, inventory);
+        var inputHash = PlanningHash.ForShortlist(mix, audience, inventory);
         var now = timeProvider.GetUtcNow();
         await InsertShortlistAsync(
             envelope, briefVersionId, mix.Id, id,
             (latest?.VersionNumber ?? 0) + 1, inputHash, now, cancellationToken);
+        var spatialMatches = await store.EvaluateSpatialMatchesAsync(
+            envelope.TenantId, briefVersionId, inventory, cancellationToken);
         var prepared = PrepareCandidates(
             inventory, allocations, Read<string[]>(brief.GeographiesJson),
-            mix.Currency, inputHash);
+            mix.Currency, targets, spatialMatches, inputHash, now);
+        prepared = InventorySuitabilityScorer.Score(prepared, planningPolicy);
         prepared = await AttachBenchmarksAsync(
             envelope.TenantId, prepared, inventory, cancellationToken);
         prepared = await AttachInventoryInterpretationsAsync(
@@ -93,14 +112,29 @@ public sealed partial class PlanningCommands
         Dictionary<string, MediaAllocationView> allocations,
         IReadOnlyList<string> geographies,
         string currency,
-        string shortlistInputHash) =>
+        IReadOnlyList<AudienceDefinitionView> targets,
+        IReadOnlyDictionary<PlanningInventoryKey, InventorySpatialMatchView> spatialMatches,
+        string shortlistInputHash,
+        DateTimeOffset now) =>
         inventory.Select(item =>
         {
             allocations.TryGetValue(item.Channel, out var allocation);
+            var key = new PlanningInventoryKey(
+                item.InventoryTenantId, item.MarketplaceListingVersionId,
+                item.ProductVersionId);
+            var spatialMatch = spatialMatches[key];
             var eligibility = InventoryEligibilityEvaluator.Evaluate(
-                item, geographies, allocations, currency, planningPolicy);
+                item, geographies, allocations, currency, planningPolicy,
+                spatialMatch.HasRequirements);
+            eligibility = PlanningSpatialMatcher.ApplyEligibility(
+                eligibility, spatialMatch);
+            var audienceFit = InventoryAudienceMatcher.Evaluate(
+                item.AudienceProfileJson, targets);
+            eligibility = InventoryAudienceMatcher.ApplyMandatoryEligibility(
+                eligibility, audienceFit);
             return new PreparedShortlistCandidate(
-                Guid.NewGuid(), item, allocation, eligibility,
+                Guid.NewGuid(), item, allocation, eligibility, audienceFit, spatialMatch,
+                InventorySuitabilityScorer.Empty(planningPolicy),
                 PlanningHash.ForInventory(item, shortlistInputHash), string.Empty, null);
         }).ToArray();
 
@@ -188,6 +222,7 @@ public sealed partial class PlanningCommands
             candidate.Eligibility.RejectionReason,
             candidate.Eligibility.RejectionDetail,
             candidate.Eligibility.Score,
+            candidate.AudienceFit,
             benchmark is null
                 ? null
                 : new InventoryBenchmarkInput(
@@ -242,6 +277,7 @@ public sealed partial class PlanningCommands
         {
             throw new InvalidLifecycleTransitionException();
         }
+        EnsureSpatialCoverage(current.Candidates.Where(item => requested.Contains(item.Id)));
         var now = timeProvider.GetUtcNow();
         await PlanningShortlistPersistence.InsertSelectionsAsync(
             store.DbContext, envelope.TenantId, eligibleIds, requested,
@@ -270,6 +306,22 @@ public sealed partial class PlanningCommands
         if (shortlist.Status != MasterDataCodes.LifecycleStatuses.Draft ||
             command.SelectedCandidateIds.Count == 0 ||
             command.SelectedCandidateIds.Count != command.SelectedCandidateIds.Distinct().Count())
+        {
+            throw new InvalidLifecycleTransitionException();
+        }
+    }
+
+    private static void EnsureSpatialCoverage(
+        IEnumerable<InventoryShortlistCandidateView> selected)
+    {
+        var candidates = selected.ToArray();
+        var required = candidates.SelectMany(item =>
+                item.SpatialMatch?.RequiredRequirementIds ?? [])
+            .ToHashSet();
+        var covered = candidates.SelectMany(item =>
+                item.SpatialMatch?.MatchedRequiredRequirementIds ?? [])
+            .ToHashSet();
+        if (!required.IsSubsetOf(covered))
         {
             throw new InvalidLifecycleTransitionException();
         }
@@ -309,14 +361,23 @@ internal static partial class PlanningHash
 {
     internal static string ForShortlist(
         MediaMixRow mix,
+        AudienceDefinitionSetView audience,
         IReadOnlyList<PlanningInventoryRow> inventory) => OpportunityCommandSupport.Hash(
-            $"{mix.Id:N}|{mix.Version}|{mix.InputHash}|" + string.Join('|', inventory.Select(item =>
+            $"{mix.Id:N}|{mix.Version}|{mix.InputHash}|{audience.Id:N}|" +
+            $"{audience.VersionNumber}|{audience.InputHash}|" + string.Join('|',
+                audience.Definitions.OrderBy(item => item.Id).Select(item =>
+                    $"{item.Id:N}:{item.Language}:{item.LifeStage}:{item.LsmSem}:" +
+                    $"{item.LsmSemTaxonomy}:{item.LsmSemTaxonomyVersion}:" +
+                    $"{string.Join(',', item.EvidenceItemIds.Order())}")) + "|" +
+            string.Join('|', inventory.Select(item =>
                 $"{item.InventoryTenantId:N}:{item.MarketplaceListingVersionId:N}:" +
-                $"{item.ProductVersionId:N}:{item.RateId:N}:{item.AvailabilityId:N}")));
+                $"{item.ProductVersionId:N}:{item.RateId:N}:{item.AvailabilityId:N}:" +
+                $"{item.AudienceProfileJson}")));
 
     internal static string ForInventory(PlanningInventoryRow item, string shortlistHash) =>
         OpportunityCommandSupport.Hash(
             $"{shortlistHash}|{item.InventoryTenantId:N}|" +
             $"{item.MarketplaceListingVersionId:N}|{item.ProductVersionId:N}|{item.RateId:N}|" +
-            $"{item.AvailabilityId:N}|{item.RateAmountMinor}|{item.Currency}");
+            $"{item.AvailabilityId:N}|{item.RateAmountMinor}|{item.Currency}|" +
+            $"{item.AudienceProfileJson}");
 }

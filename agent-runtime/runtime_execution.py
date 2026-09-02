@@ -50,16 +50,35 @@ OPPORTUNITY_ARTIFACTS: dict[AgentCode, ArtifactType] = {
 
 INSTRUCTIONS: dict[AgentCode, str] = {
     AgentCode.BUSINESS_INTERPRETATION: "Interpret the business from approved evidence only.",
-    AgentCode.OPPORTUNITY_INTELLIGENCE: "Propose ranked commercial opportunity angles grounded in approved evidence.",
-    AgentCode.STRATEGY: "Propose a growth strategy from approved evidence and the selected prior artefacts.",
-    AgentCode.CRITIC_READINESS: "Critique the proposed strategy and identify material evidence gaps.",
-    AgentCode.BRIEF_DRAFTING: "Draft the canonical campaign brief proposal without inventing missing facts.",
+    AgentCode.OPPORTUNITY_INTELLIGENCE: (
+        "Propose ranked commercial opportunity angles grounded in approved evidence."
+    ),
+    AgentCode.STRATEGY: (
+        "Propose a growth strategy from approved evidence and selected prior artefacts."
+    ),
+    AgentCode.CRITIC_READINESS: (
+        "Critique the proposed strategy and identify material evidence gaps."
+    ),
+    AgentCode.BRIEF_DRAFTING: (
+        "Draft the canonical campaign brief proposal without inventing missing facts."
+    ),
     AgentCode.AUDIENCE: "Propose evidence-labelled audience definitions and positioning.",
-    AgentCode.MEDIA_PLANNING: "Propose a budget-reconciled media mix using only the allowed channels.",
-    AgentCode.INVENTORY_INTELLIGENCE: "Explain supplied deterministic inventory eligibility and benchmark facts without changing them.",
-    AgentCode.PROPOSAL_NARRATIVE: "Draft proposal wording that preserves every supplied commercial fact exactly.",
-    AgentCode.CREATIVE: "Propose creative territories using only supplied rights-cleared assets and verified product facts.",
-    AgentCode.MEASUREMENT: "Interpret supplied reviewed performance evidence without asserting unsupported causality.",
+    AgentCode.MEDIA_PLANNING: (
+        "Propose a budget-reconciled media mix using only the allowed channels."
+    ),
+    AgentCode.INVENTORY_INTELLIGENCE: (
+        "Explain supplied deterministic inventory eligibility and benchmark facts "
+        "without changing them."
+    ),
+    AgentCode.PROPOSAL_NARRATIVE: (
+        "Draft proposal wording that preserves every supplied commercial fact exactly."
+    ),
+    AgentCode.CREATIVE: (
+        "Propose creative territories using only rights-cleared assets and verified facts."
+    ),
+    AgentCode.MEASUREMENT: (
+        "Interpret reviewed performance evidence without unsupported causality."
+    ),
 }
 
 

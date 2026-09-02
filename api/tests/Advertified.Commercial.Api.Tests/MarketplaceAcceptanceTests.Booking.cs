@@ -69,13 +69,6 @@ public sealed partial class MarketplaceAcceptanceTests
             mediaPlanLineId = line.GetProperty("mediaPlanLineId").GetGuid(),
             terms = "Supplier confirmation is required before this booking is binding.",
         };
-        using var missingPolicy = await RawCommandAsync(
-            buyer, BuyerTenantId, "bookings", "booking-create-without-policy", null,
-            createBody);
-        await AssertProblemAsync(
-            missingPolicy, HttpStatusCode.NotFound, "COMMERCIAL_POLICY_NOT_CONFIGURED");
-        await ConfigureMatchingCommercialPolicyAsync(buyer);
-
         using var draft = await CommandAsync(
             buyer, BuyerTenantId, "bookings", "booking-create", null,
             createBody);
@@ -202,7 +195,6 @@ public sealed partial class MarketplaceAcceptanceTests
             buyer, BuyerTenantId, $"media-plan-versions/{plan.Id}:approve",
             "booking-plan-approve", plan.Version,
             new { reason = "Approve before booking preparation." });
-        await ConfigureMatchingCommercialPolicyAsync(buyer);
         var selected = await CreateSelectedProposalAsync(buyer, client, plan.Id, clock);
         await FundSelectedProposalAsync(buyer, reviewer, selected);
         using var bookable = await ReadAsync(buyer, BuyerTenantId, "bookings/bookable-lines");
@@ -228,31 +220,6 @@ public sealed partial class MarketplaceAcceptanceTests
         using var unchanged = await ReadAsync(buyer, BuyerTenantId, $"bookings/{bookingId}");
         Assert.Equal("DRAFT", unchanged.RootElement.GetProperty("status").GetString());
         Assert.Equal(1, unchanged.RootElement.GetProperty("version").GetInt64());
-    }
-
-    private static async Task ConfigureMatchingCommercialPolicyAsync(HttpClient buyer)
-    {
-        var request = new HttpRequestMessage(
-            HttpMethod.Put, $"/api/v1/tenants/{BuyerTenantId}/commercial-policy")
-        {
-            Content = JsonContent.Create(new
-            {
-                markupBasisPoints = 0,
-                managementFeeBasisPoints = 40,
-                commissionBasisPoints = 0,
-                vatStatus = "REGISTERED",
-                vatRateBasisPoints = 1500,
-                pricesIncludeVat = false,
-                currency = "ZAR",
-                bookingApprovalThresholdMinor = 2_000_000,
-            }),
-        };
-        request.Headers.Add("Idempotency-Key", "booking-policy-create");
-        request.Headers.Add("X-Correlation-ID", Guid.NewGuid().ToString());
-        request.Headers.TryAddWithoutValidation("If-Match", "\"0\"");
-        using var response = await buyer.SendAsync(request);
-        Assert.True(response.IsSuccessStatusCode,
-            $"Policy setup failed: {await response.Content.ReadAsStringAsync()}");
     }
 
     private static async Task<SelectedProposalFixture> CreateSelectedProposalAsync(

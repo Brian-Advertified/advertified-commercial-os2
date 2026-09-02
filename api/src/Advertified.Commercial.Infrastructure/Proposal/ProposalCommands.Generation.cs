@@ -129,8 +129,9 @@ public sealed partial class ProposalCommands
                 new ProposalRunningPeriodView(line.Channel, period.Start, period.End)))
             .Distinct().OrderBy(item => item.Channel, StringComparer.Ordinal)
             .ThenBy(item => item.Start).ToArray();
-        var inventory = plan.Lines.Select(item => item.Name)
+        var inventoryNames = plan.Lines.Select(item => item.Name)
             .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        var inventory = plan.Lines.Select(ToProposalInventory).ToArray();
         var signature = OpportunityCommandSupport.Hash(
             $"{plan.Id:N}|{plan.Version}|{plan.InputHash}|{plan.TotalMinor}|" +
             string.Join('|', plan.Lines.Select(line =>
@@ -140,11 +141,41 @@ public sealed partial class ProposalCommands
                 string.Join(',', line.RunningPeriods.Select(period => $"{period.Start:O}-{period.End:O}")))));
         return new ProposalPlanSnapshot(
             plan.Id, plan.VersionNumber, plan.TotalMinor, plan.Currency, plan.InputHash,
-            channels, periods, inventory, signature, plan.Lines.Select(line =>
+            channels, periods, inventoryNames, inventory, signature, plan.Lines.Select(line =>
                 new ProposalPlanLineReference(
                     line.InventoryTenantId, line.MarketplaceListingVersionId,
                     line.InventoryProductId, line.ProductVersionId,
-                    line.RateId, line.AvailabilityId)).ToArray());
+                    line.RateId, line.AvailabilityId,
+                    line.RunningPeriods.Select(period => new ProposalRunningPeriodView(
+                        line.Channel, period.Start, period.End)).ToArray())).ToArray());
+    }
+
+    private static ProposalInventoryLineView ToProposalInventory(
+        Advertified.Commercial.Application.Planning.MediaPlanLineView line) => new(
+        line.InventoryTenantId, line.MarketplaceListingVersionId,
+        line.InventoryProductId, line.ProductVersionId, line.RateId,
+        line.AvailabilityId, line.Name, line.Channel, line.Geography,
+        line.RunningPeriods.Select(period => new ProposalRunningPeriodView(
+            line.Channel, period.Start, period.End)).ToArray(),
+        line.Quantity, line.ClientPriceMinor, line.FeesMinor, line.VatMinor,
+        line.Availability, line.RateFreshness, line.SupplyConfidence,
+        line.SupplySource, line.LastConfirmedAtUtc, Uncertainties(line),
+        line.SupplierCommercial, line.CommercialTerms, line.Deliverable,
+        line.Spatial, line.LogoAssetId);
+
+    private static string[] Uncertainties(
+        Advertified.Commercial.Application.Planning.MediaPlanLineView line)
+    {
+        var values = new List<string>();
+        if (line.SupplyConfidence != MasterDataCodes.SupplyConfidenceStatuses.Confirmed)
+        {
+            values.Add("Supply is not confirmed for the full campaign period.");
+        }
+        if (line.RateFreshness != MasterDataCodes.RateFreshnessStatuses.Current)
+        {
+            values.Add("Rate validity requires reconfirmation.");
+        }
+        return values.ToArray();
     }
 
     private static ProposalOptionSnapshot BuildOptionInput(
@@ -200,6 +231,7 @@ internal sealed record ProposalPlanSnapshot(
     IReadOnlyList<string> Channels,
     IReadOnlyList<ProposalRunningPeriodView> Periods,
     IReadOnlyList<string> InventoryNames,
+    IReadOnlyList<ProposalInventoryLineView> Inventory,
     string Signature,
     IReadOnlyList<ProposalPlanLineReference> Lines);
 
@@ -209,7 +241,8 @@ internal sealed record ProposalPlanLineReference(
     Guid InventoryProductId,
     Guid ProductVersionId,
     Guid RateId,
-    Guid? AvailabilityId);
+    Guid? AvailabilityId,
+    IReadOnlyList<ProposalRunningPeriodView> RunningPeriods);
 
 internal sealed record ProposalOptionSnapshot(
     string Label,

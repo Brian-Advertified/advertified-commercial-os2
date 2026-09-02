@@ -1,5 +1,6 @@
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Foundation;
+using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Domain.Governance;
 
 namespace Advertified.Commercial.Application.EmailAutomation;
@@ -76,5 +77,16 @@ public interface IEmailProposalAutomationProcessor
         ActorId actorId,
         Guid inboundEmailId,
         CorrelationId correlationId,
+        CancellationToken cancellationToken);
+}
+
+public interface IEmailAutomationInventorySelector
+{
+    Task<Guid[]> SelectAsync(
+        TenantId tenantId,
+        ActorId actorId,
+        MediaMixVersionView mix,
+        InventoryShortlistVersionView shortlist,
+        DateTimeOffset now,
         CancellationToken cancellationToken);
 }

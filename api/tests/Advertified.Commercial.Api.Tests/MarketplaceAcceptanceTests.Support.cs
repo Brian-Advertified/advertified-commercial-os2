@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -63,6 +64,7 @@ public sealed partial class MarketplaceAcceptanceTests
             builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
             builder.UseDeterministicInventoryProtection();
             builder.UseSetting("Logging:LogLevel:Default", "Warning");
+            builder.ConfigureLogging(logging => logging.AddConsole());
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<TimeProvider>();

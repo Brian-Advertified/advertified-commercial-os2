@@ -16,7 +16,7 @@ test('connected proposal inbox opens against the local API', async ({ page }) =>
   await page.goto('/sign-in')
   await page.getByRole('button', { name: /Continue to Advertified/ }).click()
   await page.getByRole('button', { name: /Advertified Local/ }).click()
-  await expect(page.getByRole('heading', { name: 'Work dashboard', exact: true }))
+  await expect(page.getByRole('heading', { name: /Good morning, Local/ }))
     .toBeVisible()
   await ensureLocalMailbox(page)
 
@@ -45,10 +45,7 @@ test('connected proposal inbox opens against the local API', async ({ page }) =>
     name: 'Proposal inbox',
     exact: true,
   })).toBeVisible()
-  await expect(page.getByRole('heading', {
-    name: mailboxAddress,
-    exact: true,
-  })).toBeVisible()
+  await expect(page.getByText(mailboxAddress, { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', {
     name: 'Proposal inbox could not be opened',
   })).toHaveCount(0)

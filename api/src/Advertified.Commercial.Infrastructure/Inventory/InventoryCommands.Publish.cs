@@ -27,15 +27,23 @@ public sealed partial class InventoryCommands
         var approved = PrepareApprovedCandidates(candidates, codes);
         await InventoryPublicationPersistence.LockSupplierAsync(
             store.DbContext, envelope.TenantId, source.SupplierId, cancellationToken);
+        var supplier = InventorySupplierPublication.Prepare(approved);
+        var productCodes = approved.Select(item => item.ProductCode)
+            .Concat(approved.SelectMany(item =>
+                item.Values.Package?.ComponentProductCodes ?? []))
+            .Distinct(StringComparer.Ordinal).ToArray();
         var products = await InventoryPublicationPersistence.LoadProductsAsync(
             store.DbContext, envelope.TenantId, source.SupplierId,
-            approved.Select(item => item.ProductCode).ToArray(), cancellationToken);
+            productCodes, cancellationToken);
         var nextVersions = await InventoryPublicationPersistence.LoadNextVersionsAsync(
             store.DbContext, envelope.TenantId,
             products.Select(item => item.Id).ToArray(), cancellationToken);
         var publications = PreparePublications(
             source, approved, products, nextVersions);
         var now = timeProvider.GetUtcNow();
+        await InventorySupplierPublication.PersistAsync(
+            store.DbContext, envelope.TenantId, source.SupplierId, source.Id,
+            envelope.ActorId.Value, now, supplier, cancellationToken);
         await InventoryPublicationPersistence.PersistAsync(
             store.DbContext, envelope.TenantId, source.SupplierId, source.Id,
             envelope.ActorId.Value, now, publications, cancellationToken);
@@ -115,30 +123,82 @@ public sealed partial class InventoryCommands
     {
         var byCode = products.ToDictionary(item => item.ProductCode, StringComparer.Ordinal);
         var versions = nextVersions.ToDictionary(item => item.ProductId);
-        return candidates.Select(item =>
-        {
-            var exists = byCode.TryGetValue(item.ProductCode, out var product);
-            var productId = exists ? product!.Id : Guid.NewGuid();
-            var versionNumber = exists && versions.TryGetValue(productId, out var number)
-                ? number.NextVersionNumber : 1;
-            var values = item.Values;
-            return new PreparedInventoryPublication(
-                productId, item.ProductCode, !exists, Guid.NewGuid(), versionNumber,
-                item.Candidate.Id, Required(values.Name), Required(values.Channel),
-                Required(values.ProductType), Required(values.Geography), values.Address,
-                values.Latitude, values.Longitude,
-                JsonSerializer.Serialize(
-                    values.Extension ?? new Dictionary<string, string>(),
-                    InventoryRowMapper.StoredJson),
-                Guid.NewGuid(), Required(values.RateType), Required(values.Currency),
-                values.RateAmountMinor ?? throw new InventoryPublishBlockedException(),
-                Guid.NewGuid(), Required(values.Availability), Guid.NewGuid(),
-                AssetType(source, values), Required(source.ProtectedObjectKey),
-                source.SourceHash, source.DeclaredMediaType, item.Candidate.SourceLocator);
-        }).ToArray();
+        var knownCodes = candidates.Select(item => item.ProductCode)
+            .Concat(products.Select(item => item.ProductCode))
+            .ToHashSet(StringComparer.Ordinal);
+        return candidates.Select(item => PreparePublication(
+            source, item, byCode, versions, knownCodes)).ToArray();
     }
 
-    private static string AssetType(
+    private static PreparedInventoryPublication PreparePublication(
+        InventoryImportRow source,
+        ApprovedInventoryCandidate item,
+        Dictionary<string, ExistingInventoryProductRow> byCode,
+        Dictionary<Guid, InventoryProductVersionNumberRow> versions,
+        HashSet<string> knownCodes)
+    {
+        var exists = byCode.TryGetValue(item.ProductCode, out var product);
+        var productId = exists ? product!.Id : Guid.NewGuid();
+        var versionNumber = exists && versions.TryGetValue(productId, out var number)
+            ? number.NextVersionNumber : 1;
+        var values = item.Values;
+        ValidatePackage(values.Package, knownCodes);
+        var asset = PrepareAsset(source, values);
+        var package = PreparePackage(values.Package);
+        var spatial = values.Spatial;
+        return new PreparedInventoryPublication(
+            productId, item.ProductCode, !exists, Guid.NewGuid(), versionNumber,
+            item.Candidate.Id, Required(values.Name), Required(values.Channel),
+            Required(values.ProductType), Required(values.Geography), values.Address,
+            values.Latitude, values.Longitude, values.Description,
+            WriteRequired(values.Extension ?? new Dictionary<string, string>()),
+            WriteOptional(values.AudienceProfile), WriteOptional(values.Deliverable),
+            WriteOptional(spatial),
+            spatial?.CoverageGeoJson, spatial?.CatchmentGeoJson,
+            spatial?.RouteGeoJson, spatial?.DirectionGeoJson,
+            Guid.NewGuid(), Required(values.RateType), Required(values.Currency),
+            values.RateAmountMinor ?? throw new InventoryPublishBlockedException(),
+            values.CommercialTerms?.RateValidFrom, values.CommercialTerms?.RateValidTo,
+            values.CommercialTerms?.VatTreatment, WriteOptional(values.CommercialTerms),
+            Guid.NewGuid(), Required(values.Availability), asset.Id, asset.Type,
+            asset.ObjectKey, asset.Hash, asset.MediaType, item.Candidate.SourceLocator,
+            package.Id, package.Code, package.Name, package.ComponentsJson,
+            package.DiscountRule, package.ConditionsJson);
+    }
+
+    private static PreparedAsset PrepareAsset(
+        InventoryImportRow source,
+        InventoryCandidateValues values)
+    {
+        var type = AssetType(source, values);
+        return type is null
+            ? new(null, null, null, null, null)
+            : new(Guid.NewGuid(), type, source.ProtectedObjectKey,
+                source.SourceHash, source.DeclaredMediaType);
+    }
+
+    private static PreparedPackage PreparePackage(InventoryPackageValues? package) =>
+        package is null
+            ? new(null, null, null, null, null, null)
+            : new(Guid.NewGuid(), package.PackageCode, package.PackageName,
+                WriteRequired(package.ComponentProductCodes), package.DiscountRule,
+                WriteRequired(package.Conditions));
+
+    private static void ValidatePackage(
+        InventoryPackageValues? package,
+        HashSet<string> knownCodes)
+    {
+        if (package is null) return;
+        if (string.IsNullOrWhiteSpace(package.PackageCode) ||
+            string.IsNullOrWhiteSpace(package.PackageName) ||
+            package.ComponentProductCodes.Count == 0 ||
+            package.ComponentProductCodes.Any(code => !knownCodes.Contains(code)))
+        {
+            throw new InventoryPublishBlockedException();
+        }
+    }
+
+    private static string? AssetType(
         InventoryImportRow source,
         InventoryCandidateValues values) => source.DocumentClass switch
     {
@@ -147,13 +207,19 @@ public sealed partial class InventoryCommands
             MasterDataCodes.AssetTypes.OohPhoto,
         MasterDataCodes.DocumentClasses.Png or MasterDataCodes.DocumentClasses.Jpeg =>
             MasterDataCodes.AssetTypes.ProductImage,
-        _ => MasterDataCodes.AssetTypes.RateCard,
+        _ => null,
     };
 
     private static string Required(string? value) =>
         !string.IsNullOrWhiteSpace(value)
             ? value
             : throw new InventoryPublishBlockedException();
+
+    private static string WriteRequired<T>(T value) =>
+        JsonSerializer.Serialize(value, InventoryRowMapper.StoredJson);
+
+    private static string? WriteOptional<T>(T? value) where T : class =>
+        value is null ? null : WriteRequired(value);
 
     private async Task CompletePublicationAsync(
         CommandEnvelope<PublishInventoryImportCommand> envelope,
@@ -179,6 +245,13 @@ public sealed partial class InventoryCommands
             MasterDataCodes.LifecycleStatuses.Completed, now, cancellationToken);
     }
 }
+
+internal sealed record PreparedAsset(
+    Guid? Id, string? Type, string? ObjectKey, string? Hash, string? MediaType);
+
+internal sealed record PreparedPackage(
+    Guid? Id, string? Code, string? Name, string? ComponentsJson,
+    string? DiscountRule, string? ConditionsJson);
 
 internal sealed record ApprovedInventoryCandidate(
     InventoryCandidateRow Candidate,

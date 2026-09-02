@@ -25,6 +25,10 @@ public sealed partial class PlanningCommands
         {
             throw new InvalidOperationException("The audience proposal is invalid.");
         }
+        PlanningAudienceProposalValidator.Validate(
+            proposal.Audiences,
+            Read<string[]>(brief.GeographiesJson),
+            Read<Guid[]>(brief.EvidenceIdsJson));
         var targetingRationale = OpportunityCommandSupport.Required(
             proposal.TargetingRationale, 4000, nameof(proposal.TargetingRationale));
         var positioningStatement = OpportunityCommandSupport.Required(

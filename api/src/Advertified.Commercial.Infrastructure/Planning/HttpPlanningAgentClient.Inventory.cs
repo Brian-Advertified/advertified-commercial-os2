@@ -143,6 +143,22 @@ public sealed partial class HttpPlanningAgentClient
             candidate.RejectionReason,
             candidate.RejectionDetail,
             candidate.Score,
+            new InventoryAudienceFitContext(
+                candidate.AudienceFit.LanguageScore,
+                candidate.AudienceFit.LifeStageScore,
+                candidate.AudienceFit.LsmSemScore,
+                candidate.AudienceFit.EvidenceGaps,
+                candidate.AudienceFit.MeasurementSource,
+                candidate.AudienceFit.MeasurementPeriod,
+                candidate.AudienceFit.Methodology,
+                candidate.AudienceFit.TaxonomyName,
+                candidate.AudienceFit.TaxonomyVersion,
+                (candidate.AudienceFit.DeliveryMeasurements ?? [])
+                    .Select(item => new InventoryDeliveryMeasurementContext(
+                        item.MetricType, item.Value, item.Unit, item.Universe,
+                        item.MeasurementSource, item.MeasurementPeriod,
+                        item.Methodology, item.Limitations)).ToArray(),
+                candidate.AudienceFit.DeliveryEvidenceGaps ?? []),
             candidate.Benchmark is null
                 ? null
                 : new InventoryBenchmarkContext(
@@ -176,7 +192,31 @@ public sealed partial class HttpPlanningAgentClient
         string? RejectionReason,
         string? RejectionDetail,
         decimal? Score,
+        InventoryAudienceFitContext AudienceFit,
         InventoryBenchmarkContext? Benchmark);
+
+    private sealed record InventoryAudienceFitContext(
+        decimal? LanguageScore,
+        decimal? LifeStageScore,
+        decimal? LsmSemScore,
+        IReadOnlyList<string> EvidenceGaps,
+        string? MeasurementSource,
+        string? MeasurementPeriod,
+        string? Methodology,
+        string? TaxonomyName,
+        string? TaxonomyVersion,
+        IReadOnlyList<InventoryDeliveryMeasurementContext> DeliveryMeasurements,
+        IReadOnlyList<string> DeliveryEvidenceGaps);
+
+    private sealed record InventoryDeliveryMeasurementContext(
+        string MetricType,
+        decimal? Value,
+        string? Unit,
+        string? Universe,
+        string? MeasurementSource,
+        string? MeasurementPeriod,
+        string? Methodology,
+        string? Limitations);
 
     private sealed record InventoryBenchmarkContext(
         string PolicyVersion,

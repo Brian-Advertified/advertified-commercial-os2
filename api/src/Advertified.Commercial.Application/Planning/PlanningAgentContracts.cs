@@ -40,6 +40,7 @@ public sealed record InventoryIntelligenceCandidateInput(
     string? RejectionReason,
     string? RejectionDetail,
     decimal? Score,
+    InventoryAudienceFitView AudienceFit,
     InventoryBenchmarkInput? Benchmark);
 
 public sealed record InventoryIntelligenceInput(
@@ -57,11 +58,14 @@ public sealed record AudienceDefinitionProposal(
     string? Language,
     string? LifeStage,
     string? LsmSem,
+    string? LsmSemTaxonomy,
+    string? LsmSemTaxonomyVersion,
     string Classification,
     IReadOnlyList<string> Exclusions,
     IReadOnlyList<Guid> EvidenceItemIds,
     decimal Confidence,
-    bool IsTarget);
+    bool IsTarget,
+    bool LsmSemMandatory = false);
 
 public sealed record MediaAllocationProposal(
     string Channel,

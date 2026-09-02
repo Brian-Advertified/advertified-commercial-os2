@@ -4,9 +4,11 @@ import { request } from './client'
 import {
   briefVersionSchema,
   campaignBriefSchema,
+  campaignBriefSummaryListSchema,
   campaignBriefSummarySchema,
   type BriefVersion,
   type CampaignBrief,
+  type CampaignBriefSummary,
 } from './schemas'
 
 export type CreateBrief = {
@@ -57,6 +59,18 @@ export type CreateBriefVersion = {
     resolution: string | null
   }>
   evidenceItemIds: string[]
+  spatialRequirements?: Array<{
+    type: string
+    priority: string
+    label: string
+    geoJson: string
+    radiusMetres?: number | null
+    coverageThreshold?: number | null
+    boundarySource?: string | null
+    boundaryVersion?: string | null
+    sourceLocator?: string | null
+    isVerified?: boolean
+  }>
 }
 
 async function command<T>(
@@ -76,6 +90,13 @@ async function command<T>(
 }
 
 export const briefApi = {
+  async list(tenantId: string): Promise<CampaignBriefSummary[]> {
+    return (await request(
+      `/api/v1/tenants/${tenantId}/briefs`,
+      campaignBriefSummaryListSchema,
+    )).data
+  },
+
   async understand(
     tenantId: string,
     body: UnderstandBrief,
@@ -119,10 +140,12 @@ export const briefApi = {
     version: BriefVersion,
     token: string,
     confirmerUserId: string | null = null,
+    idempotencyKey?: string,
   ) {
     return command(
       `/api/v1/tenants/${tenantId}/brief-versions/${version.id}:submit`,
-      briefVersionSchema, { confirmerUserId, comment: null }, token, version.version)
+      briefVersionSchema, { confirmerUserId, comment: null }, token, version.version,
+      idempotencyKey)
   },
 
   markReady(
@@ -136,10 +159,16 @@ export const briefApi = {
       briefVersionSchema, {}, token, version.version, idempotencyKey)
   },
 
-  approve(tenantId: string, version: BriefVersion, token: string) {
+  approve(
+    tenantId: string,
+    version: BriefVersion,
+    token: string,
+    idempotencyKey?: string,
+  ) {
     return command(
       `/api/v1/tenants/${tenantId}/brief-versions/${version.id}:approve`,
-      briefVersionSchema, { reason: 'Confirmed for planning.' }, token, version.version)
+      briefVersionSchema, { reason: 'Confirmed for planning.' }, token, version.version,
+      idempotencyKey)
   },
 
   async confirm(

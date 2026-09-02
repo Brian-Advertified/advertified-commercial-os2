@@ -18,6 +18,10 @@ public static class BriefEndpoints
             .Produces<SuppliedBriefUnderstandingView>()
             .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
             .WithQueryProblems();
+        group.MapGet("/briefs", ListBriefsAsync)
+            .WithName("ListCampaignBriefs")
+            .Produces<IReadOnlyList<CampaignBriefSummaryView>>()
+            .WithQueryProblems();
         group.MapPost("/briefs", CreateBriefAsync)
             .WithName("CreateCampaignBrief")
             .Produces<CampaignBriefSummaryView>(StatusCodes.Status201Created)
@@ -48,6 +52,13 @@ public static class BriefEndpoints
             .WithCommandProblems(requiresVersion: true);
         return endpoints;
     }
+
+    private static async Task<IResult> ListBriefsAsync(
+        Guid tenantId,
+        ICurrentIdentity identity,
+        IBriefReader reader,
+        CancellationToken cancellationToken) => Results.Ok(await reader.ListAsync(
+            identity.ActorId, new TenantId(tenantId), cancellationToken));
 
     private static async Task<IResult> UnderstandBriefAsync(
         Guid tenantId,

@@ -1,8 +1,10 @@
-import { ApiFailure, request } from './client'
-import { commercialPolicySchema, type CommercialPolicy, type CommercialPolicyInput }
-  from './commercial-policy-schemas'
-
-const missingPolicyCode = 'COMMERCIAL_POLICY_NOT_CONFIGURED'
+import { request } from './client'
+import {
+  commercialPolicyResponseSchema,
+  commercialPolicySchema,
+  type CommercialPolicy,
+  type CommercialPolicyInput,
+} from './commercial-policy-schemas'
 
 function policyPath(tenantId: string) {
   return `/api/v1/tenants/${tenantId}/commercial-policy`
@@ -10,12 +12,7 @@ function policyPath(tenantId: string) {
 
 export const commercialPolicyApi = {
   async getCurrent(tenantId: string): Promise<CommercialPolicy | null> {
-    try {
-      return (await request(policyPath(tenantId), commercialPolicySchema)).data
-    } catch (failure) {
-      if (failure instanceof ApiFailure && failure.code === missingPolicyCode) return null
-      throw failure
-    }
+    return (await request(policyPath(tenantId), commercialPolicyResponseSchema)).data
   },
 
   async save(

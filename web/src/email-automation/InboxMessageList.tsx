@@ -3,9 +3,10 @@ import { masterDataCodes } from '../generated/master-data-codes'
 import { formatDateTime } from '../presentation/format'
 import { automationFailureLabel, automationStatusLabel } from './email-automation-presentation'
 
-export function InboxMessageList({ messages, selectedId, onSelect }: {
+export function InboxMessageList({ messages, selectedId, busy, onSelect }: {
   messages: InboundCampaignEmail[]
   selectedId: string | null
+  busy: boolean
   onSelect: (id: string) => void
 }) {
   if (messages.length === 0) {
@@ -17,6 +18,7 @@ export function InboxMessageList({ messages, selectedId, onSelect }: {
   return <div className="ooh-message-list" aria-label="OOH proposal emails">
     {messages.map((message) => <button type="button" key={message.id}
       className={`ooh-message-card ${selectedId === message.id ? 'is-selected' : ''}`}
+      disabled={busy}
       onClick={() => onSelect(message.id)}>
       <div className="ooh-message-card-top"><span className={statusClass(message.status)}>
         {automationStatusLabel(message.status)}

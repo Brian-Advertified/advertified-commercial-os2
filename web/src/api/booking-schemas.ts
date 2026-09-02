@@ -1,4 +1,10 @@
 import { z } from 'zod'
+import {
+  inventoryCommercialTermsSchema,
+  inventoryDeliverableSchema,
+  inventorySpatialSchema,
+  inventorySupplierCommercialSchema,
+} from './inventory-schemas'
 
 const nullableInteger = z.number().int().nullable()
 
@@ -60,6 +66,12 @@ export const bookingSchema = z.object({
   termsAccepted: z.boolean(),
   version: z.number().int().positive(),
   updatedAtUtc: z.iso.datetime({ offset: true }),
+  supplierCommercial: inventorySupplierCommercialSchema.nullish().transform(value => value ?? null),
+  commercialTerms: inventoryCommercialTermsSchema.nullish().transform(value => value ?? null),
+  deliverable: inventoryDeliverableSchema.nullish().transform(value => value ?? null),
+  spatial: inventorySpatialSchema.nullish().transform(value => value ?? null),
+  vatTreatment: z.string().nullish().transform(value => value ?? null),
+  logoAssetId: z.guid().nullish().transform(value => value ?? null),
 }).strict()
 
 export const bookablePlanLinesSchema = z.array(bookablePlanLineSchema)

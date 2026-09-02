@@ -35,6 +35,81 @@ export function fundingWorkspaceFixture(state: DeliveryFixtureState) {
   };
 }
 
+export function campaignFlowProposalFixture() {
+  return {
+    id: deliveryIds.proposal,
+    briefId: deliveryIds.brief,
+    briefVersionId: deliveryIds.briefVersion,
+    versionNumber: 1,
+    title: 'Gauteng Growth Campaign proposal',
+    executiveSummary: 'A selected DOOH plan backed by the approved Brief.',
+    terms: 'The selected option retains its approved commercial evidence.',
+    expiryAtUtc: '2026-09-30T20:00:00Z',
+    status: 'SELECTED',
+    options: [{
+      id: deliveryIds.option,
+      label: 'DOOH growth route',
+      outcome: 'Reach the priority Gauteng audience.',
+      planVersionId: deliveryIds.plan,
+      planVersionNumber: 1,
+      budgetMinor: 10000000,
+      currency: 'ZAR',
+      displayOrder: 1,
+      channels: ['DOOH'],
+      runningPeriods: [{ channel: 'DOOH', start: '2026-08-01', end: '2026-08-31' }],
+      inventoryNames: ['N1 Digital Billboard'],
+      inventory: [],
+    }],
+    document: null,
+    recipientUserId: null,
+    decision: {
+      decision: 'SELECTED',
+      optionId: deliveryIds.option,
+      reason: 'The client selected the DOOH route.',
+      decidedBy: deliveryIds.user,
+      decidedAtUtc: deliveryNow,
+      recordedForExternalParty: false,
+      externalPartyEmail: null,
+      evidenceReference: null,
+    },
+    createdBy: deliveryIds.user,
+    approvedBy: deliveryIds.user,
+    approvalMode: 'SELF',
+    approvalAssigneeUserId: null,
+    approvalRequestedBy: null,
+    approvalRequestedAtUtc: null,
+    approvalRejectedBy: null,
+    approvalRejectionReason: null,
+    approvalRejectedAtUtc: null,
+    version: 4,
+    createdAtUtc: deliveryNow,
+  };
+}
+
+export function campaignFlowPlanningFixture() {
+  return {
+    briefId: deliveryIds.brief,
+    briefVersionId: deliveryIds.briefVersion,
+    clientName: 'Gauteng Growth Client',
+    campaignMode: {
+      id: '98000000-0000-0000-0000-000000000002',
+      briefVersionId: deliveryIds.briefVersion,
+      mode: 'OOH_ONLY',
+      allowedChannels: ['OOH', 'DOOH'],
+      isLocked: true,
+      decisionSource: 'SUPPLIED_BRIEF_EVIDENCE',
+      confidence: 1,
+      reason: 'The supplied Brief requires DOOH only.',
+      selectedBy: deliveryIds.user,
+      selectedAtUtc: deliveryNow,
+    },
+    audience: null,
+    mediaMix: null,
+    shortlist: null,
+    mediaPlan: null,
+  };
+}
+
 export function purchaseOrderFixture(state: DeliveryFixtureState) {
   const approved = state.purchaseOrderStatus === 'APPROVED';
   return {

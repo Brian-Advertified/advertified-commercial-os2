@@ -13,6 +13,10 @@ public static class PlanningEndpoints
         var group = endpoints.MapGroup("/api/v1/tenants/{tenantId:guid}")
             .WithTags("Canonical Planning")
             .RequireAuthorization();
+        group.MapGet("/planning", ListAsync)
+            .WithName("ListPlanning")
+            .Produces<IReadOnlyList<PlanningSummaryView>>()
+            .WithQueryProblems();
         group.MapGet("/brief-versions/{briefVersionId:guid}/planning", GetWorkspaceAsync)
             .WithName("GetPlanningWorkspace").Produces<PlanningWorkspaceView>()
             .WithQueryProblems();
@@ -64,6 +68,13 @@ public static class PlanningEndpoints
             .WithCommandProblems(requiresVersion: true);
         return endpoints;
     }
+
+    private static async Task<IResult> ListAsync(
+        Guid tenantId,
+        ICurrentIdentity identity,
+        IPlanningReader reader,
+        CancellationToken cancellationToken) => Results.Ok(await reader.ListAsync(
+            identity.ActorId, new TenantId(tenantId), cancellationToken));
 
     private static async Task<IResult> GetWorkspaceAsync(
         Guid tenantId,

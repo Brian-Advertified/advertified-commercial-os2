@@ -61,20 +61,50 @@ function BookingCard({ tenantId, booking, busy, request, confirm }: {
   return <article className="detail-card booking-card">
     <StatusHeader status={statusLabel(booking.status)} product={booking.productName} />
     <PlacementFacts item={booking} />
-    <div className="booking-total"><span>{buyer ? 'Client-approved total' : 'Supplier amount'}</span>
-      <strong>{bookingAmount(booking, buyer)}</strong></div>
-    <details className="booking-terms"><summary>Frozen booking terms</summary>
-      <p>{booking.terms}</p></details>
-    {buyer && booking.status === masterDataCodes.lifecycleStatuses.draft &&
-      <button className="primary-button" disabled={busy}
-        onClick={() => void request(booking)}>Request supplier confirmation</button>}
-    {supplier && booking.status === masterDataCodes.lifecycleStatuses.pendingSupplier &&
-      <SupplierConfirmation accepted={accepted} setAccepted={setAccepted}
-        note={note} setNote={setNote} busy={busy}
-        confirm={() => confirm(booking, note)} />}
-    {booking.status === masterDataCodes.lifecycleStatuses.confirmed &&
-      <p className="booking-confirmed">Confirmed by both buyer workflow and supplier.</p>}
+    <BookingTotal booking={booking} buyer={buyer} />
+    <BookingTerms booking={booking} />
+    <BookingActions booking={booking} buyer={buyer} supplier={supplier} busy={busy}
+      accepted={accepted} setAccepted={setAccepted} note={note} setNote={setNote}
+      request={request} confirm={confirm} />
   </article>
+}
+
+function BookingTotal({ booking, buyer }: { booking: Booking; buyer: boolean }) {
+  return <div className="booking-total"><span>{buyer
+    ? 'Client-approved total' : 'Supplier amount'}</span>
+    <strong>{bookingAmount(booking, buyer)}</strong></div>
+}
+
+function BookingTerms({ booking }: { booking: Booking }) {
+  return <details className="booking-terms"><summary>Frozen booking terms</summary>
+    <p>{booking.terms}</p>
+    {booking.commercialTerms && <dl className="marketplace-facts">
+      <div><dt>Rate VAT</dt><dd>{booking.vatTreatment ?? 'Not supplied'}</dd></div>
+      <div><dt>Production</dt><dd>{booking.commercialTerms.productionCostMinor ?? 0}</dd></div>
+      <div><dt>Installation</dt><dd>{booking.commercialTerms.installationCostMinor ?? 0}</dd></div>
+      <div><dt>Conditions</dt><dd>{booking.commercialTerms.conditions.join('; ') || 'None'}</dd></div>
+    </dl>}
+    {booking.deliverable && <p>Deliverable: {[booking.deliverable.format,
+      booking.deliverable.buyingUnit, booking.deliverable.dimensions,
+      booking.deliverable.placement].filter(Boolean).join(' · ')}</p>}
+  </details>
+}
+
+function BookingActions({ booking, buyer, supplier, busy, accepted, setAccepted,
+  note, setNote, request, confirm }: {
+  booking: Booking; buyer: boolean; supplier: boolean; busy: boolean; accepted: boolean
+  setAccepted: (value: boolean) => void; note: string; setNote: (value: string) => void
+  request: (booking: Booking) => Promise<void>
+  confirm: (booking: Booking, note: string) => Promise<void>
+}) {
+  return <>{buyer && booking.status === masterDataCodes.lifecycleStatuses.draft &&
+    <button className="primary-button" disabled={busy}
+      onClick={() => void request(booking)}>Request supplier confirmation</button>}
+  {supplier && booking.status === masterDataCodes.lifecycleStatuses.pendingSupplier &&
+    <SupplierConfirmation accepted={accepted} setAccepted={setAccepted}
+      note={note} setNote={setNote} busy={busy} confirm={() => confirm(booking, note)} />}
+  {booking.status === masterDataCodes.lifecycleStatuses.confirmed &&
+    <p className="booking-confirmed">Confirmed by both buyer workflow and supplier.</p>}</>
 }
 
 function SupplierConfirmation({ accepted, setAccepted, note, setNote, busy, confirm }: {

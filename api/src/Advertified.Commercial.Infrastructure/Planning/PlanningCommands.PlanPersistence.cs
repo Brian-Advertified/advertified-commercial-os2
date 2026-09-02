@@ -18,6 +18,7 @@ public sealed partial class PlanningCommands
         int versionNumber,
         CalculatedPlanAmounts amounts,
         string supplyConfidence,
+        Guid commercialPolicyVersionId,
         string inputHash,
         string forecastJson,
         string assumptionsJson,
@@ -28,11 +29,13 @@ public sealed partial class PlanningCommands
             INSERT INTO commercial.media_plan_versions (
                 id, tenant_id, brief_version_id, mix_version_id, shortlist_version_id,
                 version_no, subtotal_minor, fees_minor, vat_minor, total_minor,
-                currency_code, forecast_json, assumptions_json, supply_confidence_code,
+                currency_code, commercial_policy_version_id,
+                forecast_json, assumptions_json, supply_confidence_code,
                 critic_report_json, input_hash, status_code, created_by, version, created_at_utc)
             VALUES ({id}, {envelope.TenantId.Value}, {brief.Id}, {mix.Id}, {shortlist.Id},
                 {versionNumber}, {amounts.SubtotalMinor}, {amounts.FeesMinor},
                 {amounts.VatMinor}, {amounts.TotalMinor}, {brief.Currency},
+                {commercialPolicyVersionId},
                 {forecastJson}::jsonb, {assumptionsJson}::jsonb, {supplyConfidence},
                 {criticJson}::jsonb, {inputHash}, {MasterDataCodes.LifecycleStatuses.InReview},
                 {envelope.ActorId.Value}, 1, {now})
@@ -88,6 +91,8 @@ public sealed partial class PlanningCommands
                 product_name, channel_code, geography,
                 flight_start, flight_end, running_periods_json, quantity,
                 supplier_cost_minor, client_price_minor, fees_minor, vat_minor,
+                supplier_commercial_json, vat_treatment_code,
+                commercial_terms_json, deliverable_json, spatial_json, logo_asset_id,
                 forecast_json, input_hash)
             VALUES ({lineId}, {tenantId.Value}, {planId}, {candidate.Id},
                 {candidate.InventoryTenantId}, {candidate.MarketplaceListingVersionId},
@@ -95,7 +100,11 @@ public sealed partial class PlanningCommands
                 {candidate.AvailabilityId}, {candidate.Name}, {candidate.Channel},
                 {candidate.Geography}, {firstStart}, {lastEnd}, {periodsJson}::jsonb,
                 {amounts.Quantity}, {amounts.SupplierCostMinor}, {amounts.ClientPriceMinor},
-                {amounts.FeesMinor}, {amounts.VatMinor}, {forecast}::jsonb, {lineHash})
+                {amounts.FeesMinor}, {amounts.VatMinor},
+                {inventory.SupplierCommercialJson}::jsonb, {inventory.VatTreatment},
+                {inventory.CommercialTermsJson}::jsonb, {inventory.DeliverableJson}::jsonb,
+                {inventory.SpatialJson}::jsonb, {inventory.LogoAssetId},
+                {forecast}::jsonb, {lineHash})
             """, cancellationToken);
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.supply_coordination (

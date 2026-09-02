@@ -19,15 +19,45 @@ public sealed partial class PlanningRecordStore
                 version.longitude AS "Longitude", rate.id AS "RateId",
                 rate.rate_type_code AS "RateType", rate.currency_code AS "Currency",
                 rate.amount_minor AS "RateAmountMinor", rate.effective_from AS "EffectiveFrom",
-                rate.effective_to AS "EffectiveTo", availability.id AS "AvailabilityId",
+                rate.effective_to AS "EffectiveTo", rate.source_locator AS "RateSource",
+                availability.id AS "AvailabilityId",
                 availability.availability_code AS "Availability",
                 availability.observed_at_utc AS "ObservedAtUtc",
                 availability.valid_until_utc AS "ValidUntilUtc",
-                availability.source_locator AS "AvailabilitySource"
+                availability.source_locator AS "AvailabilitySource",
+                COALESCE((SELECT jsonb_agg(jsonb_build_object(
+                    'start', exception.starts_on, 'end', exception.ends_on,
+                    'reason', exception.exception_type_code)
+                    ORDER BY exception.starts_on, exception.ends_on, exception.id)
+                    FROM commercial.inventory_availability_exceptions exception
+                    WHERE exception.tenant_id = version.tenant_id
+                      AND exception.product_id = product.id), '[]'::jsonb)::text
+                    AS "UnavailablePeriodsJson",
+                version.audience_profile_json::text AS "AudienceProfileJson",
+                supplier_version.vat_status_code AS "SupplierVatStatus",
+                CASE WHEN supplier_version.id IS NULL THEN NULL ELSE jsonb_build_object(
+                    'vatStatus', supplier_version.vat_status_code,
+                    'vatNumber', supplier_version.vat_number,
+                    'commissionTerms', supplier_version.commission_terms,
+                    'paymentTerms', supplier_version.payment_terms,
+                    'cancellationTerms', supplier_version.cancellation_terms,
+                    'bookingDeadlineTerms', supplier_version.booking_deadline_terms)
+                    END::text AS "SupplierCommercialJson",
+                rate.vat_treatment_code AS "VatTreatment",
+                rate.commercial_terms_json::text AS "CommercialTermsJson",
+                version.deliverable_json::text AS "DeliverableJson",
+                version.spatial_json::text AS "SpatialJson",
+                logo.id AS "LogoAssetId"
             FROM commercial.inventory_products product
             JOIN commercial.inventory_product_versions version
               ON version.tenant_id = product.tenant_id
              AND version.id = product.current_version_id
+            JOIN commercial.inventory_suppliers supplier
+              ON supplier.tenant_id = product.tenant_id
+             AND supplier.id = product.supplier_id
+            LEFT JOIN commercial.inventory_supplier_versions supplier_version
+              ON supplier_version.tenant_id = supplier.tenant_id
+             AND supplier_version.id = supplier.current_commercial_version_id
             LEFT JOIN LATERAL (
                 SELECT item.* FROM commercial.inventory_rates item
                 WHERE item.tenant_id = version.tenant_id
@@ -40,8 +70,23 @@ public sealed partial class PlanningRecordStore
                   AND item.product_version_id = version.id
                 ORDER BY item.observed_at_utc DESC NULLS LAST, item.id
                 LIMIT 1) availability ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT asset.id
+                FROM commercial.inventory_assets asset
+                WHERE asset.tenant_id = version.tenant_id
+                  AND asset.product_version_id = version.id
+                  AND asset.asset_type_code = {MasterDataCodes.AssetTypes.Logo}
+                  AND commercial.inventory_asset_rights_valid(
+                      asset.id, {MasterDataCodes.AssetRightsScopes.NamedClientProposal},
+                      'ZA', CURRENT_DATE)
+                ORDER BY asset.id
+                LIMIT 1) logo ON TRUE
             WHERE product.tenant_id = {tenantId.Value}
               AND product.status_code = {MasterDataCodes.LifecycleStatuses.Active}
+              AND NOT EXISTS (
+                  SELECT 1 FROM commercial.inventory_product_identity_links identity_link
+                  WHERE identity_link.tenant_id = product.tenant_id
+                    AND identity_link.duplicate_product_id = product.id)
 
             UNION ALL
 
@@ -58,12 +103,27 @@ public sealed partial class PlanningRecordStore
                 snapshot.amount_minor AS "RateAmountMinor",
                 snapshot.rate_effective_from AS "EffectiveFrom",
                 snapshot.rate_effective_to AS "EffectiveTo",
+                snapshot.rate_source_locator AS "RateSource",
                 snapshot.availability_id AS "AvailabilityId",
                 snapshot.availability_code AS "Availability",
                 snapshot.availability_observed_at_utc AS "ObservedAtUtc",
                 snapshot.availability_valid_until_utc AS "ValidUntilUtc",
-                {MasterDataCodes.SupplySourceTypes.MarketplaceListing}
-                    AS "AvailabilitySource"
+                snapshot.availability_source_locator AS "AvailabilitySource",
+                commercial.marketplace_inventory_unavailable_periods(
+                    listing.supplier_tenant_id, listing.product_id)::text
+                    AS "UnavailablePeriodsJson",
+                snapshot.audience_profile_json::text AS "AudienceProfileJson",
+                snapshot.supplier_vat_status_code AS "SupplierVatStatus",
+                snapshot.supplier_commercial_json::text AS "SupplierCommercialJson",
+                snapshot.vat_treatment_code AS "VatTreatment",
+                snapshot.commercial_terms_json::text AS "CommercialTermsJson",
+                snapshot.deliverable_json::text AS "DeliverableJson",
+                snapshot.spatial_json::text AS "SpatialJson",
+                CASE WHEN commercial.inventory_asset_rights_valid(
+                    snapshot.logo_asset_id,
+                    {MasterDataCodes.AssetRightsScopes.NamedClientProposal},
+                    'ZA', CURRENT_DATE)
+                    THEN snapshot.logo_asset_id ELSE NULL END AS "LogoAssetId"
             FROM commercial.marketplace_listings listing
             JOIN commercial.marketplace_listing_versions snapshot
               ON snapshot.supplier_tenant_id = listing.supplier_tenant_id
@@ -88,15 +148,45 @@ public sealed partial class PlanningRecordStore
                 version.longitude AS "Longitude", rate.id AS "RateId",
                 rate.rate_type_code AS "RateType", rate.currency_code AS "Currency",
                 rate.amount_minor AS "RateAmountMinor", rate.effective_from AS "EffectiveFrom",
-                rate.effective_to AS "EffectiveTo", availability.id AS "AvailabilityId",
+                rate.effective_to AS "EffectiveTo", rate.source_locator AS "RateSource",
+                availability.id AS "AvailabilityId",
                 availability.availability_code AS "Availability",
                 availability.observed_at_utc AS "ObservedAtUtc",
                 availability.valid_until_utc AS "ValidUntilUtc",
-                availability.source_locator AS "AvailabilitySource"
+                availability.source_locator AS "AvailabilitySource",
+                COALESCE((SELECT jsonb_agg(jsonb_build_object(
+                    'start', exception.starts_on, 'end', exception.ends_on,
+                    'reason', exception.exception_type_code)
+                    ORDER BY exception.starts_on, exception.ends_on, exception.id)
+                    FROM commercial.inventory_availability_exceptions exception
+                    WHERE exception.tenant_id = version.tenant_id
+                      AND exception.product_id = product.id), '[]'::jsonb)::text
+                    AS "UnavailablePeriodsJson",
+                version.audience_profile_json::text AS "AudienceProfileJson",
+                supplier_version.vat_status_code AS "SupplierVatStatus",
+                CASE WHEN supplier_version.id IS NULL THEN NULL ELSE jsonb_build_object(
+                    'vatStatus', supplier_version.vat_status_code,
+                    'vatNumber', supplier_version.vat_number,
+                    'commissionTerms', supplier_version.commission_terms,
+                    'paymentTerms', supplier_version.payment_terms,
+                    'cancellationTerms', supplier_version.cancellation_terms,
+                    'bookingDeadlineTerms', supplier_version.booking_deadline_terms)
+                    END::text AS "SupplierCommercialJson",
+                rate.vat_treatment_code AS "VatTreatment",
+                rate.commercial_terms_json::text AS "CommercialTermsJson",
+                version.deliverable_json::text AS "DeliverableJson",
+                version.spatial_json::text AS "SpatialJson",
+                logo.id AS "LogoAssetId"
             FROM commercial.inventory_products product
             JOIN commercial.inventory_product_versions version
               ON version.tenant_id = product.tenant_id
              AND version.id = product.current_version_id
+            JOIN commercial.inventory_suppliers supplier
+              ON supplier.tenant_id = product.tenant_id
+             AND supplier.id = product.supplier_id
+            LEFT JOIN commercial.inventory_supplier_versions supplier_version
+              ON supplier_version.tenant_id = supplier.tenant_id
+             AND supplier_version.id = supplier.current_commercial_version_id
             LEFT JOIN LATERAL (
                 SELECT item.* FROM commercial.inventory_rates item
                 WHERE item.tenant_id = version.tenant_id
@@ -107,8 +197,23 @@ public sealed partial class PlanningRecordStore
                 WHERE item.tenant_id = version.tenant_id
                   AND item.product_version_id = version.id
                 ORDER BY item.observed_at_utc DESC NULLS LAST, item.id LIMIT 1) availability ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT asset.id
+                FROM commercial.inventory_assets asset
+                WHERE asset.tenant_id = version.tenant_id
+                  AND asset.product_version_id = version.id
+                  AND asset.asset_type_code = {MasterDataCodes.AssetTypes.Logo}
+                  AND commercial.inventory_asset_rights_valid(
+                      asset.id, {MasterDataCodes.AssetRightsScopes.NamedClientProposal},
+                      'ZA', CURRENT_DATE)
+                ORDER BY asset.id
+                LIMIT 1) logo ON TRUE
             WHERE product.tenant_id = {tenantId.Value} AND product.id = {productId}
               AND product.status_code = {MasterDataCodes.LifecycleStatuses.Active}
+              AND NOT EXISTS (
+                  SELECT 1 FROM commercial.inventory_product_identity_links identity_link
+                  WHERE identity_link.tenant_id = product.tenant_id
+                    AND identity_link.duplicate_product_id = product.id)
             """).ToListAsync(cancellationToken);
         return rows.SingleOrDefault();
     }

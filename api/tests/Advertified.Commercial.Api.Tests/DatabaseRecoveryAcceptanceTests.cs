@@ -182,7 +182,7 @@ public sealed partial class DatabaseRecoveryAcceptanceTests
             FROM governance.master_data_collections
             WHERE registry_version = '{MasterDataCodes.RegistryVersion}'
             """));
-        Assert.Equal(80, await CountAsync(connection, """
+        Assert.Equal(92, await CountAsync(connection, """
             SELECT count(*)::integer FROM pg_class item
             JOIN pg_namespace scope ON scope.oid = item.relnamespace
             WHERE scope.nspname = 'commercial' AND item.relrowsecurity

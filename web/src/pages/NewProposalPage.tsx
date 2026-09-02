@@ -10,6 +10,10 @@ import {
 } from '../api/proposal-schemas'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
+import {
+  BriefFlowBinding,
+  BriefVersionFlowBinding,
+} from '../campaign-flow/CampaignFlowBindings'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { LoadingState, MessageState } from '../components/PageState'
 import { mediaVisual } from '../planning/media-visuals'
@@ -38,7 +42,11 @@ function ProposalBuilder(context: BuilderContext) {
     return <MessageState title="Proposal choices could not be opened" message={state.error} />
   }
   if (!state.plans) return <LoadingState label="Loading approved media plans" />
-  return <BuilderContent {...context} {...state} plans={state.plans} />
+  const versionId = state.plans[0]?.briefVersionId
+  return <>{versionId
+      ? <BriefVersionFlowBinding tenantId={context.tenantId} briefVersionId={versionId} />
+      : <BriefFlowBinding tenantId={context.tenantId} briefId={context.briefId} />}
+    <BuilderContent {...context} {...state} plans={state.plans} /></>
 }
 
 function useProposalBuilder({ tenantId, briefId, token }: BuilderContext) {

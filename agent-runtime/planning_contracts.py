@@ -59,6 +59,45 @@ class InventoryBenchmarkFacts(ContractModel):
     exclusions: tuple[Annotated[str, Field(min_length=1, max_length=500)], ...]
 
 
+class InventoryDeliveryMeasurementFacts(ContractModel):
+    metric_type: StableCode
+    value: Annotated[Decimal | None, Field(ge=0)] = None
+    unit: StableCode | None = None
+    universe: str | None = None
+    measurement_source: str | None = None
+    measurement_period: str | None = None
+    methodology: str | None = None
+    limitations: str | None = None
+
+
+class InventoryAudienceFitFacts(ContractModel):
+    language_score: Annotated[Decimal | None, Field(ge=0, le=1)] = None
+    life_stage_score: Annotated[Decimal | None, Field(ge=0, le=1)] = None
+    lsm_sem_score: Annotated[Decimal | None, Field(ge=0, le=1)] = None
+    evidence_gaps: tuple[Annotated[str, Field(min_length=1, max_length=200)], ...]
+    measurement_source: str | None = None
+    measurement_period: str | None = None
+    methodology: str | None = None
+    taxonomy_name: str | None = None
+    taxonomy_version: str | None = None
+    delivery_measurements: tuple[InventoryDeliveryMeasurementFacts, ...] = ()
+    delivery_evidence_gaps: tuple[
+        Annotated[str, Field(min_length=1, max_length=200)], ...
+    ] = ()
+
+
+class InventorySuitabilityFacts(ContractModel):
+    policy_version: StableCode
+    geography: Annotated[Decimal, Field(ge=0, le=1)]
+    audience_context: Annotated[Decimal, Field(ge=0, le=1)]
+    objective_format: Annotated[Decimal, Field(ge=0, le=1)]
+    budget_efficiency: Annotated[Decimal, Field(ge=0, le=1)]
+    evidence_quality_freshness: Annotated[Decimal, Field(ge=0, le=1)]
+    portfolio_coverage_diversity: Annotated[Decimal, Field(ge=0, le=1)]
+    total: Annotated[Decimal, Field(ge=0, le=1)]
+    evidence_gaps: tuple[Annotated[str, Field(min_length=1, max_length=200)], ...]
+
+
 class InventoryCandidateFacts(ContractModel):
     candidate_id: UUID
     product_version_id: UUID
@@ -70,7 +109,9 @@ class InventoryCandidateFacts(ContractModel):
     is_eligible: bool
     rejection_reason: StableCode | None = None
     rejection_detail: Annotated[str | None, Field(min_length=1, max_length=1_000)] = None
-    score: Annotated[Decimal | None, Field(ge=0)] = None
+    score: Annotated[Decimal | None, Field(ge=0, le=1)] = None
+    audience_fit: InventoryAudienceFitFacts
+    suitability: InventorySuitabilityFacts
     benchmark: InventoryBenchmarkFacts | None = None
 
     @model_validator(mode="after")
@@ -80,19 +121,23 @@ class InventoryCandidateFacts(ContractModel):
                 self.rate_amount_minor is None
                 or self.currency is None
                 or self.score is None
+                or self.score != self.suitability.total
                 or self.rejection_reason is not None
                 or self.rejection_detail is not None
             ):
                 raise ValueError(
-                    "Eligible inventory requires rate, currency and score without rejection facts."
+                    "Eligible inventory requires rate, currency and the matching governed "
+                    "suitability score without rejection facts."
                 )
         elif (
             self.rejection_reason is None
             or self.rejection_detail is None
             or self.score is not None
+            or self.suitability.total != 0
         ):
             raise ValueError(
-                "Ineligible inventory requires its deterministic rejection and no score."
+                "Ineligible inventory requires its deterministic rejection, zero "
+                "suitability and no score."
             )
         return self
 
@@ -136,6 +181,9 @@ class AudienceDefinition(ContractModel):
     language: str | None
     life_stage: str | None
     lsm_sem: str | None
+    lsm_sem_taxonomy: str | None = None
+    lsm_sem_taxonomy_version: str | None = None
+    lsm_sem_mandatory: bool = False
     classification: StableCode
     exclusions: tuple[str, ...]
     evidence_item_ids: tuple[UUID, ...]

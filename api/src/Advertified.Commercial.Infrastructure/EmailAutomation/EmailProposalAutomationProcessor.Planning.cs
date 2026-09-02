@@ -166,7 +166,7 @@ public sealed partial class EmailProposalAutomationProcessor
                     0, new GenerateMediaPlanCommand(), correlationId),
                 cancellationToken)).Data;
         }
-        EmailAutomationPlanReadiness.EnsureReady(plan);
+        EmailAutomationPlanReadiness.EnsureReady(plan, planningPolicy);
         if (plan.Status == MasterDataCodes.LifecycleStatuses.InReview)
         {
             plan = (await planningCommands.ApproveMediaPlanAsync(
@@ -185,7 +185,7 @@ public sealed partial class EmailProposalAutomationProcessor
                 MasterDataCodes.AutomationFailureReasons.PlanUnready,
                 "The media plan is not approved for automatic proposal creation.");
         }
-        EmailAutomationPlanReadiness.EnsureReady(plan);
+        EmailAutomationPlanReadiness.EnsureReady(plan, planningPolicy);
         return await store.UpdateRunAsync(
             tenantId,
             owner,

@@ -41,6 +41,35 @@ public sealed partial class ProposalRecordStore(GovernanceDbContext dbContext)
             WHERE brief.tenant_id = {tenantId.Value} AND brief.id = {briefId}
             """).SingleOrDefaultAsync(cancellationToken);
 
+    internal Task<List<ProposalRow>> ListProposalsAsync(
+        TenantId tenantId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<ProposalRow>($"""
+            SELECT proposal.id AS "Id", proposal.brief_id AS "BriefId",
+                proposal.brief_version_id AS "BriefVersionId",
+                proposal.version_no AS "VersionNumber", proposal.title AS "Title",
+                proposal.executive_summary AS "ExecutiveSummary", proposal.terms AS "Terms",
+                proposal.expiry_at_utc AS "ExpiryAtUtc", proposal.status_code AS "Status",
+                proposal.input_hash AS "InputHash", proposal.created_by AS "CreatedBy",
+                proposal.approved_by AS "ApprovedBy", proposal.approval_mode_code AS "ApprovalMode",
+                proposal.approval_assignee_user_id AS "ApprovalAssigneeUserId",
+                proposal.approval_requested_by AS "ApprovalRequestedBy",
+                proposal.approval_requested_at_utc AS "ApprovalRequestedAtUtc",
+                proposal.approval_rejected_by AS "ApprovalRejectedBy",
+                proposal.approval_rejection_reason AS "ApprovalRejectionReason",
+                proposal.approval_rejected_at_utc AS "ApprovalRejectedAtUtc",
+                proposal.recipient_user_id AS "RecipientUserId",
+                proposal.version AS "Version", proposal.created_at_utc AS "CreatedAtUtc"
+            FROM commercial.proposal_versions proposal
+            WHERE proposal.tenant_id = {tenantId.Value}
+              AND proposal.version_no = (
+                SELECT MAX(candidate.version_no)
+                FROM commercial.proposal_versions candidate
+                WHERE candidate.tenant_id = proposal.tenant_id
+                  AND candidate.brief_id = proposal.brief_id)
+            ORDER BY proposal.created_at_utc DESC, proposal.id
+            """).ToListAsync(cancellationToken);
+
     internal Task<ProposalRow?> FindProposalAsync(
         TenantId tenantId,
         Guid proposalVersionId,
@@ -123,9 +152,37 @@ public sealed partial class ProposalRecordStore(GovernanceDbContext dbContext)
         CancellationToken cancellationToken) =>
         dbContext.Database.SqlQuery<ProposalDecisionRow>($"""
             SELECT decision_code AS "Decision", option_id AS "OptionId", reason AS "Reason",
-                decided_by AS "DecidedBy", decided_at_utc AS "DecidedAtUtc"
+                decided_by AS "DecidedBy", decided_at_utc AS "DecidedAtUtc",
+                recorded_for_external_party AS "RecordedForExternalParty",
+                external_party_email AS "ExternalPartyEmail",
+                evidence_reference AS "EvidenceReference"
             FROM commercial.proposal_decisions
             WHERE tenant_id = {tenantId.Value} AND proposal_version_id = {proposalVersionId}
+            """).SingleOrDefaultAsync(cancellationToken);
+
+    internal Task<ExternalDecisionAuthorityRow?> FindExternalDecisionAuthorityAsync(
+        TenantId tenantId,
+        Guid proposalVersionId,
+        Guid actorId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<ExternalDecisionAuthorityRow>($"""
+            SELECT run.id AS "AutomationRunId",
+                LOWER(email.reply_to_email) AS "ExternalPartyEmail"
+            FROM commercial.email_proposal_automation_runs run
+            JOIN commercial.inbound_campaign_emails email
+              ON email.tenant_id = run.tenant_id
+             AND email.id = run.inbound_email_id
+            JOIN commercial.inbound_mailboxes mailbox
+              ON mailbox.tenant_id = email.tenant_id
+             AND mailbox.id = email.mailbox_id
+            WHERE run.tenant_id = {tenantId.Value}
+              AND run.proposal_version_id = {proposalVersionId}
+              AND run.campaign_mode_code = {MasterDataCodes.CampaignModes.OohOnly}
+              AND run.status_code = {MasterDataCodes.EmailAutomationStatuses.Sent}
+              AND run.checkpoint_code = {MasterDataCodes.EmailAutomationCheckpoints.Sent}
+              AND run.delivery_accepted_at_utc IS NOT NULL
+              AND run.delivery_provider_id IS NOT NULL
+              AND mailbox.owner_user_id = {actorId}
             """).SingleOrDefaultAsync(cancellationToken);
 
     internal Task<ProposalRecipientRow?> FindRecipientAsync(

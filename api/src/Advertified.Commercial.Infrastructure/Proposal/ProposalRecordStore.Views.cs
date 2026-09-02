@@ -26,7 +26,9 @@ public sealed partial class ProposalRecordStore
             proposal.RecipientUserId,
             decision is null ? null : new ProposalDecisionView(
                 decision.Decision, decision.OptionId, decision.Reason,
-                decision.DecidedBy, decision.DecidedAtUtc),
+                decision.DecidedBy, decision.DecidedAtUtc,
+                decision.RecordedForExternalParty, decision.ExternalPartyEmail,
+                decision.EvidenceReference),
             proposal.CreatedBy, proposal.ApprovedBy, proposal.ApprovalMode,
             proposal.ApprovalAssigneeUserId, proposal.ApprovalRequestedBy,
             proposal.ApprovalRequestedAtUtc, proposal.ApprovalRejectedBy,
@@ -34,12 +36,33 @@ public sealed partial class ProposalRecordStore
             proposal.Version, proposal.CreatedAtUtc);
     }
 
-    private static ProposalOptionView ToOptionView(ProposalOptionRow row) => new(
-        row.Id, row.Label, row.Outcome, row.PlanVersionId, row.PlanVersionNumber,
-        row.BudgetMinor, row.Currency, row.DisplayOrder,
-        Read<string[]>(row.ChannelsJson),
-        Read<ProposalRunningPeriodView[]>(row.RunningPeriodsJson),
-        Read<string[]>(row.InventoryJson));
+    private static ProposalOptionView ToOptionView(ProposalOptionRow row)
+    {
+        var inventory = ReadInventory(row.InventoryJson);
+        return new ProposalOptionView(
+            row.Id, row.Label, row.Outcome, row.PlanVersionId, row.PlanVersionNumber,
+            row.BudgetMinor, row.Currency, row.DisplayOrder,
+            Read<string[]>(row.ChannelsJson),
+            Read<ProposalRunningPeriodView[]>(row.RunningPeriodsJson),
+            inventory.Names, inventory.Lines);
+    }
+
+    internal static ProposalInventorySnapshot ReadInventory(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        if (document.RootElement.ValueKind != JsonValueKind.Array ||
+            document.RootElement.GetArrayLength() == 0)
+        {
+            return new([], []);
+        }
+        if (document.RootElement[0].ValueKind == JsonValueKind.String)
+        {
+            return new(Read<string[]>(json), []);
+        }
+        var lines = Read<ProposalInventoryLineView[]>(json);
+        return new(lines.Select(item => item.Name).Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal).ToArray(), lines);
+    }
 
     internal static string Write<T>(T value) => JsonSerializer.Serialize(value, StoredJson);
 
@@ -47,3 +70,7 @@ public sealed partial class ProposalRecordStore
         JsonSerializer.Deserialize<T>(json, StoredJson)
         ?? throw new InvalidOperationException("Stored proposal JSON is invalid.");
 }
+
+internal sealed record ProposalInventorySnapshot(
+    IReadOnlyList<string> Names,
+    IReadOnlyList<ProposalInventoryLineView> Lines);

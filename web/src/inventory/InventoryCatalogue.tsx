@@ -6,36 +6,22 @@ import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { masterDataCodes, masterDataDefinitions } from '../generated/master-data-codes'
 import { formatDateTime, formatMiB, humanizeCode } from '../presentation/format'
 
-export type InventoryFilters = {
-  search: string
-  channel: string
-  geography: string
-}
+export type InventoryFilters = { search: string; channel: string; geography: string }
 
-export function InventoryCatalogueHeader({ items }: {
-  items: InventoryProductSummary[]
-}) {
+export function InventoryCatalogueHeader({ items }: { items: InventoryProductSummary[] }) {
   const suppliers = new Set(items.map(item => item.supplierId)).size
-  const channels = new Set(items.map(item => item.channel)).size
-  const geographies = new Set(items.map(item => item.geography)).size
-  return <header className="inventory-workbench-hero"><div>
-    <p className="eyebrow eyebrow-light">Published supply</p>
-    <h1 id="inventory-title">Inventory</h1>
-    <p>Search source-linked media products by channel, supplier and geography.</p>
-  </div><dl>
-    <InventorySnapshot label="Products" value={items.length} note="Current result window" />
-    <InventorySnapshot label="Suppliers" value={suppliers} note="In these results" />
-    <InventorySnapshot label="Channels" value={channels} note="In these results" />
-    <InventorySnapshot label="Geographies" value={geographies} note="In these results" />
-  </dl></header>
+  const verified = items.filter(item => item.verification === masterDataCodes.verificationLevels.sourceVerified ||
+    item.verification === masterDataCodes.verificationLevels.humanVerified).length
+  const ooh = items.filter(item => item.channel === masterDataCodes.channels.ooh ||
+    item.channel === masterDataCodes.channels.dooh).length
+  return <header className="approved-catalogue-hero"><div><p className="eyebrow">Published Inventory Catalogue</p>
+    <h1 id="inventory-title">Media inventory</h1><p>Search published, source-linked media products by supplier, channel and geography.</p></div>
+    <dl><Snapshot label="Inventory" value={items.length} /><Snapshot label="Verified" value={verified} />
+      <Snapshot label="Suppliers" value={suppliers} /><Snapshot label="OOH / DOOH" value={ooh} /></dl></header>
 }
 
-function InventorySnapshot({ label, value, note }: {
-  label: string
-  value: number
-  note: string
-}) {
-  return <div><dt>{label}</dt><dd>{value}</dd><small>{note}</small></div>
+function Snapshot({ label, value }: { label: string; value: number }) {
+  return <div><dt>{label}</dt><dd>{new Intl.NumberFormat().format(value)}</dd><small>Current result window</small></div>
 }
 
 export function InventorySearchForm({ filters, setFilters, search }: {
@@ -43,33 +29,18 @@ export function InventorySearchForm({ filters, setFilters, search }: {
   setFilters: (value: InventoryFilters) => void
   search: () => void
 }) {
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); search()
-  }
-  return <form className="inventory-filter-workbench" onSubmit={submit}>
-    <header><span><Icon name="search" /></span><div><p className="eyebrow">Catalogue filters</p>
-      <h2>Find the relevant media supply</h2></div></header>
-    <div className="inventory-filter-grid">
-      <label className="field-group">Product, supplier or code
-        <input value={filters.search} maxLength={200}
-          onChange={(event) => setFilters({ ...filters, search: event.target.value })}
-          placeholder="Search published inventory" />
-      </label>
-      <label className="field-group">Channel
-        <select value={filters.channel}
-          onChange={(event) => setFilters({ ...filters, channel: event.target.value })}>
-          <option value="">All configured channels</option>
-          {masterDataDefinitions.channels.filter(item => item.isActive).map(item =>
-            <option value={item.code} key={item.code}>{item.displayLabel}</option>)}
-        </select>
-      </label>
-      <label className="field-group">Geography
-        <input value={filters.geography} maxLength={500}
-          onChange={(event) => setFilters({ ...filters, geography: event.target.value })}
-          placeholder="City, area, route or region" />
-      </label>
-      <button className="primary-button" type="submit"><Icon name="search" /> Search inventory</button>
-    </div>
+  function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); search() }
+  return <form className="approved-catalogue-filterbar" onSubmit={submit}>
+    <label className="approved-catalogue-search"><Icon name="search" /><input value={filters.search}
+      onChange={event => setFilters({ ...filters, search: event.target.value })}
+      placeholder="Search inventory by product, location, supplier…" maxLength={200} /></label>
+    <select aria-label="Channel" value={filters.channel}
+      onChange={event => setFilters({ ...filters, channel: event.target.value })}>
+      <option value="">Channel · All</option>{masterDataDefinitions.channels.filter(item => item.isActive).map(item =>
+        <option value={item.code} key={item.code}>{item.displayLabel}</option>)}</select>
+    <input aria-label="Geography" value={filters.geography} maxLength={500}
+      onChange={event => setFilters({ ...filters, geography: event.target.value })} placeholder="Geography · All regions" />
+    <button className="primary-button" type="submit">Update results</button>
   </form>
 }
 
@@ -77,46 +48,34 @@ export function InventoryProductCards({ page, loadMore }: {
   page: InventoryProductPage
   loadMore: (cursor: string) => void
 }) {
-  if (page.items.length === 0) return <article className="inventory-empty-state">
-    <span><Icon name="inventory" /></span><div><h2>No products match these filters</h2>
-      <p>Adjust the channel, geography or search text. Inventory only appears after its source has been reviewed and published.</p></div>
-  </article>
-  return <section className="inventory-catalogue-results" aria-label="Inventory products">
-    <header><div><p className="eyebrow">Published catalogue</p><h2>{page.items.length} products in this result window</h2></div>
-      <span className="status-chip status-neutral">Source-linked supply</span></header>
-    <div className="inventory-product-table">
-      <div className="inventory-product-table-head" aria-hidden="true">
-        <span>Product</span><span>Supplier</span>
-        <span>Geography</span><span>Verification</span>
-        <span aria-hidden="true" />
-      </div>
-      {page.items.map(item => <InventoryProductRow key={item.id} item={item} />)}
+  if (page.items.length === 0) return <article className="approved-inventory-empty"><Icon name="inventory" />
+    <div><h2>No products match these filters</h2><p>Adjust the filters. Only reviewed, published inventory appears here.</p></div></article>
+  const suppliers = [...new Map(page.items.map(item => [item.supplierId, item.supplierName])).values()].slice(0, 7)
+  const geographies = [...new Set(page.items.map(item => item.geography))].slice(0, 9)
+  return <section className="approved-catalogue-results" aria-label="Published inventory">
+    <div className="approved-catalogue-controls"><span>{page.items.length.toLocaleString()} inventory items in this result window</span></div>
+    <div className="approved-catalogue-body">
+      <aside className="approved-supplier-list"><header>Suppliers in this result window</header>{suppliers.map((supplier, index) => <div key={supplier}>
+        <span className={`supplier-dot tone-${(index % 4) + 1}`}>●</span><strong>{supplier}</strong>
+        <small>{page.items.filter(item => item.supplierName === supplier).length} items</small></div>)}</aside>
+      <div className="approved-product-card-grid">{page.items.map(item =>
+        <InventoryCard key={item.id} item={item} />)}</div>
+      <aside className="approved-catalogue-map"><header><span>Published geographies</span></header>
+        <div className="approved-map-canvas"><strong>{geographies.length} represented in this window</strong>
+          <small>{geographies.join(' · ') || 'No geography supplied'}</small>
+          <p>A spatial map requires verified product geometry. Open a product to inspect its coordinates.</p></div></aside>
     </div>
-    {page.nextCursor && <button className="secondary-button load-more" type="button"
-      onClick={() => loadMore(page.nextCursor!)}>Load more products</button>}
+    {page.nextCursor && <button className="secondary-button approved-load-more" type="button" onClick={() => loadMore(page.nextCursor!)}>Load more products</button>}
   </section>
 }
 
-function InventoryProductRow({ item }: { item: InventoryProductSummary }) {
-  const channel = channelLabel(item.channel)
-  const verification = humanizeCode(item.verification, true)
-  const updated = formatDateTime(item.updatedAtUtc)
-  return <Link className="inventory-product-row" to={`/inventory/products/${item.id}`}
-    aria-label={`Product: ${item.name}, ${channel}, ${humanizeCode(item.productType, true)}. Supplier: ${item.supplierName}. Geography: ${item.geography}. Verification: ${verification}, updated ${updated}.`}>
-    <span className="inventory-product-identity">
-      <span className="inventory-channel-icon"><MediaTypeIcon channel={item.channel} /></span>
-      <span><small>{channel} · {humanizeCode(item.productType, true)}</small>
-        <strong>{item.name}</strong><small>{item.productCode}</small></span>
-    </span>
-    <span>{item.supplierName}</span>
-    <span>{item.geography}</span>
-    <span className="inventory-verification-cell">
-      <span className={`status-chip ${verificationTone(item.verification)}`}>
-        {verification}</span>
-      <small>Updated {updated}</small>
-    </span>
-    <Icon name="arrow" />
-  </Link>
+function InventoryCard({ item }: { item: InventoryProductSummary }) {
+  return <Link className="approved-inventory-card" to={`/inventory/products/${item.id}`}>
+    <div className="approved-inventory-card-media" aria-hidden="true"><MediaTypeIcon channel={item.channel} /></div>
+    <div className="approved-inventory-card-copy"><small>{item.geography}</small>
+      <strong>{item.name}</strong><span>{humanizeCode(item.productType, true)}</span></div>
+    <footer><em className={verificationTone(item.verification)}>{humanizeCode(item.verification, true)}</em>
+      <small>{item.supplierName}</small><time>{relative(item.updatedAtUtc)}</time></footer></Link>
 }
 
 export function InventoryUploadForm({ busy, maximumSourceBytes, upload }: {
@@ -124,38 +83,22 @@ export function InventoryUploadForm({ busy, maximumSourceBytes, upload }: {
   maximumSourceBytes: number
   upload: (values: FormData) => Promise<void>
 }) {
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); void upload(new FormData(event.currentTarget))
-  }
-  return <form className="inventory-import-workbench" onSubmit={submit}>
-    <header><span><Icon name="shield" /></span><div><p className="eyebrow eyebrow-light">Protected intake</p>
-      <h2>Import a supplier source</h2></div></header>
-    <p>Preserve the supplier source, validate the file and review extracted products before anything is published.</p>
-    <label className="field-group">Supplier name
-      <input name="supplierName" required maxLength={300} placeholder="Supplier or media owner" />
-    </label>
-    <label className="inventory-file-field">Source file
-      <input name="source" type="file" required
-        accept=".csv,.xlsx,.pdf,.docx,.png,.jpg,.jpeg" />
-      <span><Icon name="evidence" /><strong>Choose supplier source</strong>
-        <small>CSV, Excel, PDF, Word or image · up to {formatMiB(maximumSourceBytes)}</small></span>
-    </label>
-    <div className="inventory-import-boundary"><Icon name="shield" />
-      <span>Importing protects the source. It does not publish unreviewed products.</span></div>
-    <button className="primary-button" disabled={busy}>
-      {busy ? 'Protecting the source…' : 'Protect and import'}
-    </button>
-  </form>
+  function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); void upload(new FormData(event.currentTarget)) }
+  return <form className="approved-import-source-card" onSubmit={submit}><header><span>1</span><div><h2>Inventory Import</h2><p>Import new inventory</p></div></header>
+    <p>Upload files from any supported source. Advertified preserves the original and structures the commercial data.</p>
+    <label className="approved-import-dropzone"><input name="source" type="file" required accept=".csv,.xlsx,.pdf,.docx,.pptx,.png,.jpg,.jpeg" />
+      <Icon name="evidence" /><strong>Drag & drop files here</strong><small>or browse files to upload</small></label>
+    <div className="approved-source-types"><span>PDF<small>Documents</small></span><span>Office<small>.xlsx .docx .pptx</small></span><span>CSV<small>.csv</small></span><span>Scans<small>OCR review</small></span><span>Images<small>.png .jpg</small></span></div>
+    <label className="field-group">Supplier / media owner<input name="supplierName" required maxLength={300} placeholder="Supplier name" /></label>
+    <small className="approved-import-limit">Maximum source size {formatMiB(maximumSourceBytes)}. Importing does not publish unreviewed inventory.</small>
+    <button className="primary-button" disabled={busy}>{busy ? 'Starting import…' : 'Start import →'}</button></form>
 }
 
-function channelLabel(code: string) {
-  return masterDataDefinitions.channels.find(item => item.code === code)?.displayLabel ??
-    humanizeCode(code, true)
-}
+function relative(value: string) { const hours = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 3600000)); return hours < 24 ? `${hours}h` : `${Math.round(hours / 24)}d` }
+function verificationTone(value: string) { return value === masterDataCodes.verificationLevels.sourceVerified || value === masterDataCodes.verificationLevels.humanVerified ? 'is-verified' : 'is-unverified' }
 
-function verificationTone(value: string) {
-  return value === masterDataCodes.verificationLevels.sourceVerified ||
-    value === masterDataCodes.verificationLevels.humanVerified
-    ? 'status-positive'
-    : 'status-warning'
+// Retain this component for accessible media-channel semantics in product identity contexts.
+export function InventoryProductIdentity({ item }: { item: InventoryProductSummary }) {
+  return <span className="inventory-product-identity"><span className="inventory-channel-icon"><MediaTypeIcon channel={item.channel} /></span>
+    <span><strong>{item.name}</strong><small>{formatDateTime(item.updatedAtUtc)}</small></span></span>
 }

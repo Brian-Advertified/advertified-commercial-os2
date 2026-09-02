@@ -2,6 +2,7 @@
 
 REQUIRED_MASTER_COLLECTIONS = {
     "assetTypes",
+    "approvalModes",
     "channels",
     "contactPurposes",
     "currencies",
@@ -21,6 +22,13 @@ REQUIRED_MASTER_COLLECTIONS = {
     "documentClasses",
     "inventoryReviewDecisions",
     "availabilityStatuses",
+    "availabilityExceptionTypes",
+    "spatialRequirementTypes",
+    "spatialRequirementPriorities",
+    "inventoryEvidenceBases",
+    "inventoryEvidenceStates",
+    "inventoryEvidenceActions",
+    "inventoryExtractionMethods",
     "verificationLevels",
     "inventoryProductTypes",
     "inventoryImportStepTypes",
@@ -33,6 +41,7 @@ REQUIRED_MASTER_COLLECTIONS = {
     "taskPriorities",
     "tenantTypes",
     "vatStatuses",
+    "vatTreatments",
     "agentRunKinds",
     "agentTypes",
     "workflowStepTypes",
@@ -69,6 +78,9 @@ REQUIRED_MASTER_COLLECTIONS = {
     "measurementQualityStatuses",
     "causalityStatuses",
     "assetRightsStatuses",
+    "assetRightsScopes",
+    "inventoryDuplicateMethods",
+    "inventoryDuplicateStatuses",
     "commercialResourceTypes",
     "commercialActions",
     "commercialEventTypes",
@@ -159,6 +171,7 @@ INVENTORY_PERMISSION_ROLES = {
     },
     "inventory_import": {"platform_admin", "inventory_ops", "supplier_admin"},
     "inventory_review": {"platform_admin", "inventory_ops"},
+    "inventory_asset_rights_review": {"platform_admin", "supplier_admin"},
     "inventory_publish": {"platform_admin", "inventory_ops"},
 }
 PLANNING_PERMISSION_ROLES = {

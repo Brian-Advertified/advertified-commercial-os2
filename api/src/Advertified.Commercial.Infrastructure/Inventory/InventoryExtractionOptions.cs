@@ -6,7 +6,7 @@ public sealed class InventoryExtractionOptions
     public const string DoclingMode = "Docling";
     public const string DeterministicMode = "Deterministic";
     public const string PinnedAdapterVersion = "docling-serve/1.30.0;docling/2.118.0";
-    public const string CurrentSchemaVersion = "advertified.inventory-extraction.v1";
+    public const string CurrentSchemaVersion = "advertified.inventory-extraction.v2";
 
     public string Mode { get; init; } = DeterministicMode;
     public string BaseUrl { get; init; } = "http://localhost:55001";

@@ -1,6 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Advertified.Commercial.Domain.Commercial;
+using Advertified.Commercial.Application.EmailAutomation;
+using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.MasterData;
@@ -22,6 +24,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
     private static readonly Guid OtherTenantId = Guid.Parse("71000000-0000-0000-0000-000000000002");
     internal static readonly Guid OperatorId = Guid.Parse("72000000-0000-0000-0000-000000000001");
     internal static readonly Guid OtherUserId = Guid.Parse("72000000-0000-0000-0000-000000000002");
+    internal static readonly Guid ReviewerId = Guid.Parse("72000000-0000-0000-0000-000000000003");
     private static readonly Guid ClientId = Guid.Parse("73000000-0000-0000-0000-000000000001");
     private static readonly Guid BriefId = Guid.Parse("74000000-0000-0000-0000-000000000001");
     internal static readonly Guid BriefVersionId = Guid.Parse("74000000-0000-0000-0000-000000000002");
@@ -40,6 +43,14 @@ public sealed partial class CanonicalPlanningAcceptanceTests
     {
         services.RemoveAll<TimeProvider>();
         services.AddSingleton<TimeProvider>(new FixedPlanningTimeProvider());
+    }
+
+    internal static void ConfigureDeterministicEmailInventorySelection(
+        IServiceCollection services)
+    {
+        services.RemoveAll<IEmailAutomationInventorySelector>();
+        services.AddScoped<IEmailAutomationInventorySelector,
+            DeterministicEmailInventorySelectionFixture>();
     }
 
     internal static WebApplicationFactory<Program> CreateFactory(
@@ -74,7 +85,9 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         }
     });
 
-    internal static async Task SeedAsync(string connectionString)
+    internal static async Task SeedAsync(
+        string connectionString,
+        long briefBudgetMinor = 1_000_000)
     {
         await DisposablePostgres.EnableRequiredExtensionsAsync(connectionString);
         var options = new DbContextOptionsBuilder<GovernanceDbContext>()
@@ -87,16 +100,18 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             CreateTenant(OtherTenantId, "canonical-planning-other"));
         db.Users.AddRange(
             CreateUser(OperatorId, "operator@planning.example", "Solo Agency Operator"),
-            CreateUser(OtherUserId, "other@planning.example", "Other Tenant User"));
+            CreateUser(OtherUserId, "other@planning.example", "Other Tenant User"),
+            CreateUser(ReviewerId, "reviewer@planning.example", "Agency Reviewer"));
         db.Memberships.AddRange(
             CreateMembership(TenantId, OperatorId, "agency_admin", 1),
-            CreateMembership(OtherTenantId, OtherUserId, "agency_admin", 2));
+            CreateMembership(OtherTenantId, OtherUserId, "agency_admin", 2),
+            CreateMembership(TenantId, ReviewerId, "agency_admin", 3));
         db.ClientAccounts.Add(new ClientAccount(
             new ClientAccountId(ClientId), new TenantId(TenantId), "planning-client",
             "Planning Client", "Planning Client", null, null, "{}",
             new LifecycleStatusCode("ACTIVE"), Now));
         await db.SaveChangesAsync();
-        await SeedPlanningPrerequisitesAsync(connectionString);
+        await SeedPlanningPrerequisitesAsync(connectionString, briefBudgetMinor);
     }
 
     private static Tenant CreateTenant(Guid id, string slug) => new(
@@ -213,5 +228,31 @@ public sealed partial class CanonicalPlanningAcceptanceTests
     private sealed class FixedPlanningTimeProvider : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => Now;
+    }
+
+    private sealed class DeterministicEmailInventorySelectionFixture :
+        IEmailAutomationInventorySelector
+    {
+        public Task<Guid[]> SelectAsync(
+            TenantId tenantId,
+            ActorId actorId,
+            MediaMixVersionView mix,
+            InventoryShortlistVersionView shortlist,
+            DateTimeOffset now,
+            CancellationToken cancellationToken)
+        {
+            var selected = mix.Allocations
+                .Where(allocation => allocation.BudgetMinor > 0)
+                .Select(allocation => shortlist.Candidates
+                    .Where(candidate => candidate.IsEligible &&
+                        candidate.Channel == allocation.Channel)
+                    .OrderBy(candidate => candidate.ProductVersionId)
+                    .Select(candidate => candidate.Id)
+                    .FirstOrDefault())
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToArray();
+            return Task.FromResult(selected);
+        }
     }
 }

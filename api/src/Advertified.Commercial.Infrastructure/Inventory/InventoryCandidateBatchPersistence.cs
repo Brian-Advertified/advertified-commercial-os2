@@ -43,14 +43,24 @@ internal static class InventoryCandidateBatchPersistence
 
                 INSERT INTO commercial.inventory_candidate_fields (
                     id, tenant_id, candidate_id, field_name, raw_value, normalized_value,
-                    transformation_code, source_locator, source_hash)
+                    transformation_code, source_locator, source_hash,
+                    evidence_basis_code, verification_state_code, required_action_code,
+                    captured_at_utc, effective_on, fresh_until, extraction_method_code,
+                    extraction_confidence)
                 SELECT value."id", {tenantId.Value}, value."candidateId",
                     value."fieldName", value."rawValue", value."normalizedValue",
-                    value."transformation", value."sourceLocator", value."sourceHash"
+                    value."transformation", value."sourceLocator", value."sourceHash",
+                    value."evidenceBasis", value."verificationState", value."requiredAction",
+                    value."capturedAtUtc", value."effectiveOn", value."freshUntil",
+                    value."extractionMethod", value."extractionConfidence"
                 FROM jsonb_to_recordset({fieldJson}::jsonb) AS value(
                     "id" uuid, "candidateId" uuid, "fieldName" text,
                     "rawValue" text, "normalizedValue" text,
-                    "transformation" text, "sourceLocator" text, "sourceHash" text);
+                    "transformation" text, "sourceLocator" text, "sourceHash" text,
+                    "evidenceBasis" text, "verificationState" text,
+                    "requiredAction" text, "capturedAtUtc" timestamptz,
+                    "effectiveOn" date, "freshUntil" date,
+                    "extractionMethod" text, "extractionConfidence" numeric);
 
                 INSERT INTO commercial.human_tasks (
                     id, tenant_id, opportunity_id, task_type_code, status_code, title,
@@ -85,7 +95,9 @@ internal static class InventoryCandidateBatchPersistence
         candidate.Evidence.Select(field => new FieldPayload(
             Guid.NewGuid(), candidate.Id, field.FieldName, field.RawValue,
             field.NormalizedValue, field.Transformation, field.SourceLocator,
-            field.SourceHash));
+            field.SourceHash, field.EvidenceBasis, field.VerificationState,
+            field.RequiredAction, field.CapturedAtUtc, field.EffectiveOn,
+            field.FreshUntil, field.ExtractionMethod, field.ExtractionConfidence));
 
     private sealed record CandidatePayload(
         Guid Id,
@@ -103,7 +115,15 @@ internal static class InventoryCandidateBatchPersistence
         string? NormalizedValue,
         string Transformation,
         string SourceLocator,
-        string SourceHash);
+        string SourceHash,
+        string EvidenceBasis,
+        string VerificationState,
+        string RequiredAction,
+        DateTimeOffset CapturedAtUtc,
+        DateOnly? EffectiveOn,
+        DateOnly? FreshUntil,
+        string ExtractionMethod,
+        decimal? ExtractionConfidence);
 }
 
 internal sealed record PreparedInventoryCandidate(

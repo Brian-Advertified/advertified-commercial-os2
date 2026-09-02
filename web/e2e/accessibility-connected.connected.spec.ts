@@ -13,14 +13,14 @@ test('connected critical shell has usable keyboard and accessibility semantics',
 
   await page.getByRole('button', { name: /Continue to Advertified/ }).click()
   await page.getByRole('button', { name: /Advertified Local/ }).click()
-  await expect(page.getByRole('heading', { name: 'Work dashboard', exact: true }))
+  await expect(page.getByRole('heading', { name: /Good morning, Local/ }))
     .toBeVisible()
 
   const mainContent = page.locator('#main-content')
   await expect(mainContent).toBeFocused()
 
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Work dashboard', exact: true }))
+  await expect(page.getByRole('heading', { name: /Good morning, Local/ }))
     .toBeVisible()
   const skipLink = page.getByRole('link', { name: 'Skip to main content' })
   await page.keyboard.press('Tab')

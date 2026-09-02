@@ -1,12 +1,13 @@
 using Advertified.Commercial.Application.EmailAutomation;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Domain.MasterData;
+using Advertified.Commercial.Infrastructure.Planning;
 
 namespace Advertified.Commercial.Infrastructure.EmailAutomation;
 
 internal static class EmailAutomationPlanReadiness
 {
-    internal static void EnsureReady(MediaPlanVersionView plan)
+    internal static void EnsureReady(MediaPlanVersionView plan, PlanningPolicy policy)
     {
         if (plan.Lines.Count == 0 || plan.Lines.Any(line =>
                 line.Channel is not (MasterDataCodes.Channels.Ooh or
@@ -22,7 +23,14 @@ internal static class EmailAutomationPlanReadiness
         {
             throw new EmailAutomationReviewRequiredException(
                 MasterDataCodes.AutomationFailureReasons.SupplyUnready,
-                "Current supplier-confirmed rates and availability are required before automatic delivery.");
+                "Selected inventory must remain free of an explicit unavailable period or booking conflict.");
+        }
+
+        if (plan.TotalMinor > policy.MaximumAutomatedClientValueMinor)
+        {
+            throw new EmailAutomationReviewRequiredException(
+                MasterDataCodes.AutomationFailureReasons.PlanUnready,
+                "The client total exceeds the governed R500,000 automatic-send ceiling.");
         }
 
         if (plan.Objections.Any(item =>

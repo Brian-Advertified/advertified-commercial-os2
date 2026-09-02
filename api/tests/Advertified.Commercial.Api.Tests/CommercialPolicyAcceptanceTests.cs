@@ -47,10 +47,7 @@ public sealed class CommercialPolicyAcceptanceTests
         using var campaignUser = campaignFactory.CreateClient();
         using var otherAdmin = otherFactory.CreateClient();
 
-        await AssertProblemAsync(
-            await admin.GetAsync(PolicyPath(TenantId)),
-            HttpStatusCode.NotFound,
-            "COMMERCIAL_POLICY_NOT_CONFIGURED");
+        await AssertEmptyPolicyAsync(await admin.GetAsync(PolicyPath(TenantId)));
 
         var first = await SaveAsync(admin, TenantId, "policy-create", 0, Policy(1_500));
         await AssertPolicyAsync(first, 1, 1_500, replayed: false);
@@ -72,10 +69,7 @@ public sealed class CommercialPolicyAcceptanceTests
             await otherAdmin.GetAsync(PolicyPath(TenantId)),
             HttpStatusCode.Forbidden,
             "TENANT_FORBIDDEN");
-        await AssertProblemAsync(
-            await otherAdmin.GetAsync(PolicyPath(OtherTenantId)),
-            HttpStatusCode.NotFound,
-            "COMMERCIAL_POLICY_NOT_CONFIGURED");
+        await AssertEmptyPolicyAsync(await otherAdmin.GetAsync(PolicyPath(OtherTenantId)));
         await AssertMigrationCycleAsync(connectionString);
     }
 
@@ -185,6 +179,15 @@ public sealed class CommercialPolicyAcceptanceTests
         request.Headers.TryAddWithoutValidation("If-Match", $"\"{version}\"");
         request.Headers.Add("X-Correlation-ID", Guid.NewGuid().ToString());
         return client.SendAsync(request);
+    }
+
+    private static async Task AssertEmptyPolicyAsync(HttpResponseMessage response)
+    {
+        using (response)
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("null", (await response.Content.ReadAsStringAsync()).Trim());
+        }
     }
 
     private static async Task AssertPolicyAsync(

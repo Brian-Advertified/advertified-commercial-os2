@@ -15,7 +15,7 @@ public static class CommercialPolicyEndpoints
             .RequireAuthorization();
         group.MapGet(string.Empty, GetCurrentAsync)
             .WithName("GetCurrentCommercialPolicy")
-            .Produces<CommercialPolicyView>()
+            .Produces<CommercialPolicyView?>()
             .WithQueryProblems();
         group.MapPut(string.Empty, SaveAsync)
             .WithName("SaveCommercialPolicy")
@@ -33,8 +33,13 @@ public static class CommercialPolicyEndpoints
     {
         var result = await reader.GetCurrentAsync(
             identity.ActorId, new TenantId(tenantId), cancellationToken);
-        CommandEnvelopeFactory.SetEntityHeaders(context, result.Version);
-        return Results.Ok(result);
+        if (result is not null)
+        {
+            CommandEnvelopeFactory.SetEntityHeaders(context, result.Version);
+        }
+        return result is null
+            ? Results.Text("null", "application/json")
+            : Results.Ok(result);
     }
 
     private static async Task<IResult> SaveAsync(

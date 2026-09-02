@@ -32,6 +32,18 @@ public sealed record BriefConflictInput(
     bool Resolved,
     string? Resolution);
 
+public sealed record BriefSpatialRequirementInput(
+    string Type,
+    string Priority,
+    string Label,
+    string GeoJson,
+    decimal? RadiusMetres = null,
+    decimal? CoverageThreshold = null,
+    string? BoundarySource = null,
+    string? BoundaryVersion = null,
+    string? SourceLocator = null,
+    bool IsVerified = false);
+
 public sealed record CreateBriefVersionCommand(
     Guid BriefId,
     Guid? BaseVersionId,
@@ -51,7 +63,8 @@ public sealed record CreateBriefVersionCommand(
     IReadOnlyList<BriefUnknownInput> Unknowns,
     IReadOnlyList<BriefAssumptionInput> Assumptions,
     IReadOnlyList<BriefConflictInput> Conflicts,
-    IReadOnlyList<Guid> EvidenceItemIds);
+    IReadOnlyList<Guid> EvidenceItemIds,
+    IReadOnlyList<BriefSpatialRequirementInput>? SpatialRequirements = null);
 
 public sealed record SubmitBriefVersionCommand(
     Guid? ConfirmerUserId,

@@ -210,6 +210,7 @@ export const campaignBriefSummarySchema = z.object({
   approvedVersionId: z.guid().nullable(),
   version: z.number().int().positive(), updatedAtUtc: z.iso.datetime({ offset: true }),
 }).strict()
+export const campaignBriefSummaryListSchema = z.array(campaignBriefSummarySchema)
 
 export const briefSourceSchema = z.object({
   id: z.guid(), sourceType: requiredText, locator: requiredText, title: requiredText,
@@ -231,6 +232,14 @@ export const briefConflictSchema = z.object({
   resolved: z.boolean(), resolution: nullableText,
 }).strict()
 
+export const briefSpatialRequirementSchema = z.object({
+  id: z.guid(), type: requiredText, priority: requiredText, label: requiredText,
+  geoJson: requiredText, radiusMetres: z.number().positive().nullable(),
+  coverageThreshold: z.number().positive().max(1).nullable(),
+  bufferInferred: z.boolean(), boundarySource: nullableText,
+  boundaryVersion: nullableText, sourceLocator: requiredText, isVerified: z.boolean(),
+}).strict()
+
 export const briefVersionSchema = z.object({
   id: z.guid(), briefId: z.guid(), baseVersionId: z.guid().nullable(), sourceId: z.guid(),
   versionNumber: z.number().int().positive(), businessProblem: requiredText,
@@ -246,6 +255,7 @@ export const briefVersionSchema = z.object({
   rejectedBy: z.guid().nullable(),
   rejectionReason: nullableText, requestedChanges: nullableText,
   version: z.number().int().positive(), createdAtUtc: z.iso.datetime({ offset: true }),
+  spatialRequirements: z.array(briefSpatialRequirementSchema),
 }).strict()
 
 export const campaignBriefSchema = z.object({
@@ -285,5 +295,6 @@ export type OpportunityDetail = z.infer<typeof opportunityDetailSchema>
 export type HumanTask = z.infer<typeof humanTaskSchema>
 export type Strategy = z.infer<typeof strategySchema>
 export type AgentRun = z.infer<typeof agentRunSchema>
+export type CampaignBriefSummary = z.infer<typeof campaignBriefSummarySchema>
 export type CampaignBrief = z.infer<typeof campaignBriefSchema>
 export type BriefVersion = z.infer<typeof briefVersionSchema>

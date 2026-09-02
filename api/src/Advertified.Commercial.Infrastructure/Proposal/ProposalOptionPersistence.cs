@@ -31,7 +31,7 @@ internal static class ProposalOptionPersistence
             item.Plan.Signature,
             ProposalRecordStore.Write(item.Plan.Channels),
             ProposalRecordStore.Write(item.Plan.Periods),
-            ProposalRecordStore.Write(item.Plan.InventoryNames))).ToArray());
+            ProposalRecordStore.Write(item.Plan.Inventory))).ToArray());
         return dbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.proposal_options (
                 id, tenant_id, proposal_version_id, plan_version_id, plan_version_no,

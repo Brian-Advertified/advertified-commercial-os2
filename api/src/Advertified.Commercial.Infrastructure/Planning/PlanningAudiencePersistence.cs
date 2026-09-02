@@ -35,6 +35,9 @@ internal static class PlanningAudiencePersistence
             item.Proposal.Language,
             item.Proposal.LifeStage,
             item.Proposal.LsmSem,
+            item.Proposal.LsmSemTaxonomy,
+            item.Proposal.LsmSemTaxonomyVersion,
+            item.Proposal.LsmSemMandatory,
             item.Proposal.Classification,
             JsonSerializer.Serialize(item.Proposal.Exclusions, StoredJson),
             JsonSerializer.Serialize(item.Proposal.EvidenceItemIds, StoredJson),
@@ -43,18 +46,24 @@ internal static class PlanningAudiencePersistence
             INSERT INTO commercial.audience_definitions (
                 id, tenant_id, audience_set_id, name, description, need_state,
                 buying_context, geography_json, language, life_stage, lsm_sem,
+                lsm_sem_taxonomy, lsm_sem_taxonomy_version,
+                lsm_sem_mandatory,
                 classification_code, exclusions_json, evidence_item_ids_json,
                 confidence, status_code)
             SELECT value."id", {tenantId.Value}, {setId}, value."name",
                 value."description", value."needState", value."buyingContext",
                 value."geographiesJson"::jsonb, value."language", value."lifeStage",
-                value."lsmSem", value."classification",
+                value."lsmSem", value."lsmSemTaxonomy", value."lsmSemTaxonomyVersion",
+                value."lsmSemMandatory",
+                value."classification",
                 value."exclusionsJson"::jsonb, value."evidenceItemIdsJson"::jsonb,
                 value."confidence", {MasterDataCodes.LifecycleStatuses.Approved}
             FROM jsonb_to_recordset({payload}::jsonb) AS value(
                 "id" uuid, "name" text, "description" text, "needState" text,
                 "buyingContext" text, "geographiesJson" text, "language" text,
-                "lifeStage" text, "lsmSem" text, "classification" text,
+                "lifeStage" text, "lsmSem" text, "lsmSemTaxonomy" text,
+                "lsmSemTaxonomyVersion" text, "classification" text,
+                "lsmSemMandatory" boolean,
                 "exclusionsJson" text, "evidenceItemIdsJson" text,
                 "confidence" numeric)
             """, cancellationToken);
@@ -70,6 +79,9 @@ internal static class PlanningAudiencePersistence
         string? Language,
         string? LifeStage,
         string? LsmSem,
+        string? LsmSemTaxonomy,
+        string? LsmSemTaxonomyVersion,
+        bool LsmSemMandatory,
         string Classification,
         string ExclusionsJson,
         string EvidenceItemIdsJson,

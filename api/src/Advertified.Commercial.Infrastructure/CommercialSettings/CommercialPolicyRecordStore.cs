@@ -34,6 +34,22 @@ public sealed class CommercialPolicyRecordStore(GovernanceDbContext dbContext)
     internal Task<CommercialPolicyRow?> FindCurrentAsync(
         TenantId tenantId,
         CancellationToken cancellationToken) =>
+        FindAsync(tenantId, null, cancellationToken);
+
+    internal Task<CommercialPolicyRow?> FindVersionAsync(
+        TenantId tenantId,
+        Guid versionId,
+        CancellationToken cancellationToken) =>
+        FindAsync(tenantId, versionId, cancellationToken);
+
+    private Task<CommercialPolicyRow?> FindAsync(
+        TenantId tenantId,
+        Guid? versionId,
+        CancellationToken cancellationToken)
+    {
+        var useSpecificVersion = versionId.HasValue;
+        var targetVersionId = versionId ?? Guid.Empty;
+        return
         dbContext.Database.SqlQuery<CommercialPolicyRow>($"""
             SELECT version.id AS "Id", policy.id AS "PolicyId",
                 policy.tenant_id AS "TenantId", version.version_number AS "VersionNumber",
@@ -48,12 +64,15 @@ public sealed class CommercialPolicyRecordStore(GovernanceDbContext dbContext)
                 version.allow_self_approval AS "AllowSelfApproval",
                 version.created_by AS "CreatedBy", version.created_at_utc AS "CreatedAtUtc",
                 policy.version AS "Version"
-            FROM commercial.commercial_policies policy
-            JOIN commercial.commercial_policy_versions version
-              ON version.tenant_id = policy.tenant_id
-             AND version.id = policy.current_version_id
-            WHERE policy.tenant_id = {tenantId.Value}
+            FROM commercial.commercial_policy_versions version
+            JOIN commercial.commercial_policies policy
+              ON policy.tenant_id = version.tenant_id
+             AND policy.id = version.policy_id
+            WHERE version.tenant_id = {tenantId.Value}
+              AND ((NOT {useSpecificVersion} AND version.id = policy.current_version_id)
+                OR ({useSpecificVersion} AND version.id = {targetVersionId}))
             """).SingleOrDefaultAsync(cancellationToken);
+    }
 
     internal async Task InsertFirstAsync(
         TenantId tenantId,

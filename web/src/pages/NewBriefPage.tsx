@@ -7,7 +7,9 @@ import { useWorkspace } from '../auth/workspace-state'
 import { BriefIntakeGuide } from '../brief/BriefIntakeGuide'
 import { BriefClarificationForm } from '../brief-intake/BriefClarificationForm'
 import { BriefSourceForm } from '../brief-intake/BriefSourceForm'
+import { BriefUnderstandingReview } from '../brief-intake/BriefUnderstandingReview'
 import { useBriefIntake } from '../brief-intake/useBriefIntake'
+import { CampaignModeBinding } from '../campaign-flow/CampaignFlowBindings'
 import { Icon } from '../components/Icon'
 import { LoadingState, MessageState } from '../components/PageState'
 
@@ -31,7 +33,8 @@ function BriefCreator({ tenantId, userId, token }: {
   token: string
 }) {
   const model = useBriefIntake({ tenantId, userId, token })
-  return <section aria-labelledby="new-brief-title" className="brief-intake-page">
+  return <><CampaignModeBinding mode={model.understanding?.campaignMode ?? null} />
+  <section aria-labelledby="new-brief-title" className="brief-intake-page">
     <BriefIntakeHeading />
     <div className="brief-integrity-strip" role="note" aria-label="Brief source integrity">
       <Icon name="shield" />
@@ -48,15 +51,12 @@ function BriefCreator({ tenantId, userId, token }: {
       : model.understanding.requiresHumanClarification
         ? <BriefClarificationForm understanding={model.understanding} busy={model.busy}
             onSubmit={model.submitClarifications} onEdit={model.editSource} />
-        : model.busy
-          ? <LoadingState label="Creating the planning workspace" />
-          : <MessageState
-              title="The planning workspace needs another attempt"
-              message="Your Brief and corrections are retained. Try again without re-entering them."
-              action={<button className="primary-button" type="button"
-                onClick={model.retryPlanning}>Try again</button>}
-            />}
-  </section>
+        : <BriefUnderstandingReview understanding={model.understanding} busy={model.busy}
+            onApprove={model.approveReview} onEdit={model.editSource}
+            onCorrectMode={model.correctMode}
+            spatialRequirements={model.spatialRequirements}
+            onSpatialRequirementsChange={model.setSpatialRequirements} />}
+  </section></>
 }
 
 function BriefIntakeHeading() {

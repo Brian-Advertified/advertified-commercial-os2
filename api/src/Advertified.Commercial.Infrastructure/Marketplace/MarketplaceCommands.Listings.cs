@@ -124,18 +124,40 @@ public sealed partial class MarketplaceCommands
                 id, supplier_tenant_id, listing_id, version_number,
                 product_version_id, supplier_id, rate_id, availability_id, supplier_name,
                 product_name, channel_code, product_type_code, geography,
+                audience_profile_json,
                 rate_type_code, amount_minor, currency_code, availability_code,
-                rate_effective_from, rate_effective_to,
+                rate_effective_from, rate_effective_to, rate_source_locator,
+                availability_source_locator,
                 availability_observed_at_utc, availability_valid_until_utc,
+                supplier_vat_status_code, vat_treatment_code,
+                supplier_commercial_json, commercial_terms_json,
+                deliverable_json, spatial_json, logo_asset_id,
+                private_spatial_location, private_coverage_geometry,
+                private_catchment_geometry, private_route_geometry,
                 terms, published_by, published_at_utc)
             VALUES ({versionId}, {envelope.TenantId.Value}, {listing.Id}, {versionNumber},
                 {snapshot.ProductVersionId}, {snapshot.SupplierId}, {snapshot.RateId},
                 {snapshot.AvailabilityId},
                 {snapshot.SupplierName}, {snapshot.ProductName}, {snapshot.Channel},
-                {snapshot.ProductType}, {snapshot.Geography}, {snapshot.RateType},
+                {snapshot.ProductType}, {snapshot.Geography},
+                {snapshot.AudienceProfileJson}::jsonb, {snapshot.RateType},
                 {snapshot.AmountMinor}, {snapshot.Currency}, {snapshot.Availability},
                 {snapshot.RateEffectiveFrom}, {snapshot.RateEffectiveTo},
+                {snapshot.RateSourceLocator},
+                {snapshot.AvailabilitySourceLocator},
                 {snapshot.AvailabilityObservedAtUtc}, {snapshot.AvailabilityValidUntilUtc},
+                {snapshot.SupplierVatStatus}, {snapshot.VatTreatment},
+                {snapshot.SupplierCommercialJson}::jsonb,
+                {snapshot.CommercialTermsJson}::jsonb, {snapshot.DeliverableJson}::jsonb,
+                {snapshot.SpatialJson}::jsonb, {snapshot.LogoAssetId},
+                CASE WHEN {snapshot.SpatialLocationGeoJson}::text IS NULL THEN NULL ELSE
+                    ST_GeomFromGeoJSON({snapshot.SpatialLocationGeoJson}::text)::geography END,
+                CASE WHEN {snapshot.CoverageGeometryGeoJson}::text IS NULL THEN NULL ELSE
+                    ST_Multi(ST_GeomFromGeoJSON({snapshot.CoverageGeometryGeoJson}::text)) END,
+                CASE WHEN {snapshot.CatchmentGeometryGeoJson}::text IS NULL THEN NULL ELSE
+                    ST_Multi(ST_GeomFromGeoJSON({snapshot.CatchmentGeometryGeoJson}::text)) END,
+                CASE WHEN {snapshot.RouteGeometryGeoJson}::text IS NULL THEN NULL ELSE
+                    ST_Multi(ST_GeomFromGeoJSON({snapshot.RouteGeometryGeoJson}::text)) END,
                 {listing.ListingTerms},
                 {envelope.ActorId.Value}, {now})
             """, cancellationToken);
@@ -151,11 +173,9 @@ public sealed partial class MarketplaceCommands
         DateTimeOffset now)
     {
         var today = DateOnly.FromDateTime(now.UtcDateTime);
-        if (snapshot.Availability != MasterDataCodes.AvailabilityStatuses.Available ||
+        if (snapshot.Availability == MasterDataCodes.AvailabilityStatuses.Unavailable ||
             snapshot.AvailabilityObservedAtUtc.HasValue &&
             snapshot.AvailabilityObservedAtUtc.Value > now ||
-            snapshot.AvailabilityValidUntilUtc.HasValue &&
-            snapshot.AvailabilityValidUntilUtc.Value <= now ||
             snapshot.RateEffectiveFrom.HasValue && snapshot.RateEffectiveFrom.Value > today ||
             snapshot.RateEffectiveTo.HasValue && snapshot.RateEffectiveTo.Value < today)
         {

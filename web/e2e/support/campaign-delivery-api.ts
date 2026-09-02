@@ -1,6 +1,8 @@
 import { expect, type Page, type Route } from '@playwright/test';
 import {
   bookingFixture,
+  campaignFlowPlanningFixture,
+  campaignFlowProposalFixture,
   campaignFixture,
   createDeliveryState,
   creativeAssetFixture,
@@ -48,6 +50,12 @@ async function handleRead(route: Route, path: string, state: DeliveryFixtureStat
   if (path === '/api/v1/session') return json(route, sessionFixture());
   if (path === '/api/v1/workspaces') return json(route, [workspaceFixture()]);
   if (path === `${tenantRoot}/funding`) return json(route, fundingWorkspaceFixture(state));
+  if (path === `${tenantRoot}/proposals/${deliveryIds.proposal}`) {
+    return json(route, campaignFlowProposalFixture());
+  }
+  if (path === `${tenantRoot}/brief-versions/${deliveryIds.briefVersion}/planning`) {
+    return json(route, campaignFlowPlanningFixture());
+  }
   if (path === `${tenantRoot}/bookings`) return json(route, [bookingFixture()]);
   if (path === `${tenantRoot}/bookings/bookable-lines`) return json(route, []);
   if (path === `${tenantRoot}/proposal-recipients`) return json(route, [reviewerFixture()]);

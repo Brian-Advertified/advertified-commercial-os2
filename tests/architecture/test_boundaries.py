@@ -34,9 +34,12 @@ FORBIDDEN_AGENT_PACKAGES = {
     "psycopg2-binary",
     "sqlalchemy",
 }
-APPROVED_AGENT_PROVIDER_PACKAGES = {"boto3"}
+APPROVED_AGENT_PROVIDER_PACKAGES = {"botocore"}
 GOVERNED_LITERAL_OVERLAP_ALLOWLIST = {
     "api/src/Advertified.Commercial.Application/Opportunity/AgentProviderMetadata.cs": {"LIVE"},
+    "api/src/Advertified.Commercial.Infrastructure/Inventory/InventoryCandidateNormalizer.cs": {
+        "BLACKOUT", "NOT_AVAILABLE", "impressions", "listeners", "reach",
+    },
 }
 from tests.architecture.master_data_contract import (
     REQUIRED_MASTER_COLLECTIONS,
@@ -74,7 +77,7 @@ def test_required_baseline_files_exist() -> None:
         "api/Advertified.Commercial.Api.csproj",
         "agent-runtime/requirements-dev.txt",
         "infrastructure/postgres/Dockerfile",
-        "docs/spec/README.md",
+        "ADVERTIFIED.md",
     ]
 
     missing = [path for path in required if not (REPO_ROOT / path).is_file()]

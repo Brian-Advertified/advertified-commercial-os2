@@ -9,6 +9,13 @@ from pydantic import BaseModel
 
 from agent_registry import AgentCode
 from bedrock_provider import BEDROCK_MODE, bedrock_configuration_ready
+from inventory_embedding_service import (
+    InventoryEmbeddingProviderError,
+    InventoryEmbeddingRequest,
+    InventoryEmbeddingResponse,
+    bedrock_embedding,
+    deterministic_embedding,
+)
 from runtime_execution import DETERMINISTIC_MODE, execute_agent, implemented_agents
 
 RUNTIME_MODE_KEY = "ADVERTIFIED_AGENT_RUNTIME_MODE"
@@ -87,6 +94,21 @@ async def invoke(
     mode = _runtime_mode()
     _require_service(mode, x_advertified_service_key)
     return execute_agent(agent_code, await http_request.body(), mode)
+
+
+@app.post("/v1/inventory-embeddings", response_model=InventoryEmbeddingResponse)
+def create_inventory_embedding(
+    request: InventoryEmbeddingRequest,
+    x_advertified_service_key: str | None = Header(default=None),
+) -> InventoryEmbeddingResponse:
+    mode = _runtime_mode()
+    _require_service(mode, x_advertified_service_key)
+    if mode == DETERMINISTIC_MODE:
+        return deterministic_embedding(request)
+    try:
+        return bedrock_embedding(request)
+    except InventoryEmbeddingProviderError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 def _runtime_mode() -> Literal["disabled", "deterministic", "bedrock"]:

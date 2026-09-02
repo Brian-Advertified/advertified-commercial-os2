@@ -40,7 +40,7 @@ test('connected Brief becomes an approved, rendered and shared proposal', async 
     'A source-linked Johannesburg OOH route for qualified local demand.',
   )
   await page.getByRole('button', { name: 'Save wording' }).click()
-  await page.getByRole('button', { name: 'Approve proposal' }).click()
+  await page.getByRole('button', { name: 'Approve now' }).click()
   await page.getByRole('button', { name: 'Create branded PDF' }).click()
 
   const pdfLink = page.getByRole('link', { name: 'Open proposal PDF' })
@@ -65,7 +65,7 @@ async function signIn(page: import('@playwright/test').Page) {
   await page.goto('/sign-in')
   await page.getByRole('button', { name: /Continue to Advertified/ }).click()
   await page.getByRole('button', { name: /Advertified Local/ }).click()
-  await expect(page.getByRole('heading', { name: 'Work dashboard', exact: true }))
+  await expect(page.getByRole('heading', { name: /Good morning, Local/ }))
     .toBeVisible()
 }
 
@@ -87,21 +87,23 @@ async function createClearBrief(
     'Measurement: Qualified enquiries.',
   ].join('\n'))
   await page.getByRole('button', { name: 'Understand this Brief' }).click()
+  await expect(page.getByRole('heading', {
+    name: 'Confirm what Advertified understood before planning begins.',
+  })).toBeVisible()
+  await page.getByRole('button', { name: 'Approve Brief and start planning' }).click()
 
-  await expect(page).toHaveURL(/\/planning\/[0-9a-f-]{36}$/, {
+  await expect(page).toHaveURL(/\/stp\/[0-9a-f-]{36}$/, {
     timeout: 30_000,
   })
-  await expect(page.getByRole('heading', { name: 'Planning workbench' }))
-    .toBeVisible()
-  await expect(page.getByRole('heading', { name: 'OOH and DOOH only' }))
+  await expect(page.getByRole('heading', { name: 'Strategy & STP' }))
     .toBeVisible()
 }
 
 async function prepareApprovedPlan(page: import('@playwright/test').Page) {
-  await page.getByRole('button', { name: 'Build audience direction' }).click()
-  await expect(page.getByRole('heading', {
-    name: 'Audience strategy for this campaign',
-  })).toBeVisible()
+  await page.getByRole('button', { name: 'Generate Strategy & STP' }).click()
+  await expect(page.getByRole('heading', { name: 'Who we will reach' })).toBeVisible()
+  await page.getByRole('link', { name: /Next: Media Planning/ }).click()
+  await expect(page.getByRole('heading', { name: 'Media Planning Overview' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Create media mix' }).click()
   await expect(page.getByRole('heading', {

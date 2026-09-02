@@ -36,21 +36,35 @@ public sealed partial class PlanningCommands
         {
             throw new InvalidLifecycleTransitionException();
         }
+        if (selected.Any(item => item.CommercialReadiness is null ||
+                item.CommercialReadiness.EvidenceGaps.Count > 0))
+        {
+            throw new PlanningApprovalBlockedException();
+        }
+        var commercialPolicy = await commercialPolicyStore.FindCurrentAsync(
+            envelope.TenantId, cancellationToken)
+            ?? throw new PlanningApprovalBlockedException();
+        if (!string.Equals(commercialPolicy.Currency, brief.Currency,
+                StringComparison.Ordinal))
+        {
+            throw new PlanningApprovalBlockedException();
+        }
         var inventory = await store.ListInventoryAsync(envelope.TenantId, cancellationToken);
         var byVersion = inventory.ToDictionary(InventoryKey.For);
         var inputs = selected.Select(item => byVersion.TryGetValue(
                 InventoryKey.For(item), out var value)
                 ? value
                 : throw new PlanningInputStaleException()).ToArray();
-        EnsureSelectedInputsCurrent(selected, inputs);
         var allocations = Read<MediaAllocationView[]>(mix.AllocationsJson)
             .ToDictionary(item => item.Channel, StringComparer.Ordinal);
+        EnsureSelectedInputsCurrent(selected, inputs, allocations);
         var scheduled = inputs.Select(item => new ScheduledInventory(
             item,
             allocations.TryGetValue(item.Channel, out var allocation)
                 ? allocation.RunningPeriods
                 : throw new InvalidLifecycleTransitionException())).ToArray();
-        var amounts = PlanAmounts.Calculate(brief, scheduled, planningPolicy);
+        var amounts = PlanAmounts.Calculate(scheduled, commercialPolicy, planningPolicy);
+        EnsureChannelBudgetsReconcile(amounts, allocations);
         if (amounts.TotalMinor > brief.BudgetMinor)
         {
             throw new PlanningApprovalBlockedException();
@@ -79,7 +93,8 @@ public sealed partial class PlanningCommands
         var now = timeProvider.GetUtcNow();
         await InsertPlanVersionAsync(
             envelope, id, brief, mix, shortlist, versionNumber, amounts, supplyConfidence,
-            inputHash, forecastJson, assumptionsJson, criticJson, now, cancellationToken);
+            commercialPolicy.Id, inputHash, forecastJson, assumptionsJson, criticJson,
+            now, cancellationToken);
         await InsertPlanLinesAsync(
             envelope.TenantId, id, selected, amounts, now, cancellationToken);
         var row = await store.FindPlanAsync(envelope.TenantId, id, cancellationToken)
@@ -210,12 +225,14 @@ public sealed partial class PlanningCommands
         return plan.Lines.All(line => byProduct.TryGetValue(InventoryKey.For(line), out var item) &&
             item.ProductVersionId == line.ProductVersionId && item.RateId == line.RateId &&
             item.AvailabilityId == line.AvailabilityId &&
-            item.MarketplaceListingVersionId == line.MarketplaceListingVersionId);
+            item.MarketplaceListingVersionId == line.MarketplaceListingVersionId &&
+            InventoryAvailabilityPolicy.IsAvailable(item, line.RunningPeriods));
     }
 
     private static void EnsureSelectedInputsCurrent(
         IReadOnlyList<InventoryShortlistCandidateView> selected,
-        IReadOnlyList<PlanningInventoryRow> current)
+        IReadOnlyList<PlanningInventoryRow> current,
+        Dictionary<string, MediaAllocationView> allocations)
     {
         if (selected.Zip(current).Any(pair =>
                 pair.First.InventoryTenantId != pair.Second.InventoryTenantId ||
@@ -223,9 +240,31 @@ public sealed partial class PlanningCommands
                     pair.Second.MarketplaceListingVersionId ||
                 pair.First.ProductVersionId != pair.Second.ProductVersionId ||
                 pair.First.RateId != pair.Second.RateId ||
-                pair.First.AvailabilityId != pair.Second.AvailabilityId))
+                pair.First.AvailabilityId != pair.Second.AvailabilityId ||
+                !allocations.TryGetValue(pair.First.Channel, out var allocation) ||
+                !InventoryAvailabilityPolicy.IsAvailable(
+                    pair.Second, allocation.RunningPeriods)))
         {
             throw new PlanningInputStaleException();
+        }
+    }
+
+    private static void EnsureChannelBudgetsReconcile(
+        CalculatedPlanAmounts amounts,
+        Dictionary<string, MediaAllocationView> allocations)
+    {
+        var costs = amounts.Lines
+            .GroupBy(item => item.Inventory.Channel, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => checked(group.Sum(item => item.SupplierCostMinor)),
+                StringComparer.Ordinal);
+        if (allocations.Values.Any(allocation =>
+                allocation.BudgetMinor > 0 &&
+                (!costs.TryGetValue(allocation.Channel, out var cost) ||
+                    cost > allocation.BudgetMinor)))
+        {
+            throw new PlanningApprovalBlockedException();
         }
     }
 

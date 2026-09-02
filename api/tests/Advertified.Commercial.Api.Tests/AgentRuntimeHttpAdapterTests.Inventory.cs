@@ -103,6 +103,7 @@ public sealed partial class AgentRuntimeHttpAdapterTests
                     null,
                     null,
                     0.82m,
+                    new InventoryAudienceFitView(0.8m, null, null, []),
                     new InventoryBenchmarkInput(
                         "OOH_LOCAL_PEER_V1",
                         "RADIUS_5_KM",

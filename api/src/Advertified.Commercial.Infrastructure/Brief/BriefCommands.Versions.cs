@@ -29,6 +29,8 @@ public sealed partial class BriefCommands
             brief, envelope.Command.BaseVersionId, envelope.TenantId, cancellationToken);
         var value = await BriefCommandSupport.ValidateAsync(
             store.DbContext, envelope.Command, cancellationToken);
+        var spatial = BriefSpatialRequirements.Normalize(
+            envelope.Command.SpatialRequirements);
         var evidenceIds = envelope.Command.EvidenceItemIds.Distinct().ToArray();
         await EnsureEvidenceAsync(brief, evidenceIds, envelope, cancellationToken);
         var versionNumber = await NextVersionAsync(
@@ -50,6 +52,16 @@ public sealed partial class BriefCommands
             cancellationToken);
         await BriefPersistence.BindEvidenceAsync(
             store.DbContext, envelope.TenantId, versionId, evidenceIds, cancellationToken);
+        await BriefSpatialRequirements.InsertAsync(
+            store.DbContext, envelope.TenantId.Value, versionId,
+            envelope.ActorId.Value, now, spatial, cancellationToken);
+        if (await BriefSpatialRequirements.HasUnverifiedAsync(
+                store.DbContext, envelope.TenantId.Value, versionId, cancellationToken))
+        {
+            await BriefSpatialRequirements.CreateClarificationTaskAsync(
+                store.DbContext, envelope.TenantId.Value, brief.OpportunityId,
+                versionId, 1, brief.OwnerUserId, now, cancellationToken);
+        }
         await BriefPersistence.SetCurrentDraftAsync(
             store.DbContext, envelope.TenantId, brief.Id, versionId, brief.Version,
             MasterDataCodes.LifecycleStatuses.Draft, now, cancellationToken);

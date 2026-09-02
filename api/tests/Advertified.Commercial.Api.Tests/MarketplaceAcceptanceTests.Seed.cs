@@ -53,6 +53,21 @@ public sealed partial class MarketplaceAcceptanceTests
             VALUES ($1, $2, $3, 1, 'APPROVED', '{}', '{}', '[]',
                 'private-rate-card.csv#row=2', $4, 1, $5, $5)
             """, CandidateId, SupplierTenantId, ImportId, SupplierUserId, InitialTime);
+        var supplierVersionId = Guid.Parse("95000000-0000-0000-0000-000000000011");
+        Add(batch, """
+            INSERT INTO commercial.inventory_supplier_versions (
+                id, tenant_id, supplier_id, version_number, vat_status_code,
+                vat_number, payment_terms, cancellation_terms,
+                booking_deadline_terms, source_import_id, published_by, published_at_utc)
+            VALUES ($1, $2, $3, 1, 'REGISTERED', '4987654321',
+                'Payment within 30 days.', 'Cancellation fees apply after confirmation.',
+                'Book five business days before start.', $4, $5, $6)
+            """, supplierVersionId, SupplierTenantId, InventorySupplierId,
+            ImportId, SupplierUserId, InitialTime);
+        Add(batch,
+            "UPDATE commercial.inventory_suppliers SET current_commercial_version_id = $1 " +
+            "WHERE tenant_id = $2 AND id = $3",
+            supplierVersionId, SupplierTenantId, InventorySupplierId);
         Add(batch, """
             INSERT INTO commercial.inventory_products (
                 id, tenant_id, supplier_id, supplier_product_code, status_code,
@@ -63,11 +78,15 @@ public sealed partial class MarketplaceAcceptanceTests
             INSERT INTO commercial.inventory_product_versions (
                 id, tenant_id, product_id, version_number, name, channel_code,
                 product_type_code, geography, address, latitude, longitude,
-                verification_code, source_import_id, source_candidate_id,
+                verification_code, deliverable_json, spatial_json,
+                source_import_id, source_candidate_id,
                 published_by, published_at_utc)
             VALUES ($1, $2, $3, 1, 'N1 Highway Digital Billboard', 'OOH',
                 'OOH_SITE', 'Johannesburg', 'Private supplier address', -26.100000,
-                28.100000, 'HUMAN_VERIFIED', $4, $5, $6, $7)
+                28.100000, 'HUMAN_VERIFIED',
+                '{"format":"Digital billboard","buyingUnit":"screen/month","dimensions":"4m x 8m","placement":"Highway","loopLengthSeconds":60,"slotLengthSeconds":10,"playsPerLoop":1,"quantity":1}'::jsonb,
+                '{"country":"South Africa","province":"Gauteng","municipality":"Johannesburg","locality":"Johannesburg","road":"N1","trafficDirection":"Southbound","pointsOfInterest":[{"name":"Sandton business district","category":"BUSINESS_DISTRICT","latitude":-26.1076,"longitude":28.0567}]}'::jsonb,
+                $4, $5, $6, $7)
             """, ProductVersionId, SupplierTenantId, ProductId, ImportId,
             CandidateId, SupplierUserId, InitialTime);
         Add(batch,
@@ -76,23 +95,30 @@ public sealed partial class MarketplaceAcceptanceTests
         Add(batch, """
             INSERT INTO commercial.inventory_rates (
                 id, tenant_id, product_version_id, rate_type_code, currency_code,
-                amount_minor, effective_from, effective_to, source_locator)
+                amount_minor, effective_from, effective_to, source_locator,
+                vat_treatment_code, commercial_terms_json)
             VALUES ($1, $2, $3, 'MONTH_RATE', 'ZAR', 900000,
-                '2025-01-01', '2025-12-31', 'historical-rate-card.csv#row=2')
+                '2025-01-01', '2025-12-31', 'historical-rate-card.csv#row=2',
+                'INCLUSIVE', '{"vatTreatment":"INCLUSIVE","minimumOrder":1}'::jsonb)
             """, HistoricalRateId, SupplierTenantId, ProductVersionId);
         Add(batch, """
             INSERT INTO commercial.inventory_rates (
                 id, tenant_id, product_version_id, rate_type_code, currency_code,
-                amount_minor, effective_from, effective_to, source_locator)
+                amount_minor, effective_from, effective_to, source_locator,
+                vat_treatment_code, commercial_terms_json)
             VALUES ($1, $2, $3, 'MONTH_RATE', 'ZAR', 1250000,
-                '2026-01-01', '2027-12-31', 'private-rate-card.csv#row=2')
+                '2026-01-01', '2027-12-31', 'private-rate-card.csv#row=2',
+                'INCLUSIVE',
+                '{"vatTreatment":"INCLUSIVE","minimumOrder":1,"inclusions":["Media placement"],"exclusions":["Creative production"],"conditions":["Subject to supplier confirmation"],"bookingLeadTimeDays":5}'::jsonb)
             """, RateId, SupplierTenantId, ProductVersionId);
         Add(batch, """
             INSERT INTO commercial.inventory_rates (
                 id, tenant_id, product_version_id, rate_type_code, currency_code,
-                amount_minor, effective_from, effective_to, source_locator)
+                amount_minor, effective_from, effective_to, source_locator,
+                vat_treatment_code, commercial_terms_json)
             VALUES ($1, $2, $3, 'MONTH_RATE', 'ZAR', 9900000,
-                '2028-01-01', '2028-12-31', 'scheduled-rate-card.csv#row=2')
+                '2028-01-01', '2028-12-31', 'scheduled-rate-card.csv#row=2',
+                'INCLUSIVE', '{"vatTreatment":"INCLUSIVE","minimumOrder":1}'::jsonb)
             """, FutureRateId, SupplierTenantId, ProductVersionId);
         Add(batch, """
             INSERT INTO commercial.inventory_availability (

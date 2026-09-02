@@ -126,6 +126,8 @@ builder.Services.AddScoped<ISuppliedBriefUnderstandingService, SuppliedBriefUnde
 builder.Services.AddScoped<InventoryRecordStore>();
 builder.Services.AddScoped<IInventoryReader, InventoryReader>();
 builder.Services.AddScoped<IInventoryCommands, InventoryCommands>();
+builder.Services.AddSingleton(InventoryDuplicatePolicy.Load());
+builder.AddInventoryEmbeddings();
 builder.Services.AddScoped<MarketplaceRecordStore>();
 builder.Services.AddScoped<IMarketplaceReader, MarketplaceReader>();
 builder.Services.AddScoped<IMarketplaceCommands, MarketplaceCommands>();

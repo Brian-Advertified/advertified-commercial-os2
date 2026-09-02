@@ -20,6 +20,8 @@ export const commercialPolicySchema = z.object({
   version: z.number().int().positive(),
 }).strict()
 
+export const commercialPolicyResponseSchema = commercialPolicySchema.nullable()
+
 export type CommercialPolicy = z.infer<typeof commercialPolicySchema>
 
 export type CommercialPolicyInput = Pick<CommercialPolicy,

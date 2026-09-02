@@ -1,12 +1,12 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.13.0",
-  "effectiveFrom": "2026-09-01",
+  "registryVersion": "2.26.0",
+  "effectiveFrom": "2026-09-02",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
     "channels": [
-      {"code":"OOH","displayLabel":"Out of Home","isActive":true,"sortOrder":10,"metadata":{"supportsGeography":true,"isDigital":false,"requiresCoordinates":true,"defaultInventoryProductType":"OOH_SITE","benchmarkFamily":"OOH_LOCAL","briefTerms":["ooh","out of home","billboard","billboards","gantry"]}},
-      {"code":"DOOH","displayLabel":"Digital Out of Home","isActive":true,"sortOrder":20,"metadata":{"supportsGeography":true,"isDigital":true,"requiresCoordinates":true,"defaultInventoryProductType":"DOOH_SCREEN","benchmarkFamily":"OOH_LOCAL","briefTerms":["dooh","digital out of home","digital billboard","digital screen"]}},
+      {"code":"OOH","displayLabel":"Out of Home","isActive":true,"sortOrder":10,"metadata":{"supportsGeography":true,"isDigital":false,"requiresCoordinates":true,"defaultInventoryProductType":"OOH_SITE","benchmarkFamily":"OOH_LOCAL","briefTerms":["ooh","out of home","billboard","billboards","gantry","static ooh","static site","static sites","iconic static","static branding","wall mural","wall murals","taxi rank branding","bus branding","venue branding","court branding","static / digital","static/digital"]}},
+      {"code":"DOOH","displayLabel":"Digital Out of Home","isActive":true,"sortOrder":20,"metadata":{"supportsGeography":true,"isDigital":true,"requiresCoordinates":true,"defaultInventoryProductType":"DOOH_SCREEN","benchmarkFamily":"OOH_LOCAL","briefTerms":["dooh","digital out of home","digital billboard","digital screen","digital large format","digital site","digital sites","static / digital","static/digital"]}},
       {"code":"RADIO","displayLabel":"Radio","isActive":true,"sortOrder":30,"metadata":{"defaultInventoryProductType":"RADIO_SPOT","briefTerms":["radio","fm","audio spot"]}},
       {"code":"TV","displayLabel":"Television","isActive":true,"sortOrder":40,"metadata":{"defaultInventoryProductType":"TV_SPOT","briefTerms":["television","tv","broadcast"]}},
       {"code":"PRINT","displayLabel":"Print","isActive":true,"sortOrder":50,"metadata":{"defaultInventoryProductType":"PRINT_PLACEMENT","briefTerms":["print","newspaper","magazine"]}},
@@ -70,6 +70,7 @@
       {"code":"inventory_view","displayLabel":"View published inventory","isActive":true,"sortOrder":320,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_admin","supplier_user"]}},
       {"code":"inventory_import","displayLabel":"Import inventory sources","isActive":true,"sortOrder":330,"metadata":{"roles":["platform_admin","inventory_ops","supplier_admin"]}},
       {"code":"inventory_review","displayLabel":"Review inventory candidates","isActive":true,"sortOrder":340,"metadata":{"roles":["platform_admin","inventory_ops"]}},
+      {"code":"inventory_asset_rights_review","displayLabel":"Approve supplier asset rights","isActive":true,"sortOrder":345,"metadata":{"roles":["platform_admin","supplier_admin"]}},
       {"code":"inventory_publish","displayLabel":"Publish reviewed inventory","isActive":true,"sortOrder":350,"metadata":{"roles":["platform_admin","inventory_ops"]}},
       {"code":"plan_view","displayLabel":"View assigned planning","isActive":true,"sortOrder":360,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","worker_service"]}},
       {"code":"plan_generate","displayLabel":"Generate assigned planning artefacts","isActive":true,"sortOrder":370,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","worker_service"]}},
@@ -190,7 +191,9 @@
       {"code":"DELIVERY_PROOF_REVIEW","displayLabel":"Review Delivery Proof","isActive":true,"sortOrder":130},
       {"code":"PERFORMANCE_FACT_REVIEW","displayLabel":"Review Performance Facts","isActive":true,"sortOrder":140},
       {"code":"MEASUREMENT_REPORT_REVIEW","displayLabel":"Review Measurement Report","isActive":true,"sortOrder":150},
-      {"code":"PROPOSAL_APPROVAL","displayLabel":"Approve Proposal","isActive":true,"sortOrder":160}
+      {"code":"PROPOSAL_APPROVAL","displayLabel":"Approve Proposal","isActive":true,"sortOrder":160},
+      {"code":"SPATIAL_CLARIFICATION","displayLabel":"Clarify Campaign Geography","isActive":true,"sortOrder":170},
+      {"code":"ASSET_RIGHTS_REVALIDATION","displayLabel":"Revalidate Asset Rights","isActive":true,"sortOrder":180}
     ],
     "evidenceClassifications": [
       {"code":"FACT","displayLabel":"Confirmed Fact","isActive":true,"sortOrder":10},
@@ -218,8 +221,9 @@
       {"code":"XLSX","displayLabel":"Excel Workbook","isActive":true,"sortOrder":20,"metadata":{"mediaType":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}},
       {"code":"PDF","displayLabel":"PDF Document","isActive":true,"sortOrder":30,"metadata":{"mediaType":"application/pdf"}},
       {"code":"DOCX","displayLabel":"Word Document","isActive":true,"sortOrder":40,"metadata":{"mediaType":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}},
-      {"code":"PNG","displayLabel":"PNG Image","isActive":true,"sortOrder":50,"metadata":{"mediaType":"image/png"}},
-      {"code":"JPEG","displayLabel":"JPEG Image","isActive":true,"sortOrder":60,"metadata":{"mediaType":"image/jpeg"}}
+      {"code":"PPTX","displayLabel":"PowerPoint Presentation","isActive":true,"sortOrder":50,"metadata":{"mediaType":"application/vnd.openxmlformats-officedocument.presentationml.presentation"}},
+      {"code":"PNG","displayLabel":"PNG Image","isActive":true,"sortOrder":60,"metadata":{"mediaType":"image/png"}},
+      {"code":"JPEG","displayLabel":"JPEG Image","isActive":true,"sortOrder":70,"metadata":{"mediaType":"image/jpeg"}}
     ],
     "inventoryReviewDecisions": [
       {"code":"APPROVE","displayLabel":"Approve","isActive":true,"sortOrder":10},
@@ -227,10 +231,51 @@
       {"code":"EDIT","displayLabel":"Edit and Approve","isActive":true,"sortOrder":30}
     ],
     "availabilityStatuses": [
-      {"code":"UNKNOWN","displayLabel":"Availability Unknown","isActive":true,"sortOrder":10,"metadata":{"planningEligible":true,"supplyConfidence":"UNKNOWN"}},
+      {"code":"UNKNOWN","displayLabel":"Legacy Availability Unknown","isActive":true,"sortOrder":10,"metadata":{"planningEligible":true,"defaultsToAvailable":true,"legacyOnly":true}},
       {"code":"AVAILABLE","displayLabel":"Available","isActive":true,"sortOrder":20,"metadata":{"planningEligible":true,"supplyConfidence":"CONFIRMED"}},
       {"code":"LIMITED","displayLabel":"Limited Availability","isActive":true,"sortOrder":30,"metadata":{"planningEligible":true,"supplyConfidence":"INDICATIVE"}},
       {"code":"UNAVAILABLE","displayLabel":"Unavailable","isActive":true,"sortOrder":40,"metadata":{"planningEligible":false,"supplyConfidence":"UNKNOWN"}}
+    ],
+    "availabilityExceptionTypes": [
+      {"code":"NOT_AVAILABLE","displayLabel":"Not Available","isActive":true,"sortOrder":10},
+      {"code":"BLACKOUT","displayLabel":"Blackout","isActive":true,"sortOrder":20},
+      {"code":"CONFIRMED_BOOKING_CONFLICT","displayLabel":"Confirmed Booking Conflict","isActive":true,"sortOrder":30}
+    ],
+    "spatialRequirementTypes": [
+      {"code":"POINT_RADIUS","displayLabel":"Point and Radius","isActive":true,"sortOrder":10},
+      {"code":"ADMIN_BOUNDARY","displayLabel":"Administrative Boundary","isActive":true,"sortOrder":20},
+      {"code":"CATCHMENT","displayLabel":"Catchment Polygon","isActive":true,"sortOrder":30},
+      {"code":"ROUTE_BUFFER","displayLabel":"Route and Buffer","isActive":true,"sortOrder":40}
+    ],
+    "spatialRequirementPriorities": [
+      {"code":"REQUIRED","displayLabel":"Required","isActive":true,"sortOrder":10},
+      {"code":"PREFERRED","displayLabel":"Preferred","isActive":true,"sortOrder":20},
+      {"code":"EXCLUDED","displayLabel":"Excluded","isActive":true,"sortOrder":30}
+    ],
+    "inventoryEvidenceBases": [
+      {"code":"SUPPLIER_SUPPLIED","displayLabel":"Supplier Supplied","isActive":true,"sortOrder":10},
+      {"code":"DERIVED_POLICY","displayLabel":"Derived by Governed Policy","isActive":true,"sortOrder":20},
+      {"code":"HUMAN_CORRECTION","displayLabel":"Human Correction","isActive":true,"sortOrder":30}
+    ],
+    "inventoryEvidenceStates": [
+      {"code":"UNVERIFIED","displayLabel":"Unverified","isActive":true,"sortOrder":10},
+      {"code":"VERIFIED","displayLabel":"Verified","isActive":true,"sortOrder":20},
+      {"code":"CONFLICTING","displayLabel":"Conflicting","isActive":true,"sortOrder":30},
+      {"code":"STALE","displayLabel":"Stale","isActive":true,"sortOrder":40},
+      {"code":"UNKNOWN","displayLabel":"Unknown","isActive":true,"sortOrder":50}
+    ],
+    "inventoryEvidenceActions": [
+      {"code":"NONE","displayLabel":"No Further Action","isActive":true,"sortOrder":10},
+      {"code":"REVIEW","displayLabel":"Review","isActive":true,"sortOrder":20},
+      {"code":"CONFIRM_WITH_SUPPLIER","displayLabel":"Confirm with Supplier","isActive":true,"sortOrder":30},
+      {"code":"HUMAN_DECISION","displayLabel":"Human Decision","isActive":true,"sortOrder":40}
+    ],
+    "inventoryExtractionMethods": [
+      {"code":"TABULAR","displayLabel":"Tabular Extraction","isActive":true,"sortOrder":10},
+      {"code":"KEY_VALUE","displayLabel":"Key-value Extraction","isActive":true,"sortOrder":20},
+      {"code":"OCR","displayLabel":"Optical Character Recognition","isActive":true,"sortOrder":30},
+      {"code":"POLICY_DEFAULT","displayLabel":"Governed Policy Default","isActive":true,"sortOrder":40},
+      {"code":"HUMAN_EDIT","displayLabel":"Human Edit","isActive":true,"sortOrder":50}
     ],
     "verificationLevels": [
       {"code":"UNVERIFIED","displayLabel":"Unverified","isActive":true,"sortOrder":10},
@@ -327,23 +372,26 @@
       {"code":"OUTSIDE_COMPARISON_AREA","displayLabel":"Outside Comparison Area","isActive":true,"sortOrder":80}
     ],
     "planningPolicies": [
-      {"code":"OOH_LOCAL_PEER_V1","displayLabel":"Local OOH Peer Benchmark v1","isActive":true,"sortOrder":10,"metadata":{"radiiKilometres":[3,5,10,25],"minimumCohortSize":2,"mediumCohortSize":5,"highCohortSize":10,"lowConfidence":0.4,"mediumConfidence":0.7,"highConfidence":0.9,"scoreBase":100,"priceWeight":40,"availableSupplyBonus":10}}
+      {"code":"OOH_LOCAL_PEER_V1","displayLabel":"Local OOH Peer Benchmark v1","isActive":true,"sortOrder":10,"metadata":{"radiiKilometres":[3,5,10,25],"minimumCohortSize":2,"mediumCohortSize":5,"highCohortSize":10,"lowConfidence":0.4,"mediumConfidence":0.7,"highConfidence":0.9}},
+      {"code":"INVENTORY_AUTOMATED_SELECTION_DISABLED_V1","displayLabel":"Inventory Automated Selection Disabled v1","isActive":false,"sortOrder":20,"metadata":{"automatedSelectionEnabled":false,"suitabilityWeights":{}}},
+      {"code":"INVENTORY_SUITABILITY_OOH_V1","displayLabel":"OOH Inventory Suitability v1","isActive":true,"sortOrder":30,"metadata":{"automatedSelectionEnabled":true,"maximumAutomatedClientValueMinor":50000000,"weights":{"geography":0.30,"audienceContext":0.25,"objectiveFormat":0.15,"budgetEfficiency":0.15,"evidenceQualityFreshness":0.10,"portfolioCoverageDiversity":0.05},"tieBreaks":["criticalEvidenceCompleteness","rateFreshness","targetCoverage","clientCost","inventoryId"],"defaultRouteBufferMetres":500,"defaultCoverageThreshold":0.50}}
     ],
     "proposalPolicies": [
       {"code":"CLIENT_OPTIONS_V1","displayLabel":"Client Proposal Options v1","isActive":true,"sortOrder":10,"metadata":{"minimumOptions":1,"maximumOptions":3,"defaultValidityDays":30,"maximumValidityDays":90}}
     ],
     "campaignModes": [
       {"code":"FULL_CAMPAIGN","displayLabel":"Full Campaign","isActive":true,"sortOrder":10,"metadata":{"allowedChannels":[],"immutableAfterSelection":true,"detectionTerms":["full campaign","integrated campaign","multi-channel","multichannel","radio","television","tv","social media","influencer","print media","podcast","digital marketing","search advertising","paid search"]}},
-      {"code":"OOH_ONLY","displayLabel":"Out-of-Home Only","isActive":true,"sortOrder":20,"metadata":{"allowedChannels":["OOH","DOOH"],"immutableAfterSelection":true,"detectionTerms":["ooh","dooh","out of home","out-of-home","billboard","billboards","gantry","gantries","street pole","street poles","outdoor media","digital screen","digital billboard","digital billboards"]}}
+      {"code":"OOH_ONLY","displayLabel":"Out-of-Home Only","isActive":true,"sortOrder":20,"metadata":{"allowedChannels":["OOH","DOOH"],"immutableAfterSelection":true,"detectionTerms":["ooh","dooh","out of home","out-of-home","billboard","billboards","gantry","gantries","street pole","street poles","outdoor media","digital screen","digital billboard","digital billboards","static ooh","static site","static sites","iconic static","static branding","digital large format","digital site","digital sites","wall mural","wall murals","taxi rank branding","bus branding","venue branding","court branding","static / digital","static/digital"]}}
     ],
     "campaignModeDecisionSources": [
-      {"code":"AGENT","displayLabel":"Agent Recommendation","isActive":true,"sortOrder":10},
-      {"code":"HUMAN_SELECTION","displayLabel":"Human Selection","isActive":true,"sortOrder":20},
-      {"code":"HUMAN_CLARIFICATION","displayLabel":"Human Clarification","isActive":true,"sortOrder":30},
-      {"code":"INBOUND_AUTOMATION","displayLabel":"Inbound Automation Decision","isActive":true,"sortOrder":40}
+      {"code":"SUPPLIED_BRIEF_EVIDENCE","displayLabel":"Supplied Brief Evidence","isActive":true,"sortOrder":10},
+      {"code":"AGENT","displayLabel":"Agent Recommendation","isActive":true,"sortOrder":20},
+      {"code":"HUMAN_SELECTION","displayLabel":"Human Selection","isActive":true,"sortOrder":30},
+      {"code":"HUMAN_CLARIFICATION","displayLabel":"Human Clarification","isActive":true,"sortOrder":40},
+      {"code":"INBOUND_AUTOMATION","displayLabel":"Inbound Automation Decision","isActive":true,"sortOrder":50}
     ],
     "briefUnderstandingPolicies": [
-      {"code":"BRIEF_UNDERSTANDING_V1","displayLabel":"Brief Understanding v1","isActive":true,"sortOrder":10,"metadata":{"clientLabels":["client","brand","company","advertiser"],"problemLabels":["business problem","problem","challenge","issue"],"objectiveLabels":["objective","goal","campaign objective","need"],"audienceLabels":["audience","target audience","target market","customers"],"geographyLabels":["geography","location","locations","areas","cities","province"],"timingLabels":["timing","dates","campaign dates","run dates","start date"],"mediaLabels":["media","channels","media needed","formats"],"measurementLabels":["measurement","success measure","success measures","kpi","kpis"],"constraintLabels":["constraints","requirements","must have","exclusions"],"defaultCurrency":"ZAR","minimumRouteConfidence":0.75}}
+      {"code":"BRIEF_UNDERSTANDING_V1","displayLabel":"Brief Understanding v1","isActive":true,"sortOrder":10,"metadata":{"clientLabels":["client","brand","company","advertiser"],"problemLabels":["business problem","problem","challenge","issue"],"objectiveLabels":["objective","goal","campaign objective","need"],"audienceLabels":["audience","target audience","target market","customers"],"geographyLabels":["geography","location","locations","areas","cities","province"],"timingLabels":["timing","dates","campaign dates","run dates","start date"],"mediaLabels":["media","channels","media needed","formats"],"measurementLabels":["measurement","success measure","success measures","kpi","kpis"],"constraintLabels":["constraints","requirements","must have","exclusions"],"scopeClarificationTerms":["wifi solution","wifi solutions","wi-fi solution","wi-fi solutions"],"defaultCurrency":"ZAR","minimumRouteConfidence":0.75}}
     ],
     "emailProviders": [
       {"code":"RESEND","displayLabel":"Resend","isActive":true,"sortOrder":10},
@@ -420,7 +468,15 @@
       {"code":"RATE_REQUIRED","displayLabel":"Valid Rate Required","isActive":true,"sortOrder":30},
       {"code":"AVAILABILITY_UNKNOWN","displayLabel":"Availability Unknown","isActive":true,"sortOrder":40},
       {"code":"COORDINATES_INVALID","displayLabel":"Coordinates Invalid","isActive":true,"sortOrder":50},
-      {"code":"OOH_COORDINATES_REQUIRED","displayLabel":"OOH Coordinates Required","isActive":true,"sortOrder":60}
+      {"code":"OOH_COORDINATES_REQUIRED","displayLabel":"OOH Coordinates Required","isActive":true,"sortOrder":60},
+      {"code":"AUDIENCE_PROFILE_INVALID","displayLabel":"Audience Profile Invalid","isActive":true,"sortOrder":70},
+      {"code":"AUDIENCE_EVIDENCE_INCOMPLETE","displayLabel":"Audience Evidence Incomplete","isActive":true,"sortOrder":80},
+      {"code":"SUPPLIER_COMMERCIAL_INCOMPLETE","displayLabel":"Supplier Commercial Evidence Incomplete","isActive":true,"sortOrder":90},
+      {"code":"COMMERCIAL_TERMS_INVALID","displayLabel":"Commercial Terms Invalid","isActive":true,"sortOrder":100},
+      {"code":"SPATIAL_GEOMETRY_INVALID","displayLabel":"Spatial Geometry Invalid","isActive":true,"sortOrder":110},
+      {"code":"EXTRACTION_CONFIDENCE_LOW","displayLabel":"Extraction Confidence Below Threshold","isActive":true,"sortOrder":120},
+      {"code":"EVIDENCE_POINTER_REQUIRED","displayLabel":"Exact Evidence Pointer Required","isActive":true,"sortOrder":130},
+      {"code":"SUPPLIER_IDENTITY_MISMATCH","displayLabel":"Supplier Identity Requires Reconciliation","isActive":true,"sortOrder":140}
     ],
     "agentFailureReasons": [
       {"code":"AGENT_OUTPUT_INVALID","displayLabel":"Agent Output Invalid","isActive":true,"sortOrder":10},
@@ -472,7 +528,11 @@
       {"code":"creative_asset","displayLabel":"Creative Asset","isActive":true,"sortOrder":410},
       {"code":"delivery_proof","displayLabel":"Delivery Proof","isActive":true,"sortOrder":420},
       {"code":"performance_evidence","displayLabel":"Performance Evidence","isActive":true,"sortOrder":430},
-      {"code":"measurement_report","displayLabel":"Measurement Report","isActive":true,"sortOrder":440}
+      {"code":"measurement_report","displayLabel":"Measurement Report","isActive":true,"sortOrder":440},
+      {"code":"inventory_asset","displayLabel":"Inventory Asset","isActive":true,"sortOrder":450},
+      {"code":"inventory_duplicate_candidate","displayLabel":"Inventory Duplicate Candidate","isActive":true,"sortOrder":460},
+      {"code":"inventory_embedding","displayLabel":"Inventory Embedding","isActive":true,"sortOrder":470},
+      {"code":"inventory_availability_exception","displayLabel":"Inventory Availability Exception","isActive":true,"sortOrder":480}
     ],
     "commercialActions": [
       {"code":"tenant.updated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -506,6 +566,10 @@
       {"code":"inventory_import.executed","displayLabel":"Inventory Import Executed","isActive":true,"sortOrder":280},
       {"code":"inventory_candidate.reviewed","displayLabel":"Inventory Candidate Reviewed","isActive":true,"sortOrder":290},
       {"code":"inventory.published","displayLabel":"Inventory Published","isActive":true,"sortOrder":300},
+      {"code":"inventory_asset.rights_reviewed","displayLabel":"Inventory Asset Rights Reviewed","isActive":true,"sortOrder":305},
+      {"code":"inventory_duplicate.nominated","displayLabel":"Inventory Duplicate Nominated","isActive":true,"sortOrder":306},
+      {"code":"inventory_duplicate.reviewed","displayLabel":"Inventory Duplicate Reviewed","isActive":true,"sortOrder":307},
+      {"code":"inventory_embedding.submitted","displayLabel":"Inventory Embedding Submitted","isActive":true,"sortOrder":308},
       {"code":"audience_definitions.generated","displayLabel":"Audience Definitions Generated","isActive":true,"sortOrder":310},
       {"code":"media_mix.generated","displayLabel":"Media Mix Generated","isActive":true,"sortOrder":320},
       {"code":"media_mix.approved","displayLabel":"Media Mix Approved","isActive":true,"sortOrder":330},
@@ -562,7 +626,9 @@
       {"code":"performance_evidence.submitted","displayLabel":"Performance Evidence Submitted","isActive":true,"sortOrder":810},
       {"code":"performance_evidence.reviewed","displayLabel":"Performance Evidence Reviewed","isActive":true,"sortOrder":820},
       {"code":"measurement_report.generated","displayLabel":"Measurement Report Generated","isActive":true,"sortOrder":830},
-      {"code":"measurement_report.reviewed","displayLabel":"Measurement Report Reviewed","isActive":true,"sortOrder":840}
+      {"code":"measurement_report.reviewed","displayLabel":"Measurement Report Reviewed","isActive":true,"sortOrder":840},
+      {"code":"inventory_availability_exception.recorded","displayLabel":"Inventory Availability Exception Recorded","isActive":true,"sortOrder":850},
+      {"code":"inventory_asset.uploaded","displayLabel":"Inventory Asset Uploaded","isActive":true,"sortOrder":860}
     ],
     "commercialEventTypes": [
       {"code":"TenantUpdated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -596,6 +662,12 @@
       {"code":"InventoryImportExecuted","displayLabel":"Inventory Import Executed","isActive":true,"sortOrder":280},
       {"code":"InventoryCandidateReviewed","displayLabel":"Inventory Candidate Reviewed","isActive":true,"sortOrder":290},
       {"code":"InventoryPublished","displayLabel":"Inventory Published","isActive":true,"sortOrder":300},
+      {"code":"InventoryAssetUploaded","displayLabel":"Inventory Asset Uploaded","isActive":true,"sortOrder":304},
+      {"code":"InventoryAssetRightsReviewed","displayLabel":"Inventory Asset Rights Reviewed","isActive":true,"sortOrder":305},
+      {"code":"InventoryDuplicateNominated","displayLabel":"Inventory Duplicate Nominated","isActive":true,"sortOrder":306},
+      {"code":"InventoryDuplicateReviewed","displayLabel":"Inventory Duplicate Reviewed","isActive":true,"sortOrder":307},
+      {"code":"InventoryEmbeddingSubmitted","displayLabel":"Inventory Embedding Submitted","isActive":true,"sortOrder":308},
+      {"code":"InventoryAvailabilityExceptionRecorded","displayLabel":"Inventory Availability Exception Recorded","isActive":true,"sortOrder":309},
       {"code":"AudienceDefinitionsGenerated","displayLabel":"Audience Definitions Generated","isActive":true,"sortOrder":310},
       {"code":"MediaMixGenerated","displayLabel":"Media Mix Generated","isActive":true,"sortOrder":320},
       {"code":"MediaMixApproved","displayLabel":"Media Mix Approved","isActive":true,"sortOrder":330},
@@ -670,7 +742,25 @@
     "assetRightsStatuses": [
       {"code":"APPROVED","displayLabel":"Rights Approved","isActive":true,"sortOrder":10},
       {"code":"UNKNOWN","displayLabel":"Rights Unknown","isActive":true,"sortOrder":20},
-      {"code":"RESTRICTED","displayLabel":"Rights Restricted","isActive":true,"sortOrder":30}
+      {"code":"RESTRICTED","displayLabel":"Rights Restricted","isActive":true,"sortOrder":30},
+      {"code":"REVOKED","displayLabel":"Rights Revoked","isActive":true,"sortOrder":40}
+    ],
+    "assetRightsScopes": [
+      {"code":"INTERNAL_PLANNING","displayLabel":"Internal Planning","isActive":true,"sortOrder":10},
+      {"code":"NAMED_CLIENT_PROPOSAL","displayLabel":"Named-client Proposal","isActive":true,"sortOrder":20},
+      {"code":"MARKETPLACE_DISPLAY","displayLabel":"Advertified Marketplace Display","isActive":true,"sortOrder":30},
+      {"code":"PUBLIC_MARKETING_SOCIAL","displayLabel":"Public Marketing and Social","isActive":true,"sortOrder":40}
+    ],
+    "inventoryDuplicateMethods": [
+      {"code":"EXACT_NAME_LOCATION","displayLabel":"Exact Name and Location","isActive":true,"sortOrder":10},
+      {"code":"SEMANTIC_VECTOR","displayLabel":"Semantic Vector Recall","isActive":true,"sortOrder":20,"metadata":{"duplicateCandidateThreshold":0.90}},
+      {"code":"HUMAN_REPORTED","displayLabel":"Human Reported","isActive":true,"sortOrder":30}
+    ],
+    "inventoryDuplicateStatuses": [
+      {"code":"OPEN","displayLabel":"Open for Review","isActive":true,"sortOrder":10},
+      {"code":"CONFIRMED_SAME_IDENTITY","displayLabel":"Confirmed Same Identity","isActive":true,"sortOrder":20},
+      {"code":"DISMISSED","displayLabel":"Dismissed","isActive":true,"sortOrder":30},
+      {"code":"DEFERRED","displayLabel":"Deferred","isActive":true,"sortOrder":40}
     ],
     "creativeReviewTypes": [
       {"code":"BRAND_LEGAL_RIGHTS","displayLabel":"Brand Legal and Rights Review","isActive":true,"sortOrder":10},
@@ -688,7 +778,8 @@
       {"code":"CONVERSIONS","displayLabel":"Conversions","isActive":true,"sortOrder":40},
       {"code":"FOOTFALL","displayLabel":"Footfall","isActive":true,"sortOrder":50},
       {"code":"CLICK_THROUGH_RATE","displayLabel":"Click-through Rate","isActive":true,"sortOrder":60},
-      {"code":"CONVERSION_RATE","displayLabel":"Conversion Rate","isActive":true,"sortOrder":70}
+      {"code":"CONVERSION_RATE","displayLabel":"Conversion Rate","isActive":true,"sortOrder":70},
+      {"code":"LISTENERSHIP","displayLabel":"Listenership","isActive":true,"sortOrder":80}
     ],
     "measurementUnits": [
       {"code":"COUNT","displayLabel":"Count","isActive":true,"sortOrder":10},
@@ -813,7 +904,8 @@
       {"code":"SUPPLIER_DECLINED","displayLabel":"Supplier Declined","isActive":true,"sortOrder":100},
       {"code":"INELIGIBLE_ROUTE","displayLabel":"Ineligible Route","isActive":true,"sortOrder":110},
       {"code":"INELIGIBLE_POI","displayLabel":"Ineligible Point of Interest","isActive":true,"sortOrder":120},
-      {"code":"SUPPLIER_CONFIRMATION_REQUIRED","displayLabel":"Supplier Confirmation Required","isActive":true,"sortOrder":130}
+      {"code":"SUPPLIER_CONFIRMATION_REQUIRED","displayLabel":"Supplier Confirmation Required","isActive":true,"sortOrder":130},
+      {"code":"STALE_AVAILABILITY","displayLabel":"Availability Needs Reconfirmation","isActive":true,"sortOrder":140}
     ],
     "taskPriorities": [
       {"code":"URGENT","displayLabel":"Urgent","isActive":true,"sortOrder":10},
@@ -831,6 +923,11 @@
       {"code":"REGISTERED","displayLabel":"VAT Registered","isActive":true,"sortOrder":10,"metadata":{"rate":0.15}},
       {"code":"EXEMPT","displayLabel":"VAT Exempt","isActive":true,"sortOrder":20,"metadata":{"rate":0}},
       {"code":"NOT_APPLICABLE","displayLabel":"Not Applicable","isActive":true,"sortOrder":30,"metadata":{"rate":0}}
+    ],
+    "vatTreatments": [
+      {"code":"INCLUSIVE","displayLabel":"VAT Inclusive","isActive":true,"sortOrder":10},
+      {"code":"EXCLUSIVE","displayLabel":"VAT Exclusive","isActive":true,"sortOrder":20},
+      {"code":"NOT_APPLICABLE","displayLabel":"VAT Not Applicable","isActive":true,"sortOrder":30}
     ]
   }
 }

@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using Advertified.Commercial.Application.Inventory;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
@@ -13,17 +10,23 @@ public sealed class DeterministicInventoryExtractionAdapter :
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var rows = InventorySourceExtractor.Extract(request.DocumentClass, request.Content);
-        var json = JsonSerializer.Serialize(new { rows });
-        var outputHash = Convert.ToHexStringLower(
-            SHA256.HashData(Encoding.UTF8.GetBytes(json)));
-        return Task.FromResult(new InventoryExtractionResult(
+        InventoryExtractedRow[] rows =
+        [
+            new(1, $"fixture:{request.FileName}#record=1",
+                new Dictionary<string, string>()),
+        ];
+        var providerJson = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            fixture = "empty-review-candidate",
+            request.DocumentClass,
+            rows,
+        });
+        return Task.FromResult(InventoryExtractionContract.Create(
             "advertified-deterministic-fixture",
             "1.0.0",
             InventoryExtractionOptions.CurrentSchemaVersion,
             request.SourceHash,
-            json,
-            outputHash,
+            providerJson,
             rows));
     }
 }

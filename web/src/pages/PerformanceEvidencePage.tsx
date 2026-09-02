@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { campaignApi } from '../api/campaign-client'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
+import { CampaignFlowBinding } from '../campaign-flow/CampaignFlowBindings'
 import { performanceEvidenceReviewerRoles } from '../campaign/campaign-roles'
 import { PerformanceEvidenceCard } from '../campaign/PerformanceEvidenceCard'
 import { useResourceRecord } from '../campaign/useResourceRecord'
@@ -36,7 +37,8 @@ function PerformanceEvidenceRecord({ tenantId, evidenceId, token, canReview }: {
     return <MessageState title="Performance evidence could not be opened" message={model.error} />
   }
   if (!model.record) return <LoadingState label="Loading performance evidence" />
-  return <section className="review-resource-page" aria-labelledby="evidence-review-title">
+  return <><CampaignFlowBinding tenantId={tenantId} campaignId={model.record.campaignId} />
+  <section className="review-resource-page" aria-labelledby="evidence-review-title">
     <Link className="text-action back-link" to="/tasks">← Back to assigned tasks</Link>
     <header className="page-heading"><p className="eyebrow">Sourced performance facts</p>
       <h1 id="evidence-review-title">Review the measurement evidence</h1>
@@ -44,5 +46,5 @@ function PerformanceEvidenceRecord({ tenantId, evidenceId, token, canReview }: {
     {model.error && <p className="inline-alert" role="alert">{model.error}</p>}
     <PerformanceEvidenceCard tenantId={tenantId} token={token} evidence={model.record}
       busy={model.busy} canReview={canReview} run={model.run} />
-  </section>
+  </section></>
 }

@@ -26,6 +26,20 @@ export const inventoryCodes = {
     reviewRequired: masterDataCodes.lifecycleStatuses.reviewRequired,
   },
   availability: { unknown: masterDataCodes.availabilityStatuses.unknown },
+  assetRights: {
+    approved: masterDataCodes.assetRightsStatuses.approved,
+    restricted: masterDataCodes.assetRightsStatuses.restricted,
+    revoked: masterDataCodes.assetRightsStatuses.revoked,
+  },
+  assetRightsScope: {
+    internalPlanning: masterDataCodes.assetRightsScopes.internalPlanning,
+    namedClientProposal: masterDataCodes.assetRightsScopes.namedClientProposal,
+    marketplaceDisplay: masterDataCodes.assetRightsScopes.marketplaceDisplay,
+    publicMarketingSocial: masterDataCodes.assetRightsScopes.publicMarketingSocial,
+  },
+  duplicateStatus: {
+    open: masterDataCodes.inventoryDuplicateStatuses.open,
+  },
   channel: {
     ooh: masterDataCodes.channels.ooh,
     dooh: masterDataCodes.channels.dooh,

@@ -20,6 +20,7 @@ from planning_contracts import (
     AudienceAgentRequest,
     AudienceDefinition,
     AudienceDefinitionSetArtifact,
+    InventoryAudienceFitFacts,
     InventoryCandidateFacts,
     InventoryCandidateInterpretation,
     InventoryIntelligenceAgentRequest,
@@ -181,26 +182,94 @@ def _inventory_rationale(candidate: InventoryCandidateFacts) -> str:
             "Excluded by governed hard eligibility: "
             f"{candidate.rejection_detail}"
         )
+    suitability = _suitability_rationale(candidate)
+    audience = _audience_fit_rationale(candidate)
     benchmark = candidate.benchmark
     if benchmark is None:
         return (
             f"{candidate.name} is eligible after governed hard constraints. "
             "No deterministic comparative benchmark applies, so selection should rely "
-            "on the visible rate, supply state and campaign fit."
+            f"on the visible rate and governed suitability facts. {suitability} {audience}"
         )
     if benchmark.cohort_size < 2 or benchmark.median_minor is None:
         return (
             f"{candidate.name} is eligible after governed hard constraints. "
             f"The {benchmark.geography_basis.replace('_', ' ').lower()} benchmark has "
             f"{benchmark.cohort_size} compatible peer(s), which is insufficient for a "
-            "defensible market-price conclusion."
+            f"defensible market-price conclusion. {suitability} {audience}"
         )
     position = benchmark.position.replace("_", " ").lower()
     return (
         f"{candidate.name} is eligible after governed hard constraints. Its published "
         f"rate is {position} across {benchmark.cohort_size} compatible peers using "
         f"{benchmark.geography_basis.replace('_', ' ').lower()}; deterministic "
-        f"benchmark confidence is {int(benchmark.confidence * 100)}%."
+        f"benchmark confidence is {int(benchmark.confidence * 100)}%. "
+        f"{suitability} {audience}"
+    )
+
+
+def _suitability_rationale(candidate: InventoryCandidateFacts) -> str:
+    suitability = candidate.suitability
+    components = (
+        ("geography", suitability.geography),
+        ("audience", suitability.audience_context),
+        ("objective/format", suitability.objective_format),
+        ("budget efficiency", suitability.budget_efficiency),
+        ("evidence quality/freshness", suitability.evidence_quality_freshness),
+        ("portfolio coverage/diversity", suitability.portfolio_coverage_diversity),
+    )
+    detail = ", ".join(
+        f"{name} {int(value * 100)}%" for name, value in components
+    )
+    gaps = (
+        " Evidence gaps: " + ", ".join(suitability.evidence_gaps[:5]) + "."
+        if suitability.evidence_gaps
+        else ""
+    )
+    return (
+        f"Governed suitability is {int(suitability.total * 100)}% under "
+        f"{suitability.policy_version}: {detail}.{gaps}"
+    )
+
+
+def _audience_fit_rationale(candidate: InventoryCandidateFacts) -> str:
+    fit = candidate.audience_fit
+    if fit.evidence_gaps:
+        return (
+            "Audience fit remains unscored because evidence is incomplete: "
+            + ", ".join(fit.evidence_gaps)
+            + "."
+        )
+    scores = (
+        ("language", fit.language_score),
+        ("life-stage", fit.life_stage_score),
+        ("LSM/SEM", fit.lsm_sem_score),
+    )
+    supplied = [f"{name} {int(value * 100)}%" for name, value in scores if value is not None]
+    audience = (
+        "Evidence-backed audience fit: " + ", ".join(supplied) + "."
+        if supplied
+        else "The approved target audiences contain no structured audience dimensions to compare."
+    )
+    return audience + " " + _delivery_measurement_rationale(fit)
+
+
+def _delivery_measurement_rationale(fit: InventoryAudienceFitFacts) -> str:
+    if fit.delivery_evidence_gaps:
+        return (
+            "Delivery evidence remains incomplete: "
+            + ", ".join(fit.delivery_evidence_gaps)
+            + "."
+        )
+    measurements = [
+        f"{item.metric_type.replace('_', ' ').lower()} {item.value} {item.unit}"
+        for item in fit.delivery_measurements
+        if item.value is not None and item.unit is not None
+    ]
+    return (
+        "Supplied delivery measurements: " + ", ".join(measurements) + "."
+        if measurements
+        else "No delivery measurement was supplied."
     )
 
 
@@ -229,6 +298,9 @@ def _audience(
         language=None,
         life_stage=None,
         lsm_sem=None,
+        lsm_sem_taxonomy=None,
+        lsm_sem_taxonomy_version=None,
+        lsm_sem_mandatory=False,
         classification=classification,
         exclusions=("Do not infer sensitive individual attributes.",),
         evidence_item_ids=evidence_ids,

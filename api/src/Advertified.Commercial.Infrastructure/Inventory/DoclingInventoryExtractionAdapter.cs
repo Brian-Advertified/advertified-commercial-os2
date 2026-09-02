@@ -1,8 +1,7 @@
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Advertified.Commercial.Application.Inventory;
+using Advertified.Commercial.Domain.MasterData;
 using Microsoft.Extensions.Options;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
@@ -41,12 +40,10 @@ public sealed class DoclingInventoryExtractionAdapter(
         var json = structured.ValueKind == JsonValueKind.String
             ? structured.GetString() ?? "{}" : structured.GetRawText();
         var rows = ReadRows(json);
-        var outputHash = Convert.ToHexStringLower(
-            SHA256.HashData(Encoding.UTF8.GetBytes(json)));
-        return new InventoryExtractionResult(
+        return InventoryExtractionContract.Create(
             "docling", InventoryExtractionOptions.PinnedAdapterVersion,
-            InventoryExtractionOptions.CurrentSchemaVersion, request.SourceHash,
-            json, outputHash, rows);
+            InventoryExtractionOptions.CurrentSchemaVersion,
+            request.SourceHash, json, rows);
     }
 
     private static MultipartFormDataContent CreateForm(InventoryExtractionRequest request)
@@ -70,7 +67,7 @@ public sealed class DoclingInventoryExtractionAdapter(
         if (!document.RootElement.TryGetProperty("tables", out var tables) ||
             tables.ValueKind != JsonValueKind.Array)
         {
-            return [];
+            return ReadKeyValueRows(document.RootElement);
         }
         var rows = new List<InventoryExtractedRow>();
         var tableNumber = 0;
@@ -79,7 +76,38 @@ public sealed class DoclingInventoryExtractionAdapter(
             tableNumber++;
             rows.AddRange(ReadTable(table, tableNumber, rows.Count));
         }
-        return rows;
+        var documentValues = ReadKeyValueRows(document.RootElement).SingleOrDefault();
+        return rows.Count == 0 || documentValues is null
+            ? rows.Count > 0 ? rows : ReadKeyValueRows(document.RootElement)
+            : rows.Select(row => MergeDocumentValues(row, documentValues)).ToList();
+    }
+
+    private static InventoryExtractedRow MergeDocumentValues(
+        InventoryExtractedRow row,
+        InventoryExtractedRow documentValues)
+    {
+        var values = new SortedDictionary<string, string>(
+            row.Values.ToDictionary(item => item.Key, item => item.Value),
+            StringComparer.Ordinal);
+        foreach (var item in documentValues.Values) values.TryAdd(item.Key, item.Value);
+        var locators = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var item in documentValues.FieldLocators ??
+                new Dictionary<string, string>())
+            locators[item.Key] = item.Value;
+        foreach (var item in row.FieldLocators ?? new Dictionary<string, string>())
+            locators[item.Key] = item.Value;
+        var confidences = new Dictionary<string, decimal?>(StringComparer.Ordinal);
+        foreach (var item in documentValues.FieldConfidences ??
+                new Dictionary<string, decimal?>())
+            confidences[item.Key] = item.Value;
+        foreach (var item in row.FieldConfidences ?? new Dictionary<string, decimal?>())
+            confidences[item.Key] = item.Value;
+        return row with
+        {
+            Values = values,
+            FieldLocators = locators,
+            FieldConfidences = confidences,
+        };
     }
 
     private static InventoryExtractedRow[] ReadTable(
@@ -103,18 +131,33 @@ public sealed class DoclingInventoryExtractionAdapter(
         var headerRow = values.Min(cell => cell.Row);
         var headers = values.Where(cell => cell.Row == headerRow)
             .GroupBy(cell => cell.Column)
-            .ToDictionary(group => group.Key, group => NormalizeHeader(group.First().Text));
-        var page = ReadPage(table);
-        return values.Where(cell => cell.Row > headerRow)
+            .ToDictionary(group => group.Key, group => group.First().Text);
+        var rows = values.Where(cell => cell.Row > headerRow)
             .GroupBy(cell => cell.Row)
-            .OrderBy(group => group.Key)
-            .Select((group, index) => new InventoryExtractedRow(
-                rowOffset + index + 1,
-                $"docling:page={page};table={tableNumber};row={group.Key + 1}",
-                group.Where(cell => headers.ContainsKey(cell.Column) &&
-                                    headers[cell.Column].Length > 0 && cell.Text.Length > 0)
-                    .ToDictionary(cell => headers[cell.Column], cell => cell.Text)))
-            .Where(row => row.Values.Count > 0).ToArray();
+            .Select(group => new InventoryTableRow(
+                group.Key,
+                group.GroupBy(cell => cell.Column)
+                    .ToDictionary(item => item.Key, item => item.First().Text)));
+        var page = ReadPage(table);
+        var confidence = values.Where(cell => cell.Confidence.HasValue)
+            .Select(cell => cell.Confidence!.Value).DefaultIfEmpty().Min();
+        decimal? measuredConfidence = values.Any(cell => cell.Confidence.HasValue)
+            ? confidence : null;
+        var method = measuredConfidence.HasValue
+            ? MasterDataCodes.InventoryExtractionMethods.Ocr
+            : MasterDataCodes.InventoryExtractionMethods.Tabular;
+        return InventoryTabularProjection.Project(
+            headers, rows, rowOffset,
+            row => $"docling:page={page};table={tableNumber};row={row + 1}",
+            (row, column) =>
+                $"docling:page={page};table={tableNumber};row={row + 1};cell={column + 1}",
+            (row, column) => values.FirstOrDefault(cell =>
+                cell.Row == row && cell.Column == column)?.Confidence)
+            .Select(row => row with
+            {
+                ExtractionMethod = method,
+                Confidence = measuredConfidence,
+            }).ToArray();
     }
 
     private static DoclingCell? ReadCell(JsonElement cell)
@@ -125,7 +168,75 @@ public sealed class DoclingInventoryExtractionAdapter(
         {
             return null;
         }
-        return new DoclingCell(row.GetInt32(), column.GetInt32(), text.GetString()?.Trim() ?? "");
+        return new DoclingCell(
+            row.GetInt32(), column.GetInt32(), text.GetString()?.Trim() ?? "",
+            ReadConfidence(cell));
+    }
+
+    private static List<InventoryExtractedRow> ReadKeyValueRows(JsonElement root)
+    {
+        if (!root.TryGetProperty("texts", out var texts) ||
+            texts.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+        var values = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        var pages = new SortedSet<int>();
+        var locators = new Dictionary<string, string>(StringComparer.Ordinal);
+        var confidences = new Dictionary<string, decimal?>(StringComparer.Ordinal);
+        decimal? confidence = null;
+        var textNumber = 0;
+        foreach (var item in texts.EnumerateArray())
+        {
+            textNumber++;
+            if (!item.TryGetProperty("text", out var textValue)) continue;
+            var text = textValue.GetString()?.Trim();
+            var page = ReadPage(item);
+            var itemConfidence = ReadConfidence(item);
+            var segmentNumber = 0;
+            foreach (var segment in (text ?? string.Empty).Split(
+                [';', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries |
+                    StringSplitOptions.TrimEntries))
+            {
+                segmentNumber++;
+                var separator = segment.IndexOf(':');
+                if (separator <= 0 || separator == segment.Length - 1) continue;
+                var key = InventoryTabularProjection.NormalizeHeader(segment[..separator]);
+                if (key.Length == 0 || !values.TryAdd(
+                        key, segment[(separator + 1)..].Trim())) continue;
+                pages.Add(page);
+                locators[key] =
+                    $"docling:page={page};text={textNumber};segment={segmentNumber}";
+                confidences[key] = itemConfidence;
+                if (itemConfidence.HasValue)
+                {
+                    confidence = confidence.HasValue
+                        ? Math.Min(confidence.Value, itemConfidence.Value)
+                        : itemConfidence;
+                }
+            }
+        }
+        if (values.Count == 0) return [];
+        var locator = "docling:pages=" + string.Join(',', pages.DefaultIfEmpty(1));
+        return [new InventoryExtractedRow(
+            1, locator, values,
+            confidence.HasValue
+                ? MasterDataCodes.InventoryExtractionMethods.Ocr
+                : MasterDataCodes.InventoryExtractionMethods.KeyValue,
+            confidence, locators, confidences)];
+    }
+
+    private static decimal? ReadConfidence(JsonElement value)
+    {
+        foreach (var name in new[] { "confidence", "ocr_confidence" })
+        {
+            if (value.TryGetProperty(name, out var confidence) &&
+                confidence.TryGetDecimal(out var result) && result is >= 0 and <= 1)
+            {
+                return result;
+            }
+        }
+        return null;
     }
 
     private static int ReadPage(JsonElement table)
@@ -140,8 +251,9 @@ public sealed class DoclingInventoryExtractionAdapter(
         return 1;
     }
 
-    private static string NormalizeHeader(string value) => new(
-        value.Trim().ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray());
-
-    private sealed record DoclingCell(int Row, int Column, string Text);
+    private sealed record DoclingCell(
+        int Row,
+        int Column,
+        string Text,
+        decimal? Confidence);
 }

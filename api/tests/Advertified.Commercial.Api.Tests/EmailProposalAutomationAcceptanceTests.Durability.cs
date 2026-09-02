@@ -255,6 +255,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             enableEmailAutomation: true,
             services =>
             {
+                ConfigureDeterministicEmailInventorySelection(services);
                 services.RemoveAll<IEmailProviderClient>();
                 services.AddSingleton<IEmailProviderClient>(provider =>
                     new AmbiguousEmailProviderClient(
@@ -271,6 +272,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             enableEmailAutomation: true,
             services =>
             {
+                ConfigureDeterministicEmailInventorySelection(services);
                 services.RemoveAll<IEmailProviderClient>();
                 services.AddSingleton<IEmailProviderClient>(provider =>
                     new AmbiguousEmailProviderClient(

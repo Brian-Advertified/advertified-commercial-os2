@@ -135,6 +135,15 @@ public sealed class DoclingInventoryExtractionAdapterTests
             {
                 json_content = new
                 {
+                    texts = new[]
+                    {
+                        new
+                        {
+                            text = "Supplier: City Media; VAT status: REGISTERED",
+                            prov = new[] { new { page_no = 1 } },
+                            ocr_confidence = 0.99m,
+                        },
+                    },
                     tables = new[]
                     {
                         new
@@ -179,8 +188,19 @@ public sealed class DoclingInventoryExtractionAdapterTests
         Assert.Equal("docling", result.AdapterCode);
         Assert.Equal(InventoryExtractionOptions.PinnedAdapterVersion, result.AdapterVersion);
         Assert.Equal("SITE-1", Assert.Single(result.Rows).Values["productcode"]);
+        Assert.Equal("City Media", result.Rows[0].Values["supplier"]);
+        Assert.Equal("REGISTERED", result.Rows[0].Values["vatstatus"]);
         Assert.Equal("docling:page=2;table=1;row=2", result.Rows[0].Locator);
-        Assert.Equal(64, result.OutputHash.Length);
+        Assert.Equal("docling:page=1;text=1;segment=1",
+            result.Rows[0].FieldLocators!["supplier"]);
+        Assert.Equal(64, result.ProviderOutputHash.Length);
+        Assert.Equal(64, result.CanonicalOutputHash.Length);
+        Assert.Contains("\"tables\"", result.ProviderJson, StringComparison.Ordinal);
+        using var canonical = JsonDocument.Parse(result.CanonicalJson);
+        Assert.Equal(InventoryExtractionOptions.CurrentSchemaVersion,
+            canonical.RootElement.GetProperty("schemaVersion").GetString());
+        Assert.Equal("SITE-1", canonical.RootElement.GetProperty("rows")[0]
+            .GetProperty("values").GetProperty("productcode").GetString());
     }
 
     private static void ConfigureClosedProduction(IWebHostBuilder builder)

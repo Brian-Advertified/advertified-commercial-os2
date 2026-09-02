@@ -53,10 +53,10 @@ test('operator connects one mailbox and monitors automatic OOH proposals', async
   await page.getByLabel('Send complete proposals automatically').check()
   await page.getByRole('button', { name: 'Connect mailbox' }).click()
 
-  await expect(page.getByRole('heading', { name: 'ooh@advertified.com' })).toBeVisible()
+  await expect(page.getByText('ooh@advertified.com', { exact: true })).toBeVisible()
   await expect(page.getByText('Automatic sending on')).toBeVisible()
   await expect(page.getByText('The proposal was sent automatically')).toBeVisible()
-  await expect(page.getByText('OOH-only campaign')).toBeVisible()
+  await expect(page.getByText('OOH-only campaign', { exact: true })).toBeVisible()
   await expect(page.getByText(/cannot be widened later/i)).toBeVisible()
 
   await page.getByRole('button', { name: /Radio requested with OOH/ }).click()
@@ -311,7 +311,7 @@ function runFixture(overrides: Record<string, unknown>) {
 }
 
 function session() {
-  return { authenticated: true, antiforgeryToken: 'csrf-ooh-inbox', expiresAtUtc: '2026-08-30T22:00:00Z' }
+  return { authenticated: true, antiforgeryToken: 'csrf-ooh-inbox', expiresAtUtc: '2026-08-30T22:00:00Z', signInPath: null, signOutPath: null }
 }
 function workspace() {
   return { membershipId: 'e9000000-0000-0000-0000-000000000001', tenantId,

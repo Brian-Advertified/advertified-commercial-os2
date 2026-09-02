@@ -27,7 +27,8 @@ internal static class EmailAutomationRegistration
         builder.Services.AddScoped<IAutomationCommandEnvelopeFactory,
             AutomationCommandEnvelopeFactory>();
         builder.Services.AddScoped<IStpReadinessEvaluator, StpReadinessEvaluator>();
-        builder.Services.AddScoped<EmailAutomationInventorySelector>();
+        builder.Services.AddScoped<IEmailAutomationInventorySelector,
+            EmailAutomationInventorySelector>();
         builder.Services.AddScoped<IEmailProposalAutomationProcessor,
             EmailProposalAutomationProcessor>();
         builder.Services.AddScoped<IInboundEmailReceiver, InboundEmailReceiver>();

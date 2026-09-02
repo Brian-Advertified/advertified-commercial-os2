@@ -30,16 +30,29 @@ public sealed record InventoryExtractionRequest(
 public sealed record InventoryExtractedRow(
     int Number,
     string Locator,
-    IReadOnlyDictionary<string, string> Values);
+    IReadOnlyDictionary<string, string> Values,
+    string? ExtractionMethod = null,
+    decimal? Confidence = null,
+    IReadOnlyDictionary<string, string>? FieldLocators = null,
+    IReadOnlyDictionary<string, decimal?>? FieldConfidences = null);
+
+public sealed record InventoryExtractionDocument(
+    string SchemaVersion,
+    IReadOnlyList<InventoryExtractedRow> Rows);
 
 public sealed record InventoryExtractionResult(
     string AdapterCode,
     string AdapterVersion,
-    string SchemaVersion,
     string SourceHash,
-    string StructuredJson,
-    string OutputHash,
-    IReadOnlyList<InventoryExtractedRow> Rows);
+    string ProviderJson,
+    string ProviderOutputHash,
+    string CanonicalJson,
+    string CanonicalOutputHash,
+    InventoryExtractionDocument Document)
+{
+    public string SchemaVersion => Document.SchemaVersion;
+    public IReadOnlyList<InventoryExtractedRow> Rows => Document.Rows;
+}
 
 public interface IInventoryDocumentExtractionAdapter
 {

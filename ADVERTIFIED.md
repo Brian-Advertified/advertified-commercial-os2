@@ -557,12 +557,16 @@ Advertified supports exactly one canonical campaign lifecycle with an immutable 
 - `OOH_ONLY`
 - `FULL_CAMPAIGN`
 
-The AI may propose the mode from clear evidence, but it cannot fabricate certainty.
+The mode is resolved from evidence before planning. AI may interpret unclear language, but direct supplied media instructions are not AI opinions and must not be represented as confidence-based recommendations.
 
-- If the supplied requirement clearly asks only for OOH/DOOH, `OOH_ONLY` may be selected.
-- If it clearly requires other channels, `FULL_CAMPAIGN` applies.
-- If materially unclear, the user confirms the mode.
+- A supplied media requirement restricted to OOH and/or DOOH is direct Brief evidence for `OOH_ONLY`.
+- A supplied media requirement that includes any required non-OOH channel is direct Brief evidence for `FULL_CAMPAIGN`.
+- Explicit full, integrated, multichannel or omnichannel wording establishes `FULL_CAMPAIGN`.
+- Non-exclusive wording such as “preferred”, “consider”, “including”, “such as” or “open to” does not by itself prove an OOH-only restriction; Advertified must interpret the complete Brief and supporting research.
+- Where the Brief does not specify media, Advertified may research and propose the appropriate mode from the business problem, audience, geography, timing and available media. If the evidence remains materially ambiguous, the user confirms the mode.
 - A dedicated inbound OOH mailbox fixes the mode to `OOH_ONLY` for accepted requests.
+
+For a direct supplied-media decision, the review UI shows the campaign type, exact source evidence and that no mode choice is required. It must not present a confidence percentage as the basis for the decision. Inferred decisions retain their evidence and rationale and expose clarification only when material ambiguity remains.
 
 The mode is immutable once the CampaignBrief is established.
 
@@ -1020,6 +1024,8 @@ The original email and permitted attachments are preserved as immutable evidence
 
 The same canonical OOH-only flow is used; no shadow Rapid OOH domain is allowed.
 
+One inbound email may contain more than one explicitly separated campaign Brief. Each campaign intent requires its own CampaignBrief lineage while retaining a reference to the same immutable source email and relevant attachments. Automation must never blend those intents into one Brief; until deterministic splitting and evidence allocation are available, the email remains in `REVIEW_REQUIRED` for authorised separation.
+
 ## 10.2 Ready path [Policy]
 
 Where the request is complete and passes the tenant's pre-authorised automation/readiness policy, Advertified may process without per-request user input:
@@ -1042,6 +1048,27 @@ receive email
 ```
 
 This is not the AI "approving itself". The commercial consequence is permitted by a human-owned, explicit, bounded automation policy that is independently enforced by the platform.
+
+The user-facing Rapid OOH path is this same immutable `OOH_ONLY` lifecycle and never a second
+aggregate, namespace or endpoint family. AI resolves `OOH_ONLY` versus `FULL_CAMPAIGN` from the
+complete Brief evidence; only genuinely material ambiguity requires clarification. Client
+registration is not a prerequisite to intake. `OOH_ONLY` can never convert into
+`FULL_CAMPAIGN`; expanded scope starts a new CampaignBrief.
+
+`OOH_ONLY` may interpret the Brief, apply deterministic eligibility, select inventory, approve
+the bounded internal planning/proposal artefacts required by the human-owned automation policy,
+render and send when the client-facing total including VAT and configured fees is at most
+ZAR 500,000, the final total is within budget, mandatory fields are clear, every selected
+inventory record is approved/published, and geography, dates, format, rate, currency, VAT,
+validity and source evidence pass. Default planning availability passes unless an overlapping
+not-available period, blackout, confirmed booking conflict or inactive record exists.
+
+`FULL_CAMPAIGN` always requires human review before a media plan or proposal is sent. Human
+review also remains mandatory for OOH_ONLY above the cap; missing or contradictory price, VAT,
+date or geography; unresolved geometry; negotiation/discounting; public-sector tender or
+regulated/sensitive campaign; inability to remain within budget; and every binding booking,
+purchase-order or contractual commitment. AI has no authority to book, issue a purchase order,
+spend, accept supplier terms, grant a discount or change canonical supplier facts.
 
 ## 10.3 Review-required path [Principle]
 
@@ -1240,6 +1267,14 @@ Rate validity, availability period, booking deadline, production/material deadli
 
 Traffic, footfall, circulation, listenership, reach, impressions or other supplied measurement only together with source, period, methodology and limitations.
 
+Where supplied, an inventory audience profile keeps spoken and understood languages
+distinct, retains weighted segment shares, records age/life-stage bands and preserves
+LSM/SEM or equivalent segments with the named taxonomy and taxonomy version. The
+measurement universe is retained separately from the source, period, methodology and
+limitations. Sparse coverage is normal: a missing component remains insufficient evidence
+and is never converted into a neutral or average value. Editorial positioning copy remains
+a supplier claim or inference and is not stored as measured audience fact.
+
 ### Terms
 
 Cancellation, production, installation, creative, payment and other commercial conditions.
@@ -1327,7 +1362,7 @@ Each material field can carry:
 - **Required action** — none, review, confirm with supplier, human decision, etc.;
 - exact source locator;
 - captured/effective/freshness date;
-- transformation/normalization lineage.
+- extraction method and transformation/normalization lineage.
 
 Extraction-model confidence may prioritize review internally. It is not evidence and does not turn an unverified commercial field into truth.
 
@@ -1491,13 +1526,19 @@ Supplier
 → provenance
 ```
 
-A product may exist while availability is unknown.
+A product is planning-available by default. Absence of a supplier availability response or
+recent confirmation is not an unavailable state and does not block matching or proposal
+generation. Only an overlapping explicit `UNAVAILABLE`/not-available period, blackout,
+confirmed booking conflict or deactivated product makes it unavailable for the requested
+dates. Advertified does not create a blocking unknown-availability state. Booking confirmation
+remains a distinct consequential process and is never inferred from this planning default.
 
 The following states must remain distinct:
 
 > **extracted ≠ verified ≠ currently available ≠ booked**
 
-A successful extraction does not prove availability, and verified inventory is not a booking.
+A successful extraction does not prove supplier confirmation, and planning-available
+inventory is not a booking.
 
 ## 11.17 Freshness after extraction [Principle]
 
@@ -1518,6 +1559,10 @@ A previously verified fact may become `STALE` without being historically false.
 
 Planning/proposal/booking workflows use governed freshness policy to determine whether re-confirmation or re-planning is required.
 
+Availability freshness is informative rather than a negative availability inference. A stale
+or absent supplier response never becomes an unavailable period. Rate and other commercial
+freshness rules remain independently binding.
+
 ## 11.18 Assets [Principle]
 
 Where available and rights permit, inventory ingestion should extract and retain:
@@ -1530,6 +1575,22 @@ Where available and rights permit, inventory ingestion should extract and retain
 - terms documents.
 
 Missing assets remain visibly missing/unverified; placeholders must not be presented as verified content.
+
+Possession or extraction of a rate card, image or logo does not establish usage rights. Rights
+may be approved only by an authorised Supplier Admin/Owner or an Advertified Admin with
+documented supplier permission. An ordinary uploader or agency may submit evidence but may
+not self-approve unless written supplier authority is attached.
+
+Rights are recorded separately for internal planning, named-client proposals, Advertified
+marketplace display, and public marketing/social use. The record binds the exact asset,
+territory, effective date, expiry or `UNTIL_REVOKED`, attestor and immutable written evidence.
+The default territory is South Africa; any other territory requires explicit permission.
+Public marketing/social use always requires its own explicit scope.
+
+Expired or revoked rights remove the asset from public listings and new proposal versions and
+create a revalidation task. Historical proposal documents and evidence remain immutable.
+Missing rights never block inventory selection: newly rendered material falls back to a
+neutral text-only representation.
 
 ## 11.19 Large catalogue UX [Policy]
 
@@ -1562,6 +1623,29 @@ An import is commercially successful only when Advertified can answer, for every
 - What remains unknown, stale, conflicting or in need of confirmation?
 
 If those questions cannot be answered, extraction may be technically complete but the affected inventory is not yet commercially ready.
+
+## 11.21 Extraction release acceptance [Policy]
+
+The confidential internal evaluation corpus contains 41 legitimately supplied documents and
+is not committed to the public repository. Its versioned gold dataset reserves an untouched
+20% holdout set and records source provenance. PDFs, spreadsheets, presentations, scans and
+images are measured separately; an insufficiently represented format remains human-review-
+only rather than blocking the entire OOH_ONLY release.
+
+For review-ready documents, release acceptance requires at least 99% critical-field
+precision, 95% critical-field recall, zero unsupported critical fields, no more than 0.5%
+overall unsupported fields, at least 98% correct table row/column association, 99.5% exact
+numeric/currency/date accuracy, 97% reconstructed table-cell accuracy, 0.90 overall OCR
+confidence and 0.95 OCR confidence for critical numeric fields. Critical fields are supplier,
+inventory identity, media type, location, format/specification, price, currency, VAT basis,
+validity dates and explicit availability exceptions.
+
+Every accepted extracted field has a page, cell, region or other exact source evidence
+pointer. A corrupt, password-protected, handwritten, unreadable or structurally ambiguous
+document, conflicting price/date, unclear currency/VAT treatment, formula without a usable
+calculated value, or result below an applicable threshold routes to human handling. Initial
+production extraction creates review candidates only; it never publishes or changes canonical
+inventory without the existing approval process.
 
 ---
 
@@ -1722,7 +1806,80 @@ Media Mix explains:
 
 No channel is included merely because it is familiar or because a prior meeting happened at a particular media brand/event.
 
-## 13.4 Media plan visual direction [Policy]
+## 13.4 Inventory matching for planning [Principle/Policy]
+
+The approved AudienceDefinition set and approved MediaMix are exact inputs to inventory
+matching. Hard eligibility is deterministic and precedes suitability interpretation. It
+includes permitted channel/product type, required geography or verified spatial coverage,
+campaign dates and availability, rate validity/currency/budget, and any required delivery
+characteristics that are actually represented in canonical data.
+
+Suitability remains visible by component. Language, life-stage and LSM/SEM fit are not
+collapsed into an unexplained average. A component has one of three truthful outcomes:
+evidence-backed fit, evidence-backed non-fit, or insufficient/incompatible evidence. An
+audience component is scored only when the inventory profile retains measurement source,
+period and methodology. LSM/SEM comparison additionally requires the target and inventory
+to carry the same normalized taxonomy name and exact taxonomy version; otherwise the
+component remains unscored with an explicit evidence gap.
+
+Initial production uses exact LSM/SEM taxonomy key and version matching only. Original source
+labels and versions are retained; the same label under a different version is not an exact
+match. AI/semantic similarity may not translate taxonomies. Missing or unmatched taxonomy is
+`UNKNOWN`, not non-fit, and blocks selection only when the Brief explicitly marks that audience
+requirement mandatory. No version mappings are active. A later mapping requires an
+effective-dated, human-approved table with evidence and audit history.
+
+Missing audience evidence does not silently make a hard-eligible product ineligible for a
+human-reviewed shortlist, but it blocks straight-through selection that depends on that
+component. Every shortlist binds the exact audience set, ProductVersion, RateVersion,
+AvailabilityVersion, marketplace snapshot where applicable, evidence metadata and matching
+input hash. A Proposal inherits the approved plan's exact inventory and never searches or
+re-resolves inventory itself.
+
+The governed `INVENTORY_SUITABILITY_OOH_V1` policy weights the visible normalized components:
+geographic/route/POI fit 30%, audience/context fit 25%, objective/format fit 15%, budget
+efficiency 15%, evidence quality/freshness 10%, and portfolio coverage/diversity contribution
+5%. Availability is binary and is not scored. Sponsored placement never changes suitability.
+Tie-breaking is deterministic: more complete critical evidence, fresher valid rate, better
+total target coverage, lower client-facing cost for materially equivalent suitability, then
+stable inventory ID.
+
+Every Brief spatial requirement is classified `REQUIRED`, `PREFERRED` or `EXCLUDED` and uses
+one of four canonical forms: point plus explicit radius; versioned authoritative administrative
+boundary; supplied catchment polygon; or route plus buffer. A route without a supplied buffer
+retains a visible/editable inferred 500-metre default. `EXCLUDED` overrides all other spatial
+classifications. Point distance uses `ST_DWithin` in metres, administrative and catchment
+coverage uses `ST_Covers`, and route distance uses `ST_DWithin`. Polygon intersection is only
+candidate discovery; required polygon eligibility needs at least 50% of the target area covered
+unless the Brief records another threshold. Geometry is stored in EPSG:4326 and distance/area
+calculation uses metre-safe PostGIS geography operations.
+
+Invalid, ambiguous or unverified required geometry creates a human clarification task and may
+not fall back silently to text matching. A selected shortlist must collectively cover every
+required target. When that is impossible the governed result is `DO_NOT_BUY` with insufficient
+suitable inventory, never relaxed eligibility.
+
+PostGIS owns authoritative spatial intersection, containment, distance and route/catchment
+operations when the required geometry is verified. pgvector may improve semantic recall for
+descriptive brief-to-inventory retrieval and possible-duplicate discovery. It never decides
+geography, identity merge, eligibility, price, availability or booking; a semantic duplicate
+is a review candidate, never an automatic merge.
+
+Inventory embeddings use Amazon Bedrock `amazon.titan-embed-text-v2:0`, 1,024 dimensions,
+normalization enabled, on-demand invocation in `eu-west-1`. Canonical PostgreSQL, documents,
+metadata and vectors remain in `af-south-1`. Only canonical normalized non-personal searchable
+inventory text may be embedded; source documents, contacts, email addresses, confidential
+Briefs, contracts, images and financial identifiers are excluded. Stored lineage includes
+content hash, provider/model/version, dimensions, generated time and job. Similarity queries
+never mix versions. Regeneration occurs only when searchable content/model/dimensions change or
+an administrator explicitly requests a backfill.
+
+Embedding spend is hard-capped at USD 3/month in staging and USD 10/month initially in
+production, alerts at 80%, stops background work at 100%, and falls back to deterministic and
+lexical search. Tests use a deterministic zero-cost provider. One staging smoke test/backfill
+up to USD 3 is authorised after credentials are configured; production provider calls are not.
+
+## 13.5 Media plan visual direction [Policy]
 
 Planning screens should be simple to use but technically rich enough to support real planning.
 
@@ -2099,33 +2256,57 @@ Use commercial, human-understandable language.
 
 ## 21.3 Visual system [Policy]
 
-Advertified's authenticated interface uses a premium, professional system based on:
+The owner-approved authenticated screens are one Advertified design system, not independent page concepts.
 
-- navy;
-- white;
-- neutral greys;
-- electric blue;
-- restrained use of other functional colours for data visualisation/status.
+The authenticated product uses one shared visual language:
 
-**Dark green is not part of the Advertified interface theme.**
+- primary Advertified violet `#6038F5`;
+- deep navigation navy `#071631`;
+- white cards/surfaces;
+- neutral application canvas `#F8F9FC`;
+- primary text `#101828`, body `#344054`, muted `#667085`;
+- success green only for semantic positive/automation state;
+- consistent warning/danger/chart colours;
+- one typography scale: 22 px page title, 16 px section title, 14 px card title, 13 px navigation/default UI, 12 px body/control, 11 px helper/meta;
+- one spacing rhythm: 4 / 8 / 12 / 16 / 20 / 24 px;
+- 38 px minimum standard controls;
+- shared card border, radius and restrained shadow treatment.
 
-Use:
+**Dark green is not part of the Advertified interface theme.** Rapid OOH may use green as a semantic workflow accent, but it does not become a separate green-themed product.
 
-- readable typography;
-- charts/graphs where they improve comprehension;
-- icons;
-- subtle animation where it improves orientation/feedback;
-- maps when geography matters;
-- clear spacing and hierarchy.
+A screen is not complete merely because its data is correct. If it visibly feels like a different application, that is a UX defect.
 
-Avoid:
+### 21.3.1 Navigation hierarchy [Principle]
 
-- clutter;
-- repeated banners;
-- decorative stock-image dependency;
-- internal technical copy;
-- fake metrics/progress;
-- actions placed before the user has enough information to decide.
+Advertified separates three navigation concepts:
+
+1. **Global product navigation** — one persistent sidebar and one global top bar shared by every authenticated screen. Their width, colours, typography, controls and behaviour do not change by module. Inventory, Rapid OOH, campaign work, finance and administration must never switch into a different application shell.
+2. **Campaign/inventory process progress** — the horizontal Full Campaign, Rapid OOH and Inventory Intelligence rails inside the shared shell. These show process stage and are not duplicate global menus.
+3. **Page-local navigation** — tabs/section rails that navigate inside the current record only.
+
+A campaign process rail derives its campaign-mode presentation from the immutable mode on the current CampaignBrief lineage. A route name is not campaign-mode evidence, and an unresolved or unavailable mode must never default visually to `FULL_CAMPAIGN`. Downstream proposal, funding, booking, delivery, proof and measurement records retain that same mode context through their canonical Brief lineage.
+
+The authenticated global sidebar is limited to:
+
+- Home;
+- Opportunities;
+- Briefs;
+- Inventory;
+- Marketplace;
+- OOH Inbox for authorised roles;
+- Bookings;
+- Campaigns;
+- Tasks;
+- Finance;
+- Settings for authorised roles.
+
+Campaign stages such as Strategy & STP, Planning, Proposal, Approval, Delivery, Measurement and Reporting are reached through the relevant campaign/work record and process rail. They are not duplicated as unrelated global menu destinations.
+
+A visible global menu item must open its own real product area. It must never point to an unrelated screen as a placeholder. A process step that has no valid destination remains non-navigational rather than secretly routing elsewhere.
+
+Use readable typography, charts/graphs where useful, consistent icons, subtle orientation/feedback animation, maps when geography matters, and clear spacing/hierarchy.
+
+Avoid clutter, repeated banners, decorative stock-image dependency, internal technical copy, fake metrics/progress, per-screen themes, per-screen typography scales, arbitrary component sizing, or actions shown before the user has enough information to decide.
 
 ## 21.4 Validation and notifications [Policy]
 
@@ -3277,7 +3458,7 @@ All protected business records are tenant-safe. UUIDs are stable identifiers. UT
 | InventoryProduct | id, supplierId, channelCode, productTypeCode, supplierProductCode?, name, description, geography, governed attributes, verification state, lifecycle state | product identity stable; material change creates version/history |
 | InventoryProductVersion | productId, versionNo, canonical attributes, evidence bindings, effective dates | recommendations bind exact version |
 | InventoryRate | id, productId/version, rateType, amountMinor, currency, VAT basis/status, commission/discount metadata where explicit, inclusions/exclusions, validFrom/To, evidenceId, status | no silent raw-unit comparison; history retained |
-| InventoryAvailability | id, productId/version, start/end, status, capacity?, source, confirmedAt, expiresAt | unknown allowed for planning where policy permits; booking requires sufficient confirmation |
+| InventoryAvailabilityException | id, productId/version, start/end, type (`NOT_AVAILABLE`, `BLACKOUT`, confirmed booking conflict), source/evidence, recordedAt | absence means planning-available; only an overlapping exception or confirmed booking conflict blocks the requested dates; booking remains separately confirmed |
 | InventoryAsset | id, productId/version, type, objectKey, mime, hash, dimensions?, sourceLocator, rights/review status | source/rights retained |
 | InventorySpatialLocation | productVersionId, point/geometry, coordinate source, verification, resolved geography version | OOH/DOOH spatial truth uses PostGIS when verified |
 | InventoryImport | id, tenantId, supplierId?, sourceObjectKey, hash, class, pipeline status, schema/parser version, counts, failure summary | same hash idempotent unless explicit reprocess |
@@ -3594,7 +3775,8 @@ Materiality policy may version these classes, but AI does not decide them ad hoc
 | Missing amount/currency/rate basis where product is presented as priced | block priced publish; may publish explicitly unpriced only if product policy allows |
 | VAT unknown where commercial comparison/client pricing requires it | review/block commercial use |
 | OOH/DOOH required coordinates missing/invalid | block geography-dependent publish/planning until resolved, unless explicit non-coordinate product policy exists |
-| Availability unknown | product may publish as `UNKNOWN`; confirmed booking blocked |
+| No availability exception supplied | product is planning-available; absence/stale supplier response does not block matching or proposal; booking remains separately confirmed |
+| Overlapping not-available/blackout/confirmed booking conflict | reject inventory for the affected requested dates |
 | Missing asset/logo/photo | visible review task; does not automatically block commercial record unless channel/use requires asset |
 | Unsupported audience/measurement claim | exclude claim from verified client promise; product may publish if core product fields valid |
 | Material terms missing/conflicting | review required; booking/proposal consequence may block |
@@ -3871,6 +4053,21 @@ The exact AWS compute/database topology is governed policy, but an implementatio
 ## 49.2 Initial deployment decision record
 
 Before first production deploy, the owner must record directly in this section (or a versioned governed setting referenced here) the selected compute, database, ingress, object storage, queue/event, secret, telemetry, backup/RPO/RTO and DNS/TLS topology. This is the one remaining environment-specific choice that cannot be honestly universalised in the product specification. Once selected, it is Policy and implementation must match until deliberately changed.
+
+### 49.2.1 Inventory production-readiness decision and work packet — 2026-09-02
+
+The repository owner approved the availability, controlled automation, spatial matching,
+Bedrock embedding, asset-rights, extraction-acceptance and exact LSM/SEM policies recorded in
+Sections 10, 11 and 13.4. The authorised local work packet is one coordinated implementation
+batch that completes those software controls plus both OOH_ONLY and FULL_CAMPAIGN navigation
+and acceptance journeys. Acceptance evidence is the synchronized specification/contracts/
+master data, forward-safe disposable-database migrations, affected and full API/agent/web/
+architecture checks, and connected journeys where the development environment supports them.
+
+One staging Bedrock embedding smoke test/backfill is authorised up to USD 3 after credentials
+are configured. Production infrastructure provisioning, an independent security review,
+production provider calls and production deployment remain separate explicit go-live gates and
+are not authorised by this record.
 
 ## 49.3 Release evidence
 

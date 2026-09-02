@@ -9,7 +9,7 @@ public sealed class CommercialPolicyReader(
     CommercialPolicyRecordStore store,
     ITenantAuthorizer authorizer) : ICommercialPolicyReader
 {
-    public async Task<CommercialPolicyView> GetCurrentAsync(
+    public async Task<CommercialPolicyView?> GetCurrentAsync(
         ActorId actorId,
         TenantId tenantId,
         CancellationToken cancellationToken)
@@ -25,9 +25,8 @@ public sealed class CommercialPolicyReader(
         }
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
-        var row = await store.FindCurrentAsync(tenantId, cancellationToken)
-            ?? throw new CommercialPolicyNotConfiguredException();
+        var row = await store.FindCurrentAsync(tenantId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return row.ToView();
+        return row?.ToView();
     }
 }

@@ -10,7 +10,8 @@ internal static class InventoryEligibilityEvaluator
         IReadOnlyList<string> geographies,
         IReadOnlyDictionary<string, MediaAllocationView> allocations,
         string currency,
-        PlanningPolicy policy)
+        PlanningPolicy policy,
+        bool hasStructuredSpatialRequirements = false)
     {
         if (!allocations.TryGetValue(inventory.Channel, out var allocation) ||
             allocation.BudgetMinor <= 0)
@@ -18,7 +19,9 @@ internal static class InventoryEligibilityEvaluator
             return Rejected(MasterDataCodes.RejectionReasons.IneligibleFormat,
                 "The channel is not present in the approved media mix.");
         }
-        if (geographies.Count == 0 || !geographies.Any(item => Matches(item, inventory.Geography)))
+        if (!hasStructuredSpatialRequirements &&
+            (geographies.Count == 0 ||
+             !geographies.Any(item => Matches(item, inventory.Geography))))
         {
             return Rejected(MasterDataCodes.RejectionReasons.IneligibleGeography,
                 "The product geography does not match the approved Brief.");
@@ -40,34 +43,19 @@ internal static class InventoryEligibilityEvaluator
             return Rejected(MasterDataCodes.RejectionReasons.StaleRate,
                 "The published rate does not cover the planned running periods.");
         }
-        var scheduledCost = MediaRatePricing.CalculateSupplierCost(
-            inventory.RateAmountMinor.Value, inventory.RateType,
-            allocation.RunningPeriods, policy.RateBillingDays);
+        var scheduledCost = SupplierRateCalculator.Calculate(
+            inventory, allocation.RunningPeriods, policy).PayableMinor;
         if (scheduledCost > allocation.BudgetMinor)
         {
             return Rejected(MasterDataCodes.RejectionReasons.BudgetMismatch,
                 "The planned running periods exceed the approved channel allocation.");
         }
-        if (inventory.Availability == MasterDataCodes.AvailabilityStatuses.Unavailable)
+        if (!InventoryAvailabilityPolicy.IsAvailable(inventory, allocation.RunningPeriods))
         {
             return Rejected(MasterDataCodes.RejectionReasons.Unavailable,
-                "The latest published supply state is unavailable.");
+                "The product is unavailable for at least one planned running period.");
         }
-        return Eligible(inventory, allocation, scheduledCost, policy);
-    }
-
-    private static EligibilityResult Eligible(
-        PlanningInventoryRow inventory,
-        MediaAllocationView allocation,
-        long scheduledCost,
-        PlanningPolicy policy)
-    {
-        var priceRatio = (decimal)scheduledCost / allocation.BudgetMinor;
-        var supplyBonus = inventory.Availability == MasterDataCodes.AvailabilityStatuses.Available
-            ? policy.EligibilityAvailableSupplyBonus
-            : 0m;
-        var score = policy.EligibilityScoreBase - priceRatio * policy.EligibilityPriceWeight + supplyBonus;
-        return new EligibilityResult(true, null, null, decimal.Round(Math.Max(0m, score), 4));
+        return new EligibilityResult(true, null, null, null);
     }
 
     private static bool Matches(string requested, string available) =>

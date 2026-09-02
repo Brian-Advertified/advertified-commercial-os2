@@ -59,6 +59,32 @@ internal static class ProposalPdfRenderer
                     $"Media: {string.Join(", ", option.InventoryNames.Take(5))}",
                     8, false));
             }
+            foreach (var inventory in option.Inventory)
+            {
+                lines.Add(new PdfLine(
+                    $"{inventory.Name} | {inventory.Geography} | " +
+                    $"{FormatMoney(inventory.ClientPriceMinor, option.Currency)} | " +
+                    $"{inventory.Availability}", 8, false));
+                if (inventory.Deliverable is not null)
+                {
+                    lines.Add(new PdfLine("Deliverable: " + string.Join(" | ", new[]
+                    {
+                        inventory.Deliverable.Format,
+                        inventory.Deliverable.BuyingUnit,
+                        inventory.Deliverable.Dimensions,
+                        inventory.Deliverable.Placement,
+                    }.Where(value => !string.IsNullOrWhiteSpace(value))), 7, false));
+                }
+                if (inventory.CommercialTerms is not null)
+                {
+                    lines.Add(new PdfLine("Commercial conditions: " + string.Join("; ",
+                        inventory.CommercialTerms.Conditions), 7, false));
+                }
+                foreach (var uncertainty in inventory.Uncertainties)
+                {
+                    lines.Add(new PdfLine($"Unresolved: {uncertainty}", 7, false));
+                }
+            }
         }
         lines.Add(new PdfLine("Terms", 11, true));
         lines.Add(new PdfLine(proposal.Terms, 8, false));

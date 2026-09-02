@@ -6,6 +6,7 @@ import type { SupplierCreativeAsset } from '../api/campaign-schemas'
 import { humanMessage } from '../api/client'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
+import { CampaignFlowBinding } from '../campaign-flow/CampaignFlowBindings'
 import { supplierCreativeReviewerRoles } from '../campaign/campaign-roles'
 import { Icon } from '../components/Icon'
 import { LoadingState, MessageState } from '../components/PageState'
@@ -42,14 +43,15 @@ function SupplierCreativeRecord({ tenantId, assetId, token }: {
     return <MessageState title="Creative asset could not be opened" message={model.error} />
   }
   if (!model.asset) return <LoadingState label="Loading supplier creative review" />
-  return <section className="supplier-creative-page" aria-labelledby="supplier-creative-title">
+  return <><CampaignFlowBinding tenantId={tenantId} campaignId={model.asset.campaignId} />
+  <section className="supplier-creative-page" aria-labelledby="supplier-creative-title">
     <SupplierCreativeHeader asset={model.asset} />
     {model.error && <p className="inline-alert" role="alert">{model.error}</p>}
     <SupplierCreativeDetails asset={model.asset} />
     {!model.asset.supplierDecision && <SupplierReviewForm asset={model.asset}
       busy={model.busy} review={(approved, evidence, reason) => model.review(
         approved, evidence, reason, token)} />}
-  </section>
+  </section></>
 }
 
 function useSupplierCreative(tenantId: string, assetId: string) {

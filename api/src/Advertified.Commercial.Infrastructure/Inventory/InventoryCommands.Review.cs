@@ -229,21 +229,8 @@ internal static class InventoryReviewSupport
 {
     internal static InventoryCandidateValues NormalizeCorrection(InventoryCandidateValues values)
     {
-        string? Text(string? value, int maximum) => string.IsNullOrWhiteSpace(value)
-            ? null : value.Trim().Length <= maximum
-                ? value.Trim() : throw new ArgumentOutOfRangeException(nameof(values));
-        string? Code(string? value) => Text(value, 100)?.ToUpperInvariant().Replace(' ', '_');
-        var extension = values.Extension?.ToDictionary(
-            pair => Text(pair.Key, 100) ?? throw new ArgumentException("Extension keys are required."),
-            pair => Text(pair.Value, 1000) ?? string.Empty,
-            StringComparer.Ordinal);
-        return values with
-        {
-            ProductCode = Text(values.ProductCode, 200), Name = Text(values.Name, 500),
-            Channel = Code(values.Channel), ProductType = Code(values.ProductType),
-            Geography = Text(values.Geography, 500), Address = Text(values.Address, 1000),
-            RateType = Code(values.RateType), Currency = Code(values.Currency),
-            Availability = Code(values.Availability), Extension = extension,
-        };
+        var normalized = InventoryCandidateValueNormalization.Normalize(values);
+        InventoryCandidateValueNormalization.EnsureCorrectionLimits(normalized);
+        return normalized;
     }
 }

@@ -1,5 +1,11 @@
 import { z } from 'zod'
 import { proposalPolicy } from '../proposal/proposal-policy'
+import {
+  inventoryCommercialTermsSchema,
+  inventoryDeliverableSchema,
+  inventorySpatialSchema,
+  inventorySupplierCommercialSchema,
+} from './inventory-schemas'
 
 const requiredText = z.string().trim().min(1)
 
@@ -18,6 +24,43 @@ export const approvedPlanChoiceSchema = z.object({
   channels: z.array(requiredText).min(1),
   runningPeriods: z.array(proposalRunningPeriodSchema),
   createdAtUtc: z.iso.datetime({ offset: true }),
+}).strict()
+
+export const proposalSummarySchema = z.object({
+  id: z.guid(),
+  briefId: z.guid(),
+  versionNumber: z.number().int().positive(),
+  title: requiredText,
+  status: requiredText,
+  createdAtUtc: z.iso.datetime({ offset: true }),
+}).strict()
+
+const proposalInventoryLineSchema = z.object({
+  inventoryTenantId: z.guid(),
+  marketplaceListingVersionId: z.guid().nullable(),
+  inventoryProductId: z.guid(),
+  productVersionId: z.guid(),
+  rateId: z.guid(),
+  availabilityId: z.guid().nullable(),
+  name: requiredText,
+  channel: requiredText,
+  geography: requiredText,
+  runningPeriods: z.array(proposalRunningPeriodSchema),
+  quantity: z.number().int().positive(),
+  clientPriceMinor: z.number().int().nonnegative(),
+  feesMinor: z.number().int().nonnegative(),
+  vatMinor: z.number().int().nonnegative(),
+  availability: requiredText,
+  rateFreshness: requiredText,
+  supplyConfidence: requiredText,
+  supplySource: requiredText,
+  lastConfirmedAtUtc: z.iso.datetime({ offset: true }).nullable(),
+  uncertainties: z.array(requiredText),
+  supplierCommercial: inventorySupplierCommercialSchema.nullish().transform(value => value ?? null),
+  commercialTerms: inventoryCommercialTermsSchema.nullish().transform(value => value ?? null),
+  deliverable: inventoryDeliverableSchema.nullish().transform(value => value ?? null),
+  spatial: inventorySpatialSchema.nullish().transform(value => value ?? null),
+  logoAssetId: z.guid().nullish().transform(value => value ?? null),
 }).strict()
 
 export const proposalRecipientSchema = z.object({
@@ -41,6 +84,7 @@ export const proposalOptionSchema = z.object({
   channels: z.array(requiredText).min(1),
   runningPeriods: z.array(proposalRunningPeriodSchema),
   inventoryNames: z.array(requiredText),
+  inventory: z.array(proposalInventoryLineSchema),
 }).strict()
 
 const proposalDocumentSchema = z.object({
@@ -57,6 +101,9 @@ const proposalDecisionSchema = z.object({
   reason: z.string().nullable(),
   decidedBy: z.guid(),
   decidedAtUtc: z.iso.datetime({ offset: true }),
+  recordedForExternalParty: z.boolean(),
+  externalPartyEmail: z.email().nullable(),
+  evidenceReference: z.string().nullable(),
 }).strict()
 
 export const proposalSchema = z.object({
@@ -86,6 +133,7 @@ export const proposalSchema = z.object({
   createdAtUtc: z.iso.datetime({ offset: true }),
 }).strict()
 
+export const proposalSummariesSchema = z.array(proposalSummarySchema)
 export const approvedPlanChoicesSchema = z.array(approvedPlanChoiceSchema)
 export const proposalRecipientsSchema = z.array(proposalRecipientSchema)
 export const proposalApproversSchema = z.array(proposalApproverSchema)
@@ -116,6 +164,7 @@ export const proposalDraftInputSchema = z.object({
   { message: 'Each proposal choice must use a different approved plan.' },
 )
 
+export type ProposalSummary = z.infer<typeof proposalSummarySchema>
 export type ApprovedPlanChoice = z.infer<typeof approvedPlanChoiceSchema>
 export type ProposalRecipient = z.infer<typeof proposalRecipientSchema>
 export type ProposalApprover = z.infer<typeof proposalApproverSchema>

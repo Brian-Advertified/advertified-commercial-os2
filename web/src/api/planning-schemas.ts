@@ -1,4 +1,11 @@
 import { z } from 'zod'
+import { masterDataCodes } from '../generated/master-data-codes'
+import {
+  inventoryCommercialTermsSchema,
+  inventoryDeliverableSchema,
+  inventorySpatialSchema,
+  inventorySupplierCommercialSchema,
+} from './inventory-schemas'
 
 export const runningPeriodSchema = z.object({
   start: z.iso.date(),
@@ -22,11 +29,14 @@ export const audienceDefinitionSchema = z.object({
   language: z.string().nullable(),
   lifeStage: z.string().nullable(),
   lsmSem: z.string().nullable(),
+  lsmSemTaxonomy: z.string().nullable(),
+  lsmSemTaxonomyVersion: z.string().nullable(),
   classification: z.string(),
   exclusions: z.array(z.string()),
   evidenceItemIds: z.array(z.guid()),
   confidence: z.number(),
   status: z.string(),
+  lsmSemMandatory: z.boolean(),
 })
 
 export const audienceSetSchema = z.object({
@@ -73,6 +83,54 @@ export const benchmarkSchema = z.object({
   exclusions: z.array(z.string()),
 })
 
+export const deliveryMeasurementSchema = z.object({
+  metricType: z.string().min(1),
+  value: z.number().nonnegative().nullable(),
+  unit: z.string().nullable(),
+  universe: z.string().nullable(),
+  measurementSource: z.string().nullable(),
+  measurementPeriod: z.string().nullable(),
+  methodology: z.string().nullable(),
+  limitations: z.string().nullable(),
+})
+
+export const audienceFitSchema = z.object({
+  languageScore: z.number().min(0).max(1).nullable(),
+  lifeStageScore: z.number().min(0).max(1).nullable(),
+  lsmSemScore: z.number().min(0).max(1).nullable(),
+  evidenceGaps: z.array(z.string()),
+  measurementSource: z.string().nullable(),
+  measurementPeriod: z.string().nullable(),
+  methodology: z.string().nullable(),
+  taxonomyName: z.string().nullable(),
+  taxonomyVersion: z.string().nullable(),
+  deliveryMeasurements: z.array(deliveryMeasurementSchema).nullish()
+    .transform(value => value ?? []),
+  deliveryEvidenceGaps: z.array(z.string()).nullish()
+    .transform(value => value ?? []),
+  lsmSemMandatory: z.boolean().default(false),
+})
+
+const spatialMatchSchema = z.object({
+  hasRequirements: z.boolean(), requiredRequirementIds: z.array(z.guid()),
+  matchedRequiredRequirementIds: z.array(z.guid()),
+  preferredRequirementIds: z.array(z.guid()),
+  matchedPreferredRequirementIds: z.array(z.guid()),
+  excludedRequirementIds: z.array(z.guid()),
+  matchedExcludedRequirementIds: z.array(z.guid()),
+  geographyScore: z.number().min(0).max(1), evidenceGaps: z.array(z.string()),
+})
+
+const suitabilitySchema = z.object({
+  policyVersion: z.string().min(1), geography: z.number().min(0).max(1),
+  audienceContext: z.number().min(0).max(1),
+  objectiveFormat: z.number().min(0).max(1),
+  budgetEfficiency: z.number().min(0).max(1),
+  evidenceQualityFreshness: z.number().min(0).max(1),
+  portfolioCoverageDiversity: z.number().min(0).max(1),
+  total: z.number().min(0).max(1), evidenceGaps: z.array(z.string()),
+})
+
 export const shortlistCandidateSchema = z.object({
   id: z.guid(),
   inventoryTenantId: z.guid(),
@@ -90,9 +148,28 @@ export const shortlistCandidateSchema = z.object({
   rejectionReason: z.string().nullable(),
   rejectionDetail: z.string().nullable(),
   score: z.number().nullable(),
+  audienceFit: audienceFitSchema,
   rationale: z.string().nullable(),
   isSelected: z.boolean().nullable(),
   benchmark: benchmarkSchema.nullable(),
+  logoAssetId: z.guid().nullish().transform(value => value ?? null),
+  commercialReadiness: z.object({
+    supplierVatStatus: z.string().nullable(),
+    vatTreatment: z.string().nullable(),
+    evidenceGaps: z.array(z.string()),
+    supplierVatNumber: z.string().nullish().transform(value => value ?? null),
+  }).nullish().transform(value => value ?? {
+    supplierVatStatus: null,
+    vatTreatment: null,
+    evidenceGaps: ['inventory.supplierCommercial.vatStatus', 'inventory.rate.vatTreatment'],
+    supplierVatNumber: null,
+  }),
+  supplierCommercial: inventorySupplierCommercialSchema.nullish().transform(value => value ?? null),
+  commercialTerms: inventoryCommercialTermsSchema.nullish().transform(value => value ?? null),
+  deliverable: inventoryDeliverableSchema.nullish().transform(value => value ?? null),
+  spatial: inventorySpatialSchema.nullish().transform(value => value ?? null),
+  spatialMatch: spatialMatchSchema.nullish().transform(value => value ?? null),
+  suitability: suitabilitySchema.nullish().transform(value => value ?? null),
 })
 
 export const shortlistSchema = z.object({
@@ -129,6 +206,11 @@ export const planLineSchema = z.object({
   supplySource: z.string(),
   lastConfirmedAtUtc: z.iso.datetime({ offset: true }).nullable(),
   supplyConfidence: z.string(),
+  supplierCommercial: inventorySupplierCommercialSchema.nullish().transform(value => value ?? null),
+  commercialTerms: inventoryCommercialTermsSchema.nullish().transform(value => value ?? null),
+  deliverable: inventoryDeliverableSchema.nullish().transform(value => value ?? null),
+  spatial: inventorySpatialSchema.nullish().transform(value => value ?? null),
+  logoAssetId: z.guid().nullish().transform(value => value ?? null),
 })
 
 export const planObjectionSchema = z.object({
@@ -162,12 +244,16 @@ export const mediaPlanSchema = z.object({
   approvedBy: z.guid().nullable(),
   version: z.number().int().positive(),
   createdAtUtc: z.iso.datetime({ offset: true }),
+  commercialPolicyVersionId: z.guid().nullish().transform(value => value ?? null),
 })
 
 export const campaignModeSchema = z.object({
   id: z.guid(),
   briefVersionId: z.guid(),
-  mode: z.string().min(1),
+  mode: z.enum([
+    masterDataCodes.campaignModes.fullCampaign,
+    masterDataCodes.campaignModes.oohOnly,
+  ]),
   allowedChannels: z.array(z.string().min(1)),
   isLocked: z.boolean(),
   decisionSource: z.string().min(1),
@@ -176,6 +262,18 @@ export const campaignModeSchema = z.object({
   selectedBy: z.guid(),
   selectedAtUtc: z.iso.datetime({ offset: true }),
 })
+
+export const planningSummarySchema = z.object({
+  briefId: z.guid(),
+  briefVersionId: z.guid(),
+  clientName: z.string().trim().min(1),
+  briefTitle: z.string().trim().min(1),
+  audienceStatus: z.string().trim().min(1),
+  mediaMixStatus: z.string().nullable(),
+  mediaPlanStatus: z.string().nullable(),
+  updatedAtUtc: z.iso.datetime({ offset: true }),
+}).strict()
+export const planningSummariesSchema = z.array(planningSummarySchema)
 
 export const planningWorkspaceSchema = z.object({
   briefId: z.guid(),
@@ -196,4 +294,5 @@ export type ShortlistCandidate = z.infer<typeof shortlistCandidateSchema>
 export type Shortlist = z.infer<typeof shortlistSchema>
 export type MediaPlan = z.infer<typeof mediaPlanSchema>
 export type CampaignMode = z.infer<typeof campaignModeSchema>
+export type PlanningSummary = z.infer<typeof planningSummarySchema>
 export type PlanningWorkspace = z.infer<typeof planningWorkspaceSchema>

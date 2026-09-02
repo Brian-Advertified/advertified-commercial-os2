@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { Navigate } from 'react-router-dom'
+import { briefApi } from '../api/brief-client'
 import { api, humanMessage } from '../api/client'
 import { emailAutomationApi } from '../api/email-automation-client'
+import { planningApi } from '../api/planning-client'
+import type { PlanningWorkspace } from '../api/planning-schemas'
 import type {
   EmailAutomationClarification,
   InboundCampaignEmail,
@@ -9,15 +12,16 @@ import type {
   InboundMailbox,
   InboundMailboxInput,
 } from '../api/email-automation-schemas'
-import type { CurrentUser } from '../api/schemas'
+import type { CampaignBrief, CurrentUser } from '../api/schemas'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
+import { CampaignModeBinding } from '../campaign-flow/CampaignFlowBindings'
 import { LoadingState, MessageState } from '../components/PageState'
-import { InboxMessageDetail } from '../email-automation/InboxMessageDetail'
 import { InboxMessageList } from '../email-automation/InboxMessageList'
 import { MailboxSetupForm } from '../email-automation/MailboxSetupForm'
+import { OohCampaignWorkspace } from '../email-automation/OohCampaignWorkspace'
 import { automationStatusLabel } from '../email-automation/email-automation-presentation'
-import { masterDataCodes, masterDataDefinitions } from '../generated/master-data-codes'
+import { masterDataCodes } from '../generated/master-data-codes'
 import { notifications } from '../notifications/notifications'
 
 export function OohInboxPage() {
@@ -36,7 +40,8 @@ function OohInboxRecord({ tenantId, token }: { tenantId: string; token: string }
     return <MessageState title="Proposal inbox could not be opened" message={inbox.error} />
   }
   if (!inbox.user) return <LoadingState label="Loading the proposal inbox" />
-  return <OohInboxContent inbox={inbox} />
+  return <><CampaignModeBinding mode={masterDataCodes.campaignModes.oohOnly} />
+    <OohInboxContent inbox={inbox} /></>
 }
 
 type InboxState = ReturnType<typeof useOohInbox>
@@ -60,82 +65,55 @@ function OohInboxContent({ inbox }: { inbox: InboxState }) {
 
 function ConnectedInbox({ inbox }: { inbox: InboxState }) {
   return <>
-    <MailboxSummary mailbox={inbox.mailbox!}
-      onEdit={() => inbox.setEditing(true)} onRefresh={inbox.refresh} busy={inbox.busy} />
-    <InboxMetrics messages={inbox.messages} />
-    <div className="ooh-inbox-workspace">
-      <section className="ooh-inbox-list-panel"><div className="ooh-panel-heading">
-        <div><p className="eyebrow">Incoming requests</p><h2>Email activity</h2></div>
-        <span>{inbox.messages.length}</span></div>
-        <InboxMessageList messages={inbox.messages} selectedId={inbox.selectedId}
-          onSelect={inbox.selectMessage} />
-      </section>
-      <section className="ooh-inbox-detail-panel">
-        {inbox.detail
-          ? <InboxMessageDetail detail={inbox.detail} busy={inbox.busy}
-              onRetry={inbox.retrySelected} onReconcile={inbox.reconcileSelected} />
-          : <article className="ooh-detail-empty"><div>↗</div><h2>Select an email</h2>
-              <p>Open a request to see the original Brief, its latest stage and every approved artefact produced.</p></article>}
-      </section>
+    <div className="approved-ooh-toolbar">
+      <div><strong>{inbox.mailbox!.address}</strong>
+        <small>{inbox.messages.length} request{inbox.messages.length === 1 ? '' : 's'}</small>
+        <small>{inbox.mailbox!.autoSendEnabled
+          ? 'Automatic sending on' : 'Automatic sending off'}</small></div>
+      <div><button className="secondary-button" type="button" onClick={() => inbox.setEditing(true)}>Mailbox settings</button>
+        <button className="secondary-button" type="button" disabled={inbox.busy} onClick={() => void inbox.refresh()}>{inbox.busy ? 'Refreshing…' : 'Refresh'}</button></div>
     </div>
+    {inbox.messages.length > 1 && <div className="approved-ooh-switcher">
+      <span>Requests</span><InboxMessageList messages={inbox.messages} selectedId={inbox.selectedId}
+        busy={inbox.busy} onSelect={inbox.selectMessage} />
+    </div>}
+    {inbox.detail
+      ? <OohCampaignWorkspace detail={inbox.detail} brief={inbox.brief}
+          planning={inbox.planning} busy={inbox.busy}
+          onRetry={inbox.retrySelected} onReconcile={inbox.reconcileSelected} />
+      : <article className="ooh-detail-empty"><div>↗</div><h2>Select an email</h2>
+          <p>Open a request to see the original Brief, shortlist and proposal progress.</p></article>}
   </>
-}
-
-function MailboxSummary({ mailbox, onEdit, onRefresh, busy }: {
-  mailbox: InboundMailbox
-  onEdit: () => void
-  onRefresh: () => Promise<void>
-  busy: boolean
-}) {
-  return <article className="ooh-mailbox-summary"><div><p className="eyebrow">Connected mailbox</p>
-    <h2>{mailbox.address}</h2><p>{providerLabel(mailbox.provider)} · {mailbox.allowedSenderDomains.length} allowed sender domain{mailbox.allowedSenderDomains.length === 1 ? '' : 's'}</p></div>
-    <div className="ooh-mailbox-controls"><div className="ooh-mailbox-state">
-      <span>{mailbox.autoSendEnabled ? 'Automatic sending on' : 'Automatic sending paused'}</span>
-      <strong>{mailbox.autoSendEnabled ? 'Ready proposals use provider and mailbox checks' : 'Requests stop before sending'}</strong></div>
-      <button className="text-action" type="button" onClick={onEdit}>Settings</button>
-      <button className="text-action" type="button" disabled={busy}
-        onClick={() => void onRefresh()}>{busy ? 'Refreshing…' : 'Refresh'}</button></div>
-  </article>
-}
-
-function InboxMetrics({ messages }: { messages: InboundCampaignEmail[] }) {
-  const counts = useMemo(() => ({
-    sent: messages.filter(item => item.status === masterDataCodes.emailAutomationStatuses.sent).length,
-    review: messages.filter(item => item.status === masterDataCodes.emailAutomationStatuses.reviewRequired ||
-      item.status === masterDataCodes.emailAutomationStatuses.failed).length,
-    active: messages.filter(item => item.status === masterDataCodes.emailAutomationStatuses.received ||
-      item.status === masterDataCodes.emailAutomationStatuses.processing).length,
-  }), [messages])
-  return <div className="ooh-inbox-metrics" aria-label="Proposal inbox summary">
-    <article><span>Received</span><strong>{messages.length}</strong><small>Visible requests</small></article>
-    <article><span>Proposal sent</span><strong>{counts.sent}</strong><small>Sent automatically</small></article>
-    <article><span>Needs attention</span><strong>{counts.review}</strong><small>Review required</small></article>
-    <article><span>In progress</span><strong>{counts.active}</strong><small>Being prepared</small></article>
-  </div>
 }
 
 function useOohInbox(tenantId: string, token: string) {
   const [mailbox, setMailbox] = useState<InboundMailbox | null>(null)
   const [messages, setMessages] = useState<InboundCampaignEmail[]>([])
   const [detail, setDetail] = useState<InboundEmailDetail | null>(null)
+  const [planning, setPlanning] = useState<PlanningWorkspace | null>(null)
+  const [brief, setBrief] = useState<CampaignBrief | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [user, setUser] = useState<CurrentUser | null>(null)
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const requestVersion = useRef(0)
 
   const load = useCallback(async (preferredId?: string | null) => {
+    const requestId = ++requestVersion.current
     const [currentMailbox, page, profile] = await Promise.all([
       emailAutomationApi.getMailbox(tenantId),
       emailAutomationApi.listMessages(tenantId),
       api.getCurrentUser(),
     ])
-    setMailbox(currentMailbox); setMessages(page.items); setUser(profile.user)
     const id = preferredId && page.items.some(item => item.id === preferredId)
       ? preferredId : page.items[0]?.id ?? null
-    setSelectedId(id)
-    setDetail(id ? await emailAutomationApi.getMessage(tenantId, id) : null)
-    setError(null)
+    const messageDetail = id ? await emailAutomationApi.getMessage(tenantId, id) : null
+    const artifacts = await loadMessageArtifacts(tenantId, messageDetail)
+    if (requestId !== requestVersion.current) return
+    setMailbox(currentMailbox); setMessages(page.items); setUser(profile.user)
+    setSelectedId(id); setDetail(messageDetail)
+    setPlanning(artifacts.planning); setBrief(artifacts.brief); setError(null)
   }, [tenantId])
 
   useInboxInitialLoad(load, setError)
@@ -147,21 +125,13 @@ function useOohInbox(tenantId: string, token: string) {
     finally { setBusy(false) }
   }
 
-  async function configure(configuration: InboundMailboxInput) {
-    await act(async () => {
-      await emailAutomationApi.configureMailbox(
-        tenantId, configuration, token, mailbox)
-      setEditing(false)
-      notifications.success(mailbox
-        ? 'Proposal mailbox settings saved.'
-        : 'The proposal mailbox is connected.')
-    }, null)
-  }
-
-  async function selectMessage(id: string) {
-    setSelectedId(id); setDetail(null); setError(null)
-    try { setDetail(await emailAutomationApi.getMessage(tenantId, id)) }
-    catch (failure) { setError(humanMessage(failure)) }
+  const configure = (configuration: InboundMailboxInput) =>
+    configureMailbox(tenantId, token, mailbox, setEditing, act, configuration)
+  const selectMessage = (id: string) => {
+    const requestId = ++requestVersion.current
+    void selectInboxMessage(tenantId, id, requestId, () => requestVersion.current, {
+      setSelectedId, setDetail, setPlanning, setBrief, setError,
+    })
   }
 
   async function retrySelected(clarifications: EmailAutomationClarification[]) {
@@ -176,8 +146,69 @@ function useOohInbox(tenantId: string, token: string) {
     await act(async () => undefined)
   }
 
-  return { mailbox, messages, detail, selectedId, user, editing, busy, error,
+  return { mailbox, messages, detail, brief, planning, selectedId, user, editing, busy, error,
     setEditing, configure, selectMessage, retrySelected, reconcileSelected, refresh }
+}
+
+type InboxSelectionSetters = {
+  setSelectedId: Dispatch<SetStateAction<string | null>>
+  setDetail: Dispatch<SetStateAction<InboundEmailDetail | null>>
+  setPlanning: Dispatch<SetStateAction<PlanningWorkspace | null>>
+  setBrief: Dispatch<SetStateAction<CampaignBrief | null>>
+  setError: Dispatch<SetStateAction<string | null>>
+}
+
+async function configureMailbox(
+  tenantId: string,
+  token: string,
+  mailbox: InboundMailbox | null,
+  setEditing: Dispatch<SetStateAction<boolean>>,
+  act: InboxActionRunner,
+  configuration: InboundMailboxInput,
+) {
+  await act(async () => {
+    await emailAutomationApi.configureMailbox(tenantId, configuration, token, mailbox)
+    setEditing(false)
+    notifications.success(mailbox
+      ? 'Proposal mailbox settings saved.'
+      : 'The proposal mailbox is connected.')
+  }, null)
+}
+
+async function selectInboxMessage(
+  tenantId: string,
+  id: string,
+  requestId: number,
+  currentRequest: () => number,
+  setters: InboxSelectionSetters,
+) {
+  setters.setSelectedId(id)
+  setters.setDetail(null); setters.setPlanning(null); setters.setBrief(null); setters.setError(null)
+  try {
+    const detail = await emailAutomationApi.getMessage(tenantId, id)
+    if (requestId !== currentRequest()) return
+    setters.setDetail(detail)
+    const artifacts = await loadMessageArtifacts(tenantId, detail)
+    if (requestId !== currentRequest()) return
+    setters.setPlanning(artifacts.planning); setters.setBrief(artifacts.brief)
+  } catch (failure) {
+    if (requestId === currentRequest()) setters.setError(humanMessage(failure))
+  }
+}
+
+async function loadMessageArtifacts(
+  tenantId: string,
+  detail: InboundEmailDetail | null,
+) {
+  const [planning, brief] = await Promise.all([
+    detail?.run.briefVersionId
+      ? planningApi.getWorkspace(tenantId, detail.run.briefVersionId).catch(() => null)
+      : Promise.resolve(null),
+    detail?.run.briefId
+      ? briefApi.get(tenantId, detail.run.briefId).catch(() => null)
+      : Promise.resolve(null),
+  ])
+  return { planning, brief }
 }
 
 type InboxActionRunner = (
@@ -229,8 +260,4 @@ function useInboxInitialLoad(
     }, 0)
     return () => window.clearTimeout(timer)
   }, [load, setError])
-}
-
-function providerLabel(code: string) {
-  return masterDataDefinitions.emailProviders.find(item => item.code === code)?.displayLabel ?? code
 }

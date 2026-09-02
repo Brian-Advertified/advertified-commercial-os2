@@ -9,27 +9,84 @@ import { mediaVisual } from './media-visuals'
 const periodSchema = z.object({ start: z.iso.date(), end: z.iso.date() })
   .refine((value) => value.end >= value.start, { message: 'End date must be after start date.' })
 
-export function MediaMixEditor({ mix, busy, onSave, onApprove, onRevise }: {
+type MediaMixEditorProps = {
   mix: MediaMix
+  allowedChannels: string[]
   busy: boolean
   onSave: (allocations: MediaAllocation[]) => Promise<void>
   onApprove: () => Promise<void>
   onRevise: () => Promise<void>
-}) {
+}
+
+export function MediaMixEditor(props: MediaMixEditorProps) {
+  const draft = useMediaMixDraft(props)
+  const editable = props.mix.status === masterDataCodes.lifecycleStatuses.draft
+  return <section className="planning-section" aria-labelledby="media-mix-title">
+    <div className="planning-section-heading"><div><p className="eyebrow">Media mix</p>
+      <h2 id="media-mix-title">Shape the investment and timing</h2>
+      <p>Add or remove permitted media types, then reconcile each budget, role and running period before confirming the mix.</p></div>
+      <BudgetTotal allocated={draft.allocated} total={props.mix.totalBudgetMinor}
+        currency={props.mix.currency} /></div>
+    <AllocationBars allocations={draft.allocations} total={props.mix.totalBudgetMinor}
+      currency={props.mix.currency} />
+    {editable && draft.unusedChannels.length > 0 && <div className="media-channel-picker">
+      <label>Add media type<select value={draft.channelToAdd}
+        onChange={(event) => draft.setChannelToAdd(event.target.value)}>
+        <option value="">Choose a permitted channel</option>
+        {draft.unusedChannels.map(channel =>
+          <option key={channel} value={channel}>{channel}</option>)}
+      </select></label>
+      <button className="secondary-button" type="button" disabled={!draft.channelToAdd}
+        onClick={draft.addChannel}>Add media type</button>
+    </div>}
+    <div className="media-allocation-grid">{draft.allocations.map((allocation, index) =>
+      <AllocationCard key={allocation.channel} allocation={allocation}
+        currency={props.mix.currency} editable={editable}
+        canRemove={draft.allocations.length > 1}
+        onRemove={() => draft.removeChannel(index)}
+        onChange={(patch) => draft.update(index, patch)} />)}</div>
+    {draft.error && <p className="inline-alert" role="alert">{draft.error}</p>}
+    {editable ? <div className="planning-actions">
+      <button className="secondary-button" type="button" disabled={props.busy}
+        onClick={() => void draft.save()}>
+        {props.busy ? 'Saving…' : 'Save changes'}</button>
+      <button className="primary-button" type="button"
+        disabled={props.busy || !draft.balanced || !draft.scheduled}
+        onClick={() => void props.onApprove()}>Confirm media mix</button>
+    </div> : <div className="planning-confirmed"><span>Media mix confirmed.</span>
+      <button className="secondary-button" type="button" disabled={props.busy}
+        onClick={() => void props.onRevise()}>Revise media mix</button></div>}
+  </section>
+}
+
+function useMediaMixDraft({ mix, allowedChannels, onSave }: MediaMixEditorProps) {
   const [allocations, setAllocations] = useState<MediaAllocation[]>(mix.allocations)
+  const [channelToAdd, setChannelToAdd] = useState('')
   const [error, setError] = useState<string | null>(null)
   const allocated = useMemo(
     () => allocations.reduce((sum, item) => sum + item.budgetMinor, 0), [allocations])
   const balanced = allocated === mix.totalBudgetMinor
   const scheduled = allocations.every(item => item.runningPeriods.length > 0 &&
     item.runningPeriods.every(period => periodSchema.safeParse(period).success))
-  const editable = mix.status === masterDataCodes.lifecycleStatuses.draft
+  const unusedChannels = allowedChannels.filter(channel =>
+    !allocations.some(item => item.channel === channel))
 
   function update(index: number, patch: Partial<MediaAllocation>) {
     setAllocations(current => current.map((item, itemIndex) =>
       itemIndex === index ? { ...item, ...patch } : item))
   }
-
+  function addChannel() {
+    if (!channelToAdd || !unusedChannels.includes(channelToAdd)) return
+    const periods = allocations[0]?.runningPeriods.map(period => ({ ...period })) ?? []
+    setAllocations(current => [...current, {
+      channel: channelToAdd, budgetMinor: 0, role: 'Supporting channel',
+      runningPeriods: periods.length > 0 ? periods : [{ start: '', end: '' }],
+    }])
+    setChannelToAdd('')
+  }
+  function removeChannel(index: number) {
+    setAllocations(current => current.filter((_, itemIndex) => itemIndex !== index))
+  }
   async function save() {
     setError(null)
     if (!balanced) { setError('Channel allocations must add up to the planning budget.'); return }
@@ -38,26 +95,8 @@ export function MediaMixEditor({ mix, busy, onSave, onApprove, onRevise }: {
       setError(failure instanceof Error ? failure.message : 'The media mix could not be saved.')
     }
   }
-
-  return <section className="planning-section" aria-labelledby="media-mix-title">
-    <div className="planning-section-heading"><div><p className="eyebrow">Media mix</p>
-      <h2 id="media-mix-title">Shape the investment and timing</h2>
-      <p>Change the budget, role and running periods for each media type before you confirm the mix.</p></div>
-      <BudgetTotal allocated={allocated} total={mix.totalBudgetMinor} currency={mix.currency} /></div>
-    <AllocationBars allocations={allocations} total={mix.totalBudgetMinor} currency={mix.currency} />
-    <div className="media-allocation-grid">{allocations.map((allocation, index) =>
-      <AllocationCard key={allocation.channel} allocation={allocation} currency={mix.currency}
-        editable={editable} onChange={(patch) => update(index, patch)} />)}</div>
-    {error && <p className="inline-alert" role="alert">{error}</p>}
-    {editable ? <div className="planning-actions">
-      <button className="secondary-button" type="button" disabled={busy} onClick={() => void save()}>
-        {busy ? 'Saving…' : 'Save changes'}</button>
-      <button className="primary-button" type="button" disabled={busy || !balanced || !scheduled}
-        onClick={() => void onApprove()}>Confirm media mix</button>
-    </div> : <div className="planning-confirmed"><span>Media mix confirmed.</span>
-      <button className="secondary-button" type="button" disabled={busy}
-        onClick={() => void onRevise()}>Revise media mix</button></div>}
-  </section>
+  return { allocations, channelToAdd, setChannelToAdd, error, allocated, balanced,
+    scheduled, unusedChannels, update, addChannel, removeChannel, save }
 }
 
 function AllocationBars({ allocations, total, currency }: {
@@ -78,10 +117,19 @@ function AllocationBars({ allocations, total, currency }: {
   </div>
 }
 
-function AllocationCard({ allocation, currency, editable, onChange }: {
+function AllocationCard({
+  allocation,
+  currency,
+  editable,
+  canRemove,
+  onRemove,
+  onChange,
+}: {
   allocation: MediaAllocation
   currency: string
   editable: boolean
+  canRemove: boolean
+  onRemove: () => void
   onChange: (patch: Partial<MediaAllocation>) => void
 }) {
   const visual = mediaVisual(allocation.channel)
@@ -91,7 +139,10 @@ function AllocationCard({ allocation, currency, editable, onChange }: {
   }
   return <article className={`media-allocation-card media-tone-${visual.tone}`}>
     <header><div className="media-identity"><MediaTypeIcon channel={allocation.channel} />
-      <div><h3>{visual.label}</h3><small>{allocation.channel}</small></div></div></header>
+      <div><h3>{visual.label}</h3><small>{allocation.channel}</small></div></div>
+      {editable && canRemove && <button className="text-action" type="button"
+        aria-label={`Remove ${visual.label} from media mix`}
+        onClick={onRemove}>Remove</button>}</header>
     <label>Budget <span>{currency}</span><input type="number" min="0" step="any"
       disabled={!editable} value={minorAmountToInput(allocation.budgetMinor, currency)}
       onChange={(event) => onChange({

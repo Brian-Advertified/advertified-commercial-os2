@@ -1,4 +1,5 @@
 using Advertified.Commercial.Application.Commands;
+using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
@@ -23,7 +24,11 @@ public sealed partial class ProposalCommands
                 item.ProductVersionId != line.ProductVersionId ||
                 item.RateId != line.RateId ||
                 item.AvailabilityId != line.AvailabilityId ||
-                item.MarketplaceListingVersionId != line.MarketplaceListingVersionId))
+                item.MarketplaceListingVersionId != line.MarketplaceListingVersionId ||
+                !InventoryAvailabilityPolicy.IsAvailable(
+                    item, line.RunningPeriods.Select(period =>
+                        new MediaRunningPeriodView(
+                            period.Start, period.End)).ToArray())))
         {
             throw new ProposalStaleException();
         }

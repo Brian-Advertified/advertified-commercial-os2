@@ -6,6 +6,7 @@ import { deliveryProofInputSchema } from '../api/campaign-schemas'
 import { humanMessage } from '../api/client'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
+import { CampaignFlowBinding } from '../campaign-flow/CampaignFlowBindings'
 import { deliveryProofSubmitterRoles } from '../campaign/campaign-roles'
 import { Icon } from '../components/Icon'
 import { LoadingState, MessageState } from '../components/PageState'
@@ -61,7 +62,8 @@ function ProofSubmissionForm({ tenantId, token, campaignId, bookingId }: {
     } catch (failure) { setError(humanMessage(failure)) }
     finally { setBusy(false) }
   }
-  return <section className="proof-submission-page" aria-labelledby="proof-submit-title">
+  return <><CampaignFlowBinding tenantId={tenantId} campaignId={campaignId} />
+  <section className="proof-submission-page" aria-labelledby="proof-submit-title">
     <ProofSubmissionHeader />
     <form className="proof-submission-form" onSubmit={submit}>
       {error && <p className="inline-alert" role="alert">{error}</p>}
@@ -74,7 +76,7 @@ function ProofSubmissionForm({ tenantId, token, campaignId, bookingId }: {
       <footer><span><Icon name="shield" /> The stored hash proves file integrity after submission, not the truthfulness of the capture.</span>
         <button className="primary-button" disabled={busy}>{busy ? 'Submitting proof…' : 'Submit delivery proof'}</button></footer>
     </form>
-  </section>
+  </section></>
 }
 
 function ProofSubmissionHeader() {

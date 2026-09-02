@@ -5,12 +5,14 @@ import {
   proposalApproversSchema,
   proposalRecipientsSchema,
   proposalSchema,
+  proposalSummariesSchema,
   type ApprovedPlanChoice,
   type Proposal,
   type ProposalApprover,
   type ProposalDraftInput,
   type ProposalOption,
   type ProposalRecipient,
+  type ProposalSummary,
 } from './proposal-schemas'
 
 async function create<T>(path: string, schema: ZodType<T>, body: unknown, token: string): Promise<T> {
@@ -42,6 +44,13 @@ async function mutate<T>(
 }
 
 export const proposalApi = {
+  async list(tenantId: string): Promise<ProposalSummary[]> {
+    return (await request(
+      `/api/v1/tenants/${tenantId}/proposals`,
+      proposalSummariesSchema,
+    )).data
+  },
+
   async listApprovedPlans(tenantId: string, briefId: string): Promise<ApprovedPlanChoice[]> {
     return (await request(
       `/api/v1/tenants/${tenantId}/briefs/${briefId}/approved-plans`,
@@ -172,6 +181,26 @@ export const proposalApi = {
       `/api/v1/tenants/${tenantId}/proposal-versions/${proposal.id}:share`,
       proposalSchema,
       { recipientUserId, reason: 'Share the approved proposal for the client decision.' },
+      token,
+      proposal.version,
+    )
+  },
+
+  recordExternalDecision(
+    tenantId: string,
+    proposal: Proposal,
+    input: {
+      optionId: string | null
+      declined: boolean
+      evidenceReference: string
+      reason: string | null
+    },
+    token: string,
+  ): Promise<Proposal> {
+    return mutate(
+      `/api/v1/tenants/${tenantId}/proposal-versions/${proposal.id}:record-external-decision`,
+      proposalSchema,
+      input,
       token,
       proposal.version,
     )

@@ -6,6 +6,7 @@ using Advertified.Commercial.Domain.Constants;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.Foundation;
+using Advertified.Commercial.Infrastructure.CommercialSettings;
 
 namespace Advertified.Commercial.Infrastructure.Planning;
 
@@ -15,6 +16,7 @@ public sealed partial class PlanningCommands(
     TimeProvider timeProvider,
     PlanningPolicy planningPolicy,
     CampaignModePolicy campaignModePolicy,
+    CommercialPolicyRecordStore commercialPolicyStore,
     IPlanningAgentClient planningAgent) : IPlanningCommands
 {
     private static readonly JsonSerializerOptions StoredJson = new(JsonSerializerDefaults.Web);

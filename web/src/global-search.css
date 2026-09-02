@@ -1,0 +1,30 @@
+.approved-global-search {
+  box-sizing: border-box;
+}
+
+.approved-global-search-submit {
+  width: 22px;
+  height: 30px;
+  display: grid;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.approved-global-search-submit:hover,
+.approved-global-search-submit:focus-visible {
+  color: var(--approved-purple);
+  background: var(--approved-purple-soft);
+  outline: none;
+}
+
+.approved-search-summary {
+  margin: 0 0 10px;
+  color: var(--approved-muted);
+  font-size: var(--ui-font-sm);
+}

@@ -107,5 +107,10 @@ function valuesFrom(form: FormData, original: InventoryValues): InventoryValues 
     productType: text('productType'), geography: text('geography'), address: text('address'),
     latitude: number('latitude'), longitude: number('longitude'), rateType: text('rateType'),
     currency: text('currency'), rateAmountMinor: number('rateAmountMinor'),
-    availability: text('availability'), extension: original.extension }
+    availability: text('availability'), extension: original.extension,
+    audienceProfile: original.audienceProfile, description: original.description,
+    supplierCommercial: original.supplierCommercial,
+    supplierContacts: original.supplierContacts,
+    commercialTerms: original.commercialTerms, deliverable: original.deliverable,
+    spatial: original.spatial, package: original.package }
 }

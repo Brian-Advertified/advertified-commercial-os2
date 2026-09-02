@@ -3,10 +3,17 @@ import { request } from './client'
 import { inventoryCodes, type InventoryDecision } from './inventory-constants'
 import {
   inventoryBenchmarkSchema,
+  inventoryAssetRightsReviewSchema,
+  inventoryAssetSchema,
+  inventoryAvailabilityExceptionSchema,
+  inventoryDuplicateCandidateSchema,
+  inventoryDuplicateCandidatesSchema,
+  inventoryEmbeddingSchema,
   inventoryCandidateSchema,
   inventoryImportSchema,
   inventoryProductPageSchema,
   inventoryProductSchema,
+  inventorySemanticRecallsSchema,
   type InventoryImport,
   type InventoryProductPage,
   type InventoryValues,
@@ -53,6 +60,27 @@ export const inventoryApi = {
       `/api/v1/tenants/${tenantId}/inventory-imports/${importId}?${query}`,
       inventoryImportSchema,
     )).data
+  },
+
+  async uploadAsset(
+    tenantId: string,
+    productId: string,
+    productVersionId: string,
+    productVersion: number,
+    assetType: string,
+    source: File,
+    token: string,
+  ) {
+    const body = new FormData()
+    body.set('productVersionId', productVersionId)
+    body.set('assetType', assetType)
+    body.set('source', source)
+    return (await request(
+      `/api/v1/tenants/${tenantId}/inventory-products/${productId}/assets`,
+      inventoryAssetSchema, { method: 'POST', body }, {
+        antiforgeryToken: token, expectedVersion: productVersion,
+        idempotencyKey: crypto.randomUUID(),
+      })).data
   },
 
   execute(tenantId: string, record: InventoryImport, token: string) {
@@ -113,5 +141,93 @@ export const inventoryApi = {
       `/api/v1/tenants/${tenantId}/inventory-products/${productId}/benchmark`,
       inventoryBenchmarkSchema,
     )).data
+  },
+
+  reviewAssetRights(
+    tenantId: string,
+    assetId: string,
+    version: number,
+    input: { rightsStatus: string; rightsBasis: string | null; licensedUntil: string | null
+      scopeCodes: string[]; territoryCode: string; effectiveOn: string | null
+      untilRevoked: boolean; attestorRole: string; evidenceReference: string
+      evidenceHash: string },
+    token: string,
+  ) {
+    return command(
+      `/api/v1/tenants/${tenantId}/inventory-assets/${assetId}:review-rights`,
+      inventoryAssetRightsReviewSchema, input, token, version)
+  },
+
+  recordAvailabilityException(
+    tenantId: string,
+    productId: string,
+    version: number,
+    input: { productVersionId: string; exceptionType: string; startsOn: string
+      endsOn: string; sourceLocator: string; evidenceHash: string },
+    token: string,
+  ) {
+    return command(
+      `/api/v1/tenants/${tenantId}/inventory-products/${productId}/availability-exceptions`,
+      inventoryAvailabilityExceptionSchema, input, token, version)
+  },
+
+  async semanticRecall(tenantId: string, productId: string) {
+    return (await request(
+      `/api/v1/tenants/${tenantId}/inventory-products/${productId}/semantic-recall?limit=10`,
+      inventorySemanticRecallsSchema,
+    )).data
+  },
+
+  submitEmbedding(
+    tenantId: string,
+    productId: string,
+    productVersionId: string,
+    productVersion: number,
+    forceBackfill: boolean,
+    token: string,
+  ) {
+    return command(
+      `/api/v1/tenants/${tenantId}/inventory-products/${productId}/embedding`,
+      inventoryEmbeddingSchema, { productVersionId, forceBackfill },
+      token, productVersion)
+  },
+
+  nominateSemanticDuplicate(
+    tenantId: string,
+    productId: string,
+    version: number,
+    input: {
+      productVersionId: string
+      peerProductId: string
+      peerProductVersionId: string
+      reason: string
+    },
+    token: string,
+  ) {
+    return command(
+      `/api/v1/tenants/${tenantId}/inventory-products/${productId}/semantic-duplicate-candidates`,
+      inventoryDuplicateCandidateSchema, input, token, version)
+  },
+
+  async listDuplicateCandidates(
+    tenantId: string,
+    status = inventoryCodes.duplicateStatus.open,
+  ) {
+    return (await request(
+      `/api/v1/tenants/${tenantId}/inventory-duplicate-candidates?status=${encodeURIComponent(status)}`,
+      inventoryDuplicateCandidatesSchema,
+    )).data
+  },
+
+  reviewDuplicate(
+    tenantId: string,
+    candidateId: string,
+    version: number,
+    input: { decision: string; canonicalProductId: string | null; reason: string },
+    token: string,
+  ) {
+    return command(
+      `/api/v1/tenants/${tenantId}/inventory-duplicate-candidates/${candidateId}:review`,
+      inventoryDuplicateCandidateSchema, input, token, version)
   },
 }

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import math
 import os
-from decimal import Decimal, ROUND_CEILING, ROUND_FLOOR
+from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from typing import Generic, TypeVar
 
 from botocore.config import Config

@@ -11,6 +11,21 @@ public sealed class PlanningReader(
     CampaignModePolicy campaignModePolicy,
     ITenantAuthorizer authorizer) : IPlanningReader
 {
+    public async Task<IReadOnlyList<PlanningSummaryView>> ListAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        CancellationToken cancellationToken)
+    {
+        await EnsureAllowedAsync(actorId, tenantId, cancellationToken);
+        await using var transaction = await store.BeginSessionAsync(
+            actorId, tenantId, cancellationToken);
+        var rows = await store.ListPlanningAsync(tenantId, actorId.Value, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return rows.Select(row => new PlanningSummaryView(
+            row.BriefId, row.BriefVersionId, row.ClientName, row.BriefTitle,
+            row.AudienceStatus, row.MediaMixStatus, row.MediaPlanStatus, row.UpdatedAtUtc)).ToArray();
+    }
+
     public async Task<PlanningWorkspaceView> GetWorkspaceAsync(
         ActorId actorId,
         TenantId tenantId,

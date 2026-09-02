@@ -18,6 +18,7 @@ public sealed record SuppliedBriefAgentPolicy(
     string[] MediaLabels,
     string[] MeasurementLabels,
     string[] ConstraintLabels,
+    string[] ScopeClarificationTerms,
     IReadOnlyList<BriefCurrencyPolicy> ActiveCurrencies,
     string DefaultCurrency,
     decimal MinimumModeConfidence)
@@ -67,6 +68,7 @@ public sealed record SuppliedBriefAgentPolicy(
             ReadStringArray(root, "mediaLabels"),
             ReadStringArray(root, "measurementLabels"),
             ReadStringArray(root, "constraintLabels"),
+            ReadStringArray(root, "scopeClarificationTerms"),
             currencies,
             root.GetProperty("defaultCurrency").GetString()
                 ?? throw new InvalidOperationException("The default Brief currency is missing."),
@@ -97,6 +99,7 @@ public sealed record SuppliedBriefAgentPolicy(
             policy.FullCampaignTerms.Length == 0 || policy.ClientLabels.Length == 0 ||
             policy.ObjectiveLabels.Length == 0 || policy.AudienceLabels.Length == 0 ||
             policy.GeographyLabels.Length == 0 || policy.TimingLabels.Length == 0 ||
+            policy.ScopeClarificationTerms.Length == 0 ||
             policy.MinimumModeConfidence is <= 0 or > 1 ||
             policy.ActiveCurrencies.Count == 0 ||
             policy.ActiveCurrencies.Any(currency =>

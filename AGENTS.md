@@ -33,6 +33,7 @@ Live or paid AI/provider calls are forbidden during redevelopment. `AWS_BEDROCK_
 
 - Web: React 19.2.0, TypeScript, and Vite.
 - Canonical commercial API: C# 14 on .NET 10.
+- .NET repository execution is Docker-pinned to SDK `10.0.400`. All Advertified `.NET` restore/build/test/publish commands must run through the repository Docker build/test path that uses that pinned SDK. Do not invoke the Windows host `dotnet` SDK as a fallback or pre-check; the host SDK version is not part of the Advertified toolchain and must not cause repeated failed build attempts or status noise.
 - Agent runtime: Python 3.12-compatible FastAPI.
 - Database: PostgreSQL 16 with PostGIS and pgvector.
 - Local object storage: an S3-compatible service.
@@ -74,6 +75,8 @@ No magic domain strings or unexplained numbers in application logic. Lifecycle s
 - validation that definitions and seed records agree.
 
 Constants are acceptable only for technical protocol values local to one boundary. User-facing wording belongs in content resources. Secrets belong in secret stores or ignored local environment files, never source control.
+
+UI navigation must follow `ADVERTIFIED.md` exactly. Never point a visible menu item, button, tab or step to an unrelated existing route as a placeholder. Global navigation, workflow progress indicators and page-local section navigation are distinct concepts. If a required destination does not exist, implement the correct destination or leave the control unavailable; do not fake navigation.
 
 ## 5. Commercial and AI safety
 

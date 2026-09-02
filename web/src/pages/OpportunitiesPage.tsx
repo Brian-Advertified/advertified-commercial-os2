@@ -77,20 +77,20 @@ function OpportunityIndexContent({ items, clients, error, creating, create }: {
   create: (values: FormData) => Promise<void>
 }) {
   return (
-    <section className="operations-page" aria-labelledby="opportunities-title">
-      <header className="operations-command-header">
+    <section className="approved-opportunity-page" aria-labelledby="opportunities-title">
+      <header className="approved-work-index-header">
         <div><p className="eyebrow">Evidence-led qualification</p>
           <h1 id="opportunities-title">Opportunities</h1>
-          <p>Qualify a commercial opening against retained sources and named human decisions.</p></div>
-        <Link className="secondary-button" to="/briefs/new">New supplied Brief</Link>
+          <p>Develop a real commercial opening from retained evidence before it becomes a campaign Brief.</p></div>
+        <Link className="primary-button" to="/briefs/new">+ New supplied Brief</Link>
       </header>
-      <dl className="operations-context-strip" aria-label="Opportunity context">
-        <Metric label="Visible records" value={String(items.length)} />
-        <Metric label="Client accounts" value={String(clients.length)} />
-        <Metric label="Qualification path" value="Evidence → strategy" />
+      <dl className="approved-opportunity-metrics" aria-label="Opportunity context">
+        <Metric label="Visible opportunities" value={String(items.length)} note="Current workspace" />
+        <Metric label="Client accounts" value={String(clients.length)} note="Available to this workspace" />
+        <Metric label="Qualification path" value="Evidence → Strategy" note="Before the Campaign Brief" />
       </dl>
       {error && <p className="inline-alert" role="alert">{error}</p>}
-      <div className="operations-split-workspace operations-opportunity-index">
+      <div className="approved-opportunity-layout">
         <OpportunityTable items={items} clients={clients} />
         <CreateOpportunityForm clients={clients} creating={creating} create={create} />
       </div>
@@ -98,18 +98,18 @@ function OpportunityIndexContent({ items, clients, error, creating, create }: {
   )
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return <div><dt>{label}</dt><dd>{value}</dd></div>
+function Metric({ label, value, note }: { label: string; value: string; note: string }) {
+  return <div><dt>{label}</dt><dd>{value}</dd><small>{note}</small></div>
 }
 
 function OpportunityTable({ items, clients }: { items: Opportunity[]; clients: ClientAccount[] }) {
   const clientNames = new Map(clients.map((client) => [client.id, client.tradingName]))
-  return <section className="operations-panel" aria-labelledby="opportunity-register-title">
-    <header className="operations-panel-header"><div><p className="eyebrow">Qualification register</p>
-      <h2 id="opportunity-register-title">Current opportunities</h2></div>
-      <span>{items.length} visible</span></header>
-    {items.length === 0 ? <div className="operations-empty-row">
-      <strong>No opportunities yet</strong><p>Create the first qualification record.</p>
+  return <section className="approved-panel approved-opportunity-list" aria-labelledby="opportunity-register-title">
+    <header><div><h2 id="opportunity-register-title">Current opportunities</h2>
+      <p>Evidence-led commercial work that has not yet become a campaign Brief.</p></div>
+      <span className="status-chip">{items.length} visible</span></header>
+    {items.length === 0 ? <div className="approved-work-index-empty">
+      <strong>No opportunities yet</strong><p>Create one only when there is a real commercial opening to qualify.</p>
     </div> : <div className="operations-table-scroll"><table className="operations-table">
       <thead><tr><th>Opportunity</th><th>Client</th><th>Stage</th><th>Updated</th><th><span className="sr-only">Open</span></th></tr></thead>
       <tbody>{items.map((item) => <tr key={item.id}>
@@ -130,10 +130,10 @@ function CreateOpportunityForm({ clients, creating, create }: {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); void create(new FormData(event.currentTarget))
   }
-  return <aside className="operations-side-panel">
-    <header><p className="eyebrow">New discovery</p><h2>Create opportunity</h2>
-      <p>Discovery is tied to a registered client account so ownership remains explicit.</p></header>
-    <form className="operations-form" onSubmit={submit}>
+  return <aside className="approved-panel approved-opportunity-create">
+    <header><div><h2>Create opportunity</h2>
+      <p>Use this only when there is no supplied Brief yet and a commercial opening needs qualification.</p></div></header>
+    <form className="approved-opportunity-form" onSubmit={submit}>
       <Field label="Title" name="title" required />
       <label className="field-group">Client account<select name="clientId" required defaultValue="">
         <option value="" disabled>Choose a client</option>
@@ -146,7 +146,7 @@ function CreateOpportunityForm({ clients, creating, create }: {
       </button>
       {clients.length === 0 && <small>Create or obtain access to a client account first.</small>}
     </form>
-    <p className="operations-side-note">Already have the client’s Brief? <Link to="/briefs/new">Paste or upload the source directly</Link>; Brief intake does not require a pre-registered client.</p>
+    <p className="approved-opportunity-note">Already have the client’s Brief? <Link to="/briefs/new">Paste or upload the source directly</Link>. A supplied Brief does not need this Opportunity form.</p>
   </aside>
 }
 

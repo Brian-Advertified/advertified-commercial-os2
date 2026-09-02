@@ -31,7 +31,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': 'http://localhost:5000',
+      '/api': process.env.ADVERTIFIED_DEV_API_TARGET ?? 'http://localhost:5097',
     },
   },
 })

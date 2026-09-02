@@ -25,6 +25,8 @@ public sealed class DeterministicPlanningAgentClient : IPlanningAgentClient
                 null,
                 null,
                 null,
+                null,
+                null,
                 classification,
                 ["Do not infer sensitive individual attributes."],
                 input.EvidenceItemIds,
@@ -95,7 +97,7 @@ public sealed class DeterministicPlanningAgentClient : IPlanningAgentClient
             .ToArray();
         return Task.FromResult(new InventoryIntelligenceAgentProposal(
             interpretations,
-            "Each explanation restates governed eligibility and benchmark facts.",
+            "Each explanation restates governed eligibility, audience-fit and benchmark facts.",
             "deterministic",
             "fixture-v1",
             0));
@@ -112,7 +114,7 @@ public sealed class DeterministicPlanningAgentClient : IPlanningAgentClient
         var valid = candidate.IsEligible
             ? candidate.RateAmountMinor.HasValue &&
               !string.IsNullOrWhiteSpace(candidate.Currency) &&
-              candidate.Score.HasValue &&
+              candidate.Score is >= 0 and <= 1 &&
               candidate.RejectionReason is null &&
               candidate.RejectionDetail is null
             : !string.IsNullOrWhiteSpace(candidate.RejectionReason) &&
@@ -122,6 +124,13 @@ public sealed class DeterministicPlanningAgentClient : IPlanningAgentClient
         {
             throw new ArgumentException("The inventory eligibility facts are invalid.");
         }
+        if (candidate.AudienceFit.EvidenceGaps is null ||
+            !ValidAudienceScore(candidate.AudienceFit.LanguageScore) ||
+            !ValidAudienceScore(candidate.AudienceFit.LifeStageScore) ||
+            !ValidAudienceScore(candidate.AudienceFit.LsmSemScore))
+        {
+            throw new ArgumentException("The inventory audience-fit facts are invalid.");
+        }
     }
 
     private static string ExplainInventory(InventoryIntelligenceCandidateInput candidate)
@@ -130,26 +139,51 @@ public sealed class DeterministicPlanningAgentClient : IPlanningAgentClient
         {
             return $"Excluded by governed hard eligibility: {candidate.RejectionDetail}";
         }
+        var audience = ExplainAudienceFit(candidate.AudienceFit);
         var benchmark = candidate.Benchmark;
         if (benchmark is null)
         {
             return $"{candidate.Name} is eligible after governed hard constraints. " +
                 "No deterministic comparative benchmark applies, so selection should rely " +
-                "on the visible rate, supply state and campaign fit.";
+                $"on the visible rate, supply state and campaign fit. {audience}";
         }
         var basis = benchmark.GeographyBasis.Replace('_', ' ').ToLowerInvariant();
         if (benchmark.CohortSize < 2 || !benchmark.MedianMinor.HasValue)
         {
             return $"{candidate.Name} is eligible after governed hard constraints. " +
                 $"The {basis} benchmark has {benchmark.CohortSize} compatible peer(s), " +
-                "which is insufficient for a defensible market-price conclusion.";
+                $"which is insufficient for a defensible market-price conclusion. {audience}";
         }
         var position = benchmark.Position.Replace('_', ' ').ToLowerInvariant();
         var confidence = decimal.ToInt32(decimal.Truncate(benchmark.Confidence * 100));
         return $"{candidate.Name} is eligible after governed hard constraints. Its " +
             $"published rate is {position} across {benchmark.CohortSize} compatible peers " +
-            $"using {basis}; deterministic benchmark confidence is {confidence}%.";
+            $"using {basis}; deterministic benchmark confidence is {confidence}%. {audience}";
     }
+
+    private static string ExplainAudienceFit(InventoryAudienceFitView fit)
+    {
+        if (fit.EvidenceGaps.Count > 0)
+        {
+            return "Audience fit remains unscored because evidence is incomplete: " +
+                string.Join(", ", fit.EvidenceGaps) + ".";
+        }
+        var scores = new[]
+        {
+            ScoreText("language", fit.LanguageScore),
+            ScoreText("life-stage", fit.LifeStageScore),
+            ScoreText("LSM/SEM", fit.LsmSemScore),
+        }.Where(value => value is not null).ToArray();
+        return scores.Length == 0
+            ? "The approved target audiences contain no structured audience dimensions to compare."
+            : "Evidence-backed audience fit: " + string.Join(", ", scores!) + ".";
+    }
+
+    private static string? ScoreText(string dimension, decimal? value) => value.HasValue
+        ? $"{dimension} {decimal.ToInt32(decimal.Truncate(value.Value * 100))}%"
+        : null;
+
+    private static bool ValidAudienceScore(decimal? value) => value is null or >= 0 and <= 1;
 
     private static MediaAllocationProposal[] Allocate(long budget, string[] channels)
     {

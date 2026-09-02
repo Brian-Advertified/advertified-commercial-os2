@@ -111,6 +111,36 @@ public sealed class OpenApiContractTests
         Assert.NotNull(paths["/api/v1/tenants/{tenantId}/inventory-products"]!["get"]);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/inventory-products/{productId}"]!["get"]);
+        var contractSchemas = contract["components"]!["schemas"]!;
+        Assert.NotNull(contractSchemas["InventoryCandidateValues"]!["properties"]!["audienceProfile"]);
+        var inventoryProduct = contractSchemas["InventoryProductView"]!;
+        Assert.NotNull(inventoryProduct["properties"]!["productVersionId"]);
+        Assert.NotNull(inventoryProduct["properties"]!["audienceProfile"]);
+        var reviewAssetRights = paths[
+            "/api/v1/tenants/{tenantId}/inventory-assets/{assetId}:review-rights"]!["post"]!;
+        AssertHeaderParameter(reviewAssetRights["parameters"]!.AsArray(), "If-Match", true);
+        var uploadAsset = paths[
+            "/api/v1/tenants/{tenantId}/inventory-products/{productId}/assets"]!["post"]!;
+        AssertHeaderParameter(uploadAsset["parameters"]!.AsArray(), "If-Match", true);
+        var availabilityException = paths[
+            "/api/v1/tenants/{tenantId}/inventory-products/{productId}/availability-exceptions"]!["post"]!;
+        AssertHeaderParameter(
+            availabilityException["parameters"]!.AsArray(), "If-Match", true);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/inventory-assets/{assetId}/content"]!["get"]);
+        var submitEmbedding = paths[
+            "/api/v1/tenants/{tenantId}/inventory-products/{productId}/embedding"]!["post"]!;
+        AssertHeaderParameter(submitEmbedding["parameters"]!.AsArray(), "If-Match", true);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/inventory-products/{productId}/semantic-recall"]!["get"]);
+        var nominateDuplicate = paths[
+            "/api/v1/tenants/{tenantId}/inventory-products/{productId}/semantic-duplicate-candidates"]!["post"]!;
+        AssertHeaderParameter(nominateDuplicate["parameters"]!.AsArray(), "If-Match", true);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/inventory-duplicate-candidates"]!["get"]);
+        var reviewDuplicate = paths[
+            "/api/v1/tenants/{tenantId}/inventory-duplicate-candidates/{candidateId}:review"]!["post"]!;
+        AssertHeaderParameter(reviewDuplicate["parameters"]!.AsArray(), "If-Match", true);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/proposals/{proposalVersionId}"]!["get"]);
         Assert.NotNull(paths[
@@ -119,11 +149,21 @@ public sealed class OpenApiContractTests
             "/api/v1/tenants/{tenantId}/proposal-versions/{proposalVersionId}:render"]);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/proposal-versions/{proposalVersionId}:share"]);
+        var recordExternalDecision = paths[
+            "/api/v1/tenants/{tenantId}/proposal-versions/{proposalVersionId}:record-external-decision"]!["post"]!;
+        AssertHeaderParameter(
+            recordExternalDecision["parameters"]!.AsArray(), "If-Match", true);
+        var proposalDecision = contract["components"]!["schemas"]!["ProposalDecisionView"]!;
+        Assert.NotNull(proposalDecision["properties"]!["recordedForExternalParty"]);
+        Assert.NotNull(proposalDecision["properties"]!["externalPartyEmail"]);
+        Assert.NotNull(proposalDecision["properties"]!["evidenceReference"]);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/proposal-versions/{proposalVersionId}:select-option"]);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/brief-versions/{briefVersionId}/planning"]!["get"]);
         var planningSchemas = contract["components"]!["schemas"]!;
+        Assert.NotNull(planningSchemas["AudienceDefinitionView"]!["properties"]!["lsmSemTaxonomy"]);
+        Assert.NotNull(planningSchemas["InventoryShortlistCandidateView"]!["properties"]!["audienceFit"]);
         Assert.Null(planningSchemas["MediaPlanVersionView"]!["properties"]!["subtotalMinor"]);
         Assert.Null(planningSchemas["MediaPlanLineView"]!["properties"]!["supplierCostMinor"]);
         Assert.NotNull(paths[

@@ -1,3 +1,5 @@
+using Advertified.Commercial.Application.Inventory;
+
 namespace Advertified.Commercial.Application.Planning;
 
 public sealed record AudienceDefinitionView(
@@ -10,11 +12,14 @@ public sealed record AudienceDefinitionView(
     string? Language,
     string? LifeStage,
     string? LsmSem,
+    string? LsmSemTaxonomy,
+    string? LsmSemTaxonomyVersion,
     string Classification,
     IReadOnlyList<string> Exclusions,
     IReadOnlyList<Guid> EvidenceItemIds,
     decimal Confidence,
-    string Status);
+    string Status,
+    bool LsmSemMandatory = false);
 
 public sealed record AudienceDefinitionSetView(
     Guid Id,
@@ -67,6 +72,58 @@ public sealed record InventoryBenchmarkView(
     decimal Confidence,
     IReadOnlyList<string> Exclusions);
 
+public sealed record InventoryDeliveryMeasurementView(
+    string MetricType,
+    decimal? Value,
+    string? Unit,
+    string? Universe,
+    string? MeasurementSource,
+    string? MeasurementPeriod,
+    string? Methodology,
+    string? Limitations);
+
+public sealed record InventoryAudienceFitView(
+    decimal? LanguageScore,
+    decimal? LifeStageScore,
+    decimal? LsmSemScore,
+    IReadOnlyList<string> EvidenceGaps,
+    string? MeasurementSource = null,
+    string? MeasurementPeriod = null,
+    string? Methodology = null,
+    string? TaxonomyName = null,
+    string? TaxonomyVersion = null,
+    IReadOnlyList<InventoryDeliveryMeasurementView>? DeliveryMeasurements = null,
+    IReadOnlyList<string>? DeliveryEvidenceGaps = null,
+    bool LsmSemMandatory = false);
+
+public sealed record InventoryCommercialReadinessView(
+    string? SupplierVatStatus,
+    string? VatTreatment,
+    IReadOnlyList<string> EvidenceGaps,
+    string? SupplierVatNumber = null);
+
+public sealed record InventorySpatialMatchView(
+    bool HasRequirements,
+    IReadOnlyList<Guid> RequiredRequirementIds,
+    IReadOnlyList<Guid> MatchedRequiredRequirementIds,
+    IReadOnlyList<Guid> PreferredRequirementIds,
+    IReadOnlyList<Guid> MatchedPreferredRequirementIds,
+    IReadOnlyList<Guid> ExcludedRequirementIds,
+    IReadOnlyList<Guid> MatchedExcludedRequirementIds,
+    decimal GeographyScore,
+    IReadOnlyList<string> EvidenceGaps);
+
+public sealed record InventorySuitabilityView(
+    string PolicyVersion,
+    decimal Geography,
+    decimal AudienceContext,
+    decimal ObjectiveFormat,
+    decimal BudgetEfficiency,
+    decimal EvidenceQualityFreshness,
+    decimal PortfolioCoverageDiversity,
+    decimal Total,
+    IReadOnlyList<string> EvidenceGaps);
+
 public sealed record InventoryShortlistCandidateView(
     Guid Id,
     Guid InventoryTenantId,
@@ -84,9 +141,18 @@ public sealed record InventoryShortlistCandidateView(
     string? RejectionReason,
     string? RejectionDetail,
     decimal? Score,
+    InventoryAudienceFitView AudienceFit,
     string? Rationale,
     bool? IsSelected,
-    InventoryBenchmarkView? Benchmark);
+    InventoryBenchmarkView? Benchmark,
+    Guid? LogoAssetId = null,
+    InventoryCommercialReadinessView? CommercialReadiness = null,
+    InventorySupplierCommercialValues? SupplierCommercial = null,
+    InventoryCommercialTermsValues? CommercialTerms = null,
+    InventoryDeliverableValues? Deliverable = null,
+    InventorySpatialValues? Spatial = null,
+    InventorySpatialMatchView? SpatialMatch = null,
+    InventorySuitabilityView? Suitability = null);
 
 public sealed record InventoryShortlistVersionView(
     Guid Id,
@@ -130,7 +196,12 @@ public sealed record MediaPlanLineView(
     string RateFreshness,
     string SupplySource,
     DateTimeOffset? LastConfirmedAtUtc,
-    string SupplyConfidence);
+    string SupplyConfidence,
+    InventorySupplierCommercialValues? SupplierCommercial = null,
+    InventoryCommercialTermsValues? CommercialTerms = null,
+    InventoryDeliverableValues? Deliverable = null,
+    InventorySpatialValues? Spatial = null,
+    Guid? LogoAssetId = null);
 
 public sealed record MediaPlanVersionView(
     Guid Id,
@@ -151,7 +222,18 @@ public sealed record MediaPlanVersionView(
     Guid CreatedBy,
     Guid? ApprovedBy,
     long Version,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    Guid? CommercialPolicyVersionId = null);
+
+public sealed record PlanningSummaryView(
+    Guid BriefId,
+    Guid BriefVersionId,
+    string ClientName,
+    string BriefTitle,
+    string AudienceStatus,
+    string? MediaMixStatus,
+    string? MediaPlanStatus,
+    DateTimeOffset UpdatedAtUtc);
 
 public sealed record PlanningWorkspaceView(
     Guid BriefId,

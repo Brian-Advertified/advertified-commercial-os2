@@ -1,9 +1,7 @@
 using System.Text.RegularExpressions;
 using Advertified.Commercial.Application.Brief;
 using Advertified.Commercial.Domain.MasterData;
-
 namespace Advertified.Commercial.Infrastructure.Brief;
-
 public sealed partial class DeterministicSuppliedBriefAgentClient(
     SuppliedBriefAgentPolicy policy) : ISuppliedBriefAgentClient
 {
@@ -155,60 +153,6 @@ public sealed partial class DeterministicSuppliedBriefAgentClient(
             .ToArray();
     }
 
-    private ModeDecision ResolveMode(
-        string content,
-        string[] channels,
-        Dictionary<string, string> clarifications)
-    {
-        if (clarifications.TryGetValue(ModePath, out var selected))
-        {
-            var normalized = selected.Trim().ToUpperInvariant();
-            if (normalized is MasterDataCodes.CampaignModes.OohOnly or
-                MasterDataCodes.CampaignModes.FullCampaign)
-            {
-                return new ModeDecision(
-                    normalized, 1m,
-                    "The campaign mode was supplied to resolve an unclear requirement.",
-                    MasterDataCodes.EvidenceClassifications.Fact,
-                    selected,
-                    "clarification:brief");
-            }
-        }
-        var normalizedContent = content.ToLowerInvariant();
-        var hasOohSignal = policy.OohTerms.Any(term => ContainsTerm(normalizedContent, term));
-        var hasFullSignal = policy.FullCampaignTerms.Any(term => ContainsTerm(normalizedContent, term)) ||
-            channels.Any(channel => channel is not (
-                MasterDataCodes.Channels.Ooh or MasterDataCodes.Channels.Dooh));
-        if (hasFullSignal)
-        {
-            return new ModeDecision(
-                MasterDataCodes.CampaignModes.FullCampaign,
-                0.95m,
-                "The supplied requirement explicitly includes media beyond OOH/DOOH.",
-                MasterDataCodes.EvidenceClassifications.Inference,
-                FindEvidenceExcerpt(content, policy.FullCampaignTerms),
-                SourceLocator);
-        }
-        if (hasOohSignal || channels.Length > 0 && channels.All(channel => channel is
-                MasterDataCodes.Channels.Ooh or MasterDataCodes.Channels.Dooh))
-        {
-            return new ModeDecision(
-                MasterDataCodes.CampaignModes.OohOnly,
-                0.95m,
-                "The supplied requirement identifies only OOH/DOOH media.",
-                MasterDataCodes.EvidenceClassifications.Inference,
-                FindEvidenceExcerpt(content, policy.OohTerms),
-                SourceLocator);
-        }
-        return new ModeDecision(
-            null,
-            0m,
-            "The supplied requirement does not establish whether media is OOH-only or unrestricted.",
-            MasterDataCodes.EvidenceClassifications.Hypothesis,
-            FirstSentence(content),
-            SourceLocator);
-    }
-
     private SuppliedBriefQuestionView[] BuildQuestions(
         Dictionary<string, ExtractedField> fields,
         ModeDecision mode,
@@ -301,7 +245,8 @@ public sealed partial class DeterministicSuppliedBriefAgentClient(
     private static ExtractedField? ExtractTiming(string content)
     {
         var sentence = Sentences(content).FirstOrDefault(value =>
-            NumericDate().IsMatch(value) || DateRangeCue().IsMatch(value));
+            !ResponseDeadlineCue().IsMatch(value) &&
+            (NumericDate().IsMatch(value) || DateRangeCue().IsMatch(value)));
         return sentence is null ? null : InferredField(sentence, sentence, 0.70m);
     }
 
@@ -313,11 +258,10 @@ public sealed partial class DeterministicSuppliedBriefAgentClient(
 
     private static string? ParseVatStatus(string content)
     {
-        if (Regex.IsMatch(content, "\\b(including|inclusive|incl\\.?)\\s+vat\\b",
-                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
-        {
-            return MasterDataCodes.VatStatuses.Registered;
-        }
+        var options = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
+        if (Regex.IsMatch(content, "\\b(vat[- ]registered|registered\\s+for\\s+vat)\\b", options)) return MasterDataCodes.VatStatuses.Registered;
+        if (Regex.IsMatch(content, "\\b(vat[- ]exempt|exempt\\s+from\\s+vat)\\b", options)) return MasterDataCodes.VatStatuses.Exempt;
+        if (Regex.IsMatch(content, "\\b(vat\\s+not\\s+applicable|no\\s+vat\\s+applies)\\b", options)) return MasterDataCodes.VatStatuses.NotApplicable;
         return null;
     }
 
@@ -367,6 +311,9 @@ public sealed partial class DeterministicSuppliedBriefAgentClient(
 
     [GeneratedRegex(@"\b(from|between|during|by|starting|commencing|until|for\s+\d+\s+(?:day|week|month)s?)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex DateRangeCue();
+
+    [GeneratedRegex(@"\b(deadline|cob|close\s+of\s+business|share\s+(?:avails?|availability)\s+by)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex ResponseDeadlineCue();
 
     [GeneratedRegex(@"(?<=[.!?])\s+|\r?\n+", RegexOptions.CultureInvariant)]
     private static partial Regex SentenceBreak();
