@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.26.0",
-  "effectiveFrom": "2026-09-02",
+  "registryVersion": "2.27.0",
+  "effectiveFrom": "2026-09-03",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
     "channels": [
@@ -276,6 +276,26 @@
       {"code":"OCR","displayLabel":"Optical Character Recognition","isActive":true,"sortOrder":30},
       {"code":"POLICY_DEFAULT","displayLabel":"Governed Policy Default","isActive":true,"sortOrder":40},
       {"code":"HUMAN_EDIT","displayLabel":"Human Edit","isActive":true,"sortOrder":50}
+    ],
+    "inventoryExtractionAttemptStatuses": [
+      {"code":"PENDING","displayLabel":"Pending Submission","isActive":true,"sortOrder":10},
+      {"code":"SUBMITTING","displayLabel":"Submitting to Provider","isActive":true,"sortOrder":20},
+      {"code":"RUNNING","displayLabel":"Provider Task Running","isActive":true,"sortOrder":30},
+      {"code":"COMPLETED","displayLabel":"Extraction Completed","isActive":true,"sortOrder":40},
+      {"code":"FAILED_RETRYABLE","displayLabel":"Retryable Provider Check Failed","isActive":true,"sortOrder":50},
+      {"code":"FAILED_TERMINAL","displayLabel":"Terminal Extraction Failure","isActive":true,"sortOrder":60},
+      {"code":"TIMED_OUT","displayLabel":"Extraction Timed Out","isActive":true,"sortOrder":70},
+      {"code":"RECONCILIATION_REQUIRED","displayLabel":"Extraction Reconciliation Required","isActive":true,"sortOrder":80},
+      {"code":"CANCELLED","displayLabel":"Extraction Cancelled","isActive":true,"sortOrder":90}
+    ],
+    "inventoryExtractionFailureClasses": [
+      {"code":"AMBIGUOUS_SUBMISSION","displayLabel":"Ambiguous Provider Submission","isActive":true,"sortOrder":10},
+      {"code":"PROVIDER_RETRYABLE","displayLabel":"Retryable Provider Failure","isActive":true,"sortOrder":20},
+      {"code":"PROVIDER_TERMINAL","displayLabel":"Terminal Provider Failure","isActive":true,"sortOrder":30},
+      {"code":"INVALID_RESULT","displayLabel":"Invalid Provider Result","isActive":true,"sortOrder":40},
+      {"code":"TIMEOUT","displayLabel":"Task Duration Exceeded","isActive":true,"sortOrder":50},
+      {"code":"CANCELLED_BY_OPERATOR","displayLabel":"Cancelled by Operator","isActive":true,"sortOrder":60},
+      {"code":"SOURCE_UNAVAILABLE","displayLabel":"Protected Source Unavailable","isActive":true,"sortOrder":70}
     ],
     "verificationLevels": [
       {"code":"UNVERIFIED","displayLabel":"Unverified","isActive":true,"sortOrder":10},
@@ -628,7 +648,11 @@
       {"code":"measurement_report.generated","displayLabel":"Measurement Report Generated","isActive":true,"sortOrder":830},
       {"code":"measurement_report.reviewed","displayLabel":"Measurement Report Reviewed","isActive":true,"sortOrder":840},
       {"code":"inventory_availability_exception.recorded","displayLabel":"Inventory Availability Exception Recorded","isActive":true,"sortOrder":850},
-      {"code":"inventory_asset.uploaded","displayLabel":"Inventory Asset Uploaded","isActive":true,"sortOrder":860}
+      {"code":"inventory_asset.uploaded","displayLabel":"Inventory Asset Uploaded","isActive":true,"sortOrder":860},
+      {"code":"inventory_extraction.requested","displayLabel":"Inventory Extraction Requested","isActive":true,"sortOrder":870},
+      {"code":"inventory_extraction.retry_requested","displayLabel":"Inventory Extraction Retry Requested","isActive":true,"sortOrder":880},
+      {"code":"inventory_extraction.cancelled","displayLabel":"Inventory Extraction Cancelled","isActive":true,"sortOrder":890},
+      {"code":"inventory_extraction.reconciled","displayLabel":"Inventory Extraction Reconciled","isActive":true,"sortOrder":900}
     ],
     "commercialEventTypes": [
       {"code":"TenantUpdated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -724,7 +748,11 @@
       {"code":"PerformanceEvidenceSubmitted","displayLabel":"Performance Evidence Submitted","isActive":true,"sortOrder":810},
       {"code":"PerformanceEvidenceReviewed","displayLabel":"Performance Evidence Reviewed","isActive":true,"sortOrder":820},
       {"code":"MeasurementReportGenerated","displayLabel":"Measurement Report Generated","isActive":true,"sortOrder":830},
-      {"code":"MeasurementReportReviewed","displayLabel":"Measurement Report Reviewed","isActive":true,"sortOrder":840}
+      {"code":"MeasurementReportReviewed","displayLabel":"Measurement Report Reviewed","isActive":true,"sortOrder":840},
+      {"code":"InventoryExtractionRequested","displayLabel":"Inventory Extraction Requested","isActive":true,"sortOrder":850},
+      {"code":"InventoryExtractionRetryRequested","displayLabel":"Inventory Extraction Retry Requested","isActive":true,"sortOrder":860},
+      {"code":"InventoryExtractionCancelled","displayLabel":"Inventory Extraction Cancelled","isActive":true,"sortOrder":870},
+      {"code":"InventoryExtractionReconciled","displayLabel":"Inventory Extraction Reconciled","isActive":true,"sortOrder":880}
     ],
     "creativeTextRoles": [
       {"code":"HEADLINE","displayLabel":"Headline","isActive":true,"sortOrder":10},

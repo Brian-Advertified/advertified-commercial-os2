@@ -1,6 +1,7 @@
 .git
 .github
 .artifacts
+artifacts
 .env
 .env.*
 .pytest_cache

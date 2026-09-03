@@ -25,6 +25,60 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- Isolated local workspace for confidential inventory extraction certification. The source
+-- corpus remains outside the repository; every extracted candidate still requires human review.
+INSERT INTO commercial.tenants (
+    id, type_code, legal_name, trading_name, slug, status_code,
+    timezone, currency_code, vat_status_code, vat_number, settings_json,
+    version, created_at_utc, updated_at_utc
+)
+VALUES (
+    '10000000-0000-0000-0000-000000000020', 'PLATFORM',
+    'Advertified Inventory Certification', 'Inventory Certification',
+    'inventory-certification-local', 'ACTIVE', 'Africa/Johannesburg',
+    'ZAR', 'NOT_APPLICABLE', NULL, '{}'::jsonb,
+    1, clock_timestamp(), clock_timestamp()
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO commercial.memberships (
+    id, tenant_id, user_id, role_code, status_code, invited_by,
+    invited_at_utc, accepted_at_utc, version, created_at_utc, updated_at_utc
+)
+VALUES (
+    '10000000-0000-0000-0000-000000000023',
+    '10000000-0000-0000-0000-000000000020',
+    '10000000-0000-0000-0000-000000000001',
+    'platform_admin', 'ACTIVE', NULL,
+    clock_timestamp(), clock_timestamp(), 1, clock_timestamp(), clock_timestamp()
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO commercial.users (
+    id, email, display_name, phone, status_code, mfa_enabled,
+    last_login_at_utc, version, created_at_utc, updated_at_utc
+)
+VALUES (
+    '10000000-0000-0000-0000-000000000021',
+    'inventory.reviewer@advertified.local', 'Local Inventory Reviewer',
+    NULL, 'ACTIVE', false, NULL, 1, clock_timestamp(), clock_timestamp()
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO commercial.memberships (
+    id, tenant_id, user_id, role_code, status_code, invited_by,
+    invited_at_utc, accepted_at_utc, version, created_at_utc, updated_at_utc
+)
+VALUES (
+    '10000000-0000-0000-0000-000000000022',
+    '10000000-0000-0000-0000-000000000020',
+    '10000000-0000-0000-0000-000000000021',
+    'inventory_ops', 'ACTIVE',
+    '10000000-0000-0000-0000-000000000001',
+    clock_timestamp(), clock_timestamp(), 1, clock_timestamp(), clock_timestamp()
+)
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO commercial.memberships (
     id, tenant_id, user_id, role_code, status_code, invited_by,
     invited_at_utc, accepted_at_utc, version, created_at_utc, updated_at_utc

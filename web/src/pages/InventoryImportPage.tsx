@@ -48,6 +48,7 @@ function ImportRecord({ tenantId, importId, canReview }: {
         <div><dt>Updated</dt><dd>{formatDateTime(record.updatedAtUtc)}</dd></div></dl></header>
     <ApprovedImportSteps record={record} />
     {error && <p className="inline-alert" role="alert">{error}</p>}
+    <ExtractionAttemptPanel tenantId={tenantId} record={record} actions={actions} />
     <div className="approved-import-metrics">
       <Metric label="Rows found" value={record.candidateCounts.total} />
       <Metric label="Needs review" value={record.candidateCounts.reviewRequired} tone="warning" />
@@ -60,6 +61,75 @@ function ImportRecord({ tenantId, importId, canReview }: {
     <div id="publication-action"><ImportCompletionActions tenantId={tenantId} record={record}
       model={model} actions={actions} /></div>
   </section>
+}
+
+const retryableExtractionStatuses = new Set<string>([
+  inventoryCodes.extractionStatus.failedTerminal,
+  inventoryCodes.extractionStatus.timedOut,
+  inventoryCodes.extractionStatus.cancelled,
+])
+const cancellableExtractionStatuses = new Set<string>([
+  inventoryCodes.extractionStatus.pending,
+  inventoryCodes.extractionStatus.submitting,
+  inventoryCodes.extractionStatus.running,
+  inventoryCodes.extractionStatus.failedRetryable,
+  inventoryCodes.extractionStatus.reconciliationRequired,
+])
+
+function ExtractionAttemptPanel({ tenantId, record, actions }: {
+  tenantId: string
+  record: InventoryImport
+  actions: ReturnType<typeof useImportActions>
+}) {
+  const [reason, setReason] = useState('')
+  const [externalTaskId, setExternalTaskId] = useState('')
+  const attempt = record.extractionAttempts[0]
+  if (!attempt) return null
+  return <section className="next-action-card" aria-labelledby="extraction-attempt-title">
+    <div><p className="eyebrow">Durable extraction attempt {attempt.attemptNumber}</p>
+      <h2 id="extraction-attempt-title">{humanizeCode(attempt.status, true)}</h2>
+      <p>Provider {attempt.providerName} {attempt.providerVersion} · task {attempt.externalTaskId ?? 'not durably identified'}</p>
+      <p>Last checkpoint {attempt.lastPolledAtUtc ? formatDateTime(attempt.lastPolledAtUtc) : 'not polled'} · {attempt.providerErrorCode ?? attempt.failureClassification ?? 'no recorded failure'}</p>
+      {attempt.reconciliationNotes && <p>{attempt.reconciliationNotes}</p>}
+      <label className="field-group">Operator reason<input value={reason}
+        onChange={event => setReason(event.target.value)} /></label>
+      {attempt.status === inventoryCodes.extractionStatus.reconciliationRequired &&
+        <label className="field-group">
+        Confirmed Docling task ID<input value={externalTaskId}
+          onChange={event => setExternalTaskId(event.target.value)} /></label>}
+    </div><ExtractionAttemptActions tenantId={tenantId} record={record} actions={actions}
+      reason={reason} externalTaskId={externalTaskId} />
+  </section>
+}
+
+function ExtractionAttemptActions({ tenantId, record, actions, reason, externalTaskId }: {
+  tenantId: string
+  record: InventoryImport
+  actions: ReturnType<typeof useImportActions>
+  reason: string
+  externalTaskId: string
+}) {
+  const attempt = record.extractionAttempts[0]
+  if (!attempt) return null
+  const act = (request: (token: string) => Promise<unknown>, message: string) =>
+    void actions.run(request, message)
+  return <div className="button-row">
+      <button className="secondary-button" type="button" onClick={() => void actions.run(
+        async () => record, 'Extraction state refreshed.')}>Refresh</button>
+      {retryableExtractionStatuses.has(attempt.status) && <button className="primary-button"
+        disabled={actions.busy || !reason.trim()} onClick={() => act(token =>
+          inventoryApi.retryExtraction(tenantId, record, token, reason),
+        'A new extraction attempt is queued for the same source.')}>Retry as new attempt</button>}
+      {attempt.status === inventoryCodes.extractionStatus.reconciliationRequired &&
+        <button className="secondary-button"
+        disabled={actions.busy || !reason.trim()} onClick={() => act(token =>
+          inventoryApi.reconcileExtraction(tenantId, record, token, reason,
+            externalTaskId.trim() || null), 'The reconciliation decision is recorded.')}>Reconcile</button>}
+      {cancellableExtractionStatuses.has(attempt.status) && <button className="secondary-button"
+        disabled={actions.busy || !reason.trim()} onClick={() => act(token =>
+          inventoryApi.cancelExtraction(tenantId, record, token, reason),
+        'The extraction attempt is terminal and retained in history.')}>Mark unrecoverable</button>}
+    </div>
 }
 
 function ApprovedImportSteps({ record }: { record: InventoryImport }) {

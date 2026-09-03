@@ -89,6 +89,27 @@ export const inventoryApi = {
       inventoryImportSchema, {}, token, record.version)
   },
 
+  retryExtraction(tenantId: string, record: InventoryImport, token: string, reason: string) {
+    return command(
+      `/api/v1/tenants/${tenantId}/inventory-imports/${record.id}:retry-extraction`,
+      inventoryImportSchema, { reason }, token, record.version)
+  },
+
+  cancelExtraction(tenantId: string, record: InventoryImport, token: string, reason: string) {
+    return command(
+      `/api/v1/tenants/${tenantId}/inventory-imports/${record.id}:cancel-extraction`,
+      inventoryImportSchema, { reason }, token, record.version)
+  },
+
+  reconcileExtraction(
+    tenantId: string, record: InventoryImport, token: string,
+    reason: string, externalTaskId: string | null,
+  ) {
+    return command(
+      `/api/v1/tenants/${tenantId}/inventory-imports/${record.id}:reconcile-extraction`,
+      inventoryImportSchema, { reason, externalTaskId }, token, record.version)
+  },
+
   review(
     tenantId: string,
     candidateId: string,

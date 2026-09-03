@@ -1,7 +1,8 @@
 using System.Net;
-using System.Text;
 using System.Text.Json;
+using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Infrastructure.Inventory;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Xunit;
 
@@ -25,8 +26,10 @@ public sealed partial class InventoryAcceptanceTests
         using var reviewer = reviewerFactory.CreateClient();
         using var other = otherFactory.CreateClient();
 
-        await AssertProtectionBoundariesAsync(importer);
+        var objectStore = importerFactory.Services.GetRequiredService<IInventoryObjectStore>();
+        await AssertProtectionBoundariesAsync(importer, objectStore);
         await AssertWorkflowDocumentClassesAsync(importer);
+        await AssertCanonicalAliasCollisionAsync(importer);
         await AssertCandidatePagingAsync(importer);
         await AssertRejectedBlockingCandidateDoesNotBlockPublicationAsync(importer, reviewer);
         var imported = await CreateAndExecuteAsync(importer, CsvFixture());
@@ -62,35 +65,6 @@ public sealed partial class InventoryAcceptanceTests
             $"/api/v1/tenants/{OtherTenantId}/inventory-imports/{importId}");
         await AssertProblemAsync(crossTenant, HttpStatusCode.Forbidden, "TENANT_FORBIDDEN");
         await AssertImmutableLineageAsync(connectionString, candidateId);
-    }
-
-    private static async Task AssertProtectionBoundariesAsync(HttpClient importer)
-    {
-        var oversizedBytes = new byte[InventoryProtectionOptions.MaximumSupportedSourceBytes + 1];
-        Encoding.UTF8.GetBytes("product_code,name\n").CopyTo(oversizedBytes, 0);
-        var oversized = new FileFixture(
-            "CSV", "oversized.csv", "text/csv", oversizedBytes);
-        using var oversizedResponse = await UploadAsync(
-            importer, "inventory-size-boundary", "Boundary Supplier", oversized);
-        await AssertProblemAsync(
-            oversizedResponse, HttpStatusCode.BadRequest, "VALIDATION_FAILED");
-
-        var mismatch = new FileFixture(
-            "PNG", "not-an-image.csv", "text/csv",
-            [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-        using var mismatchResponse = await UploadAsync(
-            importer, "inventory-type-mismatch", "Boundary Supplier", mismatch);
-        await AssertProblemAsync(mismatchResponse, HttpStatusCode.BadRequest, "VALIDATION_FAILED");
-
-        var unsafeSource = new FileFixture(
-            "CSV", "unsafe.csv", "text/csv", Encoding.ASCII.GetBytes(
-                "product_code,name\nEICAR-STANDARD-ANTIVIRUS-TEST-FILE,unsafe\n"));
-        using var unsafeResponse = await UploadAsync(
-            importer, "inventory-malware", "Boundary Supplier", unsafeSource);
-        using var unsafeJson = await ReadJsonAsync(unsafeResponse);
-        Assert.Equal("FAILED", unsafeJson.RootElement.GetProperty("status").GetString());
-        Assert.Equal("INFECTED", unsafeJson.RootElement.GetProperty("scanStatus").GetString());
-        Assert.Equal("MALWARE_DETECTED", unsafeJson.RootElement.GetProperty("failureCode").GetString());
     }
 
     private static async Task AssertWorkflowDocumentClassesAsync(HttpClient importer)

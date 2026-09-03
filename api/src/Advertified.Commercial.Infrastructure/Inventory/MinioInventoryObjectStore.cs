@@ -58,6 +58,14 @@ public sealed class MinioInventoryObjectStore(
         return destination.ToArray();
     }
 
+    public async Task<bool> ExistsAsync(
+        string objectKey,
+        CancellationToken cancellationToken)
+    {
+        await EnsureBucketAsync(cancellationToken);
+        return await TryStatAsync(objectKey, cancellationToken) is not null;
+    }
+
     private async Task EnsureBucketAsync(CancellationToken cancellationToken)
     {
         if (bucketReady) return;

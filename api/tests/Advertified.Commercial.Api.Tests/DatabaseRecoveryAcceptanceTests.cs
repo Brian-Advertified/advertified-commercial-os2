@@ -23,6 +23,7 @@ public sealed partial class DatabaseRecoveryAcceptanceTests
     private const string Username = "advertified_recovery";
     private const string Password = "advertified-recovery-local-only";
     private const string ArchivePath = "/tmp/advertified-recovery.dump";
+    private const int ExpectedProtectedTableCount = 93;
     private static readonly Guid TenantId =
         Guid.Parse("e1000000-0000-0000-0000-000000000001");
     private static readonly Guid OtherTenantId =
@@ -182,7 +183,7 @@ public sealed partial class DatabaseRecoveryAcceptanceTests
             FROM governance.master_data_collections
             WHERE registry_version = '{MasterDataCodes.RegistryVersion}'
             """));
-        Assert.Equal(92, await CountAsync(connection, """
+        Assert.Equal(ExpectedProtectedTableCount, await CountAsync(connection, """
             SELECT count(*)::integer FROM pg_class item
             JOIN pg_namespace scope ON scope.oid = item.relnamespace
             WHERE scope.nspname = 'commercial' AND item.relrowsecurity

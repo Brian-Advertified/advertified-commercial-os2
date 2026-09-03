@@ -22,6 +22,7 @@ import './brief-workbench.css'
 import './brief-record.css'
 import './inventory-workbench.css'
 import './operations-workbench.css'
+import './agent-operations.css'
 import './approved-ui.css'
 import './approved-workflow.css'
 import './approved-workflow-extensions.css'
@@ -95,6 +96,8 @@ const MarketplacePage = lazy(() => import('./pages/MarketplacePage')
   .then(module => ({ default: module.MarketplacePage })))
 const CommercialPolicyPage = lazy(() => import('./pages/CommercialPolicyPage')
   .then(module => ({ default: module.CommercialPolicyPage })))
+const AgentOperationsPage = lazy(() => import('./pages/AgentOperationsPage')
+  .then(module => ({ default: module.AgentOperationsPage })))
 const BookingsPage = lazy(() => import('./pages/BookingsPage')
   .then(module => ({ default: module.BookingsPage })))
 const FundingPage = lazy(() => import('./pages/FundingPage')
@@ -168,6 +171,7 @@ function App() {
           <Route path="/reports" element={deferredRoute(<ReportsIndexPage />)} />
           <Route path="/measurement-reports/:reportId" element={deferredRoute(<MeasurementReportPage />)} />
           <Route path="/admin/commercial" element={deferredRoute(<CommercialPolicyPage />)} />
+          <Route path="/admin/agents" element={deferredRoute(<AgentOperationsPage />)} />
           <Route path="/profile" element={deferredRoute(<ProfilePage />)} />
           <Route path="/tasks" element={deferredRoute(<TasksPage />)} />
           <Route path="/search" element={deferredRoute(<SearchPage />)} />

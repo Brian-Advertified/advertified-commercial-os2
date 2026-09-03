@@ -33,6 +33,14 @@ public sealed class InMemoryInventoryObjectStore : IInventoryObjectStore
             ? content.ToArray()
             : throw new FileNotFoundException("The protected inventory source was not found."));
     }
+
+    public Task<bool> ExistsAsync(
+        string objectKey,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(objects.ContainsKey(objectKey));
+    }
 }
 
 public sealed class DeterministicInventoryMalwareScanner : IInventoryMalwareScanner

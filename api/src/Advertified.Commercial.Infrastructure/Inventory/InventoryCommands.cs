@@ -15,6 +15,7 @@ public sealed partial class InventoryCommands(
     TimeProvider timeProvider,
     IOptions<InventoryProtectionOptions> protectionOptions,
     IInventoryDocumentExtractionAdapter extractionAdapter,
+    InventoryExtractionAttemptStore extractionAttemptStore,
     IInventoryEmbeddingGenerator embeddingGenerator,
     IOptions<InventoryEmbeddingOptions> embeddingOptionsAccessor,
     InventoryDuplicatePolicy duplicatePolicy) : IInventoryCommands
@@ -40,6 +41,42 @@ public sealed partial class InventoryCommands(
         var receipt = await dispatcher.DispatchAsync(
             envelope, MasterDataReferences.Permissions.InventoryImport,
             token => ExecuteOutcomeAsync(importId, envelope, token), cancellationToken);
+        return CommandOutcomeFactory.ToResult<InventoryImportView>(receipt);
+    }
+
+    public async Task<CommandResult<InventoryImportView>> RetryExtractionAsync(
+        Guid importId,
+        CommandEnvelope<RetryInventoryExtractionCommand> envelope,
+        CancellationToken cancellationToken)
+    {
+        var receipt = await dispatcher.DispatchAsync(
+            envelope, MasterDataReferences.Permissions.InventoryImport,
+            token => RetryExtractionOutcomeAsync(importId, envelope, token),
+            cancellationToken);
+        return CommandOutcomeFactory.ToResult<InventoryImportView>(receipt);
+    }
+
+    public async Task<CommandResult<InventoryImportView>> CancelExtractionAsync(
+        Guid importId,
+        CommandEnvelope<CancelInventoryExtractionCommand> envelope,
+        CancellationToken cancellationToken)
+    {
+        var receipt = await dispatcher.DispatchAsync(
+            envelope, MasterDataReferences.Permissions.InventoryImport,
+            token => CancelExtractionOutcomeAsync(importId, envelope, token),
+            cancellationToken);
+        return CommandOutcomeFactory.ToResult<InventoryImportView>(receipt);
+    }
+
+    public async Task<CommandResult<InventoryImportView>> ReconcileExtractionAsync(
+        Guid importId,
+        CommandEnvelope<ReconcileInventoryExtractionCommand> envelope,
+        CancellationToken cancellationToken)
+    {
+        var receipt = await dispatcher.DispatchAsync(
+            envelope, MasterDataReferences.Permissions.InventoryImport,
+            token => ReconcileExtractionOutcomeAsync(importId, envelope, token),
+            cancellationToken);
         return CommandOutcomeFactory.ToResult<InventoryImportView>(receipt);
     }
 

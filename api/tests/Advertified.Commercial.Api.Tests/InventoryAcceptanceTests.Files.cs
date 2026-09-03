@@ -35,6 +35,11 @@ public sealed partial class InventoryAcceptanceTests
             "PAGE-002,Page Site Two,OOH,Johannesburg,-26.2042,28.0474,MONTH_RATE,ZAR,110000,UNKNOWN\n" +
             "PAGE-003,Page Site Three,OOH,Johannesburg,-26.2043,28.0475,MONTH_RATE,ZAR,120000,UNKNOWN\n"));
 
+    private static FileFixture CanonicalAliasCollisionFixture() => new(
+        "CSV", "canonical-alias-collision.csv", "text/csv", Encoding.UTF8.GetBytes(
+            "product_code,name,product,channel,geography,rate_type,currency,rate_minor\n" +
+            "ALIAS-001,Earlier Name,Accepted Name,OOH,Johannesburg,MONTH_RATE,ZAR,100000\n"));
+
     private static FileFixture RejectedBlockingCandidateFixture() => new(
         "CSV", "mixed-review-sites.csv", "text/csv", Encoding.UTF8.GetBytes(
             "product_code,name,channel,geography,latitude,longitude,rate_type,currency," +

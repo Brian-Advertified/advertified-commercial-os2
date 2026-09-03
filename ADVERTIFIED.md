@@ -1626,10 +1626,11 @@ If those questions cannot be answered, extraction may be technically complete bu
 
 ## 11.21 Extraction release acceptance [Policy]
 
-The confidential internal evaluation corpus contains 41 legitimately supplied documents and
-is not committed to the public repository. Its versioned gold dataset reserves an untouched
-20% holdout set and records source provenance. PDFs, spreadsheets, presentations, scans and
-images are measured separately; an insufficiently represented format remains human-review-
+The confidential internal evaluation corpus contains 43 legitimately supplied documents and
+is not committed to the public repository. Its source manifest reserves an untouched 20% holdout
+set and records source provenance; the independently human-authored versioned gold dataset must
+bind to that manifest. PDFs, spreadsheets, presentations, scans and images are measured
+separately; an insufficiently represented format remains human-review-
 only rather than blocking the entire OOH_ONLY release.
 
 For review-ready documents, release acceptance requires at least 99% critical-field
@@ -1646,6 +1647,31 @@ document, conflicting price/date, unclear currency/VAT treatment, formula withou
 calculated value, or result below an applicable threshold routes to human handling. Initial
 production extraction creates review candidates only; it never publishes or changes canonical
 inventory without the existing approval process.
+
+## 11.22 Durable external extraction orchestration [Policy]
+
+Every external document-extraction submission is represented by a durable, tenant-scoped attempt
+before a provider is contacted. The attempt binds the immutable source version/hash, request and
+correlation identifiers, provider/version, stable submission key, provider task identifier,
+timestamps, polling checkpoint, attempt number, worker lease, provider outcome, failure
+classification, accepted extraction artefact and reconciliation notes. Its governed progression is
+`PENDING -> SUBMITTING -> RUNNING -> COMPLETED`; exceptional states are `FAILED_RETRYABLE`,
+`FAILED_TERMINAL`, `TIMED_OUT`, `RECONCILIATION_REQUIRED` and `CANCELLED`.
+
+A lost or timed-out submission response is ambiguous and never proves that the provider rejected
+the work. `SUBMITTING` work without a durably recoverable provider task identifier moves to
+`RECONCILIATION_REQUIRED` and is never blindly resubmitted. Workers reclaim expired leases only,
+poll the already-recorded task identifier and resume from the last durable checkpoint. Tasks that
+exceed 3,600 seconds stop ordinary polling and remain operator-visible. Retry, cancellation and
+reconciliation require an authorised human command with a retained reason; a new attempt remains
+bound to the same source version and hash, and an older or duplicate result cannot replace the one
+accepted canonical extraction artefact.
+
+The pinned Docling Serve `1.30.0` API exposes task submission, status polling and result retrieval,
+but no documented idempotent submission/client-request-key lookup or task-cancellation operation.
+Advertified therefore guarantees exactly-once canonical extraction acceptance and downstream
+effects. It does not claim exactly-once Docling compute execution when acceptance of a submission
+cannot be proven.
 
 ---
 
@@ -2399,6 +2425,7 @@ Public pages may describe available published inventory and participants, but th
 - Campaign tracking
 - Performance/reporting
 - Team/access
+- Agent operations, current per-run AI cost caps and tenant-attributable AI usage/cost for Agency Admin only
 
 ## 22.4 Supplier
 
@@ -3529,6 +3556,7 @@ Permissions are independent of UI visibility. The Commercial API re-authorises e
 | Creative | internal/agency upload; advertiser brand/legal approval; inventory_ops technical support | assigned | brand/legal approval | supplier technical review own booking | worker processing only |
 | Delivery proof | internal review | assigned view/review | view | supplier submit own booking | ingest worker only |
 | Measurement | internal/agency generate; authorised review | assigned | view/review where configured | own proof facts only | measurement agent proposes interpretation only |
+| Agent operations and AI cost oversight | platform_admin | agency_admin | no | no | runtime/worker write governed usage only; no interactive access |
 
 ## 41.3 Self-approval and independent approval
 
@@ -4068,6 +4096,114 @@ One staging Bedrock embedding smoke test/backfill is authorised up to USD 3 afte
 are configured. Production infrastructure provisioning, an independent security review,
 production provider calls and production deployment remain separate explicit go-live gates and
 are not authorised by this record.
+
+### 49.2.2 Agency-admin Agent Operations visibility work packet — 2026-09-03
+
+The repository owner requires Agency Admin users to see agent budgets and costs in the local
+product. The authorised local work packet is a read-only Agent Operations surface inside the
+governed Settings area. It exposes the closed agent roster, active provider/model policy,
+current per-run cost caps, tenant-attributable recorded AI usage/cost and durable run exceptions.
+It does not authorise budget edits, live provider use or spend. Acceptance evidence is an
+Agency Admin browser journey, tenant/role API authorization checks, deterministic zero-cost
+local state, affected builds/tests and architecture checks.
+
+Retained local evidence on 2026-09-03: `docker build --file api/Dockerfile --target
+build --tag advertified/agent-operations-build:local .` passed on SDK `10.0.400`;
+the pinned-SDK `dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj
+--filter "FullyQualifiedName~AgentOperationsAcceptanceTests|FullyQualifiedName~OpenApiContractTests"`
+run passed 3/3; `npm run type-check`, `npm run lint`, `npm test` and `npm run build`
+passed; the affected Playwright Settings and shell run passed 12/12 across desktop and
+compact projects; and `python -m pytest tests/architecture -q` passed 42/42. An authenticated
+local-stack smoke check returned role `agency_admin`, 11 agents, provider `deterministic`,
+live provider disabled and total recorded cost zero.
+
+### 49.2.3 Confidential inventory corpus ingestion and certification work packet — 2026-09-03
+
+The repository owner supplied a read-only local corpus that was independently enumerated before
+content processing as 43 files totalling 311,080,670 bytes: 33 PDF, eight PPTX and two XLSX
+documents. The authorised local work packet may stream those originals once through the existing
+production inventory-ingestion code path using local Docling and deterministic validation, retain
+hash-addressed extraction artefacts outside version control and Docker build contexts, and reserve
+an untouched deterministic holdout of at least 20%. Expected paid-AI cost is USD 0.00; no live or
+paid provider call is authorised. Every extraction stops at human review and must not be published
+without the existing approval process. Acceptance evidence is an exact source manifest with
+SHA-256 hashes, unchanged-source replay prevention, one retained extraction artefact per processed
+source, full-corpus and held-out evaluator results against independently human-authored gold data,
+affected tests and architecture checks. Until the gold data exists and the held-out thresholds in
+Section 11.21 pass, extraction certification and production readiness remain blocked.
+
+Initial retained local evidence on 2026-09-03: dataset
+`inventory-corpus-2026-09-03-53783bb0a017` records 43 unique SHA-256 source hashes,
+311,080,670 bytes and a deterministic 34-document training / nine-document holdout split;
+cached preparation revalidated file count, size and modification time without rehashing unchanged
+sources. Expected and actual paid-AI cost were USD 0.00. The production API accepted ten
+training imports into ten single protected objects with no clean-file quarantine duplicates; one
+completed local Docling extraction reached `REVIEW_REQUIRED` and has a preserved hash-addressed
+observed artefact. Real-corpus execution exposed an unresolved durability defect: pinned local
+Docling tasks can exceed one hour, while the API does not yet persist the external task identifier
+for recovery after the initiating request ends. Processing stopped with nine imports safely
+`UPLOADED`; the nine-document holdout remained untouched. That initial checkpoint did not prove
+full-corpus extraction or certification. The authorised durability recovery and final corpus
+outcome are recorded in Section 49.2.4; no approval or publication occurred at this checkpoint.
+
+### 49.2.4 Docling extraction durability repair work packet — 2026-09-03
+
+The repository owner classified the interrupted Docling work as a production-blocking durability
+defect and authorised one cohesive local repair batch. No ambiguous task may be restarted,
+resubmitted or duplicated, and the remaining 43-file corpus remains paused until the migration,
+durable task-ID capture, restart/resume, timeout/reconciliation and exactly-once canonical-effect
+guards are proven. The batch adds forward-safe attempt persistence, leased worker orchestration,
+explicit authorised retry/cancel/reconciliation commands and operator-visible attempt history.
+Only focused state-machine and restart/database integration evidence is required in this batch;
+full governed-suite and corpus execution remain later system-candidate work. The existing Docling
+container, Compose project, volumes and read-only source corpus must be reused, and paid AI spend
+remains forbidden.
+
+The owner subsequently authorised terminal reconciliation of the nine pre-durability attempts.
+Each original attempt is retained as `CANCELLED / CANCELLED_BY_OPERATOR / OPERATOR_CANCELLED`,
+with its source hash, created/submitted timestamps and reconciliation/cancellation audit events,
+zero external task identifiers and zero accepted artefacts. The exact retained reason is:
+"Pre-durability Docling attempt has no recoverable external task ID. Provider acceptance and
+cancellation cannot be established. No artifact is accepted. Any late result is permanently
+fenced from canonical state." The ten-minute zero-activity observation is supporting evidence
+only and is not represented as proof that an old provider task never existed. All nine affected
+imports have a fresh later attempt bound to the same source version/hash and a later accepted
+artefact; none is represented as a resumed, successful or provider-cancelled legacy attempt.
+
+Local migrations `202609030042_InventoryExtractionDurability` through
+`202609030047_InventoryCandidatePagingIndex` applied in sequence. Database guards and focused
+tests reject an old, non-running, non-latest, mismatched or lease-less result before it can create
+an artefact, update an import, create/change inventory, consume an accepted-attempt slot or
+overwrite a newer attempt. Restart probes retained provider task identifiers and resumed polling;
+known provider task loss became explicit terminal `task_not_found` evidence before a fresh linked
+attempt was requested. The existing Docling image and project were reused with one worker,
+single-item OCR/layout/table batches, bounded API concurrency of one and no embedded image
+payloads. The previously OOM-affected JCDecaux source completed on fresh attempt 2 without a
+container restart. A real alias-collision result initially rolled back atomically, then completed
+on fresh attempt 2 after canonical value/evidence normalization was repaired.
+
+Final corpus evidence for dataset `inventory-corpus-2026-09-03-53783bb0a017` accounts for all 43
+unchanged sources and all 43 imports at `REVIEW_REQUIRED`: 43 accepted artefacts, 43 distinct
+imports, 43 distinct source hashes, 43 distinct source-version acceptance slots and zero duplicate
+accepted slots. Extraction produced 4,902 review candidates and 4,902 pending human-review tasks;
+zero products were published. The replay check revalidated count, size, modification time and all
+43 retained artefact hashes, then skipped every unchanged successful source. Both full and
+nine-document holdout evaluator invocations stopped with the exact prerequisite failure "The
+corpus must cover PDF, spreadsheet, presentation, scan and image." Governed scan/image labels,
+per-format release modes and independent non-empty gold/observed cell mappings remain unresolved
+human inputs, so extraction certification and production readiness remain blocked without invented
+scores.
+
+The pinned-SDK durability/Docling filter passed 24/24, alias-collision inventory acceptance passed
+2/2, the final full Commercial API suite passed 173/173 on SDK `10.0.400`, corpus-tool tests passed
+10/10 and architecture tests passed 42/42. Web type-check, lint, 6/6 unit tests and production build
+passed; the connected Agency Admin Agent Operations UAT passed 1/1 with 11 visible agents, zero
+recorded cost and paid AI disabled. Both normal and recovery Compose configurations validated, and
+the existing `advertified-dev-web-1` remained healthy on port 3017 after its earlier image-only
+replacement. No second web container, alternate port, full-stack restart or unchanged-image rebuild
+was used. The embedding preflight found two active local products; at two full 8,192-token model
+inputs and USD 0.02 per million input tokens, its conservative ceiling was USD 0.00032768. No
+embedding job or paid-AI call was enabled, and total actual paid-AI cost remained USD 0.00.
 
 ## 49.3 Release evidence
 

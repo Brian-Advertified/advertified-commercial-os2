@@ -54,5 +54,6 @@ internal static class WorkerRegistration
             .ValidateOnStart();
         builder.Services.AddSingleton(new WorkerSchedulerStore(workerConnection));
         builder.Services.AddHostedService<CommercialWorkerService>();
+        builder.Services.AddHostedService<InventoryExtractionDispatcher>();
     }
 }

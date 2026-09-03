@@ -164,6 +164,34 @@ const inventoryStepSchema = z.object({
   completedAtUtc: z.iso.datetime({ offset: true }).nullable(),
 }).strict()
 
+const inventoryExtractionAttemptSchema = z.object({
+  id: z.guid(),
+  tenantId: z.guid(),
+  inventoryImportId: z.guid(),
+  sourceFileVersion: z.number().int().positive(),
+  sourceHash: requiredText,
+  stableSubmissionKey: requiredText,
+  providerName: requiredText,
+  providerVersion: requiredText,
+  status: requiredText,
+  externalTaskId: nullableText,
+  submittedAtUtc: z.iso.datetime({ offset: true }).nullable(),
+  startedAtUtc: z.iso.datetime({ offset: true }).nullable(),
+  lastPolledAtUtc: z.iso.datetime({ offset: true }).nullable(),
+  completedAtUtc: z.iso.datetime({ offset: true }).nullable(),
+  pollingCheckpointJson: requiredText,
+  attemptNumber: z.number().int().positive(),
+  workerId: z.guid().nullable(),
+  workerLeaseExpiresAtUtc: z.iso.datetime({ offset: true }).nullable(),
+  providerResponseCode: nullableText,
+  providerErrorCode: nullableText,
+  failureClassification: nullableText,
+  correlationId: z.guid(),
+  extractedArtifactId: z.guid().nullable(),
+  reconciliationNotes: nullableText,
+  version: z.number().int().positive(),
+}).strict()
+
 export const inventoryImportSchema = z.object({
   id: z.guid(),
   supplierId: z.guid(),
@@ -186,6 +214,7 @@ export const inventoryImportSchema = z.object({
     blocking: z.number().int().nonnegative(),
   }).strict(),
   nextCandidateCursor: z.string().nullable(),
+  extractionAttempts: z.array(inventoryExtractionAttemptSchema),
   version: z.number().int().positive(),
   updatedAtUtc: z.iso.datetime({ offset: true }),
 }).strict()

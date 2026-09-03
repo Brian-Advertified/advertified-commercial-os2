@@ -121,6 +121,7 @@ def test_docker_context_excludes_local_and_generated_state() -> None:
     required = {
         ".git",
         ".artifacts",
+        "artifacts",
         ".env",
         ".env.*",
         "**/.env",

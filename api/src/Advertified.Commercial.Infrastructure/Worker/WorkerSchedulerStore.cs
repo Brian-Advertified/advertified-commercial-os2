@@ -93,6 +93,58 @@ public sealed class WorkerSchedulerStore(string connectionString)
         return result as string ?? EmailWorkerCompletion.Fenced;
     }
 
+    public async Task<InventoryExtractionWorkerClaim?> ClaimInventoryExtractionAsync(
+        Guid workerId,
+        int leaseSeconds,
+        int maxConcurrency,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            """
+            SELECT tenant_id, attempt_id, import_id, source_file_version, source_hash,
+                status_code, stable_submission_key, provider_name, provider_version,
+                external_task_id, submitted_at_utc, started_at_utc, last_polled_at_utc,
+                polling_checkpoint, attempt_number, requested_by, command_id,
+                correlation_id, claim_token
+            FROM commercial.claim_next_inventory_extraction_attempt(
+                @worker_id, @lease_seconds, @max_concurrency)
+            """,
+            connection);
+        command.Parameters.AddWithValue("worker_id", workerId);
+        command.Parameters.AddWithValue("lease_seconds", leaseSeconds);
+        command.Parameters.AddWithValue("max_concurrency", maxConcurrency);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        return await reader.ReadAsync(cancellationToken)
+            ? ReadInventoryExtractionClaim(reader)
+            : null;
+    }
+
+    public async Task<bool> HeartbeatInventoryExtractionAsync(
+        Guid claimToken,
+        int leaseSeconds,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            "SELECT commercial.heartbeat_inventory_extraction_attempt(" +
+            "@claim_token, @lease_seconds)", connection);
+        command.Parameters.AddWithValue("claim_token", claimToken);
+        command.Parameters.AddWithValue("lease_seconds", leaseSeconds);
+        return await command.ExecuteScalarAsync(cancellationToken) is true;
+    }
+
+    private static InventoryExtractionWorkerClaim ReadInventoryExtractionClaim(
+        NpgsqlDataReader reader) => new(
+        reader.GetGuid(0), reader.GetGuid(1), reader.GetGuid(2), reader.GetInt64(3),
+        reader.GetString(4), reader.GetString(5), reader.GetString(6), reader.GetString(7),
+        reader.GetString(8), reader.IsDBNull(9) ? null : reader.GetString(9),
+        reader.IsDBNull(10) ? null : reader.GetFieldValue<DateTimeOffset>(10),
+        reader.IsDBNull(11) ? null : reader.GetFieldValue<DateTimeOffset>(11),
+        reader.IsDBNull(12) ? null : reader.GetFieldValue<DateTimeOffset>(12),
+        reader.GetString(13), reader.GetInt32(14), reader.GetGuid(15), reader.GetGuid(16),
+        reader.GetGuid(17), reader.GetGuid(18));
+
     private async Task<NpgsqlConnection> OpenAsync(CancellationToken cancellationToken)
     {
         var connection = new NpgsqlConnection(connectionString);

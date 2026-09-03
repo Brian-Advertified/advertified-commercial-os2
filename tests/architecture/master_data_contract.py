@@ -29,6 +29,8 @@ REQUIRED_MASTER_COLLECTIONS = {
     "inventoryEvidenceStates",
     "inventoryEvidenceActions",
     "inventoryExtractionMethods",
+    "inventoryExtractionAttemptStatuses",
+    "inventoryExtractionFailureClasses",
     "verificationLevels",
     "inventoryProductTypes",
     "inventoryImportStepTypes",

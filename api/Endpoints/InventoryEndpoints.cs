@@ -21,6 +21,16 @@ public static class InventoryEndpoints
         group.MapPost("/inventory-imports/{importId:guid}:execute", ExecuteImportAsync)
             .WithName("ExecuteInventoryImport").Produces<InventoryImportView>()
             .WithCommandProblems(requiresVersion: true);
+        group.MapPost("/inventory-imports/{importId:guid}:retry-extraction", RetryExtractionAsync)
+            .WithName("RetryInventoryExtraction").Produces<InventoryImportView>()
+            .WithCommandProblems(requiresVersion: true);
+        group.MapPost("/inventory-imports/{importId:guid}:cancel-extraction", CancelExtractionAsync)
+            .WithName("CancelInventoryExtraction").Produces<InventoryImportView>()
+            .WithCommandProblems(requiresVersion: true);
+        group.MapPost("/inventory-imports/{importId:guid}:reconcile-extraction",
+                ReconcileExtractionAsync)
+            .WithName("ReconcileInventoryExtraction").Produces<InventoryImportView>()
+            .WithCommandProblems(requiresVersion: true);
         group.MapGet("/inventory-imports/{importId:guid}", GetImportAsync)
             .WithName("GetInventoryImport").Produces<InventoryImportView>()
             .WithQueryProblems();
@@ -109,6 +119,30 @@ public static class InventoryEndpoints
         IInventoryCommands commands, TimeProvider clock, CancellationToken cancellationToken) =>
         ExecuteAsync(tenantId, new ExecuteInventoryImportCommand(), context, identity, clock,
             true, (envelope, token) => commands.ExecuteAsync(importId, envelope, token),
+            cancellationToken);
+
+    private static Task<IResult> RetryExtractionAsync(
+        Guid tenantId, Guid importId, RetryInventoryExtractionCommand command,
+        HttpContext context, ICurrentIdentity identity, IInventoryCommands commands,
+        TimeProvider clock, CancellationToken cancellationToken) =>
+        ExecuteAsync(tenantId, command, context, identity, clock, true,
+            (envelope, token) => commands.RetryExtractionAsync(importId, envelope, token),
+            cancellationToken);
+
+    private static Task<IResult> CancelExtractionAsync(
+        Guid tenantId, Guid importId, CancelInventoryExtractionCommand command,
+        HttpContext context, ICurrentIdentity identity, IInventoryCommands commands,
+        TimeProvider clock, CancellationToken cancellationToken) =>
+        ExecuteAsync(tenantId, command, context, identity, clock, true,
+            (envelope, token) => commands.CancelExtractionAsync(importId, envelope, token),
+            cancellationToken);
+
+    private static Task<IResult> ReconcileExtractionAsync(
+        Guid tenantId, Guid importId, ReconcileInventoryExtractionCommand command,
+        HttpContext context, ICurrentIdentity identity, IInventoryCommands commands,
+        TimeProvider clock, CancellationToken cancellationToken) =>
+        ExecuteAsync(tenantId, command, context, identity, clock, true,
+            (envelope, token) => commands.ReconcileExtractionAsync(importId, envelope, token),
             cancellationToken);
 
     private static async Task<IResult> GetImportAsync(

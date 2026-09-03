@@ -43,13 +43,14 @@ internal static partial class InventoryCandidateNormalizer
         var canonical = new Dictionary<string, string>(StringComparer.Ordinal);
         var extension = new Dictionary<string, string>(StringComparer.Ordinal);
         var evidence = new List<InventoryFieldEvidenceView>();
-        var canonicalSources = new List<(string Header, string Field, string Value)>();
+        var canonicalSources =
+            new Dictionary<string, (string Header, string Value)>(StringComparer.Ordinal);
         foreach (var pair in row.Values)
         {
             if (Aliases.TryGetValue(pair.Key, out var field))
             {
                 canonical[field] = pair.Value;
-                canonicalSources.Add((pair.Key, field, pair.Value));
+                canonicalSources[field] = (pair.Key, pair.Value);
             }
             else
             {
@@ -57,15 +58,15 @@ internal static partial class InventoryCandidateNormalizer
             }
         }
         evidence.AddRange(canonicalSources.Select(source => Evidence(
-            source.Field,
-            source.Value,
-            Normalize(source.Field, source.Value, canonical),
-            Transformation(source.Field, source.Header),
-            row.FieldLocators?.GetValueOrDefault(source.Header) ?? row.Locator,
+            source.Key,
+            source.Value.Value,
+            Normalize(source.Key, source.Value.Value, canonical),
+            Transformation(source.Key, source.Value.Header),
+            row.FieldLocators?.GetValueOrDefault(source.Value.Header) ?? row.Locator,
             sourceHash,
             capturedAtUtc,
             row.ExtractionMethod ?? MasterDataCodes.InventoryExtractionMethods.Tabular,
-            row.FieldConfidences?.GetValueOrDefault(source.Header) ?? row.Confidence)));
+            row.FieldConfidences?.GetValueOrDefault(source.Value.Header) ?? row.Confidence)));
         var values = ToValues(
             canonical, extension, evidence, row.Locator, sourceHash, capturedAtUtc);
         return new ExtractedInventoryCandidate(

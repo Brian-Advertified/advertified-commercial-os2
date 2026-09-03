@@ -14,6 +14,14 @@ public sealed record CreateInventoryImportCommand(
 
 public sealed record ExecuteInventoryImportCommand;
 
+public sealed record RetryInventoryExtractionCommand(string Reason);
+
+public sealed record CancelInventoryExtractionCommand(string Reason);
+
+public sealed record ReconcileInventoryExtractionCommand(
+    string Reason,
+    string? ExternalTaskId);
+
 public sealed record ReviewInventoryCandidateCommand(
     string Decision,
     string? RejectionReason,
@@ -122,6 +130,21 @@ public interface IInventoryCommands
     Task<CommandResult<InventoryImportView>> ExecuteAsync(
         Guid importId,
         CommandEnvelope<ExecuteInventoryImportCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<InventoryImportView>> RetryExtractionAsync(
+        Guid importId,
+        CommandEnvelope<RetryInventoryExtractionCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<InventoryImportView>> CancelExtractionAsync(
+        Guid importId,
+        CommandEnvelope<CancelInventoryExtractionCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<InventoryImportView>> ReconcileExtractionAsync(
+        Guid importId,
+        CommandEnvelope<ReconcileInventoryExtractionCommand> envelope,
         CancellationToken cancellationToken);
 
     Task<CommandResult<InventoryCandidateView>> ReviewAsync(

@@ -11,6 +11,8 @@ public interface IInventoryObjectStore
         CancellationToken cancellationToken);
 
     Task<byte[]> ReadAsync(string objectKey, CancellationToken cancellationToken);
+
+    Task<bool> ExistsAsync(string objectKey, CancellationToken cancellationToken);
 }
 
 public interface IInventoryMalwareScanner

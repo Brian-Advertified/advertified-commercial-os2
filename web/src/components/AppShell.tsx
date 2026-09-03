@@ -68,7 +68,7 @@ const prefixNavigation: Readonly<Record<string, readonly string[]>> = {
     '/performance-evidence/', '/measurement-reports/',
   ],
   Finance: ['/funding'],
-  Settings: ['/admin/commercial'],
+  Settings: ['/admin/commercial', '/admin/agents'],
 }
 
 function navigationActive(item: Destination, pathname: string) {

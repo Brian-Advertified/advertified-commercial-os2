@@ -1,0 +1,30 @@
+.app-shell .settings-navigation {
+  min-height: 2.4rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.app-shell .settings-navigation a {
+  padding: .58rem .05rem .52rem;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  font-size: .78rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.app-shell .settings-navigation a:hover { color: var(--navy); }
+.app-shell .settings-navigation a.is-active {
+  color: var(--electric);
+  border-bottom-color: var(--electric);
+}
+
+.app-shell .agent-operations-page .operations-table strong {
+  color: var(--navy);
+  font-size: .75rem;
+}
+
+.app-shell .agent-operations-page .operations-table td { white-space: nowrap; }
+.app-shell .agent-operations-page .operations-table td:first-child { white-space: normal; }

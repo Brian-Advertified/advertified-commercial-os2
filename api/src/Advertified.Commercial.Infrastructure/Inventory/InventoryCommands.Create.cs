@@ -27,8 +27,6 @@ public sealed partial class InventoryCommands
         var id = Guid.NewGuid();
         var hash = Convert.ToHexStringLower(SHA256.HashData(command.Source.Content));
         var quarantineKey = $"quarantine/{envelope.TenantId.Value:N}/{id:N}/{hash}";
-        await store.ObjectStore.PutAsync(
-            quarantineKey, command.Source.Content, detected.MediaType, cancellationToken);
         var scan = await store.MalwareScanner.ScanAsync(command.Source.Content, cancellationToken);
         var supplierId = await EnsureSupplierAsync(
             envelope.TenantId, supplierName, timeProvider.GetUtcNow(), cancellationToken);
@@ -39,6 +37,11 @@ public sealed partial class InventoryCommands
         {
             await store.ObjectStore.PutAsync(
                 protectedKey, command.Source.Content, detected.MediaType, cancellationToken);
+        }
+        else
+        {
+            await store.ObjectStore.PutAsync(
+                quarantineKey, command.Source.Content, detected.MediaType, cancellationToken);
         }
         var status = scan.IsClean ? MasterDataCodes.LifecycleStatuses.Uploaded : MasterDataCodes.LifecycleStatuses.Failed;
         var scanStatus = scan.IsClean ? MasterDataCodes.MalwareScanStatuses.Clean : MasterDataCodes.MalwareScanStatuses.Infected;

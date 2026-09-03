@@ -8,6 +8,7 @@ using Advertified.Commercial.Api.Observability;
 using Advertified.Commercial.Api.Startup;
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Booking;
+using Advertified.Commercial.Application.AgentOperations;
 using Advertified.Commercial.Application.Campaign;
 using Advertified.Commercial.Application.CommercialSettings;
 using Advertified.Commercial.Application.Creative;
@@ -27,6 +28,7 @@ using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Advertified.Commercial.Infrastructure.Funding;
 using Advertified.Commercial.Infrastructure.Booking;
+using Advertified.Commercial.Infrastructure.AgentOperations;
 using Advertified.Commercial.Infrastructure.Campaign;
 using Advertified.Commercial.Infrastructure.CommercialSettings;
 using Advertified.Commercial.Infrastructure.Creative;
@@ -49,7 +51,12 @@ using Microsoft.OpenApi;
 using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.AddServerHeader = false;
+    options.Limits.MaxRequestBodySize =
+        InventoryProtectionOptions.MaximumSupportedSourceBytes + 1_048_576;
+});
 var processRole = builder.AddAdvertifiedProcessRole();
 var authenticationMode = builder.Configuration["Authentication:Mode"];
 var agentRuntime = builder.Configuration
@@ -76,6 +83,8 @@ builder.Services.AddDbContext<GovernanceDbContext>(
 builder.AddOutboxDispatch();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IBrowserSessionStore, PostgresBrowserSessionStore>();
+builder.Services.AddScoped<AgentOperationsStore>();
+builder.Services.AddScoped<IAgentOperationsReader, AgentOperationsReader>();
 builder.Services.AddScoped<OidcIdentityResolver>();
 builder.Services.AddScoped<IIdentityWorkspaceReader, IdentityWorkspaceReader>();
 builder.Services.AddScoped<ITenantMembershipSource, DatabaseTenantMembershipSource>();
@@ -124,6 +133,9 @@ builder.Services.AddSingleton(SuppliedBriefAgentPolicy.Load());
 builder.Services.AddScoped<ISuppliedBriefAgentClient, DeterministicSuppliedBriefAgentClient>();
 builder.Services.AddScoped<ISuppliedBriefUnderstandingService, SuppliedBriefUnderstandingService>();
 builder.Services.AddScoped<InventoryRecordStore>();
+builder.Services.AddScoped<InventoryExtractionAttemptStore>();
+builder.Services.AddScoped<InventoryExtractionCompletionService>();
+builder.Services.AddScoped<InventoryExtractionAttemptProcessor>();
 builder.Services.AddScoped<IInventoryReader, InventoryReader>();
 builder.Services.AddScoped<IInventoryCommands, InventoryCommands>();
 builder.Services.AddSingleton(InventoryDuplicatePolicy.Load());
@@ -330,6 +342,7 @@ if (processRole.RunsApi)
         .WithTags("Service");
     app.MapHealthEndpoints();
     app.MapBrowserSessionEndpoints();
+    app.MapAgentOperationsEndpoints();
     app.MapIdentityEndpoints();
     app.MapFoundationEndpoints();
     app.MapOpportunityEndpoints();

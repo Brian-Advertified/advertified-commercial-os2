@@ -14,7 +14,7 @@ services:
       PGPORT: "5432"
       PGDATABASE: advertified
       PGUSER: advertified
-      PGPASSWORD: advertified-local-only
+      PGPASSWORD: ${POSTGRES_PASSWORD:-advertified-local-only}
     volumes:
       - ./init-scripts:/opt/advertified/init-scripts:ro
     depends_on:
@@ -34,7 +34,7 @@ services:
       PGPORT: "5432"
       PGDATABASE: advertified
       PGUSER: advertified
-      PGPASSWORD: advertified-local-only
+      PGPASSWORD: ${POSTGRES_PASSWORD:-advertified-local-only}
     depends_on:
       database-role-bootstrap:
         condition: service_completed_successfully
@@ -53,7 +53,7 @@ services:
       PGPORT: "5432"
       PGDATABASE: advertified
       PGUSER: advertified
-      PGPASSWORD: advertified-local-only
+      PGPASSWORD: ${POSTGRES_PASSWORD:-advertified-local-only}
     volumes:
       - ./development:/opt/advertified/development:ro
     depends_on:
@@ -88,7 +88,7 @@ services:
       PGPORT: "5432"
       PGDATABASE: advertified
       PGUSER: advertified
-      PGPASSWORD: advertified-local-only
+      PGPASSWORD: ${POSTGRES_PASSWORD:-advertified-local-only}
       Authentication__Mode: DeterministicSession
       Authentication__DevelopmentIdentity__UserId: 10000000-0000-0000-0000-000000000001
       Authentication__DevelopmentIdentity__ActorId: 10000000-0000-0000-0000-000000000001
@@ -98,16 +98,17 @@ services:
       InventoryProtection__ObjectStoreMode: Minio
       InventoryProtection__ScannerMode: ClamAv
       InventoryProtection__Endpoint: minio:9000
-      InventoryProtection__AccessKey: advertified-local
-      InventoryProtection__SecretKey: advertified-local-only
+      InventoryProtection__AccessKey: ${MINIO_ROOT_USER:-advertified-local}
+      InventoryProtection__SecretKey: ${MINIO_ROOT_PASSWORD:-advertified-local-only}
       InventoryProtection__Bucket: advertified-inventory
       InventoryProtection__UseTls: "false"
       InventoryProtection__ClamAvHost: clamav
       InventoryProtection__ClamAvPort: "3310"
       InventoryExtraction__Mode: Docling
       InventoryExtraction__BaseUrl: http://docling:5001
-      InventoryExtraction__ApiKey: advertified-docling-local-only
-      InventoryExtraction__TimeoutSeconds: "180"
+      InventoryExtraction__ApiKey: ${DOCLING_API_KEY:-advertified-docling-local-only}
+      InventoryExtraction__TimeoutSeconds: "600"
+      WorkerDispatch__InventoryExtractionMaxConcurrency: "1"
       InventoryEmbedding__Mode: Deterministic
       AgentRuntime__Mode: HttpDeterministic
       AgentRuntime__BaseUrl: http://agent-runtime:8080

@@ -55,6 +55,33 @@ public sealed partial class InventoryRecordStore(
             ORDER BY started_at_utc, id
             """).ToListAsync(cancellationToken);
 
+    internal Task<List<InventoryExtractionAttemptRow>> ListExtractionAttemptsAsync(
+        TenantId tenantId,
+        Guid importId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<InventoryExtractionAttemptRow>($"""
+            SELECT id AS "Id", tenant_id AS "TenantId", import_id AS "ImportId",
+                source_file_version AS "SourceFileVersion", source_hash AS "SourceHash",
+                stable_submission_key AS "StableSubmissionKey",
+                provider_name AS "ProviderName", provider_version AS "ProviderVersion",
+                status_code AS "Status", external_task_id AS "ExternalTaskId",
+                submitted_at_utc AS "SubmittedAtUtc", started_at_utc AS "StartedAtUtc",
+                last_polled_at_utc AS "LastPolledAtUtc",
+                completed_at_utc AS "CompletedAtUtc",
+                polling_checkpoint::text AS "PollingCheckpointJson",
+                attempt_number AS "AttemptNumber", worker_id AS "WorkerId",
+                worker_lease_expires_at_utc AS "WorkerLeaseExpiresAtUtc",
+                provider_response_code AS "ProviderResponseCode",
+                provider_error_code AS "ProviderErrorCode",
+                failure_class_code AS "FailureClassification",
+                correlation_id AS "CorrelationId",
+                extracted_artifact_id AS "ExtractedArtifactId",
+                reconciliation_notes AS "ReconciliationNotes", version AS "Version"
+            FROM commercial.inventory_extraction_attempts
+            WHERE tenant_id = {tenantId.Value} AND import_id = {importId}
+            ORDER BY attempt_number DESC
+            """).ToListAsync(cancellationToken);
+
     internal Task<List<InventoryCandidateRow>> ListCandidatesAsync(
         TenantId tenantId,
         Guid importId,
@@ -168,6 +195,8 @@ public sealed partial class InventoryRecordStore(
         var tenantId = new TenantId(row.TenantId);
         var decoded = InventoryCandidateCursor.Decode(cursor);
         var steps = await ListStepsAsync(tenantId, row.Id, cancellationToken);
+        var attempts = await ListExtractionAttemptsAsync(
+            tenantId, row.Id, cancellationToken);
         var rows = await ListCandidatePageAsync(
             tenantId, row.Id, decoded, pageSize + 1, cancellationToken);
         var selected = rows.Take(pageSize).ToArray();
@@ -187,7 +216,8 @@ public sealed partial class InventoryRecordStore(
             new InventoryCandidateCountsView(
                 counts.Total, counts.ReviewRequired, counts.Approved,
                 counts.Rejected, counts.Blocking),
-            next, row.Version, row.UpdatedAtUtc);
+            next, attempts.Select(item => item.ToView()).ToArray(),
+            row.Version, row.UpdatedAtUtc);
     }
 
     private const string ImportSelect = """

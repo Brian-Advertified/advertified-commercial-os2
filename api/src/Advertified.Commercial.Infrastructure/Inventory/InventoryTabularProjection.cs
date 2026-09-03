@@ -21,15 +21,20 @@ internal static class InventoryTabularProjection
             .Where(item => item.Value.Length > 0)
             .ToDictionary(item => item.Key, item => item.Value);
         return dataRows.OrderBy(row => row.SourceRow)
-            .Select((row, index) => new InventoryExtractedRow(
+            .Select(row => new
+            {
+                Row = row,
+                Values = ProjectValues(headers, row.Cells),
+            })
+            .Where(item => item.Values.Count > 0)
+            .Select((item, index) => new InventoryExtractedRow(
                 rowNumberOffset + index + 1,
-                locator(row.SourceRow),
-                ProjectValues(headers, row.Cells),
+                locator(item.Row.SourceRow),
+                item.Values,
                 FieldLocators: FieldLocators(
-                    headers, row.Cells, row.SourceRow, fieldLocator),
+                    headers, item.Row.Cells, item.Row.SourceRow, fieldLocator),
                 FieldConfidences: FieldConfidences(
-                    headers, row.Cells, row.SourceRow, fieldConfidence)))
-            .Where(row => row.Values.Count > 0)
+                    headers, item.Row.Cells, item.Row.SourceRow, fieldConfidence)))
             .ToArray();
     }
 
@@ -61,9 +66,10 @@ internal static class InventoryTabularProjection
         if (value is null) return null;
         return cells.Where(cell => headers.ContainsKey(cell.Key) &&
                 !string.IsNullOrWhiteSpace(cell.Value))
+            .GroupBy(cell => headers[cell.Key], StringComparer.Ordinal)
             .ToDictionary(
-                cell => headers[cell.Key],
-                cell => value(row, cell.Key),
+                group => group.Key,
+                group => value(row, group.Max(cell => cell.Key)),
                 StringComparer.Ordinal);
     }
 
@@ -76,9 +82,10 @@ internal static class InventoryTabularProjection
         if (value is null) return null;
         return cells.Where(cell => headers.ContainsKey(cell.Key) &&
                 !string.IsNullOrWhiteSpace(cell.Value))
+            .GroupBy(cell => headers[cell.Key], StringComparer.Ordinal)
             .ToDictionary(
-                cell => headers[cell.Key],
-                cell => value(row, cell.Key),
+                group => group.Key,
+                group => value(row, group.Max(cell => cell.Key)),
                 StringComparer.Ordinal);
     }
 }

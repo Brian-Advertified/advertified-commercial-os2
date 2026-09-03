@@ -66,6 +66,7 @@ public sealed record InventoryImportView(
     IReadOnlyList<InventoryCandidateView> Candidates,
     InventoryCandidateCountsView CandidateCounts,
     string? NextCandidateCursor,
+    IReadOnlyList<InventoryExtractionAttemptView> ExtractionAttempts,
     long Version,
     DateTimeOffset UpdatedAtUtc);
 

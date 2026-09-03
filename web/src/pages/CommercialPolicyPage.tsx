@@ -7,6 +7,7 @@ import type { CommercialPolicy, CommercialPolicyInput }
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
 import { LoadingState, MessageState } from '../components/PageState'
+import { SettingsNavigation } from '../components/SettingsNavigation'
 import { masterDataCodes, masterDataDefinitions } from '../generated/master-data-codes'
 import { notifications } from '../notifications/notifications'
 import { humanizeCode, majorAmountToMinor, minorAmountToInput } from '../presentation/format'
@@ -92,6 +93,7 @@ function CommercialPolicyEditor({ tenantId, antiforgeryToken }: {
 
   if (loading) return <LoadingState label="Loading commercial settings" />
   return <section className="operations-page operations-policy-page" aria-labelledby="commercial-policy-title">
+    <SettingsNavigation />
     <header className="operations-command-header"><div>
       <p className="eyebrow">Versioned workspace pricing rules</p>
       <h1 id="commercial-policy-title">Commercial policy</h1>

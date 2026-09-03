@@ -70,6 +70,7 @@ async function savePolicy(route: Route, state: State) {
     pricesIncludeVat: false,
     currency: 'ZAR',
     bookingApprovalThresholdMinor: 5_000_000,
+    allowSelfApproval: false,
   })
   state.version += 1
   state.markupBasisPoints = body.markupBasisPoints as number
@@ -89,6 +90,7 @@ function policyFixture(state: State) {
     pricesIncludeVat: false,
     currency: 'ZAR',
     bookingApprovalThresholdMinor: 5_000_000,
+    allowSelfApproval: false,
     createdBy: userId,
     createdAtUtc: now,
     version: state.version,
@@ -111,6 +113,8 @@ function sessionFixture() {
     authenticated: true,
     antiforgeryToken: 'csrf-commercial-policy',
     expiresAtUtc: '2026-08-30T18:00:00Z',
+    signInPath: null,
+    signOutPath: null,
   }
 }
 

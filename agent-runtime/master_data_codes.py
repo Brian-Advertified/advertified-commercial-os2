@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: 778c1a9674f0c22df56ffa1f58c82ab951b13214c13bf31aecd41f3b65d42525
+# source-sha256: 07e4a2996a1768fdcf75e248551bfd8928203c5254d92a30d08099cfe126b055
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.26.0"
+REGISTRY_VERSION = "2.27.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -276,6 +276,26 @@ class InventoryExtractionMethods(StrEnum):
     OCR = "OCR"
     POLICY_DEFAULT = "POLICY_DEFAULT"
     HUMAN_EDIT = "HUMAN_EDIT"
+
+class InventoryExtractionAttemptStatuses(StrEnum):
+    PENDING = "PENDING"
+    SUBMITTING = "SUBMITTING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED_RETRYABLE = "FAILED_RETRYABLE"
+    FAILED_TERMINAL = "FAILED_TERMINAL"
+    TIMED_OUT = "TIMED_OUT"
+    RECONCILIATION_REQUIRED = "RECONCILIATION_REQUIRED"
+    CANCELLED = "CANCELLED"
+
+class InventoryExtractionFailureClasses(StrEnum):
+    AMBIGUOUS_SUBMISSION = "AMBIGUOUS_SUBMISSION"
+    PROVIDER_RETRYABLE = "PROVIDER_RETRYABLE"
+    PROVIDER_TERMINAL = "PROVIDER_TERMINAL"
+    INVALID_RESULT = "INVALID_RESULT"
+    TIMEOUT = "TIMEOUT"
+    CANCELLED_BY_OPERATOR = "CANCELLED_BY_OPERATOR"
+    SOURCE_UNAVAILABLE = "SOURCE_UNAVAILABLE"
 
 class VerificationLevels(StrEnum):
     UNVERIFIED = "UNVERIFIED"
@@ -629,6 +649,10 @@ class CommercialActions(StrEnum):
     MEASUREMENT_REPORT_REVIEWED = "measurement_report.reviewed"
     INVENTORY_AVAILABILITY_EXCEPTION_RECORDED = "inventory_availability_exception.recorded"
     INVENTORY_ASSET_UPLOADED = "inventory_asset.uploaded"
+    INVENTORY_EXTRACTION_REQUESTED = "inventory_extraction.requested"
+    INVENTORY_EXTRACTION_RETRY_REQUESTED = "inventory_extraction.retry_requested"
+    INVENTORY_EXTRACTION_CANCELLED = "inventory_extraction.cancelled"
+    INVENTORY_EXTRACTION_RECONCILED = "inventory_extraction.reconciled"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -725,6 +749,10 @@ class CommercialEventTypes(StrEnum):
     PERFORMANCE_EVIDENCE_REVIEWED = "PerformanceEvidenceReviewed"
     MEASUREMENT_REPORT_GENERATED = "MeasurementReportGenerated"
     MEASUREMENT_REPORT_REVIEWED = "MeasurementReportReviewed"
+    INVENTORY_EXTRACTION_REQUESTED = "InventoryExtractionRequested"
+    INVENTORY_EXTRACTION_RETRY_REQUESTED = "InventoryExtractionRetryRequested"
+    INVENTORY_EXTRACTION_CANCELLED = "InventoryExtractionCancelled"
+    INVENTORY_EXTRACTION_RECONCILED = "InventoryExtractionReconciled"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"
