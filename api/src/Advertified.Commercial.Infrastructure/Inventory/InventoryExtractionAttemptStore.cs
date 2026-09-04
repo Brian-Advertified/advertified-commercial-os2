@@ -9,16 +9,21 @@ using Advertified.Commercial.Infrastructure.Persistence;
 using Advertified.Commercial.Infrastructure.Worker;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Options;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
 public sealed partial class InventoryExtractionAttemptStore(
     GovernanceDbContext dbContext,
     InventoryRecordStore inventoryStore,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    IOptions<InventorySemanticOptions> semanticOptions)
 {
     internal GovernanceDbContext DbContext => dbContext;
     internal DateTimeOffset UtcNow => timeProvider.GetUtcNow();
+    internal string CurrentProjectionVersion =>
+        InventoryProjectionVersion.Current(
+            semanticOptions.Value);
 
     internal async Task<Guid> QueueInitialAsync<TCommand>(
         InventoryImportRow source,

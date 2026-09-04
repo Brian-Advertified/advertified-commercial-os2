@@ -4205,6 +4205,181 @@ was used. The embedding preflight found two active local products; at two full 8
 inputs and USD 0.02 per million input tokens, its conservative ceiling was USD 0.00032768. No
 embedding job or paid-AI call was enabled, and total actual paid-AI cost remained USD 0.00.
 
+### 49.2.5 Inventory semantic recovery and publication-readiness work packet — 2026-09-03
+
+The repository owner determined that the durable 43-file run is transport-complete but not
+commercially extracted: the 4,902 retained rows require a format-aware semantic recovery before
+human review or publication. The authorised local work packet preserves every original source,
+extraction artefact, candidate, hash and failure observation; adds native XLSX sheet/cell/formula/
+format/merged-header handling and native PPTX slide/text/table/image/spatial handling; reconstructs
+PDF headings, multi-row tables, footnotes, packages and deliverables from retained Docling output;
+and reruns Docling only for an individual source whose retained result is proven insufficient.
+
+Deterministic parsing and validation run before a governed Bedrock inventory-intelligence pass.
+Only necessary structured facts and bounded evidence excerpts may leave the canonical boundary.
+Bedrock may classify media/offering types, propose source-linked mappings and aliases, interpret
+descriptions and commercial terms, identify ambiguity and draft searchable descriptions. It may
+not invent a missing supplier, price, availability, geography, date or term; perform authoritative
+commercial arithmetic; approve a candidate; or publish inventory. Outputs are immutable proposals,
+cached by input/source hash, tenant-scoped, replay-safe, costed and stopped before the shared USD 5
+evaluation/certification ceiling. The complete intended paid batch is costed before activation.
+
+Acceptance starts with direct field-level comparison of `DMS Digital Rate Card .xlsx`, `Reveel -
+ZA - Publisher Media Kit.pptx`, `SABC May 2026 TV Rates (1).pdf` and `Algoa FM - Algoa Club Package
+- Plan A - Generic & Sponsorship -2026.pdf`; these are only the calibration set, not the quality
+scope. All 43 source files remain failed semantic extractions until each regenerated file result
+passes source-file accounting, field coverage, hierarchy, commercial-term and exact-evidence
+checks. The gate requires source-linked suppliers, standalone products, packages, sponsorships/
+Powerboosts, deliverables, prices/currency/VAT/buying basis, validity, geography, explicit
+availability exceptions, conditions and assets as applicable, with non-product headings and
+footnotes retained as evidence but excluded from product counts. Only after the calibration set
+passes may unchanged retained artefacts be re-normalised in a bounded batch, followed by a
+file-by-file exception report and corpus reconciliation. Human-authored gold and exception-first
+authorised approval remain mandatory; no AI or service identity may approve or publish. After
+authorised publication, unchanged canonical products are embedded once by content hash and must be
+retrievable in both OOH_ONLY and FULL_CAMPAIGN proposal journeys. No production deployment, push,
+external communication, supplier commitment or persistent-volume deletion is authorised.
+
+The semantic recovery implementation now includes source-hash-verified retained reprojection,
+format-aware Office extraction, bounded multimodal packets, tenant- and budget-scoped semantic run
+records, provider `CountTokens` enforcement where supported with a conservative local fallback,
+one-attempt ambiguity quarantine,
+proposal-only grounded output, review-safe supersession and a permission-scoped no-call preflight
+that reports every retained source, packet, image, blocker and conservative cost before activation.
+Migrations `048` through `050` define semantic run durability, reprojection lineage and idempotency.
+The paid DStv profile, when explicitly authorised and re-enabled, uses
+`us.amazon.nova-pro-v1:0`, records configured prices of USD 0.80 per million input tokens and USD
+3.20 per million output tokens, caps each request at USD 0.06 and caps transcription and enrichment
+together at USD 0.25 under budget scope `inventory-dstv-certification-2026-09-04`. Transcription may
+reserve at most half of that shared scope, the provider policy permits one attempt, every packet is
+token-counted before inference and enrichment does not resend Office images. A read-only audit on
+2026-09-04 found no ledgered runs in the new DStv scope. The preceding
+`inventory-corpus-2026-09-03` scope contained 11 runs with USD 0.056574 actual cost and USD 0.171362
+committed or reserved under the store's completed-versus-maximum accounting rule. The runtime log
+also recorded three direct DStv calls outside that ledger: two HTTP 503 responses and one HTTP 200
+response. The retained successful response cost USD 0.011548. The failed responses' usage was
+overwritten before audit, so confirmed actual local spend is at least USD 0.068122 and the strict
+per-call-capped upper bound is USD 0.188122. The direct-call helper is disabled, the API is stopped,
+the old live runtime container and its temporary patch helpers were removed, and the checked-in
+corpus override is now deterministic with semantic processing and live calls disabled, zero live
+cost caps and no AWS credentials mount. Certification must use the governed API preflight and
+reprojection path after an explicit, recorded reactivation.
+
+The latest local verification compiled the Release API with zero warnings and zero errors, passed
+the complete agent-runtime suite 49/49, passed the non-infrastructure API suite 142/142, passed the
+targeted inventory persistence suite 5/5, passed master-data migration coverage 2/2, passed the
+extraction architecture and corpus tooling set 30/30, and passed the web production build, lint and
+unit tests 6/6. The original 43 source files and current corpus data were not changed and no Docker
+image was built. The verification sequence itself made no Bedrock request; the audited costs above
+came from earlier or concurrently initiated certification attempts.
+
+Application of migrations `048`–`050`, replacement of the existing corpus API/runtime, execution of
+the no-call cost report and all semantic reprojections remain operationally blocked because the
+connected Docker workspace forces Compose project `advertified-dev`, while the durable corpus is in
+`advertified-os2-dev`. Running the connector's current `up`, `start` or `restart` path would mutate
+the wrong stack. Production certification therefore remains NO-GO until the connector targets the
+existing corpus project, the in-place update and preflight succeed, paid execution is separately
+authorised, all 43 results receive source-level quality evaluation, and authorised humans review
+and publish acceptable candidates.
+
+### 49.2.6 DMS deterministic source certification — 2026-09-04
+
+The DMS calibration workbook is now certified through the restored `advertified-os2-dev` stack.
+The final implementation removes Bedrock from source transcription entirely. Hash-bound XLSX/PPTX
+embedded images are submitted one at a time to the local Docling synchronous endpoint, preventing a
+stale asynchronous queue from leaving a small source image indefinitely pending. The deterministic
+projection repairs OCR-specific multi-row headers only when source geometry supports the repair,
+including the merged `Platform`/`Ad Unit` heading and the empty Width plus combined Height value
+observed in this workbook. It reconstructs the four physical commercial rows, preserves their
+source-image and local-OCR coordinates, normalises `16 9` to `16 x 9`, reconstructs `DStv Media
+Sales` from the visible rate-card title, and attaches only visibly extracted DStv positioning copy
+to DStv rows. Exact source-name mappings derive the governed `DIGITAL` and `DIGITAL_PLACEMENT`
+codes under human-review policy. A visible `R` prefix supports ZAR parsing, while `R1,10` remains
+raw, has no normalised amount and carries `AMBIGUOUS_TRUNCATED_RATE`. No buying basis or commercial
+validity date is inferred.
+
+Retained reprojection attempt 16 completed successfully under provider version
+`advertified-embedded-image-docling/1.2.0`. The import returned to `REVIEW_REQUIRED`, its stale
+failure code was cleared, the four earlier incorrect unreviewed candidates were superseded, and four
+new source-linked candidates were created. Human-authored file-gold evaluation reported 4 expected,
+4 observed, zero failures and `PASS`. Nothing was approved or published. The restored agent runtime
+reported `deterministic-zero-cost`; live Bedrock execution was false and the active explicit
+certification scope retained USD 0 committed cost. No paid inference was used for the successful
+local repair. Using the previously reported USD 0.05743146 workbook-evaluation baseline plus the
+three bounded certification calls totalling USD 0.033503, known reported cumulative Bedrock spend
+for this investigation is approximately USD 0.09093446.
+
+The final focused verification passed the API build with zero warnings and zero errors, the complete
+Docling/Office extraction class 22/22, the agent-runtime suite 50/50, and file-gold/corpus/
+architecture checks 32/32. Web, API, runtime, Docling, PostgreSQL, MinIO, Redis, ClamAV and Mailhog
+were healthy in the single `advertified-os2-dev` project. Temporary `advertified-dev` containers,
+networks and volumes were removed; unused build cache fell from 4.161 GB to 2.623 GB and local
+volumes from 972.2 MB to 764.5 MB, with zero volume bytes reported reclaimable afterward.
+
+This certifies the DMS XLSX calibration file only. The other calibration files and the remaining
+42 corpus documents still require the same physical-file evaluation before corpus-wide extraction
+or production publication can be declared ready.
+
+### 49.2.7 Single local Docker workspace work packet — 2026-09-04
+
+The repository owner requires every local Docker workflow to reuse the one existing Compose
+project named exactly `advertified-os2-dev`. This is one multi-service application stack, not one
+physical service container. Local scripts and Compose overlays must not create an alternate
+Advertified project, parallel service container, one-off migration container or separately named
+build project. A changed application image may replace only its existing named service container;
+unchanged services and persistent volumes remain in place. Repository scripts must not perform a
+global Docker image prune because unrelated Docker state is outside Advertified's authority.
+
+The bounded implementation work packet centralises the exact project-name guard, makes local
+PowerShell Compose calls pass that name explicitly, resolves service containers through Compose,
+uses the retained migrator service instead of `compose run`, and aligns remaining local tool
+defaults. Each explicit image build is followed by `up --no-build` so Compose cannot trigger a
+second build. The guard refuses to bootstrap a missing stack and rejects duplicate instances of any
+service. Acceptance evidence is all Compose files resolving to `advertified-os2-dev`, a read-only
+Docker label audit finding no alternate Advertified project, Compose configuration validation, and
+an architecture check that rejects aliases, one-off migration runs and global image pruning. This
+work does not authorise removal of containers, volumes or images, nor any production operation.
+
+Retained local evidence on 2026-09-04: all base, application, corpus-override and build-only
+Compose configurations passed `docker compose ... config --quiet`; the read-only project guard
+found only `advertified-os2-dev`, found exactly one API service container and left Docker state
+unchanged; all PowerShell files parsed without errors; the focused application-packaging suite
+passed 13/13; and `git diff --check` passed. The complete architecture run passed 41/44 checks.
+Its three unrelated failures remain the pre-existing 507-line
+`NativePresentationSiteProjection.cs`, governed literals in
+`DoclingInventoryProjection.PageCards.cs`, and over-limit functions in the in-progress agent
+runtime/provider tests; this Docker work does not represent those checks as passed.
+
+### 49.2.8 Production-neutral product language work packet — 2026-09-04
+
+The repository owner requires Advertified to present as one production-intent product rather than
+a development demonstration. Development-only identities, deterministic providers, fixtures and
+loopback endpoints remain valid internal safety mechanisms inside their explicit environment
+boundaries, but ordinary product copy and human-safe API responses must describe business state
+without exposing `local`, `development`, `fixture`, `mock` or `deterministic` implementation terms.
+Geographic uses such as local-market comparisons are not environment terminology and remain valid.
+
+The bounded local work packet removes environment terminology from sign-in, profile, Agent
+Operations, inventory review, mailbox configuration and safe connection/error messages; replaces
+the `.local` problem-type host with a stable environment-neutral problem URN; and adds a regression
+check over the affected production UI and API content. It does not select or provision the still
+unresolved production topology in Section 49.2, enable a paid provider, weaken fail-closed startup
+validation or remove deterministic test capability. Acceptance evidence is affected web tests and
+build, focused API error/authentication tests, architecture checks and a source sweep distinguishing
+customer language from explicitly development-scoped implementation.
+
+Retained local evidence on 2026-09-04: web type-check and lint passed without warnings, web unit
+tests passed 7/7, and the production build passed. The Agent Operations browser assertions passed
+2/2 across desktop and compact layouts; the Windows Playwright process required manual termination
+after reporting both passes, so its command exit is not represented as clean. The Commercial API
+compiled successfully through the existing `advertified-os2-dev` Compose project and Docker-pinned
+SDK `10.0.400`. The existing API and web service containers were replaced in that same project and
+returned healthy on their existing ports; no second Compose project or parallel service container
+was created. The environment-neutral
+API-content check passed, `git diff --check` passed, and the complete architecture run passed 42/45.
+The same three unrelated in-progress inventory/runtime boundary failures recorded in Section 49.2.7
+remain unresolved. No live provider, production resource or external communication was used.
+
 ## 49.3 Release evidence
 
 A production release records:

@@ -45,17 +45,27 @@ public sealed partial class InventoryCommands
                 source.FileName, source.DeclaredMediaType, source.DocumentClass,
                 source.SourceHash, content), cancellationToken);
         InventoryExtractionCompletionPolicy.VerifyResult(extraction, source.SourceHash);
+        var artifactId = Guid.NewGuid();
         await InsertExtractionAsync(
-            envelope.TenantId, source.Id, extraction, cancellationToken);
+            envelope.TenantId, source.Id, artifactId,
+            extraction, cancellationToken);
         var rows = extraction.Rows;
         var codes = await InventoryCodeSets.LoadAsync(store.DbContext, cancellationToken);
         var now = timeProvider.GetUtcNow();
-        var candidates = rows.Select(row => InventoryExtractionCompletionPolicy.PrepareCandidate(
-            InventoryCandidateNormalizer.Normalize(row, source.SourceHash, now),
-            source.SupplierName, codes)).ToArray();
+        var candidates = InventoryCandidateAdmissionPolicy.Prepare(
+            rows,
+            source.SourceHash,
+            source.SupplierName,
+            codes,
+            now);
+        await InventoryProjectionPersistence.InsertInitialAsync(
+            store.DbContext, envelope.TenantId, source.Id,
+            artifactId, null, extraction, candidates.Length,
+            envelope.ActorId.Value, now, cancellationToken);
         await InventoryCandidateBatchPersistence.PersistAsync(
-            store.DbContext, envelope.TenantId, source.Id, reviewer, now,
-            candidates, cancellationToken);
+            store.DbContext, envelope.TenantId, source.Id,
+            artifactId, reviewer, now, candidates,
+            cancellationToken);
         await CompleteExecutionAsync(
             envelope.TenantId, importId, source.Version, now, cancellationToken);
         var updated = await store.FindImportAsync(
@@ -111,6 +121,7 @@ public sealed partial class InventoryCommands
     private Task<int> InsertExtractionAsync(
         TenantId tenantId,
         Guid importId,
+        Guid artifactId,
         InventoryExtractionResult extraction,
         CancellationToken cancellationToken) =>
         store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
@@ -118,7 +129,7 @@ public sealed partial class InventoryCommands
                 id, tenant_id, import_id, source_hash, adapter_code, adapter_version,
                 schema_version, provider_json, provider_output_hash,
                 canonical_json, canonical_output_hash, completed_at_utc)
-            VALUES ({Guid.NewGuid()}, {tenantId.Value}, {importId}, {extraction.SourceHash},
+            VALUES ({artifactId}, {tenantId.Value}, {importId}, {extraction.SourceHash},
                 {extraction.AdapterCode}, {extraction.AdapterVersion},
                 {extraction.SchemaVersion}, {extraction.ProviderJson}::jsonb,
                 {extraction.ProviderOutputHash}, {extraction.CanonicalJson}::jsonb,

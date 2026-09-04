@@ -19,7 +19,7 @@ const campaignSteps: readonly Step[] = [
 
 const inventorySteps: readonly Step[] = [
   { label: 'Import Sources', icon: 'plus' },
-  { label: 'Classify & Render', icon: 'brief' },
+  { label: 'Classify Source', icon: 'brief' },
   { label: 'Extract Candidates', icon: 'search' },
   { label: 'Validate & Reconcile', icon: 'shield' },
   { label: 'Human Review', icon: 'tasks' },

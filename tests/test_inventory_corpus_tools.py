@@ -187,6 +187,36 @@ def test_local_api_rewinds_upload_before_transport_retry(monkeypatch) -> None:
     assert positions == [0, 0]
 
 
+def test_reprojection_uses_versioned_idempotency_and_retained_endpoint(
+    monkeypatch,
+) -> None:
+    tool = load_tool("inventory_corpus_api")
+    client = tool.InventoryApi(
+        "http://127.0.0.1:5197",
+        "http://localhost:3017",
+        "tenant",
+    )
+    calls = []
+
+    def request(method, path, **kwargs):
+        calls.append((method, path, kwargs))
+        return {"status": "EXTRACTING"}
+
+    monkeypatch.setattr(client, "request", request)
+
+    client.reproject_import("import-id", 7, "a" * 64, 4)
+
+    method, path, kwargs = calls[0]
+    assert method == "POST"
+    assert path.endswith(
+        "/inventory-imports/import-id:reproject-extraction"
+    )
+    assert kwargs["version"] == 7
+    assert kwargs["idempotency"].endswith(
+        "advertified-projection-v3-attempt-4"
+    )
+
+
 def test_manifest_checkpoint_retries_transient_windows_sharing_violation(
     monkeypatch, tmp_path: Path,
 ) -> None:
@@ -232,3 +262,101 @@ def test_collector_refuses_to_infer_an_unqueued_import(tmp_path: Path) -> None:
             manifest, tmp_path / "manifest.json", tmp_path,
             client=None, poll_seconds=5, max_wait_seconds=10,
         )
+
+
+def test_quality_report_fails_every_file_without_gold_comparison(tmp_path: Path) -> None:
+    reporter = load_tool("report_inventory_extraction_quality")
+    source = tmp_path / "source"
+    evidence = tmp_path / "evidence"
+    observed = evidence / "observed"
+    source.mkdir()
+    observed.mkdir(parents=True)
+    documents = []
+    for index in range(43):
+        path = source / f"source-{index:02d}.pdf"
+        content = f"source-{index}".encode()
+        path.write_bytes(content)
+        digest = reporter.hashlib.sha256(content).hexdigest()
+        documents.append({
+            "relativePath": path.name, "sha256": digest, "bytes": len(content),
+        })
+        (observed / f"{digest}.json").write_text(json.dumps({
+            "status": "REVIEW_REQUIRED", "supplierName": "Not supplied",
+            "candidates": [{
+                "values": {"availability": "AVAILABLE"},
+                "evidence": [{"fieldName": "availability",
+                              "evidenceBasis": "DERIVED_POLICY"}],
+            }],
+        }), encoding="utf-8")
+    manifest = evidence / "source-manifest.json"
+    manifest.write_text(json.dumps({"datasetVersion": "v1", "documents": documents}),
+                        encoding="utf-8")
+
+    report = reporter.build_report(source, manifest)
+
+    assert report["verdict"] == "FAIL"
+    assert report["sourceFilesAccountedFor"] == 43
+    assert report["candidateCount"] == 43
+    assert report["candidatesWithNoCoreFields"] == 43
+    assert report["candidatesWithPolicyDefaultAvailability"] == 43
+    assert all(item["semanticStatus"].startswith("FAILED_")
+               for item in report["documents"])
+
+
+def test_dms_file_gold_covers_physical_rows_and_safety_contract() -> None:
+    digest = (
+        "2e2bb6e6a70bbd8c54b6d03deb3643d72126e1040752d7ef0e05c9ec456a25b5"
+    )
+    path = REPO_ROOT / "artifacts" / "inventory-corpus" / "gold" / f"{digest}.json"
+    gold = json.loads(path.read_text(encoding="utf-8"))
+
+    assert gold["documentId"] == digest
+    assert gold["relativePath"] == "DMS Digital Rate Card .xlsx"
+    assert gold["sourceEvidence"] == {
+        "positioningImage": (
+            "xlsx:sheet=Sheet1;image=1;cell=B11;"
+            "embedded-part=xl%2Fmedia%2Fimage1.png"
+        ),
+        "rateTableImage": (
+            "xlsx:sheet=Sheet1;image=2;cell=A1;"
+            "embedded-part=xl%2Fmedia%2Fimage2.png"
+        ),
+    }
+    records: dict[str, dict[str, str]] = {}
+    for cell in gold["goldCells"]:
+        records.setdefault(cell["recordKey"], {})[cell["field"]] = cell["value"]
+
+    assert list(records) == ["row-1", "row-2", "row-3", "row-4"]
+    required = {
+        "supplier", "inventory_identity", "placement", "dimensions",
+        "format_specification", "price", "currency", "media_type",
+    }
+    assert all(required.issubset(record) for record in records.values())
+    assert [record["inventory_identity"] for record in records.values()] == [
+        "DStv Stream VOD",
+        "DStv Stream VOD",
+        "DStv Stream Live",
+        "You Tube",
+    ]
+    assert [record["price"] for record in records.values()] == [
+        "R575", "R1,10", "R500", "R200",
+    ]
+    assert all(record["supplier"] == "DStv Media Sales"
+               for record in records.values())
+    assert all(record["media_type"] == "DIGITAL"
+               for record in records.values())
+
+    safety = gold["safetyExpectations"]
+    assert safety["requiredCandidateCount"] == 4
+    assert safety["requiredAmbiguityNoteRecordKeys"] == ["row-2"]
+    assert safety["expectedNullNormalizedRateRecordKeys"] == ["row-2"]
+    assert safety["expectedRateAmountMinor"] == {
+        "row-1": 57_500,
+        "row-2": None,
+        "row-3": 50_000,
+        "row-4": 20_000,
+    }
+    assert "rate_type" in safety["expectedUnknownFields"]
+    assert "FLAT_RATE" in safety["prohibitedInventedValues"]
+    assert safety["uniqueFieldsPerCandidate"] is True
+    assert safety["publicationAllowed"] is False

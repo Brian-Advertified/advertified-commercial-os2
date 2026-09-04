@@ -57,7 +57,7 @@ internal static partial class InventoryCandidateNormalizer
     {
         var result = new InventoryDeliverableValues(
             Text(values, "format"), Text(values, "buying_unit"),
-            Text(values, "dimensions"), Text(values, "placement"),
+            NormalizedDimensions(values), Text(values, "placement"),
             Text(values, "programme"), Text(values, "daypart"),
             Int(values, "spot_length_seconds"), Int(values, "loop_length_seconds"),
             Int(values, "slot_length_seconds"), Int(values, "plays_per_loop"),
@@ -155,7 +155,13 @@ internal static partial class InventoryCandidateNormalizer
 
     private static void AddCommercialAliases(Dictionary<string, string> result)
     {
-        Add(result, "vat_treatment", "vattreatment", "vatbasis", "ratevatbasis");
+        Add(
+            result,
+            "vat_treatment",
+            "vattreatment",
+            "vatbasis",
+            "ratevatbasis",
+            "vatinclusive");
         Add(result, "rate_valid_from", "ratevalidfrom", "validfrom", "effectivefrom");
         Add(result, "rate_valid_to", "ratevalidto", "validto", "effectiveto", "rateexpiry");
         Add(result, "production_cost_minor", "productioncostminor");
@@ -164,7 +170,12 @@ internal static partial class InventoryCandidateNormalizer
         Add(result, "discount_terms", "discountterms", "discount");
         Add(result, "inclusions", "inclusions", "included");
         Add(result, "exclusions", "exclusions", "excluded");
-        Add(result, "conditions", "conditions", "termsandconditions");
+        Add(
+            result,
+            "conditions",
+            "conditions",
+            "termsandconditions",
+            "termsconditionstext");
         Add(result, "booking_lead_time_days", "bookingleadtimedays", "leadtimedays");
         Add(result, "booking_deadline", "bookingdeadline");
         Add(result, "material_deadline", "materialdeadline", "creativedeadline");
@@ -175,8 +186,10 @@ internal static partial class InventoryCandidateNormalizer
     {
         Add(result, "format", "format", "mediaformat", "siteformat");
         Add(result, "buying_unit", "buyingunit", "deliveryunit");
-        Add(result, "dimensions", "dimensions", "size", "screensize");
-        Add(result, "placement", "placement", "section", "position");
+        Add(result, "dimensions", "dimensions", "size", "screensize",
+            "aspectratio", "aspect", "widthxheight", "widthheight");
+        Add(result, "placement", "placement", "section", "position",
+            "adunit", "advertisingunit");
         Add(result, "programme", "programme", "program", "show");
         Add(result, "daypart", "daypart", "timeslot");
         Add(result, "spot_length_seconds", "spotlengthseconds", "spotdurationseconds");

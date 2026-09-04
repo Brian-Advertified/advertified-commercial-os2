@@ -5,6 +5,14 @@ import test from 'node:test'
 const signInSource = await readFile(new URL('../src/pages/SignInPage.tsx', import.meta.url), 'utf8')
 const deferredSource = await readFile(new URL('../src/pages/DeferredPage.tsx', import.meta.url), 'utf8')
 const clientSource = await readFile(new URL('../src/api/client.ts', import.meta.url), 'utf8')
+const productionCopySources = await Promise.all([
+  '../src/content/operational-copy.ts',
+  '../src/pages/AgentOperationsPage.tsx',
+  '../src/pages/SignInPage.tsx',
+  '../src/pages/ProfilePage.tsx',
+  '../src/components/ProfileForm.tsx',
+  '../src/pages/InventoryImportPage.tsx',
+].map(path => readFile(new URL(path, import.meta.url), 'utf8')))
 const packageSource = JSON.parse(
   await readFile(new URL('../package.json', import.meta.url), 'utf8'),
 )
@@ -30,4 +38,12 @@ test('unsupported task and notification surfaces stay truthful', () => {
 test('API failures map stable codes without rendering server detail', () => {
   assert.match(clientSource, /safeMessages/)
   assert.doesNotMatch(clientSource, /problem\.data\.detail/)
+})
+
+test('production product language does not expose environment implementation terms', () => {
+  const productLanguage = productionCopySources.join('\n')
+  assert.doesNotMatch(productLanguage,
+    /Local deterministic|Local development|development build|Local identity|Deterministic validation/u)
+  assert.match(productLanguage, /Paid AI is disabled/)
+  assert.match(productLanguage, /Secure workspace access/)
 })

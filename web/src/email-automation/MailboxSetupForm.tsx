@@ -4,11 +4,13 @@ import type {
   InboundMailboxInput,
 } from '../api/email-automation-schemas'
 import { masterDataCodes } from '../generated/master-data-codes'
+import { operationalCopy } from '../content/operational-copy'
 
 const providerOptions = [
   { value: masterDataCodes.emailProviders.resend, label: 'Resend' },
   ...(import.meta.env.DEV
-    ? [{ value: masterDataCodes.emailProviders.deterministic, label: 'Local test mailbox' }]
+    ? [{ value: masterDataCodes.emailProviders.deterministic,
+      label: operationalCopy.sandboxMailbox }]
     : []),
 ]
 

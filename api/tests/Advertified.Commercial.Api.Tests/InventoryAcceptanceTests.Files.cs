@@ -40,6 +40,11 @@ public sealed partial class InventoryAcceptanceTests
             "product_code,name,product,channel,geography,rate_type,currency,rate_minor\n" +
             "ALIAS-001,Earlier Name,Accepted Name,OOH,Johannesburg,MONTH_RATE,ZAR,100000\n"));
 
+    private static FileFixture ContextualCommercialFixture() => new(
+        "CSV", "contextual-commercial.csv", "text/csv", Encoding.UTF8.GetBytes(
+            "element,value\n" +
+            "Generic 30-second recorded commercial,R291 060\n"));
+
     private static FileFixture RejectedBlockingCandidateFixture() => new(
         "CSV", "mixed-review-sites.csv", "text/csv", Encoding.UTF8.GetBytes(
             "product_code,name,channel,geography,latitude,longitude,rate_type,currency," +

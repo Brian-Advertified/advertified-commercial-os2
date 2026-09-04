@@ -36,7 +36,9 @@ public sealed record InventoryExtractedRow(
     string? ExtractionMethod = null,
     decimal? Confidence = null,
     IReadOnlyDictionary<string, string>? FieldLocators = null,
-    IReadOnlyDictionary<string, decimal?>? FieldConfidences = null);
+    IReadOnlyDictionary<string, decimal?>? FieldConfidences = null,
+    IReadOnlyDictionary<string, string>? FieldEvidenceBases = null,
+    IReadOnlyDictionary<string, string>? FieldTransformations = null);
 
 public sealed record InventoryExtractionDocument(
     string SchemaVersion,

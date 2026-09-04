@@ -25,6 +25,7 @@ using Advertified.Commercial.Application.Marketplace;
 using Advertified.Commercial.Application.Measurement;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Application.Proposal;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Advertified.Commercial.Infrastructure.Funding;
 using Advertified.Commercial.Infrastructure.Booking;
@@ -134,7 +135,14 @@ builder.Services.AddScoped<ISuppliedBriefAgentClient, DeterministicSuppliedBrief
 builder.Services.AddScoped<ISuppliedBriefUnderstandingService, SuppliedBriefUnderstandingService>();
 builder.Services.AddScoped<InventoryRecordStore>();
 builder.Services.AddScoped<InventoryExtractionAttemptStore>();
+builder.Services.AddScoped<InventorySemanticStore>();
+builder.Services.AddScoped<InventorySemanticEnrichmentService>();
+builder.Services.AddScoped<
+    IInventorySemanticPreflightReader,
+    InventorySemanticPreflightReader>();
 builder.Services.AddScoped<InventoryExtractionCompletionService>();
+builder.Services.AddScoped<InventoryReprojectionCompletionService>();
+builder.Services.AddScoped<InventoryRetainedProjectionProcessor>();
 builder.Services.AddScoped<InventoryExtractionAttemptProcessor>();
 builder.Services.AddScoped<IInventoryReader, InventoryReader>();
 builder.Services.AddScoped<IInventoryCommands, InventoryCommands>();
@@ -212,10 +220,13 @@ builder.Services.AddOptions<AgentRuntimeOptions>()
              !string.IsNullOrWhiteSpace(options.ServiceKey)),
         "The HTTP agent runtime requires an absolute URL and service key.")
     .ValidateOnStart();
+builder.AddInventorySemantic(agentRuntime);
 builder.Services.AddHttpClient<HttpOpportunityAgentClient>(ConfigureAgentRuntimeHttpClient);
 builder.Services.AddHttpClient<HttpPlanningAgentClient>(ConfigureAgentRuntimeHttpClient);
 builder.Services.AddHttpClient<HttpProposalNarrativeClient>(ConfigureAgentRuntimeHttpClient);
 builder.Services.AddHttpClient<HttpMeasurementAgentClient>(ConfigureAgentRuntimeHttpClient);
+builder.Services.AddHttpClient<InventorySemanticAgentClient>(
+    ConfigureAgentRuntimeHttpClient);
 builder.Services.AddScoped<IOpportunityAgentClient>(serviceProvider =>
     agentRuntime.UsesHttp
         ? serviceProvider.GetRequiredService<HttpOpportunityAgentClient>()

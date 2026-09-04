@@ -68,7 +68,8 @@ public sealed partial class InventoryCommands
             throw new ApprovalRequiredException();
         }
         if (source.Status != MasterDataCodes.LifecycleStatuses.ReviewRequired ||
-            source.ProtectedObjectKey is null)
+            source.ProtectedObjectKey is null ||
+            source.FailureCode is not null)
         {
             throw new InvalidLifecycleTransitionException();
         }

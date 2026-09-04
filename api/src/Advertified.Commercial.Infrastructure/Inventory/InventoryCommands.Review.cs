@@ -157,6 +157,7 @@ public sealed partial class InventoryCommands
                 updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {row.Id}
               AND status_code = {MasterDataCodes.LifecycleStatuses.ReviewRequired}
+              AND superseded_at_utc IS NULL
               AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1)
@@ -215,6 +216,7 @@ public sealed partial class InventoryCommands
         var pending = await store.DbContext.Database.SqlQuery<bool>($"""
             SELECT EXISTS (SELECT 1 FROM commercial.inventory_candidates
                 WHERE tenant_id = {tenantId.Value} AND import_id = {importId}
+                  AND superseded_at_utc IS NULL
                   AND status_code = {MasterDataCodes.LifecycleStatuses.ReviewRequired}) AS "Value"
             """).SingleAsync(cancellationToken);
         if (!pending)

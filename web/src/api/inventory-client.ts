@@ -2,6 +2,10 @@ import type { ZodType } from 'zod'
 import { request } from './client'
 import { inventoryCodes, type InventoryDecision } from './inventory-constants'
 import {
+  inventorySemanticPreflightSchema,
+  type InventorySemanticPreflight,
+} from './inventory-semantic-preflight-schemas'
+import {
   inventoryBenchmarkSchema,
   inventoryAssetRightsReviewSchema,
   inventoryAssetSchema,
@@ -62,6 +66,19 @@ export const inventoryApi = {
     )).data
   },
 
+  async semanticPreflight(
+    tenantId: string,
+    importId?: string,
+  ): Promise<InventorySemanticPreflight> {
+    const query = new URLSearchParams()
+    if (importId) query.set('importId', importId)
+    const suffix = query.size > 0 ? `?${query}` : ''
+    return (await request(
+      `/api/v1/tenants/${tenantId}/inventory-semantic-preflight${suffix}`,
+      inventorySemanticPreflightSchema,
+    )).data
+  },
+
   async uploadAsset(
     tenantId: string,
     productId: string,
@@ -92,6 +109,15 @@ export const inventoryApi = {
   retryExtraction(tenantId: string, record: InventoryImport, token: string, reason: string) {
     return command(
       `/api/v1/tenants/${tenantId}/inventory-imports/${record.id}:retry-extraction`,
+      inventoryImportSchema, { reason }, token, record.version)
+  },
+
+  reprojectExtraction(
+    tenantId: string, record: InventoryImport,
+    token: string, reason: string,
+  ) {
+    return command(
+      `/api/v1/tenants/${tenantId}/inventory-imports/${record.id}:reproject-extraction`,
       inventoryImportSchema, { reason }, token, record.version)
   },
 

@@ -18,7 +18,7 @@ import {
 
 const safeMessages: Readonly<Record<string, string>> = {
   AUTHENTICATION_REQUIRED: 'Your session has ended. Sign in again to continue.',
-  NETWORK_UNAVAILABLE: 'Advertified could not connect. Check the local address and try again.',
+  NETWORK_UNAVAILABLE: 'Advertified could not connect. Check the configured address and try again.',
   INVALID_API_RESPONSE: 'Advertified received an unexpected response. Refresh and try again.',
   RATE_LIMITED: 'Too many connection attempts were made. Wait a moment and try again.',
   APPROVAL_REQUIRED: 'This action belongs to the assigned operator or reviewer.',
@@ -26,7 +26,7 @@ const safeMessages: Readonly<Record<string, string>> = {
     'Complete and approve the required evidence first.',
   CSRF_VALIDATION_FAILED: 'Refresh the page and try that action again.',
   IDEMPOTENCY_CONFLICT: 'That request key was already used. Try the action again.',
-  ORIGIN_NOT_ALLOWED: 'Open Advertified from its configured local address.',
+  ORIGIN_NOT_ALLOWED: 'Open Advertified from its approved address.',
   TENANT_FORBIDDEN: 'You do not have access to this workspace or action.',
   VALIDATION_FAILED: 'Review the information and try again.',
   VERSION_CONFLICT: 'This information changed. Refresh it before saving again.',

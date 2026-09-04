@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react'
 import type { CurrentUser } from '../api/schemas'
+import { operationalCopy } from '../content/operational-copy'
 
 export type FieldErrors = { displayName?: string; phone?: string }
 
@@ -22,7 +23,8 @@ export function ProfileForm(props: Props) {
         <span className="profile-avatar" aria-hidden="true">{props.user.displayName.charAt(0)}</span>
         <h2>{props.user.displayName}</h2>
         <p>{props.user.email}</p>
-        <span className="status-chip">{props.user.mfaEnabled ? 'MFA enabled' : 'Local identity'}</span>
+        <span className="status-chip">{props.user.mfaEnabled
+          ? 'MFA enabled' : operationalCopy.mfaNotConfirmed}</span>
       </aside>
       <form className="profile-form" onSubmit={(event) => void props.onSubmit(event)} noValidate>
         <div className="field-group">

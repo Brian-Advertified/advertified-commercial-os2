@@ -5,8 +5,11 @@ public sealed class InventoryExtractionOptions
     public const string SectionName = "InventoryExtraction";
     public const string DoclingMode = "Docling";
     public const string DeterministicMode = "Deterministic";
-    public const string PinnedAdapterVersion = "docling-serve/1.30.0;docling/2.118.0";
-    public const string CurrentSchemaVersion = "advertified.inventory-extraction.v2";
+    public const string PinnedAdapterVersion =
+        "docling-serve/1.30.0;docling/2.118.0;advertified-projection/3.1.0;" +
+        NativeOfficeInventoryProjection.AdapterVersion + ";" +
+        DoclingInventoryExtractionAdapter.EmbeddedImageProjectionVersion;
+    public const string CurrentSchemaVersion = "advertified.inventory-extraction.v3";
 
     public string Mode { get; init; } = DeterministicMode;
     public string BaseUrl { get; init; } = "http://localhost:55001";

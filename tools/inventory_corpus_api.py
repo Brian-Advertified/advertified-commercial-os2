@@ -62,6 +62,28 @@ class InventoryApi:
             idempotency=f"corpus-{source_hash}-retry-{attempt_number}", version=version,
         )
 
+    def reproject_import(
+        self, import_id: str, version: int, source_hash: str,
+        attempt_number: int,
+    ) -> dict[str, Any]:
+        return self.request(
+            "POST",
+            self.tenant_path(
+                f"/inventory-imports/{import_id}:reproject-extraction"
+            ),
+            json={
+                "reason": (
+                    "Authorised semantic recovery reprojects the retained "
+                    "Docling artifact without resubmitting the source."
+                )
+            },
+            idempotency=(
+                f"corpus-{source_hash}-advertified-projection-v3-"
+                f"attempt-{attempt_number}"
+            ),
+            version=version,
+        )
+
     def wait_for_extraction(
         self, import_id: str, poll_seconds: int, max_wait_seconds: int,
         observe: Callable[[dict[str, Any]], None], checkpoint: Callable[[], None],
@@ -71,7 +93,11 @@ class InventoryApi:
         while time.monotonic() < deadline:
             current = self.read_import(import_id)
             attempts = current.get("extractionAttempts") or []
-            latest = attempts[0] if attempts else None
+            latest = max(
+                attempts,
+                key=lambda attempt: attempt["attemptNumber"],
+                default=None,
+            )
             marker = (current["status"], latest["status"] if latest else None)
             if marker != previous:
                 observe({"importStatus": marker[0], "attempt": latest})
@@ -80,7 +106,11 @@ class InventoryApi:
                 previous = marker
             if current["status"] == REVIEW_REQUIRED:
                 return current
-            if latest and latest["status"] not in ACTIVE_ATTEMPT_STATES:
+            if (
+                latest
+                and latest["status"] not in ACTIVE_ATTEMPT_STATES
+                and latest["status"] != "COMPLETED"
+            ):
                 raise RuntimeError(f"Extraction stopped in {latest['status']}.")
             time.sleep(poll_seconds)
         raise RuntimeError("Extraction did not finish within the bounded observation window.")

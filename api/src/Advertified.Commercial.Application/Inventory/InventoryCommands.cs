@@ -22,6 +22,9 @@ public sealed record ReconcileInventoryExtractionCommand(
     string Reason,
     string? ExternalTaskId);
 
+public sealed record ReprojectInventoryExtractionCommand(
+    string Reason);
+
 public sealed record ReviewInventoryCandidateCommand(
     string Decision,
     string? RejectionReason,
@@ -145,6 +148,11 @@ public interface IInventoryCommands
     Task<CommandResult<InventoryImportView>> ReconcileExtractionAsync(
         Guid importId,
         CommandEnvelope<ReconcileInventoryExtractionCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<InventoryImportView>> ReprojectExtractionAsync(
+        Guid importId,
+        CommandEnvelope<ReprojectInventoryExtractionCommand> envelope,
         CancellationToken cancellationToken);
 
     Task<CommandResult<InventoryCandidateView>> ReviewAsync(

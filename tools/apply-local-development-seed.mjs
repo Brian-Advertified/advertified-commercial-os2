@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-const containerName = 'advertified-dev-postgres-1'
+const containerName = 'advertified-os2-dev-postgres-1'
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url))
 const seedPath = fileURLToPath(
   new URL('../infrastructure/development/seed-local-workspace.sql', import.meta.url),
@@ -26,7 +26,7 @@ const unsafeMount = (record?.Mounts ?? []).some((mount) =>
 const allowed =
   record?.Name === `/${containerName}` &&
   record?.State?.Running === true &&
-  labels['com.docker.compose.project'] === 'advertified-dev' &&
+  labels['com.docker.compose.project'] === 'advertified-os2-dev' &&
   labels['com.docker.compose.service'] === 'postgres' &&
   record?.HostConfig?.Privileged !== true &&
   record?.HostConfig?.NetworkMode !== 'host' &&

@@ -124,6 +124,41 @@ public sealed partial class AgentRuntimeHttpAdapterTests
                 BriefInput(), CancellationToken.None));
     }
 
+    [Fact]
+    public async Task AdapterPreservesRejectedProviderUsageAndStage()
+    {
+        var failure = JsonSerializer.Serialize(new
+        {
+            detail = new
+            {
+                provider_acceptance = "ACCEPTED",
+                stage = "GROUNDING_VALIDATION",
+                usage = new
+                {
+                    provider_request_id = "request-123",
+                    input_tokens = 8_667,
+                    output_tokens = 1_406,
+                    incremental_cost_usd_micros = 858,
+                },
+            },
+        });
+        var client = CreateClient(_ => Task.FromResult(new HttpResponseMessage(
+            HttpStatusCode.ServiceUnavailable)
+        {
+            Content = JsonString(failure),
+        }));
+        var adapter = new HttpPlanningAgentClient(client, Settings());
+
+        var rejected = await Assert.ThrowsAsync<AgentRuntimeRejectedException>(() =>
+            adapter.ProposeAudiencesAsync(
+                BriefInput(), CancellationToken.None));
+
+        Assert.Equal("ACCEPTED", rejected.Acceptance);
+        Assert.Equal("GROUNDING_VALIDATION", rejected.Stage);
+        Assert.Equal("request-123", rejected.ProviderRequestId);
+        Assert.Equal(858, rejected.CostUsdMicros);
+    }
+
     [Theory]
     [InlineData("TV", 1000001)]
     [InlineData("OOH", 1000000)]

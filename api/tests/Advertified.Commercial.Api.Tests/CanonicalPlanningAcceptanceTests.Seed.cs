@@ -66,15 +66,17 @@ public sealed partial class CanonicalPlanningAcceptanceTests
                 'COMPLETED', 'CLEAN', 'q/planning', 'p/planning', repeat('b', 64), 100,
                 $4, 2, $5, $5)
             """, ImportId, TenantId, SupplierId, OperatorId, Now);
+        var projectionId = InventoryProjectionSeed.Add(
+            batch, TenantId, ImportId, OperatorId, Now, 'b');
         AddCommand(batch,
             """
             INSERT INTO commercial.inventory_candidates (
                 id, tenant_id, import_id, row_number, status_code, proposed_values_json,
                 canonical_values_json, validation_json, source_locator, reviewed_by,
-                version, created_at_utc, updated_at_utc)
+                version, created_at_utc, updated_at_utc, projection_id)
             VALUES ($1, $2, $3, 1, 'APPROVED', '{}', '{}', '[]', 'csv#row=2',
-                $4, 1, $5, $5)
-            """, CandidateId, TenantId, ImportId, OperatorId, Now);
+                $4, 1, $5, $5, $6)
+            """, CandidateId, TenantId, ImportId, OperatorId, Now, projectionId);
         var supplierVersionId = Guid.Parse("75000000-0000-0000-0000-000000000004");
         AddCommand(batch,
             """

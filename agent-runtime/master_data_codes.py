@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: 07e4a2996a1768fdcf75e248551bfd8928203c5254d92a30d08099cfe126b055
+# source-sha256: c366c5eeeb3bd6e192599b208fca1a1722cb401dc5f20e9e6f28e91023ce8c35
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.27.0"
+REGISTRY_VERSION = "2.29.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -235,6 +235,7 @@ class AvailabilityStatuses(StrEnum):
     AVAILABLE = "AVAILABLE"
     LIMITED = "LIMITED"
     UNAVAILABLE = "UNAVAILABLE"
+    PLANNING_AVAILABLE = "PLANNING_AVAILABLE"
 
 class AvailabilityExceptionTypes(StrEnum):
     NOT_AVAILABLE = "NOT_AVAILABLE"
@@ -276,6 +277,7 @@ class InventoryExtractionMethods(StrEnum):
     OCR = "OCR"
     POLICY_DEFAULT = "POLICY_DEFAULT"
     HUMAN_EDIT = "HUMAN_EDIT"
+    AGENT_PROPOSAL = "AGENT_PROPOSAL"
 
 class InventoryExtractionAttemptStatuses(StrEnum):
     PENDING = "PENDING"
@@ -369,6 +371,8 @@ class InventoryTransformationTypes(StrEnum):
     PARSE_DECIMAL = "PARSE_DECIMAL"
     DERIVED_FROM_CHANNEL = "DERIVED_FROM_CHANNEL"
     EXPLICIT_UNKNOWN = "EXPLICIT_UNKNOWN"
+    PARSE_CURRENCY_AMOUNT = "PARSE_CURRENCY_AMOUNT"
+    DERIVED_FROM_SOURCE_CONTEXT = "DERIVED_FROM_SOURCE_CONTEXT"
 
 class InventoryUnsupportedClaimTerms(StrEnum):
     AUDIENCE = "audience"
@@ -653,6 +657,8 @@ class CommercialActions(StrEnum):
     INVENTORY_EXTRACTION_RETRY_REQUESTED = "inventory_extraction.retry_requested"
     INVENTORY_EXTRACTION_CANCELLED = "inventory_extraction.cancelled"
     INVENTORY_EXTRACTION_RECONCILED = "inventory_extraction.reconciled"
+    INVENTORY_EXTRACTION_REPROJECTION_REQUESTED = "inventory_extraction.reprojection_requested"
+    INVENTORY_EXTRACTION_REPROJECTED = "inventory_extraction.reprojected"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -753,6 +759,8 @@ class CommercialEventTypes(StrEnum):
     INVENTORY_EXTRACTION_RETRY_REQUESTED = "InventoryExtractionRetryRequested"
     INVENTORY_EXTRACTION_CANCELLED = "InventoryExtractionCancelled"
     INVENTORY_EXTRACTION_RECONCILED = "InventoryExtractionReconciled"
+    INVENTORY_EXTRACTION_REPROJECTION_REQUESTED = "InventoryExtractionReprojectionRequested"
+    INVENTORY_EXTRACTION_REPROJECTED = "InventoryExtractionReprojected"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"

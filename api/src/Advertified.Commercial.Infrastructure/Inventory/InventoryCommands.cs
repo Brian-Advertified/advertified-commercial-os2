@@ -80,6 +80,22 @@ public sealed partial class InventoryCommands(
         return CommandOutcomeFactory.ToResult<InventoryImportView>(receipt);
     }
 
+    public async Task<CommandResult<InventoryImportView>>
+        ReprojectExtractionAsync(
+            Guid importId,
+            CommandEnvelope<ReprojectInventoryExtractionCommand> envelope,
+            CancellationToken cancellationToken)
+    {
+        var receipt = await dispatcher.DispatchAsync(
+            envelope,
+            MasterDataReferences.Permissions.InventoryImport,
+            token => ReprojectExtractionOutcomeAsync(
+                importId, envelope, token),
+            cancellationToken);
+        return CommandOutcomeFactory.ToResult<InventoryImportView>(
+            receipt);
+    }
+
     public async Task<CommandResult<InventoryCandidateView>> ReviewAsync(
         Guid candidateId,
         CommandEnvelope<ReviewInventoryCandidateCommand> envelope,

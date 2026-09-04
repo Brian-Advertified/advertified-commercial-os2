@@ -16,7 +16,7 @@ using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
 
-public sealed class DoclingInventoryExtractionAdapterTests
+public sealed partial class DoclingInventoryExtractionAdapterTests
 {
     [Theory]
     [InlineData("http://docling.test")]

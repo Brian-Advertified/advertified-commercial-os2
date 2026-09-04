@@ -60,6 +60,7 @@ internal static class InventoryExtractionCompletionPolicy
         string selectedSupplier)
     {
         if (string.IsNullOrWhiteSpace(extractedSupplier) ||
+            IsUnspecifiedSupplier(selectedSupplier) ||
             string.Equals(NormalizeSupplier(extractedSupplier),
                 NormalizeSupplier(selectedSupplier), StringComparison.OrdinalIgnoreCase))
         {
@@ -71,6 +72,13 @@ internal static class InventoryExtractionCompletionPolicy
             "The extracted supplier differs from the supplier selected for this import.",
             false)];
     }
+
+    private static bool IsUnspecifiedSupplier(string value) =>
+        string.IsNullOrWhiteSpace(value) ||
+        string.Equals(
+            NormalizeSupplier(value),
+            "Not supplied",
+            StringComparison.OrdinalIgnoreCase);
 
     private static string NormalizeSupplier(string value) =>
         string.Join(' ', value.Split((char[]?)null,

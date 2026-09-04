@@ -45,14 +45,18 @@ public sealed partial class MarketplaceAcceptanceTests
                 'documentClasses', 'CSV', 'COMPLETED', 'CLEAN', 'private/quarantine',
                 'private/protected-rate-card', repeat('a', 64), 100, $4, 2, $5, $5)
             """, ImportId, SupplierTenantId, InventorySupplierId, SupplierUserId, InitialTime);
+        var projectionId = InventoryProjectionSeed.Add(
+            batch, SupplierTenantId, ImportId, SupplierUserId,
+            InitialTime, 'a');
         Add(batch, """
             INSERT INTO commercial.inventory_candidates (
                 id, tenant_id, import_id, row_number, status_code, proposed_values_json,
                 canonical_values_json, validation_json, source_locator, reviewed_by,
-                version, created_at_utc, updated_at_utc)
+                version, created_at_utc, updated_at_utc, projection_id)
             VALUES ($1, $2, $3, 1, 'APPROVED', '{}', '{}', '[]',
-                'private-rate-card.csv#row=2', $4, 1, $5, $5)
-            """, CandidateId, SupplierTenantId, ImportId, SupplierUserId, InitialTime);
+                'private-rate-card.csv#row=2', $4, 1, $5, $5, $6)
+            """, CandidateId, SupplierTenantId, ImportId, SupplierUserId, InitialTime,
+            projectionId);
         var supplierVersionId = Guid.Parse("95000000-0000-0000-0000-000000000011");
         Add(batch, """
             INSERT INTO commercial.inventory_supplier_versions (

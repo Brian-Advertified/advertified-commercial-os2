@@ -49,8 +49,7 @@ public sealed class AgentRuntimeOptions
         return options.Provider == BedrockProvider &&
             options.DefaultModel != "fixture-v1" &&
             options.DefaultCostCapMinor > 0 &&
-            options.AllowLive &&
-            options.MaxAttempts is >= 1 and <= 3;
+            options.MaxAttempts == 1;
     }
 
     public static bool HasCompatibleMode(AgentRuntimeOptions options) =>

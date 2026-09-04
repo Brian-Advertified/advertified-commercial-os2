@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.27.0",
+  "registryVersion": "2.29.0",
   "effectiveFrom": "2026-09-03",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
@@ -234,7 +234,8 @@
       {"code":"UNKNOWN","displayLabel":"Legacy Availability Unknown","isActive":true,"sortOrder":10,"metadata":{"planningEligible":true,"defaultsToAvailable":true,"legacyOnly":true}},
       {"code":"AVAILABLE","displayLabel":"Available","isActive":true,"sortOrder":20,"metadata":{"planningEligible":true,"supplyConfidence":"CONFIRMED"}},
       {"code":"LIMITED","displayLabel":"Limited Availability","isActive":true,"sortOrder":30,"metadata":{"planningEligible":true,"supplyConfidence":"INDICATIVE"}},
-      {"code":"UNAVAILABLE","displayLabel":"Unavailable","isActive":true,"sortOrder":40,"metadata":{"planningEligible":false,"supplyConfidence":"UNKNOWN"}}
+      {"code":"UNAVAILABLE","displayLabel":"Unavailable","isActive":true,"sortOrder":40,"metadata":{"planningEligible":false,"supplyConfidence":"UNKNOWN"}},
+      {"code":"PLANNING_AVAILABLE","displayLabel":"Planning Available — Supplier Confirmation Required","isActive":true,"sortOrder":50,"metadata":{"planningEligible":true,"supplyConfidence":"UNCONFIRMED","bookingEligible":false}}
     ],
     "availabilityExceptionTypes": [
       {"code":"NOT_AVAILABLE","displayLabel":"Not Available","isActive":true,"sortOrder":10},
@@ -275,7 +276,8 @@
       {"code":"KEY_VALUE","displayLabel":"Key-value Extraction","isActive":true,"sortOrder":20},
       {"code":"OCR","displayLabel":"Optical Character Recognition","isActive":true,"sortOrder":30},
       {"code":"POLICY_DEFAULT","displayLabel":"Governed Policy Default","isActive":true,"sortOrder":40},
-      {"code":"HUMAN_EDIT","displayLabel":"Human Edit","isActive":true,"sortOrder":50}
+      {"code":"HUMAN_EDIT","displayLabel":"Human Edit","isActive":true,"sortOrder":50},
+      {"code":"AGENT_PROPOSAL","displayLabel":"Source-grounded Agent Proposal","isActive":true,"sortOrder":60}
     ],
     "inventoryExtractionAttemptStatuses": [
       {"code":"PENDING","displayLabel":"Pending Submission","isActive":true,"sortOrder":10},
@@ -368,7 +370,9 @@
       {"code":"MAJOR_TO_MINOR","displayLabel":"Convert Major to Minor Currency Units","isActive":true,"sortOrder":30},
       {"code":"PARSE_DECIMAL","displayLabel":"Parse Decimal","isActive":true,"sortOrder":40},
       {"code":"DERIVED_FROM_CHANNEL","displayLabel":"Derive Product Type from Channel","isActive":true,"sortOrder":50},
-      {"code":"EXPLICIT_UNKNOWN","displayLabel":"Record Explicit Unknown","isActive":true,"sortOrder":60}
+      {"code":"EXPLICIT_UNKNOWN","displayLabel":"Record Explicit Unknown","isActive":true,"sortOrder":60},
+      {"code":"PARSE_CURRENCY_AMOUNT","displayLabel":"Parse Evidenced Currency and Amount","isActive":true,"sortOrder":70},
+      {"code":"DERIVED_FROM_SOURCE_CONTEXT","displayLabel":"Derive from Explicit Source Context","isActive":true,"sortOrder":80}
     ],
     "inventoryUnsupportedClaimTerms": [
       {"code":"audience","displayLabel":"Audience claim","isActive":true,"sortOrder":10},
@@ -652,7 +656,9 @@
       {"code":"inventory_extraction.requested","displayLabel":"Inventory Extraction Requested","isActive":true,"sortOrder":870},
       {"code":"inventory_extraction.retry_requested","displayLabel":"Inventory Extraction Retry Requested","isActive":true,"sortOrder":880},
       {"code":"inventory_extraction.cancelled","displayLabel":"Inventory Extraction Cancelled","isActive":true,"sortOrder":890},
-      {"code":"inventory_extraction.reconciled","displayLabel":"Inventory Extraction Reconciled","isActive":true,"sortOrder":900}
+      {"code":"inventory_extraction.reconciled","displayLabel":"Inventory Extraction Reconciled","isActive":true,"sortOrder":900},
+      {"code":"inventory_extraction.reprojection_requested","displayLabel":"Inventory Extraction Reprojection Requested","isActive":true,"sortOrder":910},
+      {"code":"inventory_extraction.reprojected","displayLabel":"Inventory Extraction Reprojected","isActive":true,"sortOrder":920}
     ],
     "commercialEventTypes": [
       {"code":"TenantUpdated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -752,7 +758,9 @@
       {"code":"InventoryExtractionRequested","displayLabel":"Inventory Extraction Requested","isActive":true,"sortOrder":850},
       {"code":"InventoryExtractionRetryRequested","displayLabel":"Inventory Extraction Retry Requested","isActive":true,"sortOrder":860},
       {"code":"InventoryExtractionCancelled","displayLabel":"Inventory Extraction Cancelled","isActive":true,"sortOrder":870},
-      {"code":"InventoryExtractionReconciled","displayLabel":"Inventory Extraction Reconciled","isActive":true,"sortOrder":880}
+      {"code":"InventoryExtractionReconciled","displayLabel":"Inventory Extraction Reconciled","isActive":true,"sortOrder":880},
+      {"code":"InventoryExtractionReprojectionRequested","displayLabel":"Inventory Extraction Reprojection Requested","isActive":true,"sortOrder":890},
+      {"code":"InventoryExtractionReprojected","displayLabel":"Inventory Extraction Reprojected","isActive":true,"sortOrder":900}
     ],
     "creativeTextRoles": [
       {"code":"HEADLINE","displayLabel":"Headline","isActive":true,"sortOrder":10},

@@ -1,4 +1,4 @@
-name: advertified-os2-build
+name: advertified-os2-dev
 
 services:
   api:

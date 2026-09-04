@@ -6,6 +6,7 @@ import type { AgentBudget, AgentOperationalRun, AgentOperations, AgentUsage }
 import { humanMessage } from '../api/client'
 import { useWorkspace } from '../auth/workspace-state'
 import { LoadingState, MessageState } from '../components/PageState'
+import { operationalCopy } from '../content/operational-copy'
 import { SettingsNavigation } from '../components/SettingsNavigation'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { formatDateTime, formatMoney, formatNumber, humanizeCode } from '../presentation/format'
@@ -56,8 +57,7 @@ function AgentOperationsWorkspace({ operations }: { operations: AgentOperations 
       <div><dt>Needs attention</dt><dd>{formatNumber(operations.attentionRunCount)}</dd></div>
     </dl>
     {!operations.liveProviderEnabled && <p className="inline-alert" role="status">
-      Local deterministic agents do not call a paid provider. Their current cost caps are zero;
-      any retained historical usage remains visible below.
+      {operationalCopy.providerDisabled}
     </p>}
     <AgentBudgetTable agents={operations.agents} currency={operations.currency} />
     <UsageTable usage={operations.recentUsage} currency={operations.currency} />

@@ -58,9 +58,15 @@ class ProviderPolicy(ContractModel):
                 or self.max_attempts != 1
             ):
                 raise ValueError("Deterministic provider policy must remain zero-cost and local.")
-        elif self.model == "fixture-v1" or self.cost_cap_minor <= 0 or not self.allow_live:
+        elif (
+            self.model == "fixture-v1"
+            or self.cost_cap_minor <= 0
+            or not self.allow_live
+            or self.max_attempts != 1
+        ):
             raise ValueError(
-                "Bedrock policy requires an explicit live model and positive cost cap."
+                "Bedrock policy requires an explicit live model, positive cost cap, "
+                "and one ambiguity-safe attempt."
             )
         return self
 
@@ -145,7 +151,12 @@ class ProviderUsage(ContractModel):
     tool_calls: NonNegativeInt
     incremental_cost_minor: NonNegativeInt
     cache_status: Literal["FIXTURE", "LIVE", "CACHE_HIT"]
-    provider_request_id: Annotated[str | None, Field(min_length=1, max_length=300)] = None
+    provider_request_id: Annotated[
+        str | None, Field(min_length=1, max_length=300)
+    ] = None
+    input_tokens: NonNegativeInt = 0
+    output_tokens: NonNegativeInt = 0
+    incremental_cost_usd_micros: NonNegativeInt = 0
 
     @model_validator(mode="after")
     def validate_usage_boundary(self) -> ProviderUsage:
@@ -157,13 +168,22 @@ class ProviderUsage(ContractModel):
                 or self.incremental_cost_minor != 0
                 or self.cache_status != "FIXTURE"
                 or self.provider_request_id is not None
+                or self.input_tokens != 0
+                or self.output_tokens != 0
+                or self.incremental_cost_usd_micros != 0
             ):
-                raise ValueError("Deterministic usage must remain fixture-only and zero-cost.")
+                raise ValueError(
+                    "Deterministic usage must remain fixture-only and zero-cost."
+                )
         elif (
             self.model == "fixture-v1"
             or self.units <= 0
             or self.tool_calls != 0
             or self.cache_status not in ("LIVE", "CACHE_HIT")
+            or self.provider_request_id is None
+            or self.output_tokens <= 0
+            or self.units != self.input_tokens + self.output_tokens
+            or self.incremental_cost_usd_micros <= 0
         ):
             raise ValueError("Bedrock usage is incomplete or unsafe.")
         return self

@@ -20,13 +20,13 @@ public sealed class InMemoryBrowserSessionStore(TimeProvider timeProvider)
         RemoveExpiredSessions();
         if (sessions.Count >= MaximumSessions)
         {
-            throw new InvalidOperationException("The local session store is full.");
+            throw new InvalidOperationException("The session store is full.");
         }
 
         var token = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(TokenBytes));
         if (!sessions.TryAdd(Hash(token), identity))
         {
-            throw new InvalidOperationException("The local session could not be created.");
+            throw new InvalidOperationException("The session could not be created.");
         }
 
         return ValueTask.FromResult(new BrowserSessionHandle(token, identity));

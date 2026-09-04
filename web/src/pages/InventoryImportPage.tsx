@@ -7,7 +7,9 @@ import { inventoryCodes, type InventoryDecision } from '../api/inventory-constan
 import type { InventoryCandidate, InventoryImport, InventoryValues } from '../api/inventory-schemas'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
+import { operationalCopy } from '../content/operational-copy'
 import { InventoryCandidateReview } from '../components/InventoryCandidateReview'
+import { ExtractionAttemptActions } from '../components/InventoryExtractionAttemptActions'
 import { LoadingState, MessageState } from '../components/PageState'
 import { notifications } from '../notifications/notifications'
 import { formatDateTime, humanizeCode } from '../presentation/format'
@@ -63,19 +65,6 @@ function ImportRecord({ tenantId, importId, canReview }: {
   </section>
 }
 
-const retryableExtractionStatuses = new Set<string>([
-  inventoryCodes.extractionStatus.failedTerminal,
-  inventoryCodes.extractionStatus.timedOut,
-  inventoryCodes.extractionStatus.cancelled,
-])
-const cancellableExtractionStatuses = new Set<string>([
-  inventoryCodes.extractionStatus.pending,
-  inventoryCodes.extractionStatus.submitting,
-  inventoryCodes.extractionStatus.running,
-  inventoryCodes.extractionStatus.failedRetryable,
-  inventoryCodes.extractionStatus.reconciliationRequired,
-])
-
 function ExtractionAttemptPanel({ tenantId, record, actions }: {
   tenantId: string
   record: InventoryImport
@@ -102,40 +91,10 @@ function ExtractionAttemptPanel({ tenantId, record, actions }: {
   </section>
 }
 
-function ExtractionAttemptActions({ tenantId, record, actions, reason, externalTaskId }: {
-  tenantId: string
-  record: InventoryImport
-  actions: ReturnType<typeof useImportActions>
-  reason: string
-  externalTaskId: string
-}) {
-  const attempt = record.extractionAttempts[0]
-  if (!attempt) return null
-  const act = (request: (token: string) => Promise<unknown>, message: string) =>
-    void actions.run(request, message)
-  return <div className="button-row">
-      <button className="secondary-button" type="button" onClick={() => void actions.run(
-        async () => record, 'Extraction state refreshed.')}>Refresh</button>
-      {retryableExtractionStatuses.has(attempt.status) && <button className="primary-button"
-        disabled={actions.busy || !reason.trim()} onClick={() => act(token =>
-          inventoryApi.retryExtraction(tenantId, record, token, reason),
-        'A new extraction attempt is queued for the same source.')}>Retry as new attempt</button>}
-      {attempt.status === inventoryCodes.extractionStatus.reconciliationRequired &&
-        <button className="secondary-button"
-        disabled={actions.busy || !reason.trim()} onClick={() => act(token =>
-          inventoryApi.reconcileExtraction(tenantId, record, token, reason,
-            externalTaskId.trim() || null), 'The reconciliation decision is recorded.')}>Reconcile</button>}
-      {cancellableExtractionStatuses.has(attempt.status) && <button className="secondary-button"
-        disabled={actions.busy || !reason.trim()} onClick={() => act(token =>
-          inventoryApi.cancelExtraction(tenantId, record, token, reason),
-        'The extraction attempt is terminal and retained in history.')}>Mark unrecoverable</button>}
-    </div>
-}
-
 function ApprovedImportSteps({ record }: { record: InventoryImport }) {
   const steps = [
     ['Upload Protection', 'Protect source'],
-    ['Classification', 'Classify & Render'],
+    ['Classification', 'Classify Source'],
     ['Extraction', 'Extract Candidates'],
     ['Normalization', 'Normalize'],
     ['Validation', 'Validate & Reconcile'],
@@ -159,8 +118,8 @@ function ApprovedClassifyStage({ tenantId, record, actions }: {
   actions: ReturnType<typeof useImportActions>
 }) {
   return <section className="approved-classify-stage">
-    <article className="approved-source-preview"><header><h2>Classify & Render</h2><span>Layout preserved</span></header>
-      <div className="approved-document-preview"><aside>{[1,2,3,4].map(page => <span key={page}>{page}</span>)}</aside>
+    <article className="approved-source-preview"><header><h2>Source record</h2><span>Metadata only</span></header>
+      <div className="approved-document-preview">
         <div><p className="approved-document-title">{record.supplierName.toUpperCase()}</p><h3>{record.fileName}</h3>
           <table><tbody><tr><td>Source hash</td><td>{record.sourceHash.slice(0, 14)}…</td></tr>
             <tr><td>Declared type</td><td>{record.declaredMediaType}</td></tr><tr><td>Detected class</td><td>{record.documentClass ?? 'Pending classification'}</td></tr>
@@ -172,7 +131,7 @@ function ApprovedClassifyStage({ tenantId, record, actions }: {
       <div><dt>Integrity</dt><dd>Original source retained</dd></div>
       <div><dt>Next action</dt><dd>Extract candidate commercial facts</dd></div></dl>
       <button className="primary-button" disabled={actions.busy}
-        onClick={() => void actions.run((token) => inventoryApi.execute(tenantId, record, token), 'The source is extracted and ready for review.')}>
+        onClick={() => void actions.run((token) => inventoryApi.execute(tenantId, record, token), 'Extraction is queued. Refresh to follow the durable attempt.')}>
         {actions.busy ? 'Extracting…' : 'Extract candidates →'}</button></article>
   </section>
 }
@@ -185,7 +144,7 @@ function ApprovedCandidateStage({ record, canReview, actions }: {
   return <>
     <section className="approved-candidate-table-card"><header><div><h2>Extract Candidates</h2>
       <p>{record.candidateCounts.total.toLocaleString()} candidate record{record.candidateCounts.total === 1 ? '' : 's'} extracted with source coordinates.</p></div>
-      <span>Field confidence and validation retained</span></header>
+      <span>Source evidence and validation retained</span></header>
       {record.candidates.length === 0 ? <p className="approved-empty">No candidate rows are available in this page yet.</p> :
         <div className="approved-candidate-table"><div className="approved-candidate-head"><span>Product</span><span>Channel</span><span>Location</span><span>Rate</span><span>Availability</span><span>Issues</span></div>
           {record.candidates.slice(0, 12).map(candidate => <div key={candidate.id}><strong>{candidate.values.name ?? candidate.values.productCode ?? `Row ${candidate.rowNumber}`}</strong>
@@ -194,11 +153,12 @@ function ApprovedCandidateStage({ record, canReview, actions }: {
             <span className="approved-availability-pill">{candidate.values.availability ?? 'Unknown'}</span>
             <em className={candidate.validation.some(issue => issue.isBlocking) ? 'is-blocking' : ''}>{candidate.validation.length}</em></div>)}</div>}
     </section>
-    <section className="approved-reconcile-card"><header><div><h2>Validate & Reconcile</h2><p>Deterministic validation separates safe normalization from material review.</p></div></header>
+    <section className="approved-reconcile-card"><header><div><h2>Validate & Reconcile</h2>
+      <p>{operationalCopy.inventoryValidation}</p></div></header>
       <div className="approved-reconcile-grid"><article><strong>Resolved</strong><p>Safe transformations and proven duplicate matches can resolve automatically.</p></article>
         <article><strong>Comparable</strong><p>Same product context, but commercial terms differ. Preserve both and compare.</p></article>
         <article><strong>Conflict</strong><p>Materially incompatible evidence stays unresolved until reviewed.</p></article></div></section>
-    <section className="inventory-candidate-ledger approved-human-review" id="candidate-review"><header><div><p className="eyebrow">Human Review</p><h2>Review only the exceptions</h2></div><span>{record.candidateCounts.reviewRequired} awaiting review</span></header>
+    <section className="inventory-candidate-ledger approved-human-review" id="candidate-review"><header><div><p className="eyebrow">Human Review</p><h2>Review extracted candidates</h2></div><span>{record.candidateCounts.reviewRequired} awaiting review</span></header>
       {record.candidates.length === 0 ? <p className="inventory-candidate-empty">No candidates have been extracted from this source yet.</p> :
         <div className="candidate-stack">{record.candidates.map(candidate => <InventoryCandidateReview key={candidate.id} candidate={candidate}
           canReview={canReview && candidate.status === inventoryCodes.candidateStatus.reviewRequired} busy={actions.busy} review={actions.review} />)}</div>}

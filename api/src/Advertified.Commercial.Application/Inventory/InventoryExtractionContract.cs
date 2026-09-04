@@ -69,6 +69,8 @@ public static class InventoryExtractionContract
                     StringComparer.Ordinal),
                 FieldLocators = CanonicalDictionary(row.FieldLocators),
                 FieldConfidences = CanonicalDictionary(row.FieldConfidences),
+                FieldEvidenceBases = CanonicalDictionary(row.FieldEvidenceBases),
+                FieldTransformations = CanonicalDictionary(row.FieldTransformations),
             }).ToArray();
     }
 

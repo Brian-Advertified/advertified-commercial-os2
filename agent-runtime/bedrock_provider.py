@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import json
-import math
 import os
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
@@ -14,11 +13,27 @@ from botocore.session import get_session
 from pydantic import BaseModel, ValidationError
 
 from agent_registry import AgentCode
+from bedrock_failure import BedrockProviderError
+from bedrock_multimodal import (
+    BedrockMultimodalError,
+    conservative_input_token_estimate,
+    count_input_tokens,
+    request_content,
+)
+from bedrock_output import (
+    attach_usage,
+    decode_generated_output,
+    output_schema,
+)
+from bedrock_schema import structured_output_tool
+from bedrock_semantic_output import is_semantic_enrichment
+from bedrock_transcription_output import is_source_transcription
 from contracts import (
     AgentInvocationEnvelope,
     AgentOutputEnvelope,
     ContractModel,
     GeneratedAgentOutput,
+    ProviderPolicy,
     ProviderUsage,
 )
 
@@ -29,6 +44,7 @@ REGION_KEY = "ADVERTIFIED_BEDROCK_REGION"
 ALLOWLIST_KEY = "ADVERTIFIED_BEDROCK_MODEL_ALLOWLIST"
 PRICING_KEY = "ADVERTIFIED_BEDROCK_PRICING_JSON"
 MAX_TOKENS_KEY = "ADVERTIFIED_BEDROCK_MAX_TOKENS"
+MULTIMODAL_ALLOWLIST_KEY = "ADVERTIFIED_BEDROCK_MULTIMODAL_MODEL_ALLOWLIST"
 
 
 class BedrockPricing(ContractModel):
@@ -36,22 +52,18 @@ class BedrockPricing(ContractModel):
     output_per_million_usd: Decimal
 
 
-class BedrockProviderError(RuntimeError):
-    """Raised when the bounded provider cannot return validated proposal data."""
-
-
-class BedrockResult(Generic[ArtifactT]):
-    def __init__(self, output: AgentOutputEnvelope[ArtifactT]) -> None:
-        self.output = output
-
-
 def bedrock_configuration_ready() -> bool:
     try:
         if not os.environ.get(REGION_KEY, "").strip():
             return False
         models = _allowlist()
+        multimodal_models = _multimodal_allowlist()
         _configured_max_tokens()
-        return all(_pricing(model) is not None for model in models)
+        return (
+            bool(multimodal_models)
+            and multimodal_models.issubset(models)
+            and all(_pricing(model) is not None for model in models)
+        )
     except BedrockProviderError:
         return False
 
@@ -64,53 +76,134 @@ def generate_with_bedrock(
 ) -> AgentOutputEnvelope[ArtifactT]:
     invocation = _invocation(request)
     policy = invocation.provider_policy
+    _validate_live_policy(policy)
+    pricing = _pricing(policy.model)
+    generated_type = GeneratedAgentOutput[artifact_type]
+    semantic = is_semantic_enrichment(request)
+    transcription = is_source_transcription(request)
+    schema_json = output_schema(
+        request,
+        artifact_type,
+        generated_type,
+        semantic,
+        transcription,
+    )
+    response = _invoke_bedrock(
+        agent_code,
+        request,
+        instruction,
+        schema_json,
+        invocation,
+        policy,
+        pricing,
+    )
+    usage = _usage(
+        response, policy.model, pricing, policy.cost_cap_minor
+    )
+    generated = decode_generated_output(
+        response,
+        artifact_type,
+        generated_type,
+        semantic,
+        transcription,
+        invocation,
+        usage,
+    )
+    return attach_usage(generated, artifact_type, usage)
+
+
+def _validate_live_policy(policy: ProviderPolicy) -> None:
     if os.environ.get(MODE_KEY) != BEDROCK_MODE:
         raise BedrockProviderError("Bedrock runtime mode is disabled.")
     if policy.provider != "bedrock" or not policy.allow_live:
         raise BedrockProviderError("Invocation does not authorise Bedrock.")
     if policy.model not in _allowlist():
-        raise BedrockProviderError("The requested Bedrock model is not allow-listed.")
-
-    pricing = _pricing(policy.model)
-    request_json = request.model_dump_json()
-    max_tokens = _bounded_output_tokens(request_json, policy.cost_cap_minor, pricing)
-    generated_type = GeneratedAgentOutput[artifact_type]
-    schema_json = json.dumps(generated_type.model_json_schema(), separators=(",", ":"))
-    client = _client(policy.timeout_seconds, policy.max_attempts)
-    try:
-        response = client.converse(
-            modelId=policy.model,
-            system=[{"text": _system_prompt(agent_code, instruction, schema_json)}],
-            messages=[{"role": "user", "content": [{"text": request_json}]}],
-            inferenceConfig={"maxTokens": max_tokens, "temperature": 0},
-            requestMetadata={
-                "advertified_agent": agent_code.value,
-                "advertified_run": str(invocation.run_id),
-                "advertified_step": str(invocation.step_id),
-            },
+        raise BedrockProviderError(
+            "The requested Bedrock model is not allow-listed."
         )
-    except (BotoCoreError, ClientError) as error:
-        raise BedrockProviderError("Bedrock request failed safely.") from error
 
-    text = _response_text(response)
+
+def _invoke_bedrock(
+    agent_code: AgentCode,
+    request: BaseModel,
+    instruction: str,
+    schema_json: str,
+    invocation: AgentInvocationEnvelope,
+    policy: ProviderPolicy,
+    pricing: BedrockPricing,
+) -> dict[str, object]:
+    system = [{"text": _system_prompt(
+        agent_code, instruction, schema_json
+    )}]
     try:
-        generated = generated_type.model_validate_json(text)
-    except ValidationError as error:
-        raise BedrockProviderError("Bedrock output failed the typed contract.") from error
-    _validate_evidence(generated, invocation)
-    usage = _usage(response, policy.model, pricing, policy.cost_cap_minor)
-    return AgentOutputEnvelope[artifact_type](
-        schema_version=generated.schema_version,
-        status=generated.status,
-        artifact=generated.artifact,
-        evidence_bindings=generated.evidence_bindings,
-        unknowns=generated.unknowns,
-        assumptions=generated.assumptions,
-        confidence=generated.confidence,
-        objections=generated.objections,
-        rationale=generated.rationale,
-        suggested_next_action=generated.suggested_next_action,
-        usage=usage,
+        client, messages = _request_context(request, policy)
+        input_tokens = _input_token_count(
+            client, policy.model, system, messages
+        )
+        max_tokens = _bounded_output_tokens(
+            input_tokens, policy.cost_cap_minor, pricing
+        )
+        return _converse(
+            client,
+            agent_code,
+            invocation,
+            policy.model,
+            schema_json,
+            system,
+            messages,
+            max_tokens,
+        )
+    except BedrockMultimodalError as error:
+        raise BedrockProviderError(str(error)) from error
+    except (BotoCoreError, ClientError) as error:
+        raise BedrockProviderError(
+            "Bedrock request failed safely."
+        ) from error
+
+
+def _request_context(
+    request: BaseModel,
+    policy: ProviderPolicy,
+):
+    content = request_content(
+        request,
+        policy.model,
+        _multimodal_allowlist(),
+    )
+    messages = [{"role": "user", "content": content}]
+    client = _client(policy.timeout_seconds, policy.max_attempts)
+    return client, messages
+
+
+def _input_token_count(client, model: str, system, messages) -> int:
+    counted = count_input_tokens(client, model, system, messages)
+    return counted or conservative_input_token_estimate(system, messages)
+
+
+def _converse(
+    client,
+    agent_code: AgentCode,
+    invocation: AgentInvocationEnvelope,
+    model: str,
+    schema_json: str,
+    system,
+    messages,
+    max_tokens: int,
+) -> dict[str, object]:
+    return client.converse(
+        modelId=model,
+        system=system,
+        messages=messages,
+        inferenceConfig={
+            "maxTokens": max_tokens,
+            "temperature": 0,
+        },
+        toolConfig=structured_output_tool(schema_json),
+        requestMetadata={
+            "advertified_agent": agent_code.value,
+            "advertified_run": str(invocation.run_id),
+            "advertified_step": str(invocation.step_id),
+        },
     )
 
 
@@ -128,12 +221,21 @@ def _client(timeout_seconds: int, max_attempts: int):
 
 def _allowlist() -> frozenset[str]:
     values = {
-        value.strip()
-        for value in os.environ.get(ALLOWLIST_KEY, "").split(",")
-        if value.strip()
+        value.strip() for value in os.environ.get(ALLOWLIST_KEY, "").split(",") if value.strip()
     }
     if not values:
         raise BedrockProviderError("Bedrock model allow-list is empty.")
+    return frozenset(values)
+
+
+def _multimodal_allowlist() -> frozenset[str]:
+    values = {
+        value.strip()
+        for value in os.environ.get(MULTIMODAL_ALLOWLIST_KEY, "").split(",")
+        if value.strip()
+    }
+    if not values:
+        raise BedrockProviderError("Bedrock multimodal model allow-list is empty.")
     return frozenset(values)
 
 
@@ -151,15 +253,14 @@ def _pricing(model: str) -> BedrockPricing:
 
 
 def _bounded_output_tokens(
-    request_json: str,
+    input_tokens: int,
     cost_cap_minor: int,
     pricing: BedrockPricing,
 ) -> int:
     configured = _configured_max_tokens()
     cap_usd = Decimal(cost_cap_minor) / Decimal(100)
-    estimated_input_tokens = Decimal(math.ceil(len(request_json) / 3))
     estimated_input_cost = (
-        estimated_input_tokens * pricing.input_per_million_usd / Decimal(1_000_000)
+        Decimal(input_tokens) * pricing.input_per_million_usd / Decimal(1_000_000)
     )
     remaining = cap_usd - estimated_input_cost
     if remaining <= 0:
@@ -186,19 +287,6 @@ def _configured_max_tokens() -> int:
     return value
 
 
-def _response_text(response: dict[str, object]) -> str:
-    try:
-        output = response["output"]
-        message = output["message"]  # type: ignore[index]
-        content = message["content"]  # type: ignore[index]
-        text_parts = [item["text"] for item in content if "text" in item]  # type: ignore[union-attr]
-    except (KeyError, TypeError) as error:
-        raise BedrockProviderError("Bedrock response did not contain text output.") from error
-    if len(text_parts) != 1 or not isinstance(text_parts[0], str):
-        raise BedrockProviderError("Bedrock response must contain one JSON text output.")
-    return text_parts[0]
-
-
 def _usage(
     response: dict[str, object],
     model: str,
@@ -219,6 +307,7 @@ def _usage(
         + Decimal(output_tokens) * pricing.output_per_million_usd
     ) / Decimal(1_000_000)
     cost_minor = int((cost_usd * Decimal(100)).to_integral_value(rounding=ROUND_CEILING))
+    cost_micros = int((cost_usd * Decimal(1_000_000)).to_integral_value(rounding=ROUND_CEILING))
     if cost_minor > cost_cap_minor:
         raise BedrockProviderError("Bedrock response exceeded the invocation cost cap.")
     return ProviderUsage(
@@ -229,19 +318,10 @@ def _usage(
         incremental_cost_minor=cost_minor,
         cache_status="LIVE",
         provider_request_id=request_id,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        incremental_cost_usd_micros=cost_micros,
     )
-
-
-def _validate_evidence(
-    generated: GeneratedAgentOutput[ArtifactT],
-    invocation: AgentInvocationEnvelope,
-) -> None:
-    approved = set(invocation.approved_evidence_item_ids)
-    if any(
-        not set(binding.evidence_item_ids).issubset(approved)
-        for binding in generated.evidence_bindings
-    ):
-        raise BedrockProviderError("Bedrock output referenced unapproved evidence.")
 
 
 def _invocation(request: BaseModel) -> AgentInvocationEnvelope:

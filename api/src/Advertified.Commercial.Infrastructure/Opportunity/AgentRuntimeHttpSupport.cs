@@ -89,9 +89,11 @@ internal static class AgentRuntimeHttpSupport
         }
         var model = settings.ModelFor(agentCode);
         var costCap = settings.CostCapFor(agentCode);
-        if (settings.Provider == AgentRuntimeOptions.BedrockProvider && costCap <= 0)
+        if (settings.Provider == AgentRuntimeOptions.BedrockProvider &&
+            (!settings.AllowLive || costCap <= 0))
         {
-            throw new InvalidOperationException("The live agent route requires a positive cost cap.");
+            throw new InvalidOperationException(
+                "The live agent route is not activated or has no positive cost cap.");
         }
         return new AgentProviderPolicy(
             settings.Provider,
@@ -123,7 +125,13 @@ internal static class AgentRuntimeHttpSupport
         };
         request.Headers.Add(ServiceKeyHeader, settings.ServiceKey);
         using var response = await httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var failure = await response.Content.ReadAsStringAsync(
+                cancellationToken);
+            throw AgentRuntimeRejectedException.Read(
+                response.StatusCode, failure);
+        }
         var output = await response.Content.ReadFromJsonAsync<AgentRuntimeResponse<TArtifact>>(
             WireJson, cancellationToken)
             ?? throw new JsonException("The agent runtime returned an empty response.");
@@ -175,7 +183,9 @@ internal static class AgentRuntimeHttpSupport
         {
             if (usage.Units != 0 || usage.IncrementalCostMinor != 0 ||
                 usage.CacheStatus != AgentProviderMetadata.FixtureCacheStatus ||
-                usage.ProviderRequestId is not null)
+                usage.ProviderRequestId is not null ||
+                usage.InputTokens != 0 || usage.OutputTokens != 0 ||
+                usage.IncrementalCostUsdMicros != 0)
             {
                 throw new InvalidOperationException(
                     "The deterministic agent provider exceeded its zero-cost policy.");
@@ -185,9 +195,13 @@ internal static class AgentRuntimeHttpSupport
         if (usage.Units <= 0 ||
             usage.CacheStatus is not (AgentProviderMetadata.LiveCacheStatus or
                 AgentProviderMetadata.CacheHitStatus) ||
-            string.IsNullOrWhiteSpace(usage.ProviderRequestId))
+            string.IsNullOrWhiteSpace(usage.ProviderRequestId) ||
+            usage.InputTokens < 0 || usage.OutputTokens <= 0 ||
+            usage.Units != usage.InputTokens + usage.OutputTokens ||
+            usage.IncrementalCostUsdMicros <= 0)
         {
-            throw new InvalidOperationException("The live agent provider usage is incomplete.");
+            throw new InvalidOperationException(
+                "The live agent provider usage is incomplete.");
         }
     }
 
@@ -317,4 +331,7 @@ internal sealed record AgentProviderUsage(
     int ToolCalls,
     long IncrementalCostMinor,
     string CacheStatus,
-    string? ProviderRequestId = null);
+    string? ProviderRequestId = null,
+    int InputTokens = 0,
+    int OutputTokens = 0,
+    long IncrementalCostUsdMicros = 0);

@@ -1,5 +1,7 @@
 using Advertified.Commercial.Application.Inventory;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Inventory;
+using Advertified.Commercial.Infrastructure.Opportunity;
 
 namespace Advertified.Commercial.Api;
 
@@ -27,6 +29,27 @@ internal static class InventoryExtractionRegistration
             settings.Mode == InventoryExtractionOptions.DoclingMode
                 ? serviceProvider.GetRequiredService<DoclingInventoryExtractionAdapter>()
                 : new DeterministicInventoryExtractionAdapter());
+    }
+
+    internal static void AddInventorySemantic(
+        this WebApplicationBuilder builder,
+        AgentRuntimeOptions agentRuntime)
+    {
+        builder.Services.AddOptions<InventorySemanticOptions>()
+            .Bind(builder.Configuration.GetSection(
+                InventorySemanticOptions.SectionName))
+            .Validate(InventorySemanticOptions.IsValid,
+                "The inventory semantic extraction limits, prices, budget, scope or prompt version are invalid.")
+            .Validate(
+                options => !options.Enabled ||
+                    (agentRuntime.Mode == AgentRuntimeOptions.HttpMode &&
+                     agentRuntime.Provider == AgentRuntimeOptions.BedrockProvider &&
+                     agentRuntime.AllowLive &&
+                     agentRuntime.ModelFor(
+                         MasterDataCodes.AgentTypes.InventoryIntelligence) !=
+                            "fixture-v1"),
+                "Inventory semantic extraction requires an explicitly enabled live Bedrock agent route.")
+            .ValidateOnStart();
     }
 
     private static void EnsureEnvironmentIsSafe(

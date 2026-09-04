@@ -89,7 +89,8 @@ public sealed partial class InventoryRecordStore(
         dbContext.Database.SqlQuery<InventoryCandidateRow>(
             FormattableStringFactory.Create(
                 CandidateSelect +
-                " WHERE tenant_id = {0} AND import_id = {1} ORDER BY row_number, id",
+                " WHERE tenant_id = {0} AND import_id = {1} " +
+                "AND superseded_at_utc IS NULL ORDER BY row_number, id",
                 tenantId.Value, importId))
             .ToListAsync(cancellationToken);
 
@@ -102,8 +103,10 @@ public sealed partial class InventoryRecordStore(
     {
         var suffix = cursor is null
             ? " WHERE tenant_id = {0} AND import_id = {1} " +
+              "AND superseded_at_utc IS NULL " +
               "ORDER BY row_number, id LIMIT {2}"
             : " WHERE tenant_id = {0} AND import_id = {1} " +
+              "AND superseded_at_utc IS NULL " +
               "AND (row_number, id) > ({2}, {3}) " +
               "ORDER BY row_number, id LIMIT {4}";
         var arguments = cursor is null
@@ -122,7 +125,8 @@ public sealed partial class InventoryRecordStore(
     {
         var locking = forUpdate ? " FOR UPDATE" : string.Empty;
         var query = FormattableStringFactory.Create(
-            CandidateSelect + " WHERE tenant_id = {0} AND id = {1}" + locking,
+            CandidateSelect + " WHERE tenant_id = {0} AND id = {1} " +
+            "AND superseded_at_utc IS NULL" + locking,
             tenantId.Value, candidateId);
         return dbContext.Database.SqlQuery<InventoryCandidateRow>(query)
             .SingleOrDefaultAsync(cancellationToken);
@@ -175,6 +179,7 @@ public sealed partial class InventoryRecordStore(
                     validation_json, '$[*] ? (@.isBlocking == true)'))::integer AS "Blocking"
             FROM commercial.inventory_candidates
             WHERE tenant_id = {tenantId.Value} AND import_id = {importId}
+              AND superseded_at_utc IS NULL
             """).SingleAsync(cancellationToken);
 
     internal Task<InventoryImportView> BuildImportViewAsync(

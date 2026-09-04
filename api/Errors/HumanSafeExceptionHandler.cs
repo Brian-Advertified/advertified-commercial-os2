@@ -48,7 +48,7 @@ public sealed class HumanSafeExceptionHandler(
                 Status = safe.Status,
                 Title = safe.Title,
                 Detail = safe.Detail,
-                Type = $"https://advertified.local/problems/{safe.Code.ToLowerInvariant()}",
+                Type = ProblemTypeReference.Create(safe.Code),
                 Code = safe.Code,
                 CorrelationId = httpContext.TraceIdentifier,
             },
@@ -67,7 +67,7 @@ public sealed class HumanSafeExceptionHandler(
             BrowserOriginException => new(
                 StatusCodes.Status403Forbidden,
                 "Request origin not allowed",
-                "Open Advertified from its configured local address and try again.",
+                "Open Advertified from its approved address and try again.",
                 "ORIGIN_NOT_ALLOWED"),
             UnauthorizedAccessException => new(
                 StatusCodes.Status403Forbidden,
@@ -142,7 +142,7 @@ public sealed class HumanSafeExceptionHandler(
             PaymentMethodUnavailableException => new(
                 StatusCodes.Status409Conflict,
                 "Payment method is unavailable",
-                "Use manual EFT locally. Provider and credit methods require separate approval and configuration.",
+                "Use an available approved payment route or ask an administrator for assistance.",
                 "PAYMENT_METHOD_UNAVAILABLE"),
             VersionConflictException or DbUpdateConcurrencyException => new(
                 StatusCodes.Status409Conflict,
@@ -182,7 +182,7 @@ public sealed class HumanSafeExceptionHandler(
             CaptureProviderDisabledException => new(
                 StatusCodes.Status409Conflict,
                 "Source capture is unavailable",
-                "Supply approved source text or use an available deterministic fixture.",
+                "Supply approved source text or configure an approved capture provider.",
                 "CAPTURE_PROVIDER_DISABLED"),
             InvalidLifecycleTransitionException => new(
                 StatusCodes.Status409Conflict,
@@ -197,7 +197,7 @@ public sealed class HumanSafeExceptionHandler(
             InventoryProtectionUnavailableException or FileNotFoundException => new(
                 StatusCodes.Status503ServiceUnavailable,
                 "File protection is unavailable",
-                "Try again after the local file protection services are available.",
+                "Try again after file protection services are available.",
                 "INVENTORY_PROTECTION_UNAVAILABLE"),
             UnsafeInventorySourceException => new(
                 StatusCodes.Status409Conflict,

@@ -15,6 +15,7 @@ internal static class InventoryCandidateBatchPersistence
         GovernanceDbContext dbContext,
         TenantId tenantId,
         Guid importId,
+        Guid projectionId,
         Guid reviewer,
         DateTimeOffset now,
         IReadOnlyList<PreparedInventoryCandidate> candidates,
@@ -29,10 +30,12 @@ internal static class InventoryCandidateBatchPersistence
                 batch.SelectMany(ToFieldPayloads), InventoryRowMapper.StoredJson);
             await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
                 INSERT INTO commercial.inventory_candidates (
-                    id, tenant_id, import_id, row_number, status_code,
+                    id, tenant_id, import_id, projection_id,
+                    row_number, status_code,
                     proposed_values_json, canonical_values_json, validation_json,
                     source_locator, version, created_at_utc, updated_at_utc)
-                SELECT value."id", {tenantId.Value}, {importId}, value."rowNumber",
+                SELECT value."id", {tenantId.Value}, {importId},
+                    {projectionId}, value."rowNumber",
                     {MasterDataCodes.LifecycleStatuses.ReviewRequired},
                     value."valuesJson"::jsonb, value."valuesJson"::jsonb,
                     value."validationJson"::jsonb, value."sourceLocator", 1, {now}, {now}

@@ -14,6 +14,9 @@ import {
   InventoryUploadForm,
   type InventoryFilters,
 } from '../inventory/InventoryCatalogue'
+import {
+  InventorySemanticPreflightPanel,
+} from '../inventory/InventorySemanticPreflightPanel'
 import { notifications } from '../notifications/notifications'
 import { formatMiB } from '../presentation/format'
 
@@ -115,6 +118,8 @@ function InventoryWorkbench({ tenantId, page, filters, error, busy, canImport,
       {canImport && <InventoryUploadForm busy={busy}
         maximumSourceBytes={page.maximumSourceBytes} upload={upload} />}
     </div>
+    {canReview &&
+      <InventorySemanticPreflightPanel tenantId={tenantId} />}
     {canReview && token && <DuplicateReviewPanel tenantId={tenantId}
       token={token} busy={busy} setBusy={setBusy} reportError={setError} />}
   </section>

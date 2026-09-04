@@ -15,6 +15,19 @@ PROJECT_LOCKS = (
     "api/src/Advertified.Commercial.Infrastructure/packages.lock.json",
     "api/tests/Advertified.Commercial.Api.Tests/packages.lock.json",
 )
+CANONICAL_LOCAL_COMPOSE_PROJECT = "advertified-os2-dev"
+LOCAL_DOCKER_ENTRYPOINTS = (
+    "tools/advertified-compose.ps1",
+    "tools/restore-os2-safe.ps1",
+    "tools/update-os2-api-and-repair-dms.ps1",
+    "tools/checkpoint-inventory-production-release.ps1",
+    "tools/inspect-os2-corpus-storage.ps1",
+    "tools/materialize-os2-corpus-sources.ps1",
+    "tools/update-os2-api-only.ps1",
+    "tools/apply-local-development-seed.mjs",
+    "tools/extract_inventory_sources.py",
+    "tools/inventory_source_readers.py",
+)
 
 
 def read(relative_path: str) -> str:
@@ -51,6 +64,42 @@ def test_application_packaging_inputs_exist() -> None:
     missing = [item for item in required if not (REPO_ROOT / item).is_file()]
 
     assert not missing, f"Missing packaging inputs: {missing}"
+
+
+def test_local_docker_entrypoints_reuse_one_canonical_compose_project() -> None:
+    compose_files = (
+        "infrastructure/docker-compose.yml",
+        "infrastructure/docker-compose.app.yml",
+        "infrastructure/docker-compose.build.yml",
+    )
+    expected_name = f"name: {CANONICAL_LOCAL_COMPOSE_PROJECT}"
+    wrong_project = re.compile(
+        r"advertified-(?:dev|os1|os2-build)|advertified-os2(?!-dev)"
+    )
+
+    assert all(read(path).splitlines()[0] == expected_name for path in compose_files)
+    violations = [
+        path for path in LOCAL_DOCKER_ENTRYPOINTS
+        if wrong_project.search(read(path))
+    ]
+    assert not violations, f"Non-canonical local Docker project names: {violations}"
+
+    compose_helper = read("tools/advertified-compose.ps1")
+    assert f"= '{CANONICAL_LOCAL_COMPOSE_PROJECT}'" in compose_helper
+    assert "'compose', '--project-name'" in compose_helper
+    assert "Refusing to create a second Advertified stack" in compose_helper
+    assert "Assert-AdvertifiedComposeProject -RequireExisting" in compose_helper
+    assert "Duplicate advertified-os2-dev services found" in compose_helper
+
+
+def test_local_docker_scripts_do_not_create_one_off_or_prune_global_images() -> None:
+    scripts = "\n".join(
+        read(path) for path in LOCAL_DOCKER_ENTRYPOINTS if path.endswith(".ps1")
+    )
+
+    assert "@('run', '--rm'" not in scripts
+    assert "docker image prune" not in scripts
+    assert scripts.count("@('build',") == scripts.count("'--no-build'")
 
 
 def test_dotnet_projects_enforce_locked_restore() -> None:

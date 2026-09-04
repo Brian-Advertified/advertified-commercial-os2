@@ -31,8 +31,19 @@ public static class InventoryEndpoints
                 ReconcileExtractionAsync)
             .WithName("ReconcileInventoryExtraction").Produces<InventoryImportView>()
             .WithCommandProblems(requiresVersion: true);
+        group.MapPost("/inventory-imports/{importId:guid}:reproject-extraction",
+                ReprojectExtractionAsync)
+            .WithName("ReprojectInventoryExtraction")
+            .Produces<InventoryImportView>()
+            .WithCommandProblems(requiresVersion: true);
         group.MapGet("/inventory-imports/{importId:guid}", GetImportAsync)
             .WithName("GetInventoryImport").Produces<InventoryImportView>()
+            .WithQueryProblems();
+        group.MapGet(
+                "/inventory-semantic-preflight",
+                GetSemanticPreflightAsync)
+            .WithName("GetInventorySemanticPreflight")
+            .Produces<InventorySemanticPreflightView>()
             .WithQueryProblems();
         group.MapPost("/inventory-candidates/{candidateId:guid}:review", ReviewCandidateAsync)
             .WithName("ReviewInventoryCandidate").Produces<InventoryCandidateView>()
@@ -145,6 +156,23 @@ public static class InventoryEndpoints
             (envelope, token) => commands.ReconcileExtractionAsync(importId, envelope, token),
             cancellationToken);
 
+    private static Task<IResult> ReprojectExtractionAsync(
+        Guid tenantId,
+        Guid importId,
+        ReprojectInventoryExtractionCommand command,
+        HttpContext context,
+        ICurrentIdentity identity,
+        IInventoryCommands commands,
+        TimeProvider clock,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(
+            tenantId, command, context, identity, clock,
+            true,
+            (envelope, token) =>
+                commands.ReprojectExtractionAsync(
+                    importId, envelope, token),
+            cancellationToken);
+
     private static async Task<IResult> GetImportAsync(
         Guid tenantId, Guid importId, int? pageSize, string? cursor,
         HttpContext context, ICurrentIdentity identity,
@@ -156,6 +184,19 @@ public static class InventoryEndpoints
         CommandEnvelopeFactory.SetEntityHeaders(context, result.Version);
         return Results.Ok(result);
     }
+
+    private static Task<InventorySemanticPreflightView>
+        GetSemanticPreflightAsync(
+            Guid tenantId,
+            Guid? importId,
+            ICurrentIdentity identity,
+            IInventorySemanticPreflightReader reader,
+            CancellationToken cancellationToken) =>
+        reader.GetAsync(
+            identity.ActorId,
+            new TenantId(tenantId),
+            importId,
+            cancellationToken);
 
     private static Task<IResult> ReviewCandidateAsync(
         Guid tenantId, Guid candidateId, ReviewInventoryCandidateCommand command,

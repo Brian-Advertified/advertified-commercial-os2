@@ -41,7 +41,8 @@ public sealed partial class ProposalCommands
                 item.Plan.Channels)).ToArray()), cancellationToken);
         if (narrative.IncrementalCostMinor < 0)
         {
-            throw new InvalidOperationException("The local proposal narrative exceeded its zero-cost policy.");
+            throw new InvalidOperationException(
+                "The proposal narrative exceeded its configured provider cost policy.");
         }
         var proposalId = Guid.NewGuid();
         var versionNumber = await store.NextVersionNumberAsync(

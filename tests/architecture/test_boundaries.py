@@ -307,10 +307,31 @@ def test_live_provider_and_cost_defaults_are_closed() -> None:
 
     assert "ADVERTIFIED_AGENT_RUNTIME_MODE=disabled" in environment
     assert "ADVERTIFIED_BEDROCK_MODEL_ALLOWLIST=" in environment
+    assert "ADVERTIFIED_BEDROCK_MULTIMODAL_MODEL_ALLOWLIST=" in environment
     assert "ADVERTIFIED_BEDROCK_PRICING_JSON={}" in environment
     assert "AI_COST_CAP_MINOR=0" in environment
     assert 'DISABLED_MODE = "disabled"' in runtime
     assert "os.environ.get(RUNTIME_MODE_KEY, DISABLED_MODE)" in runtime
+
+
+def test_human_safe_api_content_is_environment_neutral() -> None:
+    paths = (
+        "api/Errors/HumanSafeExceptionHandler.cs",
+        "api/Authentication/DevelopmentIdentity.cs",
+        "api/Authentication/BrowserSessionAuthenticationHandler.cs",
+    )
+    content = "\n".join((REPO_ROOT / path).read_text(encoding="utf-8") for path in paths)
+    forbidden = re.compile(
+        r"configured local address|deterministic fixture|local file protection|"
+        r"advertified\.local/problems",
+        re.IGNORECASE,
+    )
+    problem_types = (REPO_ROOT / "api/Errors/ProblemTypeReference.cs").read_text(
+        encoding="utf-8"
+    )
+
+    assert not forbidden.search(content)
+    assert '"urn:advertified:problem:' in problem_types
 
 
 def test_ci_has_no_placeholder_success_or_floating_main_actions() -> None:

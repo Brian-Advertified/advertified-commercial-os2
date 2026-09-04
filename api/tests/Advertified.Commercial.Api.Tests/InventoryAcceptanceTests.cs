@@ -30,6 +30,7 @@ public sealed partial class InventoryAcceptanceTests
         await AssertProtectionBoundariesAsync(importer, objectStore);
         await AssertWorkflowDocumentClassesAsync(importer);
         await AssertCanonicalAliasCollisionAsync(importer);
+        await AssertContextualCommercialRowAsync(importer);
         await AssertCandidatePagingAsync(importer);
         await AssertRejectedBlockingCandidateDoesNotBlockPublicationAsync(importer, reviewer);
         var imported = await CreateAndExecuteAsync(importer, CsvFixture());
@@ -97,6 +98,15 @@ public sealed partial class InventoryAcceptanceTests
         {
             Assert.Contains(candidate.GetProperty("validation").EnumerateArray(),
                 issue => issue.GetProperty("isBlocking").GetBoolean());
+            Assert.Equal("PLANNING_AVAILABLE",
+                candidate.GetProperty("values").GetProperty("availability").GetString());
+            var availabilityEvidence = Assert.Single(candidate.GetProperty("evidence")
+                .EnumerateArray(), item =>
+                    item.GetProperty("fieldName").GetString() == "availability");
+            Assert.Equal("UNVERIFIED",
+                availabilityEvidence.GetProperty("verificationState").GetString());
+            Assert.Equal("REVIEW",
+                availabilityEvidence.GetProperty("requiredAction").GetString());
             return;
         }
         var values = candidate.GetProperty("values");

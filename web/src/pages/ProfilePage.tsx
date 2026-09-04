@@ -6,6 +6,7 @@ import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
 import { LoadingState, MessageState } from '../components/PageState'
 import { ProfileEditor } from '../components/ProfileEditor'
+import { operationalCopy } from '../content/operational-copy'
 
 function useCurrentUser() {
   const [user, setUser] = useState<CurrentUser | null>(null)
@@ -48,7 +49,8 @@ export function ProfilePage() {
     <dl className="operations-context-strip">
       <div><dt>Workspace</dt><dd>{selected.name}</dd></div>
       <div><dt>Workspace role</dt><dd>{formatRole(selected.roleCode)}</dd></div>
-      <div><dt>Identity protection</dt><dd>{profile.user.mfaEnabled ? 'MFA enabled' : 'Local identity'}</dd></div>
+      <div><dt>Identity protection</dt><dd>{profile.user.mfaEnabled
+        ? 'MFA enabled' : operationalCopy.mfaNotConfirmed}</dd></div>
     </dl>
     <section className="operations-panel operations-profile-workspace" aria-labelledby="profile-details-title">
       <header className="operations-panel-header"><div><p className="eyebrow">Identity record</p>

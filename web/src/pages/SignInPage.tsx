@@ -2,6 +2,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useSession } from '../auth/session-state'
 import { Icon } from '../components/Icon'
 import { LoadingState } from '../components/PageState'
+import { operationalCopy } from '../content/operational-copy'
 import { publicReturnPath, workspaceSelectionPath } from '../routing/return-path'
 
 export function SignInPage() {
@@ -27,7 +28,7 @@ export function SignInPage() {
   }
 
   return <main className="sign-in-page">
-    <SignInStory managed={managed} />
+    <SignInStory />
     <SignInPanel
       managed={managed}
       errorMessage={errorMessage}
@@ -39,7 +40,7 @@ export function SignInPage() {
   </main>
 }
 
-function SignInStory({ managed }: { managed: boolean }) {
+function SignInStory() {
   return <section className="sign-in-story" aria-labelledby="sign-in-title">
     <a className="brand-lockup" href="/sign-in" aria-label="Advertified sign in">
       <span className="brand-mark">A</span><span>Advertified</span>
@@ -50,7 +51,7 @@ function SignInStory({ managed }: { managed: boolean }) {
       <p>Bring client, agency and commercial foundation records into one tenant-safe view.</p>
     </div>
     <div className="trust-note"><Icon name="shield" />
-      {managed ? 'Secure managed sign in' : 'Local development session'}</div>
+      {operationalCopy.signInTrust}</div>
   </section>
 }
 
@@ -64,7 +65,7 @@ function SignInPanel({ managed, errorMessage, retryAvailable, disabled, onContin
 }) {
   const supportingCopy = managed
     ? 'Use your authorised account. Provider credentials and tokens are not stored in browser storage.'
-    : 'This development build uses the approved local identity. No provider credentials or bearer tokens are stored in the browser.'
+    : operationalCopy.signInDirect
   return <section className="sign-in-panel" aria-label="Sign in">
     <div className="sign-in-card">
       <p className="eyebrow">Welcome back</p>

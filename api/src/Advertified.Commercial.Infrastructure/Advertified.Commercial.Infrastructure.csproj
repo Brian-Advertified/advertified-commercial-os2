@@ -25,4 +25,8 @@
       Include="../../../shared/contracts/master-data.json"
       LogicalName="Advertified.MasterData.Registry.json" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Advertified.Commercial.Api.Tests" />
+  </ItemGroup>
 </Project>

@@ -8,6 +8,7 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 public sealed partial class InventoryExtractionAttemptProcessor(
     InventoryExtractionAttemptStore store,
     InventoryExtractionCompletionService completion,
+    InventoryRetainedProjectionProcessor retainedProjection,
     IInventoryDocumentExtractionAdapter extractionAdapter,
     TimeProvider timeProvider,
     ILogger<InventoryExtractionAttemptProcessor> logger)
@@ -16,6 +17,13 @@ public sealed partial class InventoryExtractionAttemptProcessor(
         InventoryExtractionWorkerClaim claim,
         CancellationToken cancellationToken)
     {
+        if (claim.ProviderName ==
+            InventoryReprojectionPolicy.ProviderName)
+        {
+            await retainedProjection.ProcessAsync(
+                claim, cancellationToken);
+            return;
+        }
         if (extractionAdapter is not IDurableInventoryDocumentExtractionAdapter provider ||
             !MatchesProvider(claim, provider))
         {
@@ -191,6 +199,33 @@ public sealed partial class InventoryExtractionAttemptProcessor(
         {
             throw;
         }
+        catch (InventorySemanticReconciliationRequiredException)
+        {
+            await store.MarkFailureAsync(
+                claim,
+                MasterDataCodes.InventoryExtractionAttemptStatuses.Running,
+                MasterDataCodes.InventoryExtractionAttemptStatuses
+                    .ReconciliationRequired,
+                MasterDataCodes.InventoryExtractionFailureClasses.InvalidResult,
+                poll.ProviderResponseCode,
+                "SEMANTIC_RECONCILIATION_REQUIRED",
+                "The Bedrock result is ambiguous and must be reconciled before another call.",
+                cancellationToken);
+        }
+        catch (InventorySemanticBudgetExceededException)
+        {
+            await MarkSemanticTerminalAsync(
+                claim, poll, "SEMANTIC_BUDGET_EXCEEDED",
+                "The bounded semantic plan exceeds the approved budget.",
+                cancellationToken);
+        }
+        catch (InventorySemanticInputRejectedException)
+        {
+            await MarkSemanticTerminalAsync(
+                claim, poll, "SEMANTIC_INPUT_NOT_SUPPORTED",
+                "The bounded semantic input cannot safely represent every required source image.",
+                cancellationToken);
+        }
         catch (Exception exception)
         {
             LogResultRejected(
@@ -203,6 +238,23 @@ public sealed partial class InventoryExtractionAttemptProcessor(
                 poll.ProviderResponseCode, "RESULT_NOT_ACCEPTED", null, cancellationToken);
         }
     }
+
+    private Task<bool> MarkSemanticTerminalAsync(
+        InventoryExtractionWorkerClaim claim,
+        InventoryExtractionPollResult poll,
+        string failureCode,
+        string notes,
+        CancellationToken cancellationToken) =>
+        store.MarkFailureAsync(
+            claim,
+            MasterDataCodes.InventoryExtractionAttemptStatuses.Running,
+            MasterDataCodes.InventoryExtractionAttemptStatuses
+                .FailedTerminal,
+            MasterDataCodes.InventoryExtractionFailureClasses.InvalidResult,
+            poll.ProviderResponseCode,
+            failureCode,
+            notes,
+            cancellationToken);
 
     [LoggerMessage(
         EventId = 12_403,

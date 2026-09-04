@@ -39,6 +39,7 @@ catch (PostgresException exception)
 catch (Exception exception)
 {
     Console.Error.WriteLine(
-        $"Migration failed safely ({exception.GetType().Name}). No success was recorded.");
+        $"Migration failed safely ({exception.GetType().Name}: " +
+        $"{exception.Message}). No success was recorded.");
     return 1;
 }

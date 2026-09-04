@@ -102,7 +102,7 @@ public sealed class BrowserSessionAuthenticationHandler(
                 Status = status,
                 Title = title,
                 Detail = detail,
-                Type = $"https://advertified.local/problems/{code.ToLowerInvariant()}",
+                Type = ProblemTypeReference.Create(code),
                 Code = code,
                 CorrelationId = Context.TraceIdentifier,
             },

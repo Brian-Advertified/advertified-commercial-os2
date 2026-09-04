@@ -9,7 +9,7 @@ public sealed partial class EmailProposalAutomationProcessor
     private const string AmbiguousDeliveryMessage =
         "The email provider may have accepted this proposal. Check or reconcile the existing delivery; do not resend it.";
     private const string AcceptedDeliveryRecordingMessage =
-        "The email provider accepted this proposal. Complete the existing local delivery record; do not resend it.";
+        "The email provider accepted this proposal. Complete the existing delivery record; do not resend it.";
     private const string PreDeliveryFailureMessage =
         "The proposal automation stopped before delivery. Retry after checking the service.";
     private const string ConfirmedDeliveryFailureMessage =

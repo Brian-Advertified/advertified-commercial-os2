@@ -14,6 +14,7 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 public sealed class InventoryExtractionCompletionService(
     InventoryExtractionAttemptStore attemptStore,
     InventoryRecordStore inventoryStore,
+    InventorySemanticEnrichmentService semanticEnrichment,
     TimeProvider timeProvider)
 {
     public async Task<bool> ApplyAsync(
@@ -22,7 +23,12 @@ public sealed class InventoryExtractionCompletionService(
         InventoryExtractionPollResult poll,
         CancellationToken cancellationToken)
     {
-        InventoryExtractionCompletionPolicy.VerifyResult(extraction, claim.SourceHash);
+        InventoryExtractionCompletionPolicy.VerifyResult(
+            extraction, claim.SourceHash);
+        extraction = await semanticEnrichment.EnrichAsync(
+            claim, extraction, cancellationToken);
+        InventoryExtractionCompletionPolicy.VerifyResult(
+            extraction, claim.SourceHash);
         await using var transaction = await attemptStore.BeginSessionAsync(
             claim, cancellationToken);
         if (!await LockCurrentClaimAsync(claim, cancellationToken))
@@ -42,15 +48,25 @@ public sealed class InventoryExtractionCompletionService(
         var now = timeProvider.GetUtcNow();
         var codes = await InventoryCodeSets.LoadAsync(
             attemptStore.DbContext, cancellationToken);
-        var candidates = extraction.Rows.Select(row =>
-            InventoryExtractionCompletionPolicy.PrepareCandidate(
-                InventoryCandidateNormalizer.Normalize(row, source.SourceHash, now),
-                source.SupplierName, codes)).ToArray();
+        var candidates = InventoryCandidateAdmissionPolicy.Prepare(
+            extraction.Rows,
+            source.SourceHash,
+            source.SupplierName,
+            codes,
+            now);
         var artifactId = Guid.NewGuid();
-        await InsertArtifactAsync(claim, artifactId, extraction, now, cancellationToken);
+        var tenantId = new TenantId(claim.TenantId);
+        await InsertArtifactAsync(
+            claim, artifactId, extraction, now, cancellationToken);
+        await InventoryProjectionPersistence.InsertInitialAsync(
+            attemptStore.DbContext, tenantId, source.Id,
+            artifactId, claim.AttemptId, extraction,
+            candidates.Length, claim.RequestedBy, now,
+            cancellationToken);
         await InventoryCandidateBatchPersistence.PersistAsync(
-            attemptStore.DbContext, new TenantId(claim.TenantId), source.Id,
-            reviewer, now, candidates, cancellationToken);
+            attemptStore.DbContext, tenantId, source.Id,
+            artifactId, reviewer, now, candidates,
+            cancellationToken);
         var importVersion = await CompleteImportAsync(
             source, now, cancellationToken);
         var completed = await CompleteAttemptAsync(

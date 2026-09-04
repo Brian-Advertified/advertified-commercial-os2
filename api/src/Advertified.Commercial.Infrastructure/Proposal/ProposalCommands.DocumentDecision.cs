@@ -69,7 +69,8 @@ public sealed partial class ProposalCommands
             recipient.Email, proposal.Title), cancellationToken);
         if (receipt.IncrementalCostMinor != 0)
         {
-            throw new InvalidOperationException("The local proposal delivery exceeded its zero-cost policy.");
+            throw new InvalidOperationException(
+                "The proposal delivery exceeded its configured provider cost policy.");
         }
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.proposal_versions

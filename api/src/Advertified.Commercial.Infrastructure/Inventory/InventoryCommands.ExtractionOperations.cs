@@ -58,6 +58,27 @@ public sealed partial class InventoryCommands
             cancellationToken);
     }
 
+    private async Task<CommandOutcome>
+        ReprojectExtractionOutcomeAsync(
+            Guid importId,
+            CommandEnvelope<ReprojectInventoryExtractionCommand> envelope,
+            CancellationToken cancellationToken)
+    {
+        var (source, latest, _) =
+            await ReadOperatorContextAsync(
+                importId, envelope.TenantId,
+                cancellationToken);
+        await extractionAttemptStore.QueueReprojectionAsync(
+            source, latest, envelope, cancellationToken);
+        return await BuildExtractionOutcomeAsync(
+            source, envelope,
+            MasterDataReferences.CommercialActions
+                .InventoryExtractionReprojectionRequested,
+            MasterDataReferences.CommercialEventTypes
+                .InventoryExtractionReprojectionRequested,
+            cancellationToken);
+    }
+
     private async Task<(InventoryImportRow Source, InventoryExtractionAttemptRow? Latest,
         IDurableInventoryDocumentExtractionAdapter Provider)> ReadOperatorContextAsync(
         Guid importId,
