@@ -27,6 +27,8 @@ internal static partial class DoclingInventoryProjection
                 var previousEnd = 0;
                 foreach (Match match in MoneyPattern().Matches(line))
                 {
+                    if (IsRouteNumberPrice(line, match))
+                        continue;
                     var money = CleanMoney(
                         match.Groups["money"].Value);
                     if (!InventoryMoneyParser.TryParse(
@@ -155,6 +157,21 @@ internal static partial class DoclingInventoryProjection
                 RegexOptions.IgnoreCase |
                 RegexOptions.CultureInvariant))
             return MasterDataCodes.RateTypes.SpotRate;
+        if (Regex.IsMatch(
+                line, @"\b(?:cost\s+)?per\s+month\b|\bmonthly\b",
+                RegexOptions.IgnoreCase |
+                RegexOptions.CultureInvariant))
+            return MasterDataCodes.RateTypes.MonthRate;
+        if (Regex.IsMatch(
+                line, @"\bper\s+week\b|\bweekly\b",
+                RegexOptions.IgnoreCase |
+                RegexOptions.CultureInvariant))
+            return MasterDataCodes.RateTypes.WeekRate;
+        if (Regex.IsMatch(
+                line, @"\bper\s+day\b|\bdaily\b",
+                RegexOptions.IgnoreCase |
+                RegexOptions.CultureInvariant))
+            return MasterDataCodes.RateTypes.DayRate;
         if (Regex.IsMatch(
                 line, @"\bpackage\b|\bbundle\b",
                 RegexOptions.IgnoreCase |

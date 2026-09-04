@@ -66,17 +66,15 @@ internal static class NativeOfficeInventoryProjection
     {
         var candidate = InventoryCandidateNormalizer.Normalize(
             row, sourceHash, DateTimeOffset.UnixEpoch).Values;
-        if (!string.IsNullOrWhiteSpace(candidate.ProductCode))
-            return "code|" + Normalize(candidate.ProductCode);
         var identity = candidate.Name;
         if (!string.IsNullOrWhiteSpace(identity))
         {
             return string.Join(
                 '|',
                 Normalize(identity),
+                PresentationScope(row.Locator),
                 Normalize(candidate.Channel),
                 Normalize(candidate.Geography),
-                Normalize(candidate.Address),
                 candidate.RateAmountMinor?.ToString(
                     CultureInfo.InvariantCulture) ?? string.Empty,
                 Normalize(candidate.Currency),
@@ -86,6 +84,11 @@ internal static class NativeOfficeInventoryProjection
                 Normalize(candidate.Deliverable?.Format),
                 Normalize(candidate.Package?.PackageName));
         }
+        if (!string.IsNullOrWhiteSpace(candidate.ProductCode))
+        {
+            return "code|" + Normalize(candidate.ProductCode) + "|" +
+                PresentationScope(row.Locator);
+        }
         return "raw|" + string.Join(
             '|',
             row.Values.OrderBy(item => item.Key)
@@ -94,7 +97,29 @@ internal static class NativeOfficeInventoryProjection
                     Normalize(item.Value)));
     }
 
-    private static InventoryExtractedRow MergeMissing(
+    private static string PresentationScope(string locator)
+    {
+        var marker = locator.StartsWith(
+                "pptx:", StringComparison.OrdinalIgnoreCase)
+            ? "slide="
+            : locator.StartsWith(
+                "docling:", StringComparison.OrdinalIgnoreCase)
+                ? "page="
+                : null;
+        if (marker is null)
+            return string.Empty;
+        var start = locator.IndexOf(
+            marker, StringComparison.OrdinalIgnoreCase);
+        if (start < 0)
+            return string.Empty;
+        start += marker.Length;
+        var end = locator.IndexOf(';', start);
+        return end < 0
+            ? locator[start..]
+            : locator[start..end];
+    }
+
+    internal static InventoryExtractedRow MergeMissing(
         InventoryExtractedRow preferred,
         InventoryExtractedRow supplement)
     {

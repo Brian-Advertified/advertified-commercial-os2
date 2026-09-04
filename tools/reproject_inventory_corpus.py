@@ -54,12 +54,33 @@ def main() -> int:
         args.api_base_url, args.origin, args.tenant_id
     )
     client.start_session()
+    preflight = client.request(
+        "GET", client.tenant_path("/inventory-semantic-preflight")
+    )
+    if preflight.get("liveExecutionEnabled"):
+        raise RuntimeError(
+            "Physical reprojection is fenced while live Bedrock execution is enabled."
+        )
+    baseline_cost = int(
+        preflight.get("existingCommittedCostUsdMicros") or 0
+    )
     for index, document in enumerate(selected, start=1):
         state = reproject_document(
             document, evidence_root, client,
             args.poll_seconds, args.max_wait_seconds,
+            args.force,
         )
         write_json(manifest_path, manifest)
+        current_preflight = client.request(
+            "GET", client.tenant_path("/inventory-semantic-preflight")
+        )
+        current_cost = int(
+            current_preflight.get("existingCommittedCostUsdMicros") or 0
+        )
+        if current_cost != baseline_cost:
+            raise RuntimeError(
+                "Physical reprojection changed the Bedrock cost ledger."
+            )
         print(json.dumps({
             "position": index,
             "total": len(selected),
@@ -95,6 +116,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--poll-seconds", type=int, default=2)
     parser.add_argument("--max-wait-seconds", type=int, default=900)
+    parser.add_argument(
+        "--force", action="store_true",
+        help="Create a new retained reprojection even when a completed older projection exists.",
+    )
     return parser.parse_args()
 
 
@@ -143,6 +168,7 @@ def reproject_document(
     client: InventoryApi,
     poll_seconds: int,
     max_wait_seconds: int,
+    force: bool = False,
 ) -> str:
     import_id = document.get("processing", {}).get("importId")
     if not import_id:
@@ -151,7 +177,22 @@ def reproject_document(
         )
     current = client.read_import(import_id)
     latest = latest_attempt(current)
-    if latest and latest["providerName"] == RETAINED_PROVIDER:
+    if force:
+        if current["status"] != REVIEW_REQUIRED:
+            raise RuntimeError(
+                "Forced retained reprojection requires a review-fenced import."
+            )
+        current = client.reproject_import(
+            import_id,
+            current["version"],
+            document["sha256"],
+            (latest["attemptNumber"] + 1) if latest else 1,
+        )
+        if current["status"] != REVIEW_REQUIRED:
+            current = wait(
+                client, import_id, poll_seconds, max_wait_seconds
+            )
+    elif latest and latest["providerName"] == RETAINED_PROVIDER:
         if latest["status"] in ACTIVE_ATTEMPT_STATES:
             current = wait(
                 client, import_id, poll_seconds, max_wait_seconds
@@ -167,21 +208,20 @@ def reproject_document(
                     import_id
                 ),
             )
-            sources = preflight.get("sources") or []
-            if not any(
-                item.get("importId") == import_id and
-                item.get("safeToReproject") is True
-                for item in sources
-            ):
+            if projection_is_current(latest, preflight):
                 preserve_observed_artifact(
                     document, evidence_root, current, client
                 )
                 return "cached-reprojection"
-            current = client.reproject_import(
+            current = start_reprojection(
+                client,
                 import_id,
-                current["version"],
+                current,
                 document["sha256"],
                 latest["attemptNumber"] + 1,
+                preflight,
+                poll_seconds,
+                max_wait_seconds,
             )
             if current["status"] != REVIEW_REQUIRED:
                 current = wait(
@@ -241,6 +281,50 @@ def reproject_document(
         document, evidence_root, current, client
     )
     return "reprojected"
+
+
+def projection_is_current(
+    latest: dict[str, Any],
+    preflight: dict[str, Any],
+) -> bool:
+    target = str(preflight.get("projectionVersion") or "")
+    if not bool(preflight.get("liveExecutionEnabled")):
+        target = target.split(";semantic/", 1)[0]
+    return bool(target) and str(latest.get("providerVersion") or "") == target
+
+
+def start_reprojection(
+    client: InventoryApi,
+    import_id: str,
+    current: dict[str, Any],
+    source_hash: str,
+    attempt_number: int,
+    preflight: dict[str, Any],
+    poll_seconds: int,
+    max_wait_seconds: int,
+) -> dict[str, Any]:
+    try:
+        return client.reproject_import(
+            import_id,
+            current["version"],
+            source_hash,
+            attempt_number,
+        )
+    except RuntimeError as error:
+        if "HTTP 409" not in str(error):
+            raise
+        observed = client.read_import(import_id)
+        latest = latest_attempt(observed)
+        if latest and projection_is_current(latest, preflight):
+            return observed
+        if latest and latest.get("status") in ACTIVE_ATTEMPT_STATES:
+            return wait(
+                client,
+                import_id,
+                poll_seconds,
+                max_wait_seconds,
+            )
+        raise
 
 
 def wait(

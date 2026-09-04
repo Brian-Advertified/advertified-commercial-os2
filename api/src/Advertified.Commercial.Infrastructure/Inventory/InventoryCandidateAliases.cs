@@ -73,7 +73,11 @@ internal static partial class InventoryCandidateNormalizer
             "investment",
             "netcost",
             "grosscost",
-            "baseprice");
+            "baseprice",
+            "cpm",
+            "netrate",
+            "discountedrate",
+            "ratecard");
         Add(result, "availability", "availability", "availabilitystatus");
         Add(
             result,

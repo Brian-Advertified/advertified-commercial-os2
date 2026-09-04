@@ -153,6 +153,7 @@ internal static partial class InventoryCandidateNormalizer
             "channel" or "product_type" or "currency" =>
                 value.Trim().ToUpperInvariant().Replace(' ', '_'),
             "name" => Text(values, "name"),
+            "product_code" => Text(values, "product_code"),
             "dimensions" => NormalizedDimensions(values),
             "rate" when
                 InventoryMoneyParser.IsAmbiguousTruncatedRate(value) =>
@@ -261,6 +262,7 @@ internal static partial class InventoryCandidateNormalizer
         Dictionary<string, (string Header, string Value)> sources)
     {
         ApplyElementValuePair(row, canonical, sources);
+        ApplyRateHeader(canonical, sources);
         ApplyVatTreatment(canonical);
         ApplyRatePeriod(canonical, sources);
     }
@@ -288,6 +290,28 @@ internal static partial class InventoryCandidateNormalizer
             canonical["rate"] = value;
             sources["rate"] = ("value", value);
         }
+    }
+
+    private static void ApplyRateHeader(
+        Dictionary<string, string> canonical,
+        Dictionary<string, (string Header, string Value)> sources)
+    {
+        if (canonical.ContainsKey("rate_type") ||
+            !sources.TryGetValue("rate", out var source))
+        {
+            return;
+        }
+        var header = InventoryTabularProjection.NormalizeHeader(
+            source.Header);
+        var rateType = header switch
+        {
+            "cpm" => MasterDataCodes.RateTypes.Cpm,
+            _ => null,
+        };
+        if (rateType is null)
+            return;
+        canonical["rate_type"] = rateType;
+        sources["rate_type"] = (source.Header, source.Header);
     }
 
     private static void ApplyVatTreatment(
@@ -321,11 +345,11 @@ internal static partial class InventoryCandidateNormalizer
             .ToArray());
         var rateType = normalized switch
         {
-            "monthly" or "month" or "permonth" =>
+            "monthly" or "month" or "permonth" or "monthrate" =>
                 MasterDataCodes.RateTypes.MonthRate,
-            "weekly" or "week" or "perweek" =>
+            "weekly" or "week" or "perweek" or "weekrate" =>
                 MasterDataCodes.RateTypes.WeekRate,
-            "daily" or "day" or "perday" =>
+            "daily" or "day" or "perday" or "dayrate" =>
                 MasterDataCodes.RateTypes.DayRate,
             "spot" or "spotrate" =>
                 MasterDataCodes.RateTypes.SpotRate,

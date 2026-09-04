@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -28,7 +29,9 @@ NON_PRIMARY_RATE_LABELS = (
     "printing", "flighting", "production", "installation",
     "set up fee", "setup fee", "management fee", "discount",
     "vat", "traffic count", "impacts", "impressions",
-    "listenership", "audience reach",
+    "listenership", "audience reach", "investment summary",
+    "total value", "total investment", "total invoice", "subtotal",
+    "savings",
 )
 
 
@@ -166,7 +169,14 @@ def product_codes(text: str) -> tuple[str, ...]:
         prefix = "".join(character for character in value if character.isalpha())
         if prefix in {
             "R", "ZAR", "FM", "TV", "CPM", "LSM", "TEL", "FAX",
-            "SEC", "MIN", "HR", "HRS", "ISO", "VAT",
+            "SEC", "MIN", "HR", "HRS", "ISO", "VAT", "MALE", "FEMALE",
+            "ON", "WIDE", "EVERY", "ROLL", "PRE", "POST", "PER", "UP",
+            "MAX", "MINIMUM", "MAXIMUM", "DAY", "DAYS", "MONTH",
+            "MONTHS", "YEAR", "YEARS", "PAGE", "PAGES", "RATE", "COST",
+            "PLAN", "OPTION", "PACKAGE", "ADULTS", "AGE", "TARGET",
+            "REACH", "VIEW", "VIEWS", "AUDIENCE", "TOTAL", "SPOT",
+            "SPOTS", "VIDEO", "AUDIO", "FORMAT", "SIZE", "SECONDS",
+            "MINUTES",
         }:
             continue
         if DIMENSION_PATTERN.fullmatch(value):
@@ -202,12 +212,14 @@ def clean_money(value: str | None) -> str | None:
     ).rstrip(".,")
 
 
+@lru_cache(maxsize=16_384)
 def normalize_money(value: str) -> str:
     return "".join(
         character for character in value.upper() if character.isalnum()
     )
 
 
+@lru_cache(maxsize=16_384)
 def normalize_compact(value: str) -> str:
     return "".join(
         character.lower() for character in value if character.isalnum()

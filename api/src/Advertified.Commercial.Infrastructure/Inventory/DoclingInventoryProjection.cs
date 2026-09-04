@@ -49,7 +49,8 @@ internal static partial class DoclingInventoryProjection
         var texts = ReadTexts(root);
         var context = ReadContext(request, root);
         var rows = new List<InventoryExtractedRow>();
-        rows.AddRange(ReadPageCards(texts, rows.Count));
+        var pageCards = ReadPageCards(texts, rows.Count);
+        rows.AddRange(pageCards);
         if (root.TryGetProperty("tables", out var tables) &&
             tables.ValueKind == JsonValueKind.Array)
         {
@@ -62,6 +63,8 @@ internal static partial class DoclingInventoryProjection
             }
         }
         rows.AddRange(ReadPricedTextLines(root, rows.Count));
+        rows.AddRange(ReadAdjacentPricedTextBlocks(
+            root, rows.Count, pageCards));
         rows.AddRange(ReadExplicitOffers(root, rows.Count));
         if (!HasSellableRows(request, rows))
             rows.AddRange(ReadCatalogueText(root));
@@ -98,6 +101,9 @@ internal static partial class DoclingInventoryProjection
                 if (name.Length == 0) continue;
                 var packageRate = match.Groups["label"].Value.Contains(
                     "package", StringComparison.OrdinalIgnoreCase);
+                var rateType = packageRate
+                    ? MasterDataCodes.RateTypes.PackageRate
+                    : ExplicitRateType(name + " " + item.Text);
                 var values = new SortedDictionary<string, string>(
                     StringComparer.Ordinal)
                 {
@@ -106,10 +112,9 @@ internal static partial class DoclingInventoryProjection
                     ["name"] = name,
                     ["rate"] = money,
                 };
-                if (packageRate)
+                if (rateType is not null)
                 {
-                    values["ratetype"] =
-                        MasterDataCodes.RateTypes.PackageRate;
+                    values["ratetype"] = rateType;
                 }
                 var locator = "docling:page=" + item.Page +
                     ";text=" + item.Number +
@@ -124,14 +129,14 @@ internal static partial class DoclingInventoryProjection
                     item.Confidence,
                     values.Keys.ToDictionary(key => key, _ => locator),
                     values.Keys.ToDictionary(key => key, _ => item.Confidence),
-                    packageRate
+                    rateType is not null
                         ? new Dictionary<string, string>
                         {
                             ["ratetype"] = MasterDataCodes
                                 .InventoryEvidenceBases.DerivedPolicy,
                         }
                         : null,
-                    packageRate
+                    rateType is not null
                         ? new Dictionary<string, string>
                         {
                             ["ratetype"] = MasterDataCodes

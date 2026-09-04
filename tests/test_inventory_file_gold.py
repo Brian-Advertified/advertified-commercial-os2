@@ -113,7 +113,7 @@ def test_two_stage_dms_result_passes_file_gold() -> None:
     assert report["observedCandidateCount"] == 4
 
 
-def test_retained_pre_refactor_artifact_still_fails_file_gold() -> None:
+def test_retained_current_dms_artifact_passes_file_gold() -> None:
     evaluator = load_evaluator()
     gold = json.loads(GOLD_PATH.read_text(encoding="utf-8"))
     observed_path = (
@@ -124,9 +124,9 @@ def test_retained_pre_refactor_artifact_still_fails_file_gold() -> None:
 
     report = evaluator.evaluate(observed, gold)
 
-    assert report["verdict"] == "FAIL"
-    assert report["observedCandidateCount"] == 1
-    assert "candidate_count_mismatch" in report["failures"]
+    assert report["verdict"] == "PASS", report["failures"]
+    assert report["observedCandidateCount"] == 4
+    assert report["failures"] == []
 
 
 def test_file_gold_rejects_invented_rate_basis_and_dates() -> None:

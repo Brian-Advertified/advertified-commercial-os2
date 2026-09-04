@@ -7,8 +7,10 @@ $project = 'advertified-os2-dev'
 $apiContainer = 'advertified-os2-dev-api-1'
 $physicalReport = Join-Path $repoRoot 'artifacts\inventory-corpus\physical-certification\corpus-physical-certification.json'
 $bedrockOverride = Join-Path $repoRoot 'artifacts\inventory-corpus\docker-compose.bedrock.override.yml'
+$proOverride = Join-Path $repoRoot 'artifacts\inventory-corpus\docker-compose.bedrock-pro.override.yml'
 $preflightOutput = Join-Path $repoRoot 'artifacts\inventory-corpus\ai-cost\bedrock-preflight.json'
-$maximumNewCostMicros = 4811878
+$retryPlanPath = Join-Path $repoRoot 'artifacts\inventory-corpus\bedrock-certification\semantic-retry-plan.json'
+$maximumInventoryCostMicros = 4311878
 $maximumPerCallMicros = 60000
 $completed = $false
 
@@ -29,9 +31,7 @@ function Compose-Arguments {
         [Parameter(Mandatory = $true)][string[]]$Command
     )
     $arguments = @('compose', '-p', $project)
-    foreach ($file in $Files) {
-        $arguments += @('-f', $file)
-    }
+    foreach ($file in $Files) { $arguments += @('-f', $file) }
     return $arguments + $Command
 }
 
@@ -42,9 +42,7 @@ function Wait-Healthy {
             $response = Invoke-WebRequest -UseBasicParsing -Uri $Uri -TimeoutSec 5
             if ($response.StatusCode -eq 200) { return }
         }
-        catch {
-            Start-Sleep -Seconds 2
-        }
+        catch { Start-Sleep -Seconds 2 }
     }
     throw "Health check did not pass: $Uri"
 }
@@ -66,14 +64,57 @@ function Read-SemanticPreflight {
         -Headers @{ Origin = 'http://localhost:3017' } -WebSession $session
 }
 
-if (-not (Test-Path $physicalReport)) {
-    throw 'The 43-file physical certification report is missing.'
+function Activate-Configuration {
+    param([Parameter(Mandatory = $true)][string[]]$Files)
+    Invoke-Checked -FilePath 'docker' -Arguments (
+        Compose-Arguments -Files $Files -Command @('config', '--quiet')
+    )
+    Invoke-Checked -FilePath 'docker' -Arguments (
+        Compose-Arguments -Files $Files -Command @(
+            'up', '-d', '--no-build', '--force-recreate',
+            'agent-runtime', 'api'
+        )
+    )
+    Wait-Healthy 'http://127.0.0.1:5198/health/ready'
+    Wait-Healthy 'http://127.0.0.1:5197/health/ready'
 }
+
+function Assert-PreflightBudget {
+    param(
+        [Parameter(Mandatory = $true)]$Preflight,
+        [Parameter(Mandatory = $true)][string[]]$SelectedFiles
+    )
+    if (-not $Preflight.liveExecutionEnabled) {
+        throw 'The governed Bedrock runtime did not activate.'
+    }
+    $sources = @($Preflight.sources)
+    if ($SelectedFiles.Count -gt 0) {
+        $selected = [System.Collections.Generic.HashSet[string]]::new(
+            [string[]]$SelectedFiles,
+            [System.StringComparer]::Ordinal
+        )
+        $sources = @($sources | Where-Object { $selected.Contains($_.fileName) })
+        if ($sources.Count -ne $SelectedFiles.Count) {
+            throw 'The retry preflight did not resolve every selected source.'
+        }
+    }
+    $newMaximum = [int64](@($sources | Measure-Object `
+        -Property newMaximumCostUsdMicros -Sum).Sum)
+    $existing = [int64]$Preflight.existingCommittedCostUsdMicros
+    if ($existing + $newMaximum -gt $maximumInventoryCostMicros) {
+        throw 'Projected provider usage exceeds the US$4.311878 inventory allocation.'
+    }
+    $largest = [int64](@($sources | Measure-Object `
+        -Property largestPacketCostUsdMicros -Maximum).Maximum)
+    if ($largest -gt $maximumPerCallMicros) {
+        throw 'At least one provider request exceeds the US$0.06 per-call ceiling.'
+    }
+}
+
 $physical = Get-Content $physicalReport -Raw | ConvertFrom-Json
 if ($physical.verdict -ne 'PASS' -or $physical.passedSourceCount -ne 43) {
     throw 'All 43 physical source files must pass before Bedrock is activated.'
 }
-
 $foreign = docker ps -a --format '{{.Names}}|{{.Label "com.docker.compose.project"}}' |
     Where-Object { $_ -match '^advertified-' } |
     Where-Object { ($_ -split '\|', 2)[1] -ne $project }
@@ -86,57 +127,62 @@ $labels = docker inspect $apiContainer --format '{{json .Config.Labels}}' |
 $configFiles = @($labels.'com.docker.compose.project.config_files' -split ',') |
     ForEach-Object { $_.Trim() } |
     Where-Object {
-        $_ -and $_ -notlike '*docker-compose.bedrock.override.yml'
+        $_ -and
+        $_ -notlike '*docker-compose.bedrock.override.yml' -and
+        $_ -notlike '*docker-compose.bedrock-pro.override.yml' -and
+        $_ -notlike '*docker-compose.canary.override.yml'
     }
 if ($configFiles.Count -eq 0) {
     throw 'Unable to recover the existing OS2 Compose configuration.'
 }
-$liveFiles = @($configFiles) + @($bedrockOverride)
+$liteFiles = @($configFiles) + @($bedrockOverride)
 
 try {
-    Write-Host 'Validating the governed Bedrock configuration...'
-    Invoke-Checked -FilePath 'docker' -Arguments (
-        Compose-Arguments -Files $liveFiles -Command @('config', '--quiet')
-    )
-
-    Write-Host 'Recreating only the existing OS2 API and agent-runtime with governed Bedrock enabled...'
-    Invoke-Checked -FilePath 'docker' -Arguments (
-        Compose-Arguments -Files $liveFiles -Command @(
-            'up', '-d', '--no-build', '--force-recreate',
-            'agent-runtime', 'api'
-        )
-    )
-    Wait-Healthy 'http://127.0.0.1:5198/health/ready'
-    Wait-Healthy 'http://127.0.0.1:5197/health/ready'
-
+    Write-Host 'Activating the governed Nova Lite classification pass...'
+    Activate-Configuration -Files $liteFiles
     $preflight = Read-SemanticPreflight
     $preflight | ConvertTo-Json -Depth 100 | Set-Content `
         -Path $preflightOutput -Encoding utf8
-    if (-not $preflight.liveExecutionEnabled) {
-        throw 'The governed Bedrock runtime did not activate.'
-    }
-    if ([int64]$preflight.newMaximumCostUsdMicros -gt $maximumNewCostMicros) {
-        throw "Projected corpus cost exceeds the remaining US$4.811878 budget."
-    }
-    $largest = @($preflight.sources | ForEach-Object {
-        [int64]$_.largestPacketCostUsdMicros
-    } | Measure-Object -Maximum).Maximum
-    if ([int64]$largest -gt $maximumPerCallMicros) {
-        throw 'At least one request exceeds the US$0.06 per-call ceiling.'
-    }
+    Assert-PreflightBudget -Preflight $preflight -SelectedFiles @()
 
-    Write-Host 'Running semantic enrichment for all physically certified files...'
     Invoke-Checked -FilePath 'python' -Arguments @(
         '.\tools\reproject_inventory_corpus.py',
-        '--all',
-        '--maximum', '43',
-        '--max-wait-seconds', '1200'
+        '--all', '--maximum', '43', '--max-wait-seconds', '1200'
     )
 
-    Write-Host 'Comparing every Bedrock result to its physical baseline...'
-    Invoke-Checked -FilePath 'python' -Arguments @(
-        '.\tools\certify_inventory_corpus_bedrock.py'
-    )
+    & python '.\tools\certify_inventory_corpus_bedrock.py'
+    $certificationExit = $LASTEXITCODE
+    if ($certificationExit -ne 0) {
+        Invoke-Checked -FilePath 'python' -Arguments @(
+            '.\tools\plan_bedrock_semantic_retries.py'
+        )
+        $retryPlan = Get-Content $retryPlanPath -Raw | ConvertFrom-Json
+        $retryFiles = @($retryPlan.retryDocuments | ForEach-Object {
+            [string]$_.fileName
+        })
+        if ($retryFiles.Count -eq 0) {
+            throw 'Bedrock certification failed without a safe semantic retry plan.'
+        }
+
+        Write-Host "Escalating $($retryFiles.Count) semantic-only documents to Nova Pro..."
+        $proFiles = @($liteFiles) + @($proOverride)
+        Activate-Configuration -Files $proFiles
+        $proPreflight = Read-SemanticPreflight
+        Assert-PreflightBudget -Preflight $proPreflight -SelectedFiles $retryFiles
+        $arguments = @(
+            '.\tools\reproject_inventory_corpus.py',
+            '--maximum', [string]$retryFiles.Count,
+            '--max-wait-seconds', '1200'
+        )
+        foreach ($file in $retryFiles) {
+            $arguments += @('--document', $file)
+        }
+        Invoke-Checked -FilePath 'python' -Arguments $arguments
+        Invoke-Checked -FilePath 'python' -Arguments @(
+            '.\tools\certify_inventory_corpus_bedrock.py'
+        )
+    }
+
     Invoke-Checked -FilePath 'python' -Arguments @(
         '.\tools\report_inventory_ai_cost.py'
     )
@@ -145,20 +191,13 @@ try {
 finally {
     if (-not $completed) {
         Write-Warning 'Certification failed; reverting the same OS2 API/runtime to the non-live configuration.'
-        try {
-            Invoke-Checked -FilePath 'docker' -Arguments (
-                Compose-Arguments -Files $configFiles -Command @(
-                    'up', '-d', '--no-build', '--force-recreate',
-                    'agent-runtime', 'api'
-                )
-            )
-        }
+        try { Activate-Configuration -Files $configFiles }
         catch {
-            Write-Error 'Automatic Bedrock rollback failed. Stop API/runtime before any retry.'
+            Write-Error 'Automatic Bedrock rollback failed. Stop API/runtime before retrying.'
         }
     }
 }
 
-Write-Host 'All Bedrock outputs passed physical-baseline certification within the US$5 ceiling.'
+Write-Host 'All Bedrock outputs passed physical-baseline certification within the governed allocation.'
 docker ps --filter "label=com.docker.compose.project=$project" `
     --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Iterable
 
 from inventory_physical_facts import (
@@ -33,28 +34,172 @@ from inventory_physical_facts import (
 
 
 def discover_anchors(source: PhysicalSource) -> tuple[PhysicalAnchor, ...]:
-    anchors: list[PhysicalAnchor] = []
-    if source.document_format == "XLSX":
-        anchors.extend(workbook_anchors(source))
-    anchors.extend(radio_table_anchors(source))
-    anchors.extend(table_rate_anchors(source))
-    anchors.extend(site_code_anchors(source))
-    anchors.extend(location_site_anchors(source))
-    anchors.extend(text_rate_anchors(source))
+    key_value_sites = key_value_table_anchors(source)
+    key_value_ordinals = {item.ordinal for item in key_value_sites}
+    structured = [
+        item for item in structured_table_anchors(source)
+        if item.ordinal not in key_value_ordinals
+    ]
+    if source.document_format == "XLSX" and structured:
+        # A structured workbook row is the authoritative physical unit.
+        # Do not add weaker OCR/text anchors for the same cells.
+        return deduplicate_anchors(structured)
+
+    structured_ordinals = {
+        *(item.ordinal for item in key_value_sites),
+        *(item.ordinal for item in structured),
+    }
+    anchors: list[PhysicalAnchor] = [*key_value_sites, *structured]
+    anchors.extend(
+        item for item in radio_table_anchors(source)
+        if item.ordinal not in structured_ordinals
+    )
+    anchors.extend(
+        item for item in table_rate_anchors(source)
+        if item.ordinal not in structured_ordinals
+    )
+    anchors.extend(
+        item for item in site_code_anchors(source)
+        if item.ordinal not in structured_ordinals
+    )
+    anchors.extend(
+        item for item in location_site_anchors(source)
+        if item.ordinal not in structured_ordinals
+    )
+    if not (structured and looks_like_site_inventory(source.relative_path)):
+        anchors.extend(
+            item for item in text_rate_anchors(source)
+            if item.ordinal not in structured_ordinals
+        )
     return deduplicate_anchors(anchors)
 
 
-def workbook_anchors(source: PhysicalSource) -> list[PhysicalAnchor]:
+def key_value_table_anchors(source: PhysicalSource) -> list[PhysicalAnchor]:
+    """Discover one physical site from each vertical label/value table."""
+    result: list[PhysicalAnchor] = []
+    texts_by_ordinal: dict[int, list[SourceText]] = {}
+    for item in source.texts:
+        texts_by_ordinal.setdefault(item.ordinal, []).append(item)
+    site_labels = {
+        "description", "area", "cityprov", "cityprovince", "location",
+        "trafficcount", "impacts", "impressions", "frequency", "type",
+        "format", "driversside", "gps", "gpscoordinate", "ratecard",
+        "discountedrate", "monthlyrental", "targetmall", "venue", "ara",
+        "notes", "sitenumber", "sitecode", "productcode", "availability",
+        "size", "dimensions", "production", "printing", "flighting",
+    }
+    primary_rate_labels = (
+        "ratecard", "monthlyrental", "monthlyrate", "rate", "price",
+        "investment", "packagecost",
+    )
+    identity_labels = (
+        "area", "cityprov", "cityprovince", "location", "format",
+        "targetmall", "venue", "description",
+    )
+    for table in source.tables:
+        pairs: dict[str, tuple[str, int]] = {}
+        for row_number, row in enumerate(table.rows, start=1):
+            if len(row) < 2:
+                continue
+            label = normalize_header(row[0])
+            value = row[1].strip()
+            if label in site_labels and value:
+                pairs.setdefault(label, (value, row_number))
+        if len(set(pairs).intersection(site_labels)) < 4:
+            continue
+        has_identity = any(label in pairs for label in identity_labels)
+        has_site_detail = any(
+            label in pairs
+            for label in (
+                "format", "gps", "gpscoordinate", "sitenumber", "sitecode",
+                "productcode", "ratecard", "monthlyrental", "availability",
+            )
+        )
+        if not has_identity or not has_site_detail:
+            continue
+
+        code = next(
+            (
+                clean_product_code(pairs[label][0])
+                for label in ("productcode", "sitecode", "sitenumber")
+                if label in pairs and clean_product_code(pairs[label][0])
+            ),
+            None,
+        )
+        same_page_text = [
+            item for item in texts_by_ordinal.get(table.ordinal, [])
+            if item.confidence is None or item.confidence >= 0.5
+        ]
+        if not code:
+            joined = "\n".join(item.text for item in same_page_text)
+            contextual = re.search(
+                r"\b(?:ISO|ISJ|ISC|ISD|ISEC|ISNW)\s*[-/]?\s*\d{2,6}[A-Z]?\b",
+                joined,
+                re.IGNORECASE,
+            )
+            code = clean_product_code(contextual.group(0)) if contextual else None
+        if not code:
+            code = first_product_code(
+                "\n".join(item.text for item in same_page_text)
+            )
+
+        rate_value = next(
+            (
+                pairs[label][0]
+                for label in primary_rate_labels
+                if label in pairs
+            ),
+            "",
+        )
+        raw_rate = clean_money(rate_value) or None
+        identity_values = [
+            pairs[label][0]
+            for label in identity_labels
+            if label in pairs and pairs[label][0]
+        ]
+        identity = " | ".join(dict.fromkeys(identity_values[:3]))
+        if code and code.lower() not in identity.lower():
+            identity = f"{code} - {identity}" if identity else code
+        if not identity:
+            continue
+        context = tuple(
+            f"{label}: {value}"
+            for label, (value, _) in pairs.items()
+        )
+        result.append(PhysicalAnchor(
+            anchor_type="KEY_VALUE_SITE",
+            locator=f"{table.locator};site=1",
+            ordinal=table.ordinal,
+            identity=identity,
+            product_code=code,
+            raw_rate=raw_rate,
+            currency=normalize_currency(raw_rate),
+            context=context,
+        ))
+    return result
+
+
+def structured_table_anchors(source: PhysicalSource) -> list[PhysicalAnchor]:
     result: list[PhysicalAnchor] = []
     for table in source.tables:
         if len(table.rows) < 2:
             continue
         headers = [normalize_header(value) for value in table.rows[0]]
         name_column = first_index(
-            headers, ("name", "platform", "product", "site")
+            headers,
+            (
+                "name", "sitename", "platform", "product", "productname",
+                "site", "offering", "adunit", "placement", "package",
+                "packagename", "advertisingoption",
+            ),
         )
         rate_column = first_index(
-            headers, ("baseprice", "rate", "price", "cost", "ratecard")
+            headers,
+            (
+                "baseprice", "rate", "price", "cost", "ratecard",
+                "monthlyrental", "monthlyrate", "netrate", "netrates",
+                "packagecost", "investment", "amount", "costpermonth",
+            ),
         )
         currency_column = first_index(headers, ("currency",))
         code_column = first_index(
@@ -68,15 +213,28 @@ def workbook_anchors(source: PhysicalSource) -> list[PhysicalAnchor]:
             if not identity and not code:
                 continue
             raw_rate = value_at(row, rate_column)
-            currency = value_at(row, currency_column)
+            currency = normalize_currency(
+                value_at(row, currency_column) or raw_rate
+            )
+            normalized_rate = clean_money(raw_rate) or raw_rate.strip() or None
+            if (
+                normalized_rate
+                and currency
+                and normalize_currency(normalized_rate) is None
+            ):
+                normalized_rate = f"{currency} {normalized_rate}"
             result.append(PhysicalAnchor(
-                anchor_type="WORKBOOK_ROW",
+                anchor_type=(
+                    "WORKBOOK_ROW"
+                    if source.document_format == "XLSX"
+                    else "TABLE_ROW"
+                ),
                 locator=f"{table.locator};row={offset}",
                 ordinal=table.ordinal,
                 identity=identity or code,
                 product_code=code,
-                raw_rate=(clean_money(raw_rate) or raw_rate.strip() or None),
-                currency=normalize_currency(currency or raw_rate),
+                raw_rate=normalized_rate,
+                currency=currency,
                 context=tuple(value for value in row if value),
             ))
     return result
@@ -138,6 +296,8 @@ def table_rate_anchors(source: PhysicalSource) -> list[PhysicalAnchor]:
         for row_number, row in enumerate(table.rows, start=1):
             for column, cell in enumerate(row):
                 for match in MONEY_PATTERN.finditer(cell):
+                    if route_number_match(cell, match):
+                        continue
                     raw_rate = clean_money(match.group(0))
                     identity = identity_from_table_row(
                         row, column, cell, match.start()
@@ -168,7 +328,12 @@ def site_code_anchors(source: PhysicalSource) -> list[PhysicalAnchor]:
         by_ordinal.setdefault(item.ordinal, []).append(item)
     seen: set[str] = set()
     for ordinal, items in sorted(by_ordinal.items()):
-        joined = "\n".join(item.text for item in items)
+        authoritative = [
+            item
+            for item in items
+            if item.confidence is None or item.confidence >= 0.5
+        ]
+        joined = "\n".join(item.text for item in authoritative)
         for code in product_codes(joined):
             normalized = normalize_compact(code)
             if normalized in seen:
@@ -215,10 +380,11 @@ def location_site_anchors(source: PhysicalSource) -> list[PhysicalAnchor]:
     )
     table_ordinals = {table.ordinal for table in source.tables}
     for ordinal, items in sorted(grouped.items()):
-        joined = "\n".join(item.text for item in items)
-        if product_codes(joined) or ordinal in table_ordinals:
+        if ordinal in table_ordinals:
             continue
         for item in items:
+            if item.confidence is not None and item.confidence < 0.5:
+                continue
             value = "\n".join(
                 line.strip()
                 for line in item.text.splitlines()
@@ -228,16 +394,25 @@ def location_site_anchors(source: PhysicalSource) -> list[PhysicalAnchor]:
             if (
                 not value
                 or len(value) > 140
-                or MONEY_PATTERN.search(value)
+                or has_commercial_money(value)
                 or DIMENSION_PATTERN.fullmatch(value)
                 or any(term in normalized for term in ignored)
             ):
                 continue
             lines = value.splitlines()
+            first_line_letters = [
+                character for character in lines[0]
+                if character.isalpha()
+            ] if lines else []
+            uppercase_heading = (
+                len(first_line_letters) >= 3
+                and all(character.isupper() for character in first_line_letters)
+            )
             looks_location = (
                 len(lines) >= 2
                 and len(lines[0]) <= 50
                 and len(lines[1]) <= 90
+                and uppercase_heading
             ) or any(term in normalized for term in (
                 "street", "road", "freeway", "airport", "mall",
                 "sandton", "soweto", "johannesburg", "cape town",
@@ -264,6 +439,8 @@ def text_rate_anchors(source: PhysicalSource) -> list[PhysicalAnchor]:
     for item in source.texts:
         previous = previous_by_ordinal.get(item.ordinal, "")
         for match in MONEY_PATTERN.finditer(item.text):
+            if route_number_match(item.text, match):
+                continue
             raw_rate = clean_money(match.group(0))
             prefix = item.text[: match.start()].strip(" :-–—|\n\t")
             identity = (
@@ -284,6 +461,40 @@ def text_rate_anchors(source: PhysicalSource) -> list[PhysicalAnchor]:
             ))
         previous_by_ordinal[item.ordinal] = item.text
     return result
+
+
+def has_commercial_money(value: str) -> bool:
+    return any(
+        not route_number_match(value, match)
+        for match in MONEY_PATTERN.finditer(value)
+    )
+
+
+def route_number_match(value: str, match: re.Match[str]) -> bool:
+    token = "".join(match.group(0).split())
+    if not re.fullmatch(r"R\d{1,3}", token, re.IGNORECASE):
+        return False
+    line_start = max(
+        value.rfind("\n", 0, match.start()),
+        value.rfind("\r", 0, match.start()),
+    ) + 1
+    prefix = value[line_start : match.start()].strip()
+    suffix = value[match.end() :].lstrip()
+    if prefix:
+        return False
+    if re.match(
+        r"^(?:/|\\|[-–—])|^(?:road|route|freeway|highway|intersection|interchange)\b",
+        suffix,
+        re.IGNORECASE,
+    ):
+        return True
+    if re.match(
+        r"^(?:per|each|cpm|cpc|cpl|cpa|day|week|month|spot|unit|incl|excl|vat)\b",
+        suffix,
+        re.IGNORECASE,
+    ):
+        return False
+    return bool(re.match(r"^[A-Za-z][A-Za-z .'-]+$", suffix))
 
 
 def deduplicate_anchors(

@@ -46,10 +46,13 @@ internal static class InventoryExtractionCompletionPolicy
         string selectedSupplier,
         InventoryCodeSets codes)
     {
-        var validation = InventoryCandidateValidator.Validate(extracted.Values, codes)
-            .Concat(InventoryExtractionEvidenceValidator.Validate(extracted.Evidence))
-            .Concat(ValidateSupplierIdentity(extracted.SupplierName, selectedSupplier))
-            .ToArray();
+        extracted = InventoryCandidateOperationalNormalizer.Normalize(extracted);
+        var validation = InventoryPendingSupplierValidationPolicy.Apply(
+            extracted.Values,
+            InventoryCandidateValidator.Validate(extracted.Values, codes)
+                .Concat(InventoryExtractionEvidenceValidator.Validate(extracted.Evidence))
+                .Concat(ValidateSupplierIdentity(
+                    extracted.SupplierName, selectedSupplier)));
         return new PreparedInventoryCandidate(
             Guid.NewGuid(), extracted.RowNumber, extracted.Values, validation,
             extracted.Locator, extracted.Evidence, Guid.NewGuid());

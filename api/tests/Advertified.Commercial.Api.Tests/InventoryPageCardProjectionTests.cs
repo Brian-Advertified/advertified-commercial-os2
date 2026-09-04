@@ -15,17 +15,17 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         {
             texts = new object[]
             {
-                Text("M1 South before Smith off-ramp", 7),
-                Text("SITE NUMBER\nS0118KM", 7),
-                Text("Size:\n4m x 54m", 7),
-                Text("Illuminated:\nNone", 7),
-                Text("GPS Coordinate:\n-26.192257, 28.02755", 7),
-                Text("Audience Reach:\n1 010 796", 7),
-                Text("Impacts:\n7 509 964", 7),
-                Text("Availability:\nImmediately", 7),
-                Text("SITE INFO: This site reaches M1 traffic.", 7),
-                Text("R 90 000", 7),
-                Text("Rate Card", 7),
+                PageText("M1 South before Smith off-ramp", 7),
+                PageText("SITE NUMBER\nS0118KM", 7),
+                PageText("Size:\n4m x 54m", 7),
+                PageText("Illuminated:\nNone", 7),
+                PageText("GPS Coordinate:\n-26.192257, 28.02755", 7),
+                PageText("Audience Reach:\n1 010 796", 7),
+                PageText("Impacts:\n7 509 964", 7),
+                PageText("Availability:\nImmediately", 7),
+                PageText("SITE INFO: This site reaches M1 traffic.", 7),
+                PageText("R 90 000", 7),
+                PageText("Rate Card", 7),
             },
             tables = Array.Empty<object>(),
         });
@@ -74,7 +74,7 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
             StringComparison.Ordinal);
     }
 
-    private static object Text(string text, int page) => new
+    private static object PageText(string text, int page) => new
     {
         text,
         prov = new[] { new { page_no = page } },

@@ -47,7 +47,8 @@ public sealed partial class InventoryCommands
         await InventoryPublicationPersistence.PersistAsync(
             store.DbContext, envelope.TenantId, source.SupplierId, source.Id,
             envelope.ActorId.Value, now, publications, cancellationToken);
-        await CompletePublicationAsync(envelope, source, now, cancellationToken);
+        await CompletePublicationAsync(
+            envelope, source, now, cancellationToken);
         var updated = await store.FindImportAsync(
             envelope.TenantId, importId, false, cancellationToken)
             ?? throw new InvalidOperationException("The inventory import was not persisted.");
@@ -83,8 +84,7 @@ public sealed partial class InventoryCommands
         List<InventoryCandidateRow> candidates,
         InventoryCodeSets codes)
     {
-        if (candidates.Count == 0 || candidates.Any(
-                item => item.Status == MasterDataCodes.LifecycleStatuses.ReviewRequired))
+        if (candidates.Count == 0)
         {
             throw new InventoryPublishBlockedException();
         }
@@ -108,7 +108,10 @@ public sealed partial class InventoryCommands
         var values = JsonSerializer.Deserialize<InventoryCandidateValues>(
             candidate.ValuesJson, InventoryRowMapper.StoredJson)
             ?? throw new InvalidOperationException("Stored inventory values are invalid.");
-        if (InventoryCandidateValidator.Validate(values, codes).Any(issue => issue.IsBlocking))
+        if (InventoryPendingSupplierValidationPolicy.Apply(
+                values,
+                InventoryCandidateValidator.Validate(values, codes))
+            .Any(issue => issue.IsBlocking))
         {
             throw new InventoryPublishBlockedException();
         }
@@ -229,8 +232,18 @@ public sealed partial class InventoryCommands
         CancellationToken cancellationToken)
     {
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            UPDATE commercial.inventory_imports
-            SET status_code = {MasterDataCodes.LifecycleStatuses.Completed},
+            UPDATE commercial.inventory_imports import
+            SET status_code = CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM commercial.inventory_candidates candidate
+                        WHERE candidate.tenant_id = import.tenant_id
+                          AND candidate.import_id = import.id
+                          AND candidate.status_code =
+                              {MasterDataCodes.LifecycleStatuses.ReviewRequired})
+                    THEN {MasterDataCodes.LifecycleStatuses.ReviewRequired}
+                    ELSE {MasterDataCodes.LifecycleStatuses.Completed}
+                END,
                 version = version + 1, updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {source.Id}
               AND status_code = {MasterDataCodes.LifecycleStatuses.ReviewRequired}
@@ -243,7 +256,8 @@ public sealed partial class InventoryCommands
         await RecordStepAsync(
             envelope.TenantId, source.Id,
             MasterDataCodes.InventoryImportStepTypes.Publication,
-            MasterDataCodes.LifecycleStatuses.Completed, now, cancellationToken);
+            MasterDataCodes.LifecycleStatuses.Completed,
+            now, cancellationToken);
     }
 }
 

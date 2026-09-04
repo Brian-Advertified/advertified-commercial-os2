@@ -75,7 +75,13 @@ internal static partial class InventoryCandidateNormalizer
                 extension[pair.Key] = pair.Value;
             }
         }
+        if (row.Values.TryGetValue("ratetype", out var explicitRateType))
+        {
+            canonical["rate_type"] = explicitRateType;
+            sources["rate_type"] = ("ratetype", explicitRateType);
+        }
         ApplyContextualMappings(row, canonical, sources);
+        ApplyProductCodeContext(canonical, sources);
         ApplyKnownBrandCasing(canonical);
         ApplyDimensionContext(canonical, sources);
         if (canonical.TryGetValue("rate", out var rawRate) &&
@@ -176,7 +182,7 @@ internal static partial class InventoryCandidateNormalizer
                 Text(values, "address"),
                 Decimal(values, "latitude"),
                 Decimal(values, "longitude"),
-                Code(values, "rate_type"),
+                Text(values, "rate_type"),
                 Currency(
                     values,
                     evidence,

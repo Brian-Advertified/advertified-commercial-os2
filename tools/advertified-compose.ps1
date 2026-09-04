@@ -3,21 +3,43 @@ $script:AdvertifiedComposeProject = 'advertified-os2-dev'
 function Assert-AdvertifiedComposeProject {
     param([switch]$RequireExisting)
 
-    $containerIds = @(
-        & docker ps -aq --filter 'label=com.docker.compose.project'
+    $labelRows = @(
+        & docker ps -a `
+            --filter 'label=com.docker.compose.project' `
+            --format '{{.Names}}|{{.Labels}}'
     )
     if ($LASTEXITCODE -ne 0) {
         throw 'Unable to inspect Docker Compose projects.'
     }
-    $records = @()
-    if ($containerIds.Count -gt 0) {
-        $labelSets = & docker inspect `
-            --format '{{json .Config.Labels}}' $containerIds
-        if ($LASTEXITCODE -ne 0) {
-            throw 'Unable to inspect Docker Compose labels.'
+    $records = @(
+        $labelRows | ForEach-Object {
+            $parts = $_ -split '\|', 2
+            if ($parts.Count -ne 2) { return }
+            $labels = @{}
+            foreach ($label in ($parts[1] -split ',')) {
+                $pair = $label -split '=', 2
+                if ($pair.Count -eq 2) {
+                    $labels[$pair[0]] = $pair[1]
+                }
+            }
+            $project = $labels['com.docker.compose.project']
+            if ($project) {
+                [pscustomobject]@{
+                    Name = $parts[0]
+                    'com.docker.compose.project' = $project
+                    'com.docker.compose.service' =
+                        $labels['com.docker.compose.service']
+                    'com.docker.compose.oneoff' =
+                        $labels['com.docker.compose.oneoff']
+                }
+            }
         }
-        $records = @($labelSets | ForEach-Object { $_ | ConvertFrom-Json })
-    }
+    )
+    $records = @(
+        $records |
+            Group-Object -Property Name |
+            ForEach-Object { $_.Group[0] }
+    )
     $projects = $records | ForEach-Object {
         $_.'com.docker.compose.project'
     }
@@ -41,17 +63,21 @@ function Assert-AdvertifiedComposeProject {
         throw "The existing '$script:AdvertifiedComposeProject' stack was not found."
     }
 
-    $duplicates = @(
+    $duplicateGroups = @(
         $records |
             Where-Object {
-                $_.'com.docker.compose.project' -eq $script:AdvertifiedComposeProject
+                $_.'com.docker.compose.project' -eq $script:AdvertifiedComposeProject -and
+                $_.'com.docker.compose.oneoff' -ne 'True' -and
+                $_.Name -like 'advertified-os2-dev-*'
             } |
             Group-Object -Property 'com.docker.compose.service' |
-            Where-Object Count -gt 1 |
-            ForEach-Object Name
+            Where-Object Count -gt 1
     )
-    if ($duplicates.Count -gt 0) {
-        throw "Duplicate advertified-os2-dev services found: $($duplicates -join ', ')"
+    if ($duplicateGroups.Count -gt 0) {
+        $details = $duplicateGroups | ForEach-Object {
+            $_.Name + ': ' + (($_.Group | ForEach-Object Name) -join ', ')
+        }
+        throw "Duplicate advertified-os2-dev services found: $($details -join '; ')"
     }
 }
 

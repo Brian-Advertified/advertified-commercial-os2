@@ -105,7 +105,7 @@ def candidate_value(
     deliverable = values.get("deliverable") or {}
     mappings = {
         "inventory_identity": (
-            values.get("productCode") or values.get("name")
+            values.get("name") or values.get("productCode")
         ),
         "media_type": values.get("channel"),
         "product_type": values.get("productType"),

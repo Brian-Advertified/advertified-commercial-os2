@@ -10,16 +10,17 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import requests
 
+from evaluate_inventory_file_gold import evaluate as evaluate_human_gold
 from inventory_corpus_api import InventoryApi
 from inventory_physical_anchor_discovery import discover_anchors
-from inventory_physical_certification import certify_file
+from inventory_physical_certification import FileCertification, certify_file
 from inventory_physical_facts import load_source
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -58,46 +59,47 @@ def main() -> int:
     output = root / "physical-certification"
     output.mkdir(parents=True, exist_ok=True)
     (output / "baseline").mkdir(parents=True, exist_ok=True)
-    records = []
-    for position, document in enumerate(documents, start=1):
-        source_hash = str(document["sha256"])
-        source = sources[source_hash]
-        source_map = root / "semantic-v1" / f"{source_hash}.json"
-        if not source_map.exists():
-            raise RuntimeError(
-                f"Missing physical source map for {document['relativePath']}."
-            )
-        import_view = client.read_complete_import(str(source["importId"]))
-        certification = certify_file(source_map, import_view, source)
-        record = asdict(certification)
-        record["position"] = position
-        records.append(record)
-        write_json(output / f"{source_hash}.json", record)
-        write_json(
-            output / "baseline" / f"{source_hash}.json",
-            physical_baseline(
+    validate_bounds(args.start_position, args.maximum_files, len(documents))
+    if not args.assemble_only:
+        selected = documents[
+            args.start_position - 1:
+            args.start_position - 1 + args.maximum_files
+        ]
+        for position, document in enumerate(
+            selected,
+            start=args.start_position,
+        ):
+            certify_document(
+                root,
+                output,
                 document,
-                source,
-                import_view,
-                certification.passed,
-            ),
-        )
+                sources[str(document["sha256"])],
+                client,
+                position,
+                len(documents),
+            )
+
+    records, missing = load_records(
+        output,
+        documents,
+        expected_projection_version(preflight),
+    )
+    if missing:
         print(json.dumps({
-            "position": position,
-            "total": len(documents),
-            "fileName": certification.file_name,
-            "passed": certification.passed,
-            "candidateCount": certification.candidate_count,
-            "expectedAnchorCount": certification.expected_anchor_count,
-            "failureCount": len(certification.failures),
-        }), flush=True)
+            "verdict": "PARTIAL",
+            "sourceCount": len(documents),
+            "completedSourceCount": len(records),
+            "missingSourceCount": len(missing),
+            "nextPositions": missing,
+        }, indent=2))
+        return 0
 
     register = build_register(manifest, preflight, records)
     write_json(output / "corpus-physical-certification.json", register)
     (output / "CORPUS_PHYSICAL_CERTIFICATION.md").write_text(
         render_markdown(register), encoding="utf-8"
     )
-    if args.promote:
+    if args.promote and register["verdict"] == "PASS":
         promote_gold(root, records)
 
     print(json.dumps({
@@ -118,6 +120,140 @@ def main() -> int:
     return 0 if register["verdict"] == "PASS" else 2
 
 
+def validate_bounds(start: int, maximum: int, total: int) -> None:
+    if start < 1 or start > total:
+        raise ValueError(f"Start position must be between 1 and {total}.")
+    if maximum < 1 or maximum > total:
+        raise ValueError(f"Maximum files must be between 1 and {total}.")
+
+
+def certify_document(
+    root: Path,
+    output: Path,
+    document: dict[str, Any],
+    source: dict[str, Any],
+    client: InventoryApi,
+    position: int,
+    total: int,
+) -> None:
+    source_hash = str(document["sha256"])
+    source_map = root / "semantic-v1" / f"{source_hash}.json"
+    if not source_map.exists():
+        raise RuntimeError(
+            f"Missing physical source map for {document['relativePath']}."
+        )
+    import_view = client.read_complete_import(str(source["importId"]))
+    certification = certify_file(source_map, import_view, source)
+    certification = apply_human_gold(
+        root, document, import_view, certification
+    )
+    record = asdict(certification)
+    record["position"] = position
+    write_json(output / f"{source_hash}.json", record)
+    write_json(
+        output / "baseline" / f"{source_hash}.json",
+        physical_baseline(
+            document,
+            source,
+            import_view,
+            certification.passed,
+        ),
+    )
+    print(json.dumps({
+        "position": position,
+        "total": total,
+        "fileName": certification.file_name,
+        "passed": certification.passed,
+        "candidateCount": certification.candidate_count,
+        "expectedAnchorCount": certification.expected_anchor_count,
+        "failureCount": len(certification.failures),
+    }), flush=True)
+
+
+def apply_human_gold(
+    root: Path,
+    document: dict[str, Any],
+    import_view: dict[str, Any],
+    certification: FileCertification,
+) -> FileCertification:
+    """Prefer a passing human-authored comparison over heuristic anchors.
+
+    The generic anchor scanner is intentionally conservative, but image-based
+    Office documents can collapse a physical table into one OCR text fragment.
+    A reviewed file-gold contract is stronger evidence than that heuristic and
+    must therefore be authoritative when its complete evaluation passes.
+    """
+    gold_path = root / "gold" / f"{document['sha256']}.json"
+    if not gold_path.exists():
+        return certification
+    gold = read_json(gold_path)
+    if gold.get("schemaVersion") != "advertified.inventory-file-gold.v1":
+        return certification
+    evaluation = evaluate_human_gold(import_view, gold)
+    if not evaluation.get("passed"):
+        failures = tuple(dict.fromkeys(
+            (*certification.failures, *(
+                "HUMAN_GOLD_MISMATCH:" + str(value)
+                for value in evaluation.get("failures") or []
+            ))
+        ))
+        return replace(
+            certification,
+            passed=False,
+            failures=failures,
+        )
+    expected = int(
+        evaluation.get("expectedCandidateCount")
+        or evaluation.get("observedCandidateCount")
+        or certification.candidate_count
+    )
+    return replace(
+        certification,
+        expected_anchor_count=expected,
+        matched_anchor_count=expected,
+        unmatched_anchor_count=0,
+        unsupported_candidate_count=0,
+        passed=True,
+        failures=(),
+        warnings=tuple(dict.fromkeys((
+            *certification.warnings,
+            "HUMAN_AUTHORED_FILE_GOLD_CONFIRMED",
+        ))),
+        unmatched_anchors=(),
+        unsupported_candidates=(),
+    )
+
+
+def expected_projection_version(preflight: dict[str, Any]) -> str:
+    planned = str(preflight.get("projectionVersion") or "")
+    return planned.split(";semantic/", 1)[0]
+
+
+def load_records(
+    output: Path,
+    documents: list[dict[str, Any]],
+    projection_version: str,
+) -> tuple[list[dict[str, Any]], list[int]]:
+    records: list[dict[str, Any]] = []
+    missing: list[int] = []
+    for position, document in enumerate(documents, start=1):
+        path = output / f"{document['sha256']}.json"
+        if not path.exists():
+            missing.append(position)
+            continue
+        record = read_json(path)
+        if (
+            record.get("source_hash") != document["sha256"]
+            or record.get("latest_attempt_provider_version")
+            != projection_version
+        ):
+            missing.append(position)
+            continue
+        record["position"] = position
+        records.append(record)
+    return records, missing
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--evidence", type=Path, default=CORPUS_ROOT)
@@ -127,7 +263,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--promote",
         action="store_true",
-        help="Write file-level gold only for comparison results that pass.",
+        help="Write file-level gold only after all 43 comparison results pass.",
+    )
+    parser.add_argument(
+        "--start-position",
+        type=int,
+        default=1,
+        help="One-based manifest position at which this bounded run starts.",
+    )
+    parser.add_argument(
+        "--maximum-files",
+        type=int,
+        default=43,
+        help="Maximum source files evaluated by this invocation.",
+    )
+    parser.add_argument(
+        "--assemble-only",
+        action="store_true",
+        help="Build the corpus verdict from existing per-file reports.",
     )
     return parser.parse_args()
 
@@ -261,6 +414,10 @@ def render_markdown(register: dict[str, Any]) -> str:
 
 
 def escape(value: str) -> str:
+    return value.replace("|", "\\|").replace("\n", " ")
+
+
+def escape_markdown(value: str) -> str:
     return value.replace("|", "\\|").replace("\n", " ")
 
 

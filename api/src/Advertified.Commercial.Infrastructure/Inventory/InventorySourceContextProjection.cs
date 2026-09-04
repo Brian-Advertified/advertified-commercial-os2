@@ -98,7 +98,7 @@ internal static class InventorySourceContextProjection
         var known = new (string Pattern, string Supplier)[]
         {
             (@"^Algoa\s+FM\b", "Algoa FM"),
-            (@"^Arena[- ]", "Arena"),
+            (@"^Arena[- ]", "Arena Holdings"),
             (@"^BlackSpace\b", "BlackSpace"),
             (@"^Business\s+Day\s+TV\b", "Business Day TV"),
             (@"^Direct\s+Kaya\b", "Kaya FM"),
@@ -107,7 +107,7 @@ internal static class InventorySourceContextProjection
             (@"^eMedia\b", "eMedia"),
             (@"^Ignition\s+TV\b", "Ignition TV"),
             (@"^Insight\s+Outdoor\b", "Insight Outdoor ZA"),
-            (@"^JAC\b", "JAC"),
+            (@"^JAC\b", "Jacaranda FM"),
             (@"^JCDecaux\b", "JCDecaux ZA"),
             (@"^Jit\s+Tv\b", "Jit TV"),
             (@"^Jozi\s+FM\b", "Jozi FM"),
@@ -117,14 +117,15 @@ internal static class InventorySourceContextProjection
             (@"^Primedia\s+Broadcasting\b", "Primedia Broadcasting"),
             (@"^Primedia\s+Outdoor\b", "Primedia Outdoor ZA"),
             (@"^Relativ\s+Media\b", "Relativ Media ZA"),
-            (@"^Reveel\b", "Reveel ZA"),
+            (@"^Reveel\b", "Reveel"),
             (@"^RSD\b", "RSD"),
             (@"^SABC\b", "SABC"),
             (@"^SB\s+Outdoor\b", "SB Outdoor"),
             (@"^Smile\s+90[.]4FM\b", "Smile 90.4FM"),
             (@"^Summit\s+OOH\s+Media\b", "Summit OOH Media"),
             (@"^The\s+Home\s+Channel\b", "The Home Channel"),
-            (@"^Virgin\s+Active\s+ZA\b", "Virgin Active ZA"),
+            (@"^Virgin\s+Active\s+ZA\b", "Virgin Active"),
+            (@"^Y\s+PACKAGES\b", "YFM"),
         };
         return known.FirstOrDefault(item => Regex.IsMatch(
             value,

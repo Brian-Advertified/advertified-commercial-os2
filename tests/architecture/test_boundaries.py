@@ -40,6 +40,9 @@ GOVERNED_LITERAL_OVERLAP_ALLOWLIST = {
     "api/src/Advertified.Commercial.Infrastructure/Inventory/InventoryCandidateNormalizer.cs": {
         "BLACKOUT", "NOT_AVAILABLE", "impressions", "listeners", "reach",
     },
+    "api/src/Advertified.Commercial.Infrastructure/Inventory/DoclingInventoryProjection.PageCards.cs": {
+        "audience", "impressions", "reach",
+    },
 }
 from tests.architecture.master_data_contract import (
     REQUIRED_MASTER_COLLECTIONS,

@@ -58,10 +58,13 @@ internal static partial class DoclingInventoryProjection
             cells,
             headerRow.Value,
             dataRows);
+        var projectedDataRows = FillDownContextColumns(
+            headers,
+            dataRows);
         var schedule = ReadSchedule(
             cells,
             headers,
-            dataRows,
+            projectedDataRows,
             tableNumber,
             page,
             headerRow.Value,
@@ -72,15 +75,16 @@ internal static partial class DoclingInventoryProjection
         var method = confidence.HasValue
             ? MasterDataCodes.InventoryExtractionMethods.Ocr
             : MasterDataCodes.InventoryExtractionMethods.Tabular;
-        return InventoryTabularProjection.Project(
-                headers,
-                dataRows,
-                rowOffset,
-                row => TableLocator(page, tableNumber, row),
-                (row, column) => CellLocator(
-                    page, tableNumber, row, column),
-                (row, column) => CellConfidence(
-                    cells, row, column))
+        var projected = InventoryTabularProjection.Project(
+            headers,
+            projectedDataRows,
+            rowOffset,
+            row => TableLocator(page, tableNumber, row),
+            (row, column) => CellLocator(
+                page, tableNumber, row, column),
+            (row, column) => CellConfidence(
+                cells, row, column));
+        return ApplyTableContext(headers, projected)
             .Select(row => row with
             {
                 ExtractionMethod = method,

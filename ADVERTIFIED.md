@@ -1673,6 +1673,100 @@ Advertified therefore guarantees exactly-once canonical extraction acceptance an
 effects. It does not claim exactly-once Docling compute execution when acceptance of a submission
 cannot be proven.
 
+## 11.23 Admin-originated Day 0 inventory, supplier claiming and replacement [Policy]
+
+Day 0 production inventory intake is an explicit administrator action, not a continuously running
+inventory-discovery process.
+
+```text
+authorised administrator selects a source file
+→ upload, protect and classify
+→ create a durable extraction attempt and wake the processor
+→ extract, validate and resolve material exceptions
+→ resolve one permanent supplier identity
+→ publish and atomically cut over that supplier's inventory release
+```
+
+Advertified does not poll folders, mailboxes or supplier systems for new inventory and does not
+repeatedly scan or reprocess stored documents while idle. Inventory processing is command/event
+triggered and remains dormant when no extraction attempt exists. An already-submitted provider task
+may be checked only while that durable attempt is active, and startup/recovery processing may finish
+an interrupted attempt. An empty inventory queue must not cause rapid database polling, Docling
+work, Bedrock calls or repeated extraction.
+
+An upload by an authorised `platform_admin` or `inventory_ops` user is an authorised inventory
+source. Supplier registration, credentials, login or supplier confirmation are not prerequisites
+for that inventory to be extracted, approved, published and used in planning. This source authority
+does not waive malware protection, extraction correctness, evidence, duplicate, material-field or
+publication guards. The administrator remains accountable for resolving material extraction and
+supplier-identity ambiguity.
+
+The pipeline extracts supplier identity and available contact evidence from the source, then:
+
+- links the import to the existing permanent Supplier ID when identity is established;
+- creates one `UNCLAIMED` administrator-managed Supplier record when no existing supplier exists and
+  the identity is sufficiently established;
+- keeps an ambiguous possible match as a blocking administrator decision rather than creating a
+  duplicate supplier from a similar text name; and
+- binds every published product, rate, asset, term and later invitation to the permanent Supplier
+  ID, never merely to the displayed supplier name.
+
+An unclaimed supplier may own active published inventory. The administrator may later issue a
+single-use, expiring and revocable registration invitation bound to that exact Supplier ID and an
+allowed supplier role. Accepting the invitation creates or links the user's authenticated identity
+and supplier membership to the existing Supplier record. The supplier then sees the inventory
+already loaded on its behalf, and all later supplier uploads remain attached to the same Supplier
+ID. Claiming a supplier does not recreate, transfer or rewrite its inventory or audit history.
+Invitation issue, resend, revocation and acceptance are audited.
+
+### Supplier inventory replacement and atomic cutover
+
+An administrator-originated inventory document is a `FULL_REPLACEMENT` release for that supplier by
+default. A partial/delta interpretation may exist only as a separately approved explicit import mode;
+it is never inferred from a file.
+
+The previous supplier inventory changes only after the new import has completed extraction,
+required review and successful publication. The publication transaction must atomically:
+
+1. make the new supplier inventory release current;
+2. mark every previously current product/version from that supplier `EXPIRED` and `SUPERSEDED`,
+   unavailable for new planning and linked to the replacing release;
+3. mark unresolved or pending earlier imports, candidates and draft/uncommitted listings from that
+   supplier `CANCELLED` or `SUPERSEDED` as applicable and soft-delete them from ordinary operational
+   views; and
+4. retain every original source, extraction artefact, review decision, product/rate version,
+   proposal binding, audit event and supersession link permanently.
+
+Nothing in this process is physically deleted. Replacement is scoped by the permanent Supplier ID.
+A failed, cancelled, ambiguous or publish-blocked new import does not expire or hide the supplier's
+currently usable inventory.
+
+### Effect on proposals and committed history
+
+Every proposal that references superseded supplier inventory and has not crossed the confirmed
+booking/committed-supply boundary becomes `INVENTORY_REVIEW_REQUIRED`. This includes draft,
+in-review, approved, sent and selected-but-unbooked proposal versions. The proposal remains readable,
+but approval, sending, client selection and booking conversion are blocked until the impact is
+resolved.
+
+Each affected proposal and line must show:
+
+- that the supplier published replacement inventory;
+- the affected old product, rate and availability versions;
+- the old and replacement inventory-release references;
+- whether an evidence-backed equivalent exists in the new release;
+- material rate, specification, geography, availability or term differences; and
+- whether the line must be replaced, removed, re-priced or explicitly re-confirmed.
+
+Advertified never silently substitutes a proposal line. It may suggest a source-linked equivalent,
+but an authorised human accepts the replacement and creates a new proposal/planning version. A
+client viewing an already-sent affected proposal sees a clear inventory-updated warning and cannot
+accept the stale option.
+
+Confirmed bookings, legally committed supplier inventory, issued financial records, live/completed
+campaigns and historical proposal documents retain the exact commercial snapshot used at the time.
+They are not rewritten by a later supplier inventory upload.
+
 ---
 
 # 12. Pricing, Commercial States and Benchmarking
@@ -3360,9 +3454,16 @@ A materially changed brief, rate, availability, mix, shortlist or plan input inv
 | `IN_REVIEW` | `RejectProposal` | reason required | `REJECTED` |
 | `APPROVED` | `RenderProposal` | approved exact structured version | `APPROVED` + immutable document version |
 | `APPROVED` | `ShareProposal` | valid recipient/delivery route; required approval/policy basis; idempotency | `SENT` |
-| `SENT` | `SelectProposalOption` | option exists, current, not expired | `SELECTED` |
+| `SENT` | `SelectProposalOption` | option exists, current, not expired and has no unresolved supplier-inventory impact | `SELECTED` |
 | `SENT` | `DeclineProposal` | authorised client actor | `DECLINED` |
+| any state before confirmed booking/committed supply | `RegisterInventorySupersessionImpact` | one or more referenced supplier product/rate/availability versions were replaced | lifecycle state retained + `INVENTORY_REVIEW_REQUIRED`; approval/send/select/booking actions blocked |
 | `APPROVED`/`SENT` | `ExpireProposal` | expiry reached or authorised expiry | `EXPIRED` |
+
+Inventory supersession is an orthogonal stale-input condition, not permission to rewrite a proposal.
+The exact old line remains visible, the impact is recorded against the affected version and any
+replacement creates a new planning/proposal version after authorised review. A sent stale proposal
+remains readable to its recipient but cannot be newly accepted. Confirmed bookings and historical
+commercial documents remain bound to their original snapshot.
 
 Client-facing proposal options may be 1–3 genuinely different routes. Package names such as Launch/Boost/Scale/Dominance are commercial bands, not automatically proposal-option names.
 
@@ -3370,16 +3471,24 @@ Client-facing proposal options may be 1–3 genuinely different routes. Package 
 
 | From | Command | Guard | To |
 |---|---|---|---|
-| — | `CreateInventoryImport` | authorised source; size/type/hash captured | `UPLOADED` |
+| — | `CreateInventoryImport` | authorised source; size/type/hash and explicit replacement mode captured | `UPLOADED` |
 | `UPLOADED` | `ProtectAndClassify` | malware/type checks | `CLASSIFYING` |
-| `CLASSIFYING` | `Extract` | document class/parser strategy selected | `EXTRACTING` |
-| `EXTRACTING` | `ValidateCandidates` | source locators/candidates produced | `VALIDATING` |
-| `VALIDATING` | `OpenReview` | validation outcomes persisted | `REVIEW_REQUIRED` |
+| `CLASSIFYING` | `Extract` | explicit upload/execute command; document class/parser strategy selected | `EXTRACTING` |
+| `EXTRACTING` | `ValidateCandidates` | source locators/candidates and supplier-identity evidence produced | `VALIDATING` |
+| `VALIDATING` | `OpenReview` | validation outcomes persisted; existing Supplier ID linked, one unclaimed Supplier created, or ambiguous supplier match recorded as blocker | `REVIEW_REQUIRED` |
+| `REVIEW_REQUIRED` | `ResolveSupplierIdentity` | authorised administrator selects/merges the permanent Supplier ID where automatic resolution was ambiguous | remains review until supplier and candidate blockers are resolved |
 | `REVIEW_REQUIRED` | `ReviewCandidate` | reviewer decision with provenance | remains review until all blockers resolved |
-| `REVIEW_REQUIRED` | `PublishApprovedInventory` | no unresolved publish-blocking issue | `PUBLISHING` |
-| `PUBLISHING` | `CompleteImport` | approved candidates committed idempotently | `COMPLETED` |
-| any active stage | `FailImport` | classified failure and checkpoint recorded | `FAILED` |
+| `REVIEW_REQUIRED` | `PublishApprovedInventory` | no unresolved publish blocker; permanent Supplier ID resolved; administrator or supplier publication authority | `PUBLISHING` |
+| `PUBLISHING` | `CompleteImportAndCutover` | new release committed; previous supplier release superseded; pending prior work soft-deleted; proposal impacts persisted atomically and idempotently | `COMPLETED` |
+| any active stage | `FailImport` | classified failure and checkpoint recorded; current supplier release remains unchanged | `FAILED` |
 | `FAILED` | `ResumeImport` | retryable/corrected input; safe checkpoint | previous safe stage |
+
+Creating an import does not start an always-running inventory scan. The upload/execute command wakes
+the durable processor for that import. Only an active external extraction task may have bounded
+status checks. When no attempt is active, inventory extraction is dormant. Supplier claiming is
+independent of publication: an administrator-managed `UNCLAIMED` Supplier may have current usable
+inventory, and accepting its later invitation attaches the user to the same Supplier ID without
+changing inventory history.
 
 ## 39.6 Inbound OOH automation lifecycle
 
@@ -3452,7 +3561,8 @@ All protected business records are tenant-safe. UUIDs are stable identifiers. UT
 | Membership | id, tenantId, userId, roleCode, status, assignment metadata | role from governed registry; unique active tenant/user membership as policy defines |
 | ClientAccount | id, owning tenant, legal/trading name, external reference?, billing profile, status | tenant scoped; not required before initial brief intake |
 | Contact | id, tenantId, clientId?, purpose, name, email/phone where supplied, status | purpose limited; privacy/consent basis where applicable |
-| Supplier | id, tenantId, legal/trading name, verification level, contacts, status, commercial terms | supplier users can mutate only own supplier resources |
+| Supplier | id, tenantId, legal/trading name, claimStatus, verification level, contacts, status, commercial terms, createdFromImportId? | permanent identity survives claiming and inventory replacement; an administrator-managed unclaimed supplier may own active inventory; supplier users can mutate only their own claimed supplier resources |
+| SupplierClaimInvitation | id, tenantId, supplierId, invitedEmail, roleCode, status, expiresAtUtc, tokenHash, createdBy/At, revokedBy/At?, acceptedUserId/At? | single-use, expiring, revocable and auditable; acceptance attaches the user to the existing Supplier ID and never creates a second supplier or exposes raw invitation credentials |
 
 ## 40.2 Evidence and opportunity
 
@@ -3482,14 +3592,15 @@ All protected business records are tenant-safe. UUIDs are stable identifiers. UT
 
 | Entity | Minimum fields | Invariants |
 |---|---|---|
-| InventoryProduct | id, supplierId, channelCode, productTypeCode, supplierProductCode?, name, description, geography, governed attributes, verification state, lifecycle state | product identity stable; material change creates version/history |
-| InventoryProductVersion | productId, versionNo, canonical attributes, evidence bindings, effective dates | recommendations bind exact version |
+| InventoryProduct | id, supplierId, channelCode, productTypeCode, supplierProductCode?, name, description, geography, governed attributes, verification state, lifecycle state, currentReleaseId? | product identity stable; material change creates version/history; expired/superseded products remain historical but are excluded from new planning |
+| InventoryProductVersion | productId, versionNo, inventoryReleaseId, canonical attributes, evidence bindings, effective dates, supersededByVersionId? | recommendations bind exact version; a later release never rewrites a referenced historical version |
 | InventoryRate | id, productId/version, rateType, amountMinor, currency, VAT basis/status, commission/discount metadata where explicit, inclusions/exclusions, validFrom/To, evidenceId, status | no silent raw-unit comparison; history retained |
 | InventoryAvailabilityException | id, productId/version, start/end, type (`NOT_AVAILABLE`, `BLACKOUT`, confirmed booking conflict), source/evidence, recordedAt | absence means planning-available; only an overlapping exception or confirmed booking conflict blocks the requested dates; booking remains separately confirmed |
 | InventoryAsset | id, productId/version, type, objectKey, mime, hash, dimensions?, sourceLocator, rights/review status | source/rights retained |
 | InventorySpatialLocation | productVersionId, point/geometry, coordinate source, verification, resolved geography version | OOH/DOOH spatial truth uses PostGIS when verified |
-| InventoryImport | id, tenantId, supplierId?, sourceObjectKey, hash, class, pipeline status, schema/parser version, counts, failure summary | same hash idempotent unless explicit reprocess |
-| InventoryCandidate | id, importId, source locator, raw fields, normalized proposed fields, evidence bindings, validation issues, review status | never public before publish |
+| InventoryImport | id, tenantId, supplierId?, sourceObjectKey, hash, class, replacementMode, pipeline status, schema/parser version, counts, failure summary | same hash idempotent unless explicit reprocess; admin Day 0 default is `FULL_REPLACEMENT`; no cutover before successful publication |
+| SupplierInventoryRelease | id, tenantId, supplierId, importId, versionNo, replacementMode, status, effectiveAtUtc, supersedesReleaseId?, expiredAtUtc?, createdBy | at most one current release per supplier; successful cutover is atomic; historical releases and links are immutable; failed imports cannot change the current release |
+| InventoryCandidate | id, importId, source locator, raw fields, normalized proposed fields, evidence bindings, validation issues, review status, supersededAtUtc?, softDeletedAtUtc? | never public before publish; pending records from an older supplier release leave operational views but remain auditable |
 | InventoryReviewDecision | id, candidateId, decision, field changes, reason, reviewer, timestamp | append-only review history |
 | InventoryBenchmarkSnapshot | id, target product/rate version, policy version, comparison basis/geography, peer product/rate IDs, statistics, confidence reasons, createdAt | immutable when used by shortlist/plan/proposal; reproducible |
 
@@ -3497,9 +3608,10 @@ All protected business records are tenant-safe. UUIDs are stable identifiers. UT
 
 | Entity | Minimum fields | Invariants |
 |---|---|---|
-| ProposalVersion | id, briefVersionId, planVersionIds, versionNo, title, executive summary, terms, expiry, status, documentId? | cannot remain approved after referenced material input changes |
+| ProposalVersion | id, briefVersionId, planVersionIds, versionNo, title, executive summary, terms, expiry, status, inventoryReviewState, documentId? | cannot remain actionable after referenced material input changes; old version remains immutable/readable while supersession impact blocks consequences |
 | ProposalOption | id, proposalVersionId, label, budget, outcomes, included plan version, display order | 1–3; distinct in meaningful scope/outcome where multiple |
 | ProposalDocument | id, proposalVersionId, format, objectKey, hash, generatedAt, template/version | exact source proposal reference retained |
+| ProposalInventoryImpact | id, tenantId, proposalVersionId, proposalLineId, supplierId, oldReleaseId, replacementReleaseId, old product/rate/availability version refs, impactType, detectedAtUtc, resolutionStatus, resolvedBy/At?, replacement refs? | append-only impact history; unresolved impact blocks approve/share/select/book; resolution creates new planning/proposal lineage and never mutates the old line |
 | RFQ | id, tenantId, supplierId, brief/plan line refs, requested items, dueAt, status | external send idempotent and authorised |
 | SupplierResponse | id, rfqId, terms, rate versions, availability versions, evidence IDs, receivedAt, review state | material changes invalidate affected planning assumptions |
 | Approval | id, tenantId, resourceType/id, versionId, decision, creator/responsible actor, approver, mode SELF/INDEPENDENT/policy class, reason?, decidedAt | exact-version append-only decision |
@@ -3549,7 +3661,7 @@ Permissions are independent of UI visibility. The Commercial API re-authorises e
 | Planning generate/edit | platform_admin/internal_planner | assigned agency users | review/comment/decision surfaces | supply response only | worker may execute bounded deterministic/automation commands |
 | Planning approve | authorised human per tenant policy | permitted agency users | advertiser approver where client approval configured | no | bounded automation policy only; never agent self-approval |
 | Proposal generate/edit/approve/share | authorised assigned roles | agency assigned roles | view/select/decline; approve where tenant process grants | no | worker may execute pre-authorised inbound OOH send |
-| Inventory import/review/publish | platform_admin/inventory_ops | view/select | view allowed products | supplier may import/manage own; publication review per policy | worker pipeline no independent approval |
+| Inventory import/review/publish | platform_admin/inventory_ops may upload, resolve/create unclaimed supplier identity, review, publish, supersede and issue supplier-claim invitations | view/select | view allowed products | invited supplier may claim the existing Supplier ID, then import/manage own inventory; publication review per policy | worker may extract and persist impact proposals but has no independent approval, supplier-claim or publication authority |
 | RFQ create/send/review | internal/agency assigned | yes assigned | view where allowed | respond own | worker delivery mechanics only |
 | Booking create/request | internal/agency assigned | yes assigned | view/selected-option decision | supplier confirms own | worker mechanics only |
 | Funding/PO/invoice/payment | finance-permissioned platform/agency actions as defined | submit/start allowed where permissioned | client evidence/payment interaction where enabled | own payment terms only | adapters reconcile via restricted service identity |
@@ -3595,7 +3707,9 @@ The exact method names may use framework conventions, but the observable resourc
 - `GET /api/v1/me`
 - `GET /api/v1/workspaces`
 - `GET /api/v1/tenants/{tenantId}/home`
-- tenant/user/membership invite/manage operations under permissioned tenant routes.
+- tenant/user/membership invite/manage operations under permissioned tenant routes;
+- issue, resend and revoke a supplier-claim invitation bound to one permanent Supplier ID;
+- accept a supplier-claim invitation through authenticated identity and create/link the permitted supplier membership without recreating the Supplier.
 
 ### Opportunity/evidence
 
@@ -3630,15 +3744,19 @@ The exact method names may use framework conventions, but the observable resourc
 
 ### Inventory
 
-- create upload/import intent;
-- execute/resume import;
-- get import/candidate state;
+- create upload/import intent with explicit replacement mode and administrator source authority;
+- execute/resume the durable import from an explicit command without continuous source or idle-queue polling;
+- get import/candidate/extraction state;
+- resolve or merge supplier identity, link an existing Supplier ID, or create one administrator-managed unclaimed Supplier;
 - review candidate;
-- publish approved candidates;
-- list/search/filter inventory products;
+- preview the supplier-release replacement impact before publication;
+- publish approved candidates and atomically cut over the supplier release, supersede prior current inventory, soft-delete prior pending work and persist proposal impacts;
+- list current and historical supplier inventory releases and supersession lineage;
+- list/search/filter current inventory products while preserving permissioned historical access;
 - get product detail/rate/availability/assets/evidence;
 - get deterministic benchmark/comparables;
-- supplier-owned listing create/update/publish/archive within supplier scope.
+- list and resolve proposal inventory impacts through a new planning/proposal version;
+- supplier-owned listing create/update/publish/archive within the claimed supplier scope.
 
 ### Proposal
 
@@ -3921,12 +4039,13 @@ Each relevant screen must implement: loading, empty, normal, validation error, p
 | Media Mix | channel role, allocations, flighting, editable bars/timeline | approve/update mix |
 | Inventory | scalable search/filter/grouping | select/open product |
 | Inventory Product | specifications, evidence, rate history, availability, assets, benchmark | select/view comparables/edit if authorised |
-| Import Review | source render beside extracted candidate, material issues and corrections | publish approved / resolve exception |
+| Import Review | source render beside extracted candidate, supplier identity/claim state, material issues, corrections and full-replacement impact preview | resolve supplier/exception, then publish replacement |
 | Shortlist | selected and rejected inventory with reasons | confirm/change shortlist |
 | Supply | supplier responses, current/stale rates and availability | resolve supply |
 | Media Plan | line items, running periods, totals, forecast, evidence, objections | approve/change plan |
-| Proposal | distinct options, exact totals/terms, document preview, approval mode | approve/share/select as role permits |
+| Proposal | distinct options, exact totals/terms, document preview, approval mode and visible supplier-inventory supersession impacts | approve/share/select only when current; resolve affected inventory through a new version |
 | OOH Inbox | mailbox status, messages, checkpoints, review blockers, send result | open exception / safe retry |
+| Supplier | permanent identity, claim/onboarding state, contacts, inventory releases, current/expired counts, invitations and audit history | issue/revoke invitation, inspect release or manage claimed supplier as authorised |
 | Marketplace/Supplier requests | listings/RFQs/responses/booking state | appropriate create/respond/review action |
 | Funding | selected option, PO, invoice/payment/funding state | submit/approve/reconcile permitted action |
 | Campaign | bookings, creative, delivery/proof/measurement rail | current delivery action |
@@ -3966,6 +4085,10 @@ At minimum the platform must distinguish and expose stable machine-readable erro
 - `INVALID_PROVIDER_SIGNATURE`;
 - `DELIVERY_AMBIGUOUS`;
 - `FILE_UNSAFE` / unsupported file;
+- `SUPPLIER_IDENTITY_AMBIGUOUS` / permanent Supplier ID requires administrator resolution;
+- `SUPPLIER_INVITATION_INVALID` / expired, revoked, already-used or wrong-supplier claim link;
+- `INVENTORY_SUPERSEDED` / the referenced supplier release is no longer current;
+- `PROPOSAL_INVENTORY_REVIEW_REQUIRED` / a pending proposal references superseded supplier inventory;
 - `VALIDATION_FAILED` with field errors.
 
 Errors never masquerade as successful business output.
@@ -3974,7 +4097,7 @@ Errors never masquerade as successful business output.
 
 Committed events include, as applicable:
 
-`EvidenceApproved`, `StrategyApproved`, `BriefApproved`, `CampaignModeSelected`, `MediaMixApproved`, `InventoryRateChanged`, `AvailabilityChanged`, `InventoryPublished`, `InventoryShortlistSelected`, `MediaPlanApproved`, `ProposalApproved`, `ProposalShared`, `ProposalOptionSelected`, `SupplierResponseReceived`, `BookingConfirmed`, `PurchaseOrderApproved`, `PaymentConfirmed`, `CampaignBookingsConfirmed`, `CreativeApproved`, `CampaignStarted`, `CampaignCompleted`, `DeliveryProofSubmitted/Reviewed`, `PerformanceEvidenceReviewed`, `MeasurementReportReviewed`, `AgentRunReviewRequired`, `AgentRunCompleted`.
+`EvidenceApproved`, `StrategyApproved`, `BriefApproved`, `CampaignModeSelected`, `MediaMixApproved`, `SupplierCreatedFromInventory`, `SupplierClaimInvitationIssued/Revoked/Accepted`, `InventoryRateChanged`, `AvailabilityChanged`, `InventoryPublished`, `SupplierInventoryReleaseSuperseded`, `ProposalInventoryReviewRequired/Resolved`, `InventoryShortlistSelected`, `MediaPlanApproved`, `ProposalApproved`, `ProposalShared`, `ProposalOptionSelected`, `SupplierResponseReceived`, `BookingConfirmed`, `PurchaseOrderApproved`, `PaymentConfirmed`, `CampaignBookingsConfirmed`, `CreativeApproved`, `CampaignStarted`, `CampaignCompleted`, `DeliveryProofSubmitted/Reviewed`, `PerformanceEvidenceReviewed`, `MeasurementReportReviewed`, `AgentRunReviewRequired`, `AgentRunCompleted`.
 
 Consumers use events to create tasks/notifications or advance eligible work; event delivery does not bypass current-state guards.
 
@@ -4013,9 +4136,9 @@ OOH requirement → mode locked `OOH_ONLY` → STP including geography/routes/PO
 
 Signed inbound email with complete material fields → immutable source → OOH_ONLY → STP/mix/inventory/supply/plan/proposal/document → exactly-once delivery with no per-message human action where bounded policy passes. Incomplete/non-OOH/conflicting/stale cases send nothing and enter `REVIEW_REQUIRED`.
 
-## E2E-06 Unseen inventory file
+## E2E-06 Unseen admin inventory file and unclaimed supplier
 
-Upload held-out supplier PDF/XLSX/CSV/etc. → protect/classify/render → reconstruct layout/tables/assets → extract raw/normalized values with locators → deterministic validation → exception-led review → publish versioned inventory → searchable/detail/benchmark ready. No supplier-name code added for the case.
+Authorised administrator uploads a held-out supplier PDF/XLSX/CSV/etc. → protect/classify/render → command-triggered durable extraction with no idle inventory polling → reconstruct layout/tables/assets → extract raw/normalized values and supplier identity with locators → deterministic validation → link an existing Supplier ID or create one administrator-managed `UNCLAIMED` Supplier → exception-led review → publish one current supplier inventory release → searchable/detail/benchmark ready. Supplier credentials are not required for publication, and no supplier-name code is added for the case. The administrator then issues a one-time supplier claim invitation; after authenticated acceptance, the supplier sees the already-published inventory under the same permanent Supplier ID and may upload future inventory within that scope.
 
 ## E2E-07 Pricing conflict/comparison
 
@@ -4052,6 +4175,10 @@ Each human role sees only authorised navigation/data/actions, with correct home/
 ## E2E-15 Anti-prompt-injection
 
 Malicious text embedded in brief/email/PDF/web evidence attempts to override instructions/send/book/change tool permissions. It is retained only as untrusted content and cannot change system/tool/policy authority.
+
+## E2E-16 Supplier inventory replacement and proposal impact
+
+Publish supplier release A and use one of its exact product/rate versions in draft, sent and selected-but-unbooked proposals → start replacement upload B and prove release A remains current while B is extracting, failed or review-blocked → successfully publish B → atomically make B current, mark all A inventory expired/superseded, cancel/supersede and soft-delete older pending imports/candidates/listings, and retain all historical evidence → mark every uncommitted affected proposal and line `INVENTORY_REVIEW_REQUIRED` with a visible old/replacement comparison → reject stale client acceptance and booking conversion → require authorised replacement/removal/re-pricing through new planning/proposal versions. A confirmed booking and completed historical proposal using release A remain unchanged and readable.
 
 ---
 
@@ -4379,6 +4506,250 @@ was created. The environment-neutral
 API-content check passed, `git diff --check` passed, and the complete architecture run passed 42/45.
 The same three unrelated in-progress inventory/runtime boundary failures recorded in Section 49.2.7
 remain unresolved. No live provider, production resource or external communication was used.
+
+### 49.2.9 Consolidated production-readiness, Day 0 inventory and Bedrock-cost implementation plan — 2026-09-04
+
+This plan consolidates the 4 September 2026 production-readiness audit, the Bedrock cost-lever
+audit and the owner decisions in Section 11.23. Those reports are dated executable observations,
+not authority to override this specification. Every reported defect must be re-verified against the
+current worktree before editing because later in-progress changes may have moved or resolved it.
+A category remains release-blocking until current acceptance evidence proves it closed.
+
+This documentation update authorises planning only. It does not itself authorise application code,
+cloud mutation, deployment, external communication or paid AI use. Implementation starts when the
+repository owner explicitly gives the resulting implementation prompt to the delivery agent.
+
+#### Locked implementation decisions
+
+- Day 0 inventory intake is initiated by an authorised administrator upload/execute command. There
+  is no continuous source discovery, rapid idle queue polling or automatic recurring reprocessing.
+- Admin-loaded inventory may be published and used before a supplier has credentials. The system
+  links an existing permanent Supplier ID or creates one administrator-managed `UNCLAIMED`
+  Supplier, then allows a later invitation to claim that same identity and inventory.
+- A new administrator-originated supplier file is a full replacement by default. Successful
+  publication atomically supersedes the previous current release, expires its inventory, removes
+  older pending work from operational views through soft deletion and marks affected uncommitted
+  proposals for review. Failed or blocked replacement imports leave current inventory untouched.
+- No pending proposal line is silently replaced. A human creates a new planning/proposal version.
+  Confirmed bookings and historical commercial records remain immutable.
+- The repository remains production `NO-GO` while any truth-critical delivery, onboarding,
+  infrastructure, identity, recovery, observability, deployment or acceptance blocker below is
+  unresolved.
+- Live Bedrock remains fail-closed until the selected agents/models, access, evaluation, aggregate
+  budgets, cost accounting, monitoring and kill switch are proven in capped production-like
+  staging.
+- Current forced structured-output `toolUse` contracts are not eligible for Bedrock Batch. Do not
+  build Batch merely to chase theoretical savings.
+- Do not change geographic cross-region inference for an assumed saving. Geographic CRI and
+  in-region inference currently have the same relevant token price for the audited Nova Pro route;
+  any later change must be justified by measured latency, throttling or an approved residency rule.
+- Prompt caching is not approved from estimates alone. Cache accounting must be correct first, and
+  a pilot may be chosen only after deployed traffic proves repeated stable-prefix volume inside the
+  model's cache window.
+
+#### Phase 0 — Current-truth baseline and controlled worktree
+
+Before functional edits:
+
+1. Read `ADVERTIFIED.md`, `AGENTS.md`, accepted ADRs and applicable nested instructions.
+2. Preserve all pre-existing modified and untracked work. Do not reset, overwrite, stage or commit
+   unrelated changes.
+3. Re-run a bounded repository trace for each audit finding and record it as `OPEN`, `RESOLVED`,
+   `PARTIAL` or `NOT_REPRODUCED`, with current file/line and executable evidence.
+4. Record the exact production topology decision required by Section 49.2.2: compute, PostgreSQL,
+   ingress/TLS/DNS, private object storage, background processing, secrets, telemetry, backups,
+   recovery and deployment route. Do not silently choose expensive managed infrastructure or add a
+   second orchestration platform.
+5. Establish one release branch/revision strategy and one immutable build path. Current uncommitted
+   work cannot be represented as a production release until it is deliberately reconciled.
+6. Capture a baseline of focused builds/tests and existing connected journeys without claiming an
+   unexecuted suite green.
+
+**Exit evidence:** current gap register, selected topology record, clean ownership of every changed
+path, reproducible baseline commands and no discarded work.
+
+#### Phase 1 — Day 0 inventory, supplier identity, claiming and replacement
+
+Implement the complete Section 11.23 contract as one coherent vertical slice:
+
+1. Add governed claim, invitation, inventory-release, supersession and proposal-impact states/codes;
+   do not scatter magic strings.
+2. Add forward-safe persistence for Supplier claim state, SupplierClaimInvitation,
+   SupplierInventoryRelease, import replacement mode, candidate soft deletion/supersession and
+   ProposalInventoryImpact.
+3. Make inventory work explicit-command/event driven. Commit the durable attempt before signalling
+   a processor; wake it after commit; drain recoverable work at startup; inspect provider status
+   only for an active attempt; perform no rapid idle polling and no idle Docling/Bedrock work.
+4. Extract supplier identity/contact evidence, match by permanent identity attributes, reuse an
+   existing Supplier ID, create one `UNCLAIMED` Supplier where identity is established, and require
+   administrator resolution for ambiguous possible duplicates.
+5. Allow authorised admin publication without supplier credentials while retaining all extraction,
+   material-field, evidence and publication controls.
+6. Implement single-use, expiring, revocable supplier-claim invitations. Acceptance through the
+   configured identity provider attaches membership to the existing Supplier ID and immediately
+   exposes only that supplier's existing inventory and permitted operations.
+7. Publish a supplier release in one database transaction: create the new current release; expire
+   and supersede the old release/products; cancel/supersede and soft-delete older pending imports,
+   candidates and uncommitted listings; retain immutable history; create proposal-impact records;
+   emit audit/outbox events.
+8. Keep the previous release current if any new-import step fails, is cancelled, remains ambiguous
+   or cannot publish.
+9. Mark every draft, in-review, approved, sent or selected-but-unbooked affected proposal
+   `INVENTORY_REVIEW_REQUIRED`; show old/new evidence and differences; reject stale acceptance,
+   approval, sending and booking commands until an authorised new version resolves each impact.
+10. Update internal Supplier, Inventory Import/Review and Proposal surfaces with human-safe status,
+    release history, invitation controls, replacement preview and affected-line comparison.
+
+**Exit evidence:** E2E-06 and E2E-16 pass against the real API/database path; tenant and supplier
+scope tests pass; restart/idempotency/concurrency tests prove one cutover; failed replacement leaves
+old inventory current; confirmed historical bookings remain unchanged; no live AI call is used.
+
+#### Phase 2 — Truth-critical communications, onboarding, legal and payments
+
+Close false-success and disconnected-product paths before infrastructure polish:
+
+1. Proposal delivery must select a production provider explicitly, obtain a durable provider
+   receipt or enter a truthful ambiguous/failed state, and only then record `SENT`. A deterministic
+   no-op client must be impossible in production.
+2. Start the outbox dispatcher for the selected EventBridge/production mode, preserve idempotent
+   delivery and expose queue/dead-letter health. Merely registering a transport is insufficient.
+3. Connect public contact/campaign enquiries and invitation-based supplier onboarding to canonical
+   API workflows. Never show a successful public submission that was not accepted durably.
+4. Align public registration wording with OIDC/invitation identity rather than application-managed
+   passwords.
+5. Publish only owner-approved, versioned legal documents and retain acceptance evidence. Until
+   approved Privacy, Terms and Cookie content exists, disable the consequential public flow rather
+   than inventing legal text or accepting users under a false completion state.
+6. Reconcile the governed payment registry, backend capability and marketing. Implement and certify
+   an advertised method or mark it unavailable and remove the claim. Never leave VodaPay or
+   Advertise Now, Pay Later active merely as a label when only Manual EFT works.
+7. Implement real notification delivery/status where the product promises it, with the same
+   fail-closed receipt and audit rules.
+
+**Exit evidence:** connected sandbox/staging sends and callbacks, duplicate/retry/ambiguity tests,
+public enquiry and supplier-invitation journeys, versioned legal acceptance checks, and a truthful
+payment capability matrix.
+
+#### Phase 3 — Production platform, data protection and recovery
+
+Implement the exact owner-approved topology reproducibly as infrastructure-as-code or an equally
+reviewable automated deployment definition. It must include:
+
+- immutable image publication to an approved registry;
+- secure ingress, TLS and DNS without assuming an unnecessary load balancer;
+- least-privilege network and service boundaries;
+- managed secret injection and rotation paths;
+- production PostgreSQL/PostGIS/pgvector with encrypted storage, protected network access,
+  connection resilience and a documented migration path;
+- private versioned object storage with encryption, public-access blocking, retention/lifecycle and
+  recovery behavior;
+- production-capable ClamAV and Docling placement, updates, limits and health;
+- the selected durable worker/outbox mechanism without creating a second source of truth;
+- production-like staging using the same images and configuration shape;
+- automated database and object backups, declared retention, RPO/RTO, restore procedure and a
+  successful restore rehearsal.
+
+**Exit evidence:** reproducible environment creation, secret-free source/configuration, encrypted
+private data paths, migration from zero and prior version, backup/restore proof, dependency health
+and no use of development authentication, MailHog, local credentials or deterministic providers in
+production configuration.
+
+#### Phase 4 — Production identity and security controls
+
+1. Configure and certify the chosen OIDC provider, PKCE, verified-email binding, logout, MFA policy,
+   disabled-user behavior, invitation acceptance and session revocation.
+2. Replace production shared static service secrets where the topology supports stronger
+   short-lived IAM/workload identity or mTLS; otherwise document and test secure rotation.
+3. Enforce PostgreSQL and external-service TLS, secure cookies, CSRF, least privilege and private
+   service endpoints as applicable.
+4. Provide edge abuse protection and production-appropriate rate limiting; use shared/distributed
+   counters if more than one API replica can accept traffic.
+5. Add SAST/CodeQL, dependency/secret scanning, DAST or equivalent staging checks, container
+   vulnerability policy, image signing/provenance verification and a penetration-test/remediation
+   record appropriate to launch risk.
+6. Record credential rotation, break-glass, user-offboarding and security-incident procedures.
+
+**Exit evidence:** connected identity tests, permission/tenant isolation, revoked-user/session
+behavior, invitation attack tests, security scans with release policy, and no credential leakage.
+
+#### Phase 5 — Bedrock/model production readiness and cost measurement
+
+Keep live inference disabled while implementing the controls that make a later decision evidence
+based:
+
+1. Select and approve a provider/model/profile per agent rather than applying one model to all
+   tasks. Record region/residency, model access, quality thresholds, latency expectations and per-run
+   caps.
+2. Extend the canonical usage ledger to retain actual input/output units, cache-read units,
+   cache-write units, prompt-prefix hash, agent, model/profile, inference region where available,
+   latency, throttle/error class, attempt outcome and calculated/actual cost.
+3. Enforce tenant/day/month aggregate budgets in addition to per-call caps and provide a tested
+   global live-provider kill switch.
+4. Build production-quality evaluation sets and run capped staging tests for schema validity,
+   grounding, quality, prompt/model regression, throttling, failure, latency and cost. Readiness
+   configuration alone is not proof of successful Bedrock access.
+5. Do not implement Batch while forced `toolUse` remains required.
+6. Retain the current approved geographic CRI route until measured evidence or residency policy
+   justifies change; do not claim token savings from moving to in-region.
+7. Collect 30–90 days of real, attributable production measurements after launch. Only then rank
+   caching candidates by repeated stable-token volume inside the supported TTL. Pilot one agent for
+   a representative period after cache-read/write accounting is correct, and retain rollback.
+
+**Exit evidence:** model/evaluation decision record, successful capped staging inference, complete
+usage/cost telemetry, aggregate budget and kill-switch tests, no unsupported Batch path, and no
+unmeasured caching claim.
+
+#### Phase 6 — Observability, reliability and operability
+
+1. Export structured logs, metrics and traces with correlation across web/API, worker, agent runtime,
+   Docling, object storage, email and Bedrock.
+2. Add dashboards and alerts for availability, latency, errors, database health, object storage,
+   extraction queue/active attempts, lease loss, dead letters, outbox lag, email delivery, AI
+   rejection, spend and backup failures.
+3. Expand readiness checks to the dependencies required for the process role instead of reporting
+   ready from PostgreSQL/master data alone.
+4. Add standard transient HTTP/database resilience, bounded retries, circuit breaking where safe,
+   graceful worker drain and recovery of leased work during deploy/restart.
+5. Run load, large-file, concurrency, failure, restart, recovery and soak tests against the selected
+   production topology and declared capacity.
+6. Establish SLOs, incident ownership, escalation, support mailbox/channel and synthetic critical
+   journeys.
+
+**Exit evidence:** exported telemetry, actionable alert tests, dependency-aware readiness, graceful
+restart evidence, capacity envelope and completed failure/recovery exercises.
+
+#### Phase 7 — Immutable delivery and release pipeline
+
+1. Use one pinned build/test toolchain to create the exact deployable images.
+2. Generate SBOMs, scan, sign and attest image provenance; publish immutable digests.
+3. Deploy those digests to production-like staging, run forward-safe migrations and post-deploy
+   smoke/connected tests, then promote the same digests to production under explicit approval.
+4. Implement rollback/roll-forward and database compatibility rules; never pretend an irreversible
+   migration was rolled back.
+5. Record deployment, migration, health, smoke, alert and rollback evidence automatically.
+
+**Exit evidence:** exact staging-to-production digest promotion, migration compatibility proof,
+successful rollback/roll-forward rehearsal and complete Section 49.3 release evidence.
+
+#### Phase 8 — Consolidated release verification and go/no-go
+
+During implementation, run focused tests for the changed slice. Do not run the complete suite after
+every small edit. At the end of each cohesive phase, run its affected suites; after all fixes are
+batched, run one consolidated final validation including:
+
+- complete API, agent-runtime, web and architecture suites;
+- OpenAPI/master-data/migration consistency;
+- production build and container vulnerability policy;
+- connected E2E-01 through E2E-16 as applicable to the release;
+- real staging identity, email/outbox, object-storage, Docling and capped Bedrock checks;
+- security, accessibility, performance, large-file, concurrency, restart and restore tests;
+- production configuration validation and smoke tests;
+- a clean, deliberately committed release revision with no unexplained modified/untracked paths.
+
+The release decision is binary. One unresolved false-success path, unsupported public claim,
+supplier/inventory data-loss risk, security blocker, missing recovery proof or unexecuted mandatory
+acceptance journey remains `NO-GO`. Cost optimisation cannot waive product correctness or
+operability.
 
 ## 49.3 Release evidence
 

@@ -189,7 +189,7 @@ internal static partial class InventoryCandidateNormalizer
         Add(result, "dimensions", "dimensions", "size", "screensize",
             "aspectratio", "aspect", "widthxheight", "widthheight");
         Add(result, "placement", "placement", "section", "position",
-            "adunit", "advertisingunit");
+            "adunit", "advertisingunit", "element");
         Add(result, "programme", "programme", "program", "show");
         Add(result, "daypart", "daypart", "timeslot");
         Add(result, "spot_length_seconds", "spotlengthseconds", "spotdurationseconds");

@@ -51,6 +51,7 @@ internal static partial class DoclingInventoryProjection
                 repaired[column] = embedded;
         }
 
+        RepairAdjacentRateColumns(repaired, dataRows);
         RepairCombinedDimensions(repaired, dataRows);
         return repaired;
     }
@@ -71,6 +72,72 @@ internal static partial class DoclingInventoryProjection
             .Select(item => item.Header)
             .FirstOrDefault();
     }
+
+    private static InventoryTableRow[] FillDownContextColumns(
+        IReadOnlyDictionary<int, string> headers,
+        IReadOnlyList<InventoryTableRow> dataRows)
+    {
+        var columns = headers
+            .Where(item =>
+                InventoryTabularProjection.NormalizeHeader(item.Value) ==
+                "platform")
+            .Select(item => item.Key)
+            .ToArray();
+        if (columns.Length == 0)
+            return dataRows.ToArray();
+
+        var previous = new Dictionary<int, string>();
+        var result = new List<InventoryTableRow>();
+        foreach (var row in dataRows.OrderBy(item => item.SourceRow))
+        {
+            var cells = row.Cells.ToDictionary(
+                item => item.Key,
+                item => item.Value);
+            foreach (var column in columns)
+            {
+                if (cells.TryGetValue(column, out var current) &&
+                    !string.IsNullOrWhiteSpace(current))
+                {
+                    previous[column] = current.Trim();
+                }
+                else if (previous.TryGetValue(column, out var inherited))
+                {
+                    cells[column] = inherited;
+                }
+            }
+            result.Add(new InventoryTableRow(row.SourceRow, cells));
+        }
+        return result.ToArray();
+    }
+
+    private static void RepairAdjacentRateColumns(
+        Dictionary<int, string> headers,
+        IReadOnlyList<InventoryTableRow> dataRows)
+    {
+        var rateHeaders = headers
+            .Where(item => IsRateHeader(item.Value))
+            .ToArray();
+        foreach (var header in rateHeaders)
+        {
+            var adjacent = header.Key + 1;
+            if (headers.ContainsKey(adjacent) ||
+                !dataRows.Any(row =>
+                    row.Cells.TryGetValue(adjacent, out var value) &&
+                    HasRateValue(value)))
+            {
+                continue;
+            }
+            headers[adjacent] = header.Value;
+        }
+    }
+
+    private static bool IsRateHeader(string value) =>
+        InventoryTabularProjection.NormalizeHeader(value) is
+            "rate" or "rates" or "ratecard" or "price" or "cost" or
+            "netrate" or "netrates" or "discountedrate" or "cpm";
+
+    private static bool HasRateValue(string value) =>
+        InventoryMoneyParser.TryParse(value, out _, out _);
 
     private static void RepairCombinedDimensions(
         Dictionary<int, string> headers,

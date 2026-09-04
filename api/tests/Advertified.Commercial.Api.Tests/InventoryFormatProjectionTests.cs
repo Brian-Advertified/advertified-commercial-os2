@@ -153,17 +153,21 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
             request.SourceHash, json, rows);
         var contextual = InventorySourceContextProjection.Apply(
             request, provider);
-        var candidates = contextual.Rows.Select(row =>
-            InventoryCandidateNormalizer.Normalize(
-                row,
-                request.SourceHash,
-                DateTimeOffset.Parse(
-                    "2026-09-04T00:00:00Z",
-                    CultureInfo.InvariantCulture))).ToArray();
+        var candidates = InventoryCandidateAdmissionPolicy.Prepare(
+            contextual.Rows,
+            request.SourceHash,
+            "Not supplied",
+            EmptyCodes(),
+            DateTimeOffset.Parse(
+                "2026-09-04T00:00:00Z",
+                CultureInfo.InvariantCulture));
 
         Assert.Equal(6, candidates.Length);
         var first = candidates[0];
-        Assert.Equal("SABC", first.SupplierName);
+        Assert.Contains(
+            first.Evidence,
+            item => item.FieldName == "supplier_name" &&
+                item.RawValue == "SABC");
         Assert.Equal(MasterDataCodes.Channels.Radio, first.Values.Channel);
         Assert.Equal(
             MasterDataCodes.InventoryProductTypes.RadioSpot,
@@ -241,7 +245,7 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         Assert.Contains(
             candidate.Evidence,
             item => item.FieldName == "supplier_name" &&
-                item.RawValue == "Arena");
+                item.RawValue == "Arena Holdings");
         Assert.Equal("Front Page Strip 10x8", candidate.Values.Name);
         Assert.Equal(MasterDataCodes.Channels.Print, candidate.Values.Channel);
         Assert.Equal(

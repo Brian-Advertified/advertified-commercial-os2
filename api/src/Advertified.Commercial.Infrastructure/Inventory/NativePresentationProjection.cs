@@ -39,7 +39,8 @@ internal static partial class NativePresentationProjection
             var part = package.RelationshipTarget(
                 PresentationPart, relationshipId);
             AddSlideRows(
-                rows, package.ReadRequired(part), slideNumber);
+                rows, package.ReadRequired(part), slideNumber,
+                request.FileName);
         }
         if (rows.Count == 0 &&
             package.HasPartPrefix("ppt/media/"))
@@ -51,7 +52,8 @@ internal static partial class NativePresentationProjection
     private static void AddSlideRows(
         List<InventoryExtractedRow> result,
         XDocument slide,
-        int slideNumber)
+        int slideNumber,
+        string fileName)
     {
         var title = ReadTitle(slide);
         var slideText = SlideText(slide);
@@ -63,15 +65,16 @@ internal static partial class NativePresentationProjection
         if (IsPackageTitle(title))
             context["packagename"] =
                 Limit(title, 500);
+        var tableRows = new List<InventoryExtractedRow>();
         var tableNumber = 0;
         foreach (var table in slide.Descendants(
                      Drawing + "tbl"))
         {
             tableNumber++;
             var rows = ReadTable(table);
-            result.AddRange(NativeOfficeTableProjection.Project(
+            tableRows.AddRange(NativeOfficeTableProjection.Project(
                 rows,
-                result.Count,
+                result.Count + tableRows.Count,
                 row => TableRowLocator(
                     slideNumber, tableNumber, row),
                 (row, column) => TableCellLocator(
@@ -80,7 +83,8 @@ internal static partial class NativePresentationProjection
                 SlideLocator(slideNumber)));
         }
         var siteRows = ReadSiteRows(slide, slideNumber);
-        result.AddRange(siteRows.Select((row, index) =>
+        var mergedRows = MergeSlideRows(tableRows, siteRows);
+        result.AddRange(mergedRows.Select((row, index) =>
             row with { Number = result.Count + index + 1 }));
         if (!siteRows.Any(row =>
                 row.Values.ContainsKey("productcode")))
@@ -88,6 +92,21 @@ internal static partial class NativePresentationProjection
             AddPricedTextRows(
                 result, slide, slideNumber, title);
         }
+    }
+
+    private static InventoryExtractedRow[] MergeSlideRows(
+        List<InventoryExtractedRow> tableRows,
+        InventoryExtractedRow[] siteRows)
+    {
+        if (tableRows.Count == 1 && siteRows.Length == 1)
+        {
+            return
+            [
+                NativeOfficeInventoryProjection.MergeMissing(
+                    tableRows[0], siteRows[0]),
+            ];
+        }
+        return tableRows.Concat(siteRows).ToArray();
     }
 
     private static InventoryTableRow[] ReadTable(
@@ -162,6 +181,8 @@ internal static partial class NativePresentationProjection
         int paragraphNumber,
         string title)
     {
+        if (IsRouteNumber(text, match))
+            return;
         var rawMoney = match.Value.Trim()
             .TrimEnd('.', ',');
         if (!InventoryMoneyParser.TryParse(
@@ -193,6 +214,44 @@ internal static partial class NativePresentationProjection
                 MasterDataCodes.RateTypes.PackageRate;
         result.Add(SourceLinkedOffer(
             result.Count + 1, locator, values));
+    }
+
+    private static bool IsRouteNumber(string text, Match match)
+    {
+        var compact = string.Concat(
+            match.Value.Where(character => !char.IsWhiteSpace(character)));
+        if (!Regex.IsMatch(
+                compact,
+                @"^R\d{1,3}$",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            return false;
+        }
+        var suffix = text[(match.Index + match.Length)..].TrimStart();
+        if (Regex.IsMatch(
+                suffix,
+                @"^(?:/|\\|[-–—])|^(?:road|route|freeway|highway|intersection|interchange)\b",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            return true;
+        }
+        var preceding = text[..match.Index];
+        var lineStart = Math.Max(
+            preceding.LastIndexOf('\n'),
+            preceding.LastIndexOf('\r')) + 1;
+        if (preceding[lineStart..].Trim().Length > 0)
+            return false;
+        if (Regex.IsMatch(
+                suffix,
+                @"^(?:per|each|cpm|cpc|cpl|cpa|day|week|month|spot|unit|incl|excl|vat)\b",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            return false;
+        }
+        return Regex.IsMatch(
+            suffix,
+            @"^[A-Za-z][A-Za-z .'-]+$",
+            RegexOptions.CultureInvariant);
     }
 
     private static InventoryExtractedRow SourceLinkedOffer(

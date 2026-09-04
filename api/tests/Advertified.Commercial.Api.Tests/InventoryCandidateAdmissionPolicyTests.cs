@@ -18,6 +18,13 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
                 ("rate", "R34 260")),
             Row(3, "pptx:slide=2",
                 ("productcode", "WCD001")),
+            Row(4, "docling:page=1;table=1;row=4",
+                ("name", "TOTAL VALUE"),
+                ("rate", "R448 560")),
+            Row(5, "docling:page=3;block=7",
+                ("name", "NATURALLY"),
+                ("channel", "OOH"),
+                ("producttype", "OOH_SITE")),
         };
 
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(
