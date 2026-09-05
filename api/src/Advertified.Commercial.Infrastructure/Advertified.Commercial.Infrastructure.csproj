@@ -21,6 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Migrations/InitialBaseline.g.sql"
+      LogicalName="Advertified.Database.InitialBaseline.sql" />
     <EmbeddedResource
       Include="../../../shared/contracts/master-data.json"
       LogicalName="Advertified.MasterData.Registry.json" />

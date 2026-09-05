@@ -67,6 +67,12 @@ type PrimaryActionProps = ActionProps & {
 }
 
 function PrimaryAction(props: PrimaryActionProps) {
+  if (props.proposal.inventoryReviewStatus !==
+      masterDataCodes.proposalInventoryReviewStatuses.current) {
+    return <div className="inline-alert" role="status">
+      Review the supplier's replacement inventory and create a new proposal version before continuing.
+    </div>
+  }
   if (props.proposal.status === masterDataCodes.lifecycleStatuses.draft) {
     return <DraftApprovalActions {...props} />
   }
@@ -229,6 +235,11 @@ function ActionExplanation({ proposal, approvers }: {
 }
 
 function actionCopy(proposal: Proposal, approvers: ProposalApprover[]) {
+  if (proposal.inventoryReviewStatus !==
+      masterDataCodes.proposalInventoryReviewStatuses.current) {
+    return { title: 'Supplier inventory changed',
+      detail: 'Review each affected line and create a current proposal version before approval, sharing, selection or booking.' }
+  }
   if (proposal.status === masterDataCodes.lifecycleStatuses.draft) {
     return { title: 'Choose how this proposal is approved',
       detail: 'Approve it now when your workspace permits self-approval, or send this exact version to a named approver.' }

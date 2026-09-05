@@ -22,10 +22,30 @@ const tones: Record<ChannelCode, MediaTone> = {
   [masterDataCodes.channels.mobile]: 'mobile',
 }
 
+const toneColors: Record<MediaTone, string> = {
+  ooh: '#6038f5',
+  dooh: '#7a45ff',
+  radio: '#2089ff',
+  tv: '#175cd3',
+  print: '#8794a8',
+  digital: '#22bdd0',
+  social: '#ec6ba8',
+  influencer: '#c44fdc',
+  experiential: '#f5a524',
+  podcast: '#7f56d9',
+  retail: '#12b76a',
+  transit: '#0ba5ec',
+  mall: '#f79009',
+  email: '#6172f3',
+  mobile: '#2e90fa',
+}
+
 export function mediaVisual(channel: string) {
   const definition = masterDataDefinitions.channels.find((item) => item.code === channel)
+  const tone = tones[channel as ChannelCode] ?? 'digital'
   return {
     label: definition?.displayLabel ?? channel,
-    tone: tones[channel as ChannelCode] ?? 'digital',
+    tone,
+    color: toneColors[tone],
   }
 }

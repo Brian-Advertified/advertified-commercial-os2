@@ -14,10 +14,12 @@ public static class InventoryExtractionContract
         string schemaVersion,
         string sourceHash,
         string providerJson,
-        IReadOnlyList<InventoryExtractedRow> rows)
+        IReadOnlyList<InventoryExtractedRow> rows,
+        DiscoveredInventorySchema? discoveredSchema = null,
+        string? schemaDiscoveryFailure = null)
     {
         EnsureJson(providerJson);
-        var document = new InventoryExtractionDocument(schemaVersion, CanonicalRows(rows));
+        var document = new InventoryExtractionDocument(schemaVersion, CanonicalRows(rows), discoveredSchema, schemaDiscoveryFailure);
         var canonicalJson = Serialize(document);
         return new InventoryExtractionResult(
             adapterCode,

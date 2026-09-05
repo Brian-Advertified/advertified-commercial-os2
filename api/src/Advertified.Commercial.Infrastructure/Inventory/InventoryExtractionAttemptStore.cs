@@ -56,6 +56,7 @@ public sealed partial class InventoryExtractionAttemptStore(
             throw new InvalidLifecycleTransitionException();
         }
         await MarkImportQueuedAsync(source, envelope.TenantId, now, cancellationToken);
+        await SignalInventoryWorkAsync(source.Id, cancellationToken);
         return attemptId;
     }
 

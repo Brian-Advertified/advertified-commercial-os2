@@ -1,5 +1,6 @@
-using System.Runtime.CompilerServices;
 using System.Text.Json;
+
+using System.Runtime.CompilerServices;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
@@ -60,6 +61,7 @@ internal static class InventoryPublicationPersistence
         TenantId tenantId,
         Guid supplierId,
         Guid importId,
+        Guid releaseId,
         Guid publishedBy,
         DateTimeOffset now,
         IReadOnlyList<PreparedInventoryPublication> publications,
@@ -71,11 +73,12 @@ internal static class InventoryPublicationPersistence
             var payload = JsonSerializer.Serialize(batch, InventoryRowMapper.StoredJson);
             await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
                 INSERT INTO commercial.inventory_products (
-                    id, tenant_id, supplier_id, supplier_product_code, status_code,
+                    id, tenant_id, supplier_id, supplier_product_code,
+                    current_release_id, status_code,
                     version, created_at_utc, updated_at_utc)
                 SELECT value."productId", {tenantId.Value}, {supplierId},
-                    value."productCode", {MasterDataCodes.LifecycleStatuses.Active},
-                    1, {now}, {now}
+                    value."productCode", {releaseId},
+                    {MasterDataCodes.LifecycleStatuses.Active}, 1, {now}, {now}
                 FROM jsonb_to_recordset({payload}::jsonb) AS value(
                     "productId" uuid, "productCode" text, "isNew" boolean)
                 WHERE value."isNew";
@@ -85,8 +88,8 @@ internal static class InventoryPublicationPersistence
                     product_type_code, geography, address, latitude, longitude,
                     description, extension_json, audience_profile_json, deliverable_json,
                     spatial_json, coverage_geometry, catchment_geometry, route_geometry,
-                    direction_geometry, verification_code, source_import_id,
-                    source_candidate_id, published_by, published_at_utc)
+                    direction_geometry, verification_code, inventory_release_id,
+                    source_import_id, source_candidate_id, published_by, published_at_utc)
                 SELECT value."versionId", {tenantId.Value}, value."productId",
                     value."versionNumber", value."name", value."channel",
                     value."productType", value."geography", value."address",
@@ -101,8 +104,8 @@ internal static class InventoryPublicationPersistence
                         ST_Multi(ST_SetSRID(ST_GeomFromGeoJSON(value."routeGeoJson"), 4326)) END,
                     CASE WHEN value."directionGeoJson" IS NULL THEN NULL ELSE
                         ST_SetSRID(ST_GeomFromGeoJSON(value."directionGeoJson"), 4326) END,
-                    {MasterDataCodes.VerificationLevels.HumanVerified}, {importId},
-                    value."candidateId", {publishedBy}, {now}
+                    {MasterDataCodes.VerificationLevels.HumanVerified}, {releaseId},
+                    {importId}, value."candidateId", {publishedBy}, {now}
                 FROM jsonb_to_recordset({payload}::jsonb) AS value(
                     "productId" uuid, "versionId" uuid, "versionNumber" integer,
                     "candidateId" uuid, "name" text, "channel" text,
@@ -166,7 +169,8 @@ internal static class InventoryPublicationPersistence
 
                 INSERT INTO commercial.inventory_packages (
                     id, tenant_id, supplier_id, package_code, version_number, name,
-                    rate_id, discount_rule, conditions_json, source_import_id)
+                    rate_id, discount_rule, conditions_json, inventory_release_id,
+                    source_import_id)
                 SELECT value."packageId", {tenantId.Value}, {supplierId},
                     value."packageCode",
                     COALESCE((SELECT MAX(existing.version_number) + 1
@@ -175,7 +179,7 @@ internal static class InventoryPublicationPersistence
                           AND existing.supplier_id = {supplierId}
                           AND existing.package_code = value."packageCode"), 1),
                     value."packageName", value."rateId", value."packageDiscountRule",
-                    value."packageConditionsJson"::jsonb, {importId}
+                    value."packageConditionsJson"::jsonb, {releaseId}, {importId}
                 FROM jsonb_to_recordset({payload}::jsonb) AS value(
                     "packageId" uuid, "packageCode" text, "packageName" text,
                     "rateId" uuid, "packageDiscountRule" text,
@@ -199,6 +203,9 @@ internal static class InventoryPublicationPersistence
             var changed = await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
                 UPDATE commercial.inventory_products product
                 SET current_version_id = value."versionId",
+                    current_release_id = {releaseId},
+                    superseded_by_release_id = NULL,
+                    expired_at_utc = NULL,
                     status_code = {MasterDataCodes.LifecycleStatuses.Active},
                     version = product.version + CASE WHEN value."isNew" THEN 0 ELSE 1 END,
                     updated_at_utc = {now}

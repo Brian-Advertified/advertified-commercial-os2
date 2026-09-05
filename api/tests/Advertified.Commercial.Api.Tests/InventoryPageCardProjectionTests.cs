@@ -40,14 +40,13 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         var provider = InventoryExtractionContract.Create(
             "docling", "test", InventoryExtractionOptions.CurrentSchemaVersion,
             request.SourceHash, json, rows);
-        var contextual = InventorySourceContextProjection.Apply(
-            request, provider);
+        var contextual = provider;
         var candidate = InventoryCandidateNormalizer.Normalize(
             Assert.Single(contextual.Rows),
             request.SourceHash,
             DateTimeOffset.UnixEpoch);
 
-        Assert.Equal("Kena Outdoor", candidate.SupplierName);
+        Assert.Null(candidate.SupplierName);
         Assert.Equal("S0118KM", candidate.Values.ProductCode);
         Assert.Equal(
             "S0118KM - M1 South before Smith off-ramp",
@@ -55,10 +54,8 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         Assert.Equal(
             "M1 South before Smith off-ramp",
             candidate.Values.Address);
-        Assert.Equal(MasterDataCodes.Channels.Ooh, candidate.Values.Channel);
-        Assert.Equal(
-            MasterDataCodes.InventoryProductTypes.OohSite,
-            candidate.Values.ProductType);
+        Assert.Null(candidate.Values.Channel); // No channel field was supplied by this source.
+        Assert.Null(candidate.Values.ProductType);
         Assert.Equal("4 x 54", candidate.Values.Deliverable!.Dimensions);
         Assert.Equal(-26.192257m, candidate.Values.Latitude);
         Assert.Equal(28.02755m, candidate.Values.Longitude);

@@ -57,6 +57,14 @@ public interface IMeasurementReportCommands
 
 public interface IMeasurementReportReader
 {
+    Task<MeasurementReportPage> ListAsync(
+        ActorId actorId, TenantId tenantId, int pageSize, Guid? cursor,
+        CancellationToken cancellationToken);
+
+    Task<MeasurementCampaignPage> ListCampaignsAsync(
+        ActorId actorId, TenantId tenantId, int pageSize, Guid? cursor,
+        CancellationToken cancellationToken);
+
     Task<MeasurementReportView> GetAsync(
         ActorId actorId,
         TenantId tenantId,

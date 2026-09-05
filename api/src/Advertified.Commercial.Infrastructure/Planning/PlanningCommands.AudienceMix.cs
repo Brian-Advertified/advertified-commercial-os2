@@ -151,8 +151,6 @@ public sealed partial class PlanningCommands
             throw new InvalidLifecycleTransitionException();
         }
         var allocations = envelope.Command.Allocations.Select(ToAllocationView).ToArray();
-        await EnsureOohSelectionRemainsLockedAsync(
-            envelope.TenantId, mix.BriefVersionId, allocations, cancellationToken);
         EnsureAllocations(allocations, brief.BudgetMinor!.Value);
         EnsureRunningPeriods(allocations);
         var campaignMode = await RequireCampaignModeAsync(
@@ -200,8 +198,6 @@ public sealed partial class PlanningCommands
         var brief = await LoadPlanningReadyBriefAsync(
             mix.BriefVersionId, envelope, cancellationToken);
         var allocations = Read<MediaAllocationView[]>(mix.AllocationsJson);
-        await EnsureOohSelectionRemainsLockedAsync(
-            envelope.TenantId, mix.BriefVersionId, allocations, cancellationToken);
         EnsureAllocations(allocations, brief.BudgetMinor!.Value);
         EnsureRunningPeriods(allocations);
         var campaignMode = await RequireCampaignModeAsync(
@@ -297,24 +293,6 @@ public sealed partial class PlanningCommands
             item.Role,
             item.RunningPeriods.Select(period =>
                 new MediaRunningPeriodView(period.Start, period.End)).ToArray())).ToArray(), budget);
-
-    private async Task EnsureOohSelectionRemainsLockedAsync(
-        TenantId tenantId,
-        Guid briefVersionId,
-        IReadOnlyList<MediaAllocationView> allocations,
-        CancellationToken cancellationToken)
-    {
-        if (!await store.HasApprovedOohOnlyMixAsync(
-                tenantId, briefVersionId, cancellationToken))
-        {
-            return;
-        }
-        if (allocations.Any(item => item.Channel is not
-            (MasterDataCodes.Channels.Ooh or MasterDataCodes.Channels.Dooh)))
-        {
-            throw new CampaignRestartRequiredException();
-        }
-    }
 
     private static MediaAllocationView ToAllocationView(MediaAllocationInput allocation)
     {

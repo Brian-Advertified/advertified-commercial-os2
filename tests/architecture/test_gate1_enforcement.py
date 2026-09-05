@@ -121,6 +121,18 @@ def test_python_boundary_detector_rejects_database_import(tmp_path: Path) -> Non
     assert python_import_violations(runtime)
 
 
+def test_provider_allowlist_is_exact_path_not_basename(tmp_path: Path) -> None:
+    (tmp_path / "bedrock_provider.py").write_text("from botocore.session import get_session\n", encoding="utf-8")
+    assert not python_import_violations(tmp_path)
+    nested = tmp_path / "unapproved"
+    nested.mkdir()
+    (nested / "bedrock_provider.py").write_text("from botocore.session import get_session\n", encoding="utf-8")
+    (tmp_path / "other.py").write_text("import boto3\n", encoding="utf-8")
+    violations = python_import_violations(tmp_path)
+    assert len(violations) == 2
+    assert any("unapproved/bedrock_provider.py" in value for value in violations)
+
+
 def test_function_size_detector_rejects_controlled_violation(tmp_path: Path) -> None:
     runtime = tmp_path / "runtime"
     runtime.mkdir()

@@ -19,7 +19,8 @@ public sealed class PersistedCommandUnitOfWork(
     public async Task<CommandReceipt> ExecuteOnceAsync<TCommand>(
         CommandEnvelope<TCommand> envelope,
         Func<CancellationToken, Task<CommandOutcome>> handler,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<CancellationToken, Task>? authorizeResource = null)
         where TCommand : notnull
     {
         await using var transaction = await dbContext.Database.BeginTransactionAsync(
@@ -30,7 +31,11 @@ public sealed class PersistedCommandUnitOfWork(
             new UserId(envelope.ActorId.Value),
             envelope.TenantId,
             cancellationToken);
-        await AcquireCommandLockAsync(envelope, cancellationToken);
+        var identity = CommandIntentIdentity.From(envelope);
+        await identity.LockAsync(dbContext, cancellationToken);
+        if (authorizeResource is not null)
+            await authorizeResource(cancellationToken);
+        await identity.EnsureCompatibleAsync(dbContext, cancellationToken);
 
         var stored = await dbContext.IdempotencyRecords.SingleOrDefaultAsync(
             item => item.TenantId == envelope.TenantId
@@ -97,22 +102,14 @@ public sealed class PersistedCommandUnitOfWork(
             outcomeJson,
             now,
             now.Add(RecordLifetime)));
-        dbContext.AuditEvents.Add(new AuditEventRow(outcome.Audit, EmptyMetadata));
+        dbContext.AuditEvents.Add(new AuditEventRow(outcome.Audit,
+            outcome.Audit.Metadata?.GetRawText() ?? EmptyMetadata));
         dbContext.OutboxMessages.Add(new OutboxMessageRow(outcome.Outbox));
         dbContext.AuditEvents.AddRange(
-            outcome.AdditionalAudits.Select(item => new AuditEventRow(item, EmptyMetadata)));
+            outcome.AdditionalAudits.Select(item => new AuditEventRow(item,
+                item.Metadata?.GetRawText() ?? EmptyMetadata)));
         dbContext.OutboxMessages.AddRange(
             outcome.AdditionalOutbox.Select(item => new OutboxMessageRow(item)));
     }
 
-    private Task<int> AcquireCommandLockAsync<TCommand>(
-        CommandEnvelope<TCommand> envelope,
-        CancellationToken cancellationToken)
-        where TCommand : notnull
-    {
-        var lockKey = $"{envelope.TenantId.Value:N}:{envelope.IdempotencyKey.Value}";
-        return dbContext.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT pg_advisory_xact_lock(hashtextextended({lockKey}, 0))",
-            cancellationToken);
-    }
 }

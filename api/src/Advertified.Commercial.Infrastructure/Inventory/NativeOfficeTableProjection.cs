@@ -44,7 +44,10 @@ internal static partial class NativeOfficeTableProjection
         var headers = Headers(rows, headerRow.Value);
         var data = rows.Where(row => row.SourceRow > headerRow.Value).ToArray();
         var scheduled = ProjectSchedule(
-            headers, data, rowOffset, cellLocator);
+            headers, data, rowOffset, cellLocator,
+            column => cellLocator(rows.Where(row => row.SourceRow <= headerRow.Value &&
+                row.Cells.TryGetValue(column, out var value) && !string.IsNullOrWhiteSpace(value))
+                .Max(row => row.SourceRow), column));
         var projected = scheduled.Length > 0
             ? scheduled
             : InventoryTabularProjection.Project(
@@ -112,7 +115,8 @@ internal static partial class NativeOfficeTableProjection
         IReadOnlyDictionary<int, string> headers,
         IReadOnlyList<InventoryTableRow> rows,
         int rowOffset,
-        Func<int, int, string> locator)
+        Func<int, int, string> locator,
+        Func<int, string> headerLocator)
     {
         var dates = headers
             .Where(item => DatePattern().IsMatch(item.Value))
@@ -120,7 +124,7 @@ internal static partial class NativeOfficeTableProjection
         if (dates.Count < 2) return [];
         var result = new List<InventoryExtractedRow>();
         foreach (var row in rows)
-            AddScheduleRow(result, row, dates, rowOffset, locator);
+            AddScheduleRow(result, row, dates, rowOffset, locator, headerLocator);
         return result.ToArray();
     }
 
@@ -129,7 +133,8 @@ internal static partial class NativeOfficeTableProjection
         InventoryTableRow row,
         Dictionary<int, string> dates,
         int rowOffset,
-        Func<int, int, string> locator)
+        Func<int, int, string> locator,
+        Func<int, string> headerLocator)
     {
         var label = row.Cells.OrderBy(item => item.Key)
             .FirstOrDefault(item => !dates.ContainsKey(item.Key));
@@ -150,37 +155,13 @@ internal static partial class NativeOfficeTableProjection
             };
             if (!string.IsNullOrWhiteSpace(label.Value))
                 values["timeslot"] = label.Value.Trim();
-            result.Add(CreateScheduleRow(
+            result.Add(InventoryScheduleEvidence.Create(
                 rowOffset + result.Count + 1,
-                values, evidence, locator(row.SourceRow, label.Key)));
+                values, evidence, headerLocator(date.Key), locator(row.SourceRow, label.Key),
+                MasterDataCodes.InventoryExtractionMethods.Tabular));
         }
     }
 
-    private static InventoryExtractedRow CreateScheduleRow(
-        int number,
-        IReadOnlyDictionary<string, string> values,
-        string evidence,
-        string timeLocator)
-    {
-        var locators = values.Keys.ToDictionary(
-            key => key,
-            key => key == "timeslot" ? timeLocator : evidence,
-            StringComparer.Ordinal);
-        var bases = new Dictionary<string, string>
-        {
-            ["ratetype"] =
-                MasterDataCodes.InventoryEvidenceBases.DerivedPolicy,
-        };
-        var transformations = new Dictionary<string, string>
-        {
-            ["ratetype"] = MasterDataCodes.InventoryTransformationTypes
-                .DerivedFromSourceContext,
-        };
-        return new InventoryExtractedRow(
-            number, evidence, values,
-            MasterDataCodes.InventoryExtractionMethods.Tabular,
-            null, locators, null, bases, transformations);
-    }
 
     private static bool TryOffer(
         string raw,

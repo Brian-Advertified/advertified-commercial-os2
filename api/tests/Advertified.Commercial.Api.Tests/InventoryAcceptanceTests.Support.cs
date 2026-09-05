@@ -36,7 +36,8 @@ public sealed partial class InventoryAcceptanceTests
 
     private static WebApplicationFactory<Program> CreateFactory(
         string connectionString,
-        Guid userId) => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        Guid userId,
+        IInventoryDocumentExtractionAdapter? adapter = null) => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
     {
         builder.UseEnvironment("Test");
         builder.UseSetting("ConnectionStrings:CommercialDatabase", connectionString);
@@ -54,8 +55,7 @@ public sealed partial class InventoryAcceptanceTests
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<IInventoryDocumentExtractionAdapter>();
-            services.AddScoped<IInventoryDocumentExtractionAdapter,
-                InventoryWorkflowFixtureExtractionAdapter>();
+            services.AddSingleton<IInventoryDocumentExtractionAdapter>(adapter ?? new SchemaFixtureAdapter());
         });
     });
 

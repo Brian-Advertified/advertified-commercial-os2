@@ -7,12 +7,12 @@ using Advertified.Commercial.Domain.Governance;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Runtime.CompilerServices;
-
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
 public sealed partial class InventoryReader(
     InventoryRecordStore store,
     ITenantAuthorizer authorizer,
+    InventorySupplierAccessPolicy supplierAccess,
     TimeProvider timeProvider,
     IOptions<InventoryProtectionOptions> protectionOptions) : IInventoryReader
 {
@@ -30,6 +30,8 @@ public sealed partial class InventoryReader(
             actorId, tenantId, MasterDataReferences.Permissions.InventoryImport, cancellationToken);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
+        await supplierAccess.EnsureImportAccessAsync(
+            actorId, tenantId, importId, cancellationToken);
         var row = await store.FindImportAsync(tenantId, importId, false, cancellationToken)
             ?? throw new UnauthorizedAccessException("Inventory import access denied.");
         var view = await store.BuildImportViewAsync(
@@ -51,8 +53,10 @@ public sealed partial class InventoryReader(
         var cursor = InventoryCursor.Decode(validated.Cursor);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
+        var supplierScope = await supplierAccess.ResolveSupplierScopeAsync(
+            actorId, tenantId, cancellationToken);
         var rows = await SearchRowsAsync(
-            tenantId, validated, cursor, pageSize + 1, cancellationToken);
+            tenantId, validated, cursor, pageSize + 1, supplierScope, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         var page = rows.Take(pageSize).ToArray();
         var next = rows.Count > pageSize
@@ -73,6 +77,8 @@ public sealed partial class InventoryReader(
             actorId, tenantId, cancellationToken);
         var summary = await FindSummaryAsync(tenantId, productId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Inventory product access denied.");
+        await supplierAccess.EnsureSupplierAccessAsync(
+            actorId, tenantId, summary.SupplierId, cancellationToken);
         var now = timeProvider.GetUtcNow();
         var detail = await FindDetailAsync(tenantId, productId, now, cancellationToken)
             ?? throw new UnauthorizedAccessException("Inventory product access denied.");
@@ -104,6 +110,7 @@ public sealed partial class InventoryReader(
         InventorySearchQuery query,
         InventoryCursorValue? cursor,
         int take,
+        Guid[]? supplierScope,
         CancellationToken cancellationToken)
     {
         var search = query.Search;
@@ -114,6 +121,7 @@ public sealed partial class InventoryReader(
             ? """
                 WHERE product.tenant_id = {0}
                   AND product.status_code = {1}
+                  AND ({7}::uuid[] IS NULL OR product.supplier_id = ANY({7}))
                   AND NOT EXISTS (
                       SELECT 1 FROM commercial.inventory_product_identity_links identity_link
                       WHERE identity_link.tenant_id = product.tenant_id
@@ -128,6 +136,7 @@ public sealed partial class InventoryReader(
             : """
                 WHERE product.tenant_id = {0}
                   AND product.status_code = {1}
+                  AND ({9}::uuid[] IS NULL OR product.supplier_id = ANY({9}))
                   AND NOT EXISTS (
                       SELECT 1 FROM commercial.inventory_product_identity_links identity_link
                       WHERE identity_link.tenant_id = product.tenant_id
@@ -142,9 +151,9 @@ public sealed partial class InventoryReader(
                 """);
         var arguments = cursor is null
             ? new object?[] { tenantId.Value, MasterDataCodes.LifecycleStatuses.Active,
-                search, channel, supplier, geography, take }
+                search, channel, supplier, geography, take, supplierScope }
             : [tenantId.Value, MasterDataCodes.LifecycleStatuses.Active,
-                search, channel, supplier, geography, cursor.Name, cursor.Id, take];
+                search, channel, supplier, geography, cursor.Name, cursor.Id, take, supplierScope];
         var statement = FormattableStringFactory.Create(format, arguments);
         return store.DbContext.Database.SqlQuery<InventoryProductSummaryRow>(statement)
             .ToListAsync(cancellationToken);
@@ -289,94 +298,6 @@ public sealed partial class InventoryReader(
                 package.name, package.discount_rule, package.conditions_json
             ORDER BY package.package_code, package.version_number DESC
             """).ToListAsync(cancellationToken);
-
-    private static InventoryProductView ToProductView(
-        InventoryProductSummaryRow summary,
-        InventoryProductDetailRow detail,
-        IReadOnlyList<InventoryAssetRow> assets,
-        IReadOnlyList<InventorySupplierContactRow> contacts,
-        IReadOnlyList<InventoryPackageRow> packages,
-        IReadOnlyList<InventoryAvailabilityExceptionRow> exceptions,
-        DateTimeOffset now) => new(
-        summary.ToView(), detail.ProductVersionId, detail.Address,
-        detail.Latitude, detail.Longitude,
-        JsonSerializer.Deserialize<Dictionary<string, string>>(
-            detail.ExtensionJson, InventoryRowMapper.StoredJson) ?? [],
-        new InventoryRateView(
-            detail.RateType, detail.Currency, detail.AmountMinor, detail.RateLocator,
-            detail.EffectiveFrom, detail.EffectiveTo, detail.VatTreatment,
-            Read<InventoryCommercialTermsValues>(detail.CommercialTermsJson)),
-        new InventoryAvailabilityView(
-            detail.Availability, detail.ObservedAtUtc, detail.ValidUntilUtc,
-            detail.AvailabilityLocator),
-        ToAudienceView(detail),
-        assets.Select(item => new InventoryAssetView(
-            item.AssetType, item.MediaType, item.ContentHash, item.SourceReference,
-            item.Id, item.RightsStatus, item.RightsBasis, item.LicensedUntil,
-            item.RightsStatus == MasterDataCodes.AssetRightsStatuses.Approved &&
-            Read<string[]>(item.RightsScopesJson).Contains(
-                MasterDataCodes.AssetRightsScopes.NamedClientProposal,
-                StringComparer.Ordinal) &&
-            item.EffectiveOn.HasValue && item.EffectiveOn <=
-                DateOnly.FromDateTime(now.UtcDateTime) &&
-            (item.UntilRevoked || item.LicensedUntil.HasValue &&
-                item.LicensedUntil.Value >= DateOnly.FromDateTime(now.UtcDateTime)),
-            item.RightsVersion,
-            Read<string[]>(item.RightsScopesJson), item.TerritoryCode,
-            item.EffectiveOn, item.UntilRevoked)).ToArray(),
-        detail.SourceImportId, detail.SourceCandidateId,
-        detail.VersionNumber, detail.PublishedAtUtc, detail.Description,
-        ToSupplierCommercialView(detail), contacts.Select(item =>
-            new InventorySupplierContactView(item.Id, item.Name, item.Role, item.Region,
-                item.Email, item.Phone, item.Website, item.SocialHandle,
-                item.ObservedAtUtc)).ToArray(),
-        Read<InventoryDeliverableValues>(detail.DeliverableJson),
-        Read<InventorySpatialValues>(detail.SpatialJson),
-        packages.Select(ToPackageView).ToArray(),
-        exceptions.Select(item => new InventoryAvailabilityExceptionView(
-            item.Id, item.ProductId, item.ProductVersionId, item.ExceptionType,
-            item.StartsOn, item.EndsOn, item.SourceLocator, item.EvidenceHash,
-            item.RecordedBy, item.RecordedAtUtc, 1)).ToArray());
-
-    private static InventorySupplierCommercialView? ToSupplierCommercialView(
-        InventoryProductDetailRow detail) => !detail.SupplierVersionNumber.HasValue ||
-        !detail.SupplierSourceImportId.HasValue || !detail.SupplierPublishedAtUtc.HasValue
-        ? null
-        : new(detail.SupplierVersionNumber.Value, detail.SupplierVatStatus,
-            detail.SupplierVatNumber, detail.SupplierCommissionTerms,
-            detail.SupplierPaymentTerms, detail.SupplierCancellationTerms,
-            detail.SupplierBookingDeadlineTerms, detail.SupplierSourceImportId.Value,
-            detail.SupplierPublishedAtUtc.Value);
-
-    private static InventoryPackageView ToPackageView(InventoryPackageRow row) => new(
-        row.Id, row.PackageCode, row.VersionNumber, row.Name, row.DiscountRule,
-        JsonSerializer.Deserialize<string[]>(row.ConditionsJson,
-            InventoryRowMapper.StoredJson) ?? [],
-        JsonSerializer.Deserialize<string[]>(row.ComponentProductCodesJson,
-            InventoryRowMapper.StoredJson) ?? []);
-
-    private static T? Read<T>(string? json) where T : class =>
-        json is null ? null : JsonSerializer.Deserialize<T>(
-            json, InventoryRowMapper.StoredJson);
-
-    private static InventoryAudienceProfileView? ToAudienceView(
-        InventoryProductDetailRow detail)
-    {
-        if (detail.AudienceProfileJson is null)
-        {
-            return null;
-        }
-        var profile = JsonSerializer.Deserialize<InventoryAudienceProfileValues>(
-            detail.AudienceProfileJson, InventoryRowMapper.StoredJson)
-            ?? throw new InvalidOperationException("Stored audience profile is invalid.");
-        return new InventoryAudienceProfileView(
-            profile.SpokenLanguages, profile.UnderstoodLanguages,
-            profile.LifeStages, profile.LsmSemSegments,
-            profile.TaxonomyName, profile.TaxonomyVersion, profile.Universe,
-            profile.MeasurementSource, profile.MeasurementPeriod,
-            profile.Methodology, profile.Limitations, profile.Measurements ?? [],
-            detail.AudienceSourceLocator);
-    }
 
     private const string SummarySelect = """
         SELECT product.id AS "Id", product.supplier_id AS "SupplierId",

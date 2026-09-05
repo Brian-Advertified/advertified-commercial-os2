@@ -193,9 +193,16 @@ const inventoryExtractionAttemptSchema = z.object({
 }).strict()
 
 export const inventoryImportSchema = z.object({
+  interpretation: z.object({ mappingRevision: requiredText, schemaJson: requiredText.nullable(),
+    structureJson: requiredText, failure: nullableText }).nullable().optional(),
   id: z.guid(),
-  supplierId: z.guid(),
+  supplierId: z.guid().nullable(),
   supplierName: requiredText,
+  supplierNameHint: nullableText,
+  supplierResolutionStatus: requiredText,
+  supplierIdentityEvidenceJson: requiredText,
+  replacementMode: requiredText,
+  publishedReleaseId: z.guid().nullable(),
   fileName: requiredText,
   declaredMediaType: requiredText,
   documentClass: nullableText,

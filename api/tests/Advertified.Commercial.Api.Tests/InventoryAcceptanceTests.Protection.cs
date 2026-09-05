@@ -19,7 +19,7 @@ public sealed partial class InventoryAcceptanceTests
         using var oversizedResponse = await UploadAsync(
             importer, "inventory-size-boundary", "Boundary Supplier", oversized);
         await AssertProblemAsync(
-            oversizedResponse, HttpStatusCode.BadRequest, "VALIDATION_FAILED");
+            oversizedResponse, HttpStatusCode.RequestEntityTooLarge, "VALIDATION_FAILED");
 
         var mismatch = new FileFixture(
             "PNG", "not-an-image.csv", "text/csv",

@@ -153,6 +153,15 @@ def test_browser_tokens_and_notification_adapter_stay_inside_their_boundaries() 
         content = path.read_text(encoding="utf-8")
         if "react-toastify" in content and "notifications" not in path.parts:
             toast_violations.append(relative(path))
+        if relative(path) == "web/src/components/map/MapboxMap.tsx":
+            # Mapbox's SDK names its public map credential accessToken. It is
+            # not a browser session token; allow only this exact SDK property,
+            # with an explicit public-key gate. All other token/storage uses
+            # in this file remain subject to the same prohibition.
+            assert "VITE_MAPBOX_PUBLIC_TOKEN" in content
+            assert "return token.startsWith('pk.') ? token : ''" in content
+            assert content.count("accessToken: token,") == 1
+            content = content.replace("accessToken: token,", "")
         if forbidden_tokens.search(content):
             browser_token_violations.append(relative(path))
 

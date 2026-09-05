@@ -1,8 +1,5 @@
 using Advertified.Commercial.Infrastructure.MasterData;
-using Advertified.Commercial.Infrastructure.Migrations;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql;
 using Xunit;
 
@@ -13,7 +10,6 @@ public sealed class OutboxDispatchDurabilityMigrationTests
     private const string DatabaseName = "advertified_outbox_migration";
     private const string DatabaseUser = "advertified_outbox_migration";
     private const string DatabasePassword = "advertified-outbox-migration-local-only";
-    private const string PreviousMigration = nameof(EmailDeliveryDurability);
     private static readonly Guid TenantId =
         Guid.Parse("cb100000-0000-4000-8000-000000000001");
     private static readonly Guid UnpublishedEventId =
@@ -23,7 +19,7 @@ public sealed class OutboxDispatchDurabilityMigrationTests
 
     [Fact]
     [Trait("Category", "Migration")]
-    public async Task UpgradeIsForwardSafeAndRollbackRejectsDispatchEvidence()
+    public async Task FreshSchemaSupportsDurableDispatchAndRepeatedInstallation()
     {
         await using var postgres = DisposablePostgres.Create(
             DatabaseName, DatabaseUser, DatabasePassword);
@@ -32,41 +28,30 @@ public sealed class OutboxDispatchDurabilityMigrationTests
         await DisposablePostgres.EnableRequiredExtensionsAsync(connectionString);
         await DisposableDatabaseRoles.ProvisionAsync(connectionString);
 
-        await MigrateAsync(connectionString, PreviousMigration);
-        await MigrateAsync(connectionString, targetMigration: null);
+        await MigrateAsync(connectionString);
         Assert.True(await ColumnExistsAsync(connectionString, "claim_token"));
-        await MigrateAsync(connectionString, PreviousMigration);
-        Assert.False(await ColumnExistsAsync(connectionString, "claim_token"));
 
         await BootstrapAndSeedLegacyRowsAsync(connectionString);
-        await MigrateAsync(connectionString, targetMigration: null);
+        await MigrateAsync(connectionString);
         await AssertLegacyRowsAsync(connectionString);
-        await MigrateAsync(connectionString, PreviousMigration);
-
-        await MigrateAsync(connectionString, targetMigration: null);
         await ClaimLegacyEventAsync(connectionString);
-        var exception = await Assert.ThrowsAsync<PostgresException>(
-            () => MigrateAsync(connectionString, PreviousMigration));
-        Assert.Equal("P0001", exception.SqlState);
+        await MigrateAsync(connectionString);
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand(
+            "SELECT claim_token IS NOT NULL FROM commercial.outbox_messages WHERE id = $1",
+            connection);
+        command.Parameters.AddWithValue(UnpublishedEventId);
+        Assert.Equal(true, await command.ExecuteScalarAsync());
     }
 
     private static async Task MigrateAsync(
-        string connectionString,
-        string? targetMigration)
+        string connectionString)
     {
         var options = new DbContextOptionsBuilder<GovernanceDbContext>()
             .UseNpgsql(connectionString).Options;
         await using var database = new GovernanceDbContext(options);
-        if (targetMigration is null)
-        {
-            await database.Database.MigrateAsync();
-            return;
-        }
-
-        var targetId = database.Database.GetMigrations()
-            .Single(id => id.EndsWith($"_{targetMigration}", StringComparison.Ordinal));
-        var targetName = database.GetService<IMigrationsIdGenerator>().GetName(targetId);
-        await database.GetService<IMigrator>().MigrateAsync(targetName);
+        await database.Database.MigrateAsync();
     }
 
     private static async Task BootstrapAndSeedLegacyRowsAsync(string connectionString)

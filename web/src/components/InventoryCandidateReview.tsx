@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { inventoryCodes, type InventoryDecision } from '../api/inventory-constants'
 import type { InventoryCandidate, InventoryValues } from '../api/inventory-schemas'
 import { formatMoney } from '../presentation/format'
+import { inventoryAcceptanceCopy } from '../content/inventory-acceptance-copy'
 
 export function InventoryCandidateReview({ candidate, canReview, busy, review }: {
   candidate: InventoryCandidate
@@ -10,12 +11,6 @@ export function InventoryCandidateReview({ candidate, canReview, busy, review }:
   review: (candidate: InventoryCandidate, decision: InventoryDecision,
     values: InventoryValues | null, reason: string | null) => Promise<void>
 }) {
-  const [editing, setEditing] = useState(false)
-  function correct(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    void review(candidate, inventoryCodes.decision.edit,
-      valuesFrom(new FormData(event.currentTarget), candidate.values), null)
-  }
   return <article className="detail-card candidate-card">
     <header className="page-heading-split"><div><p className="eyebrow">Source row {candidate.rowNumber}</p>
       <h2>{candidate.values.name ?? 'Product identity missing'}</h2>
@@ -26,6 +21,8 @@ export function InventoryCandidateReview({ candidate, canReview, busy, review }:
       <Fact label="Rate" value={money(candidate.values)} />
       <Fact label="Availability" value={candidate.values.availability} />
     </div>
+    {candidate.values.extension?.acceptanceevaluation && <details><summary>{inventoryAcceptanceCopy.checks}</summary>
+      <pre>{candidate.values.extension.acceptanceevaluation}</pre></details>}
     {candidate.validation.length > 0 && <ul className="validation-list">
       {candidate.validation.map((issue) => <li className={issue.isBlocking ? 'blocking' : ''}
         key={`${issue.fieldName}-${issue.code}`}>{issue.message}</li>)}</ul>}
@@ -34,38 +31,10 @@ export function InventoryCandidateReview({ candidate, canReview, busy, review }:
         <strong>{field.fieldName.replaceAll('_', ' ')}</strong><span>{field.rawValue ?? 'Not supplied'}</span>
         <small>{field.sourceLocator} · {field.transformation.toLowerCase().replaceAll('_', ' ')}</small>
       </div>)}</div></details>
-    {canReview && !editing && <div className="candidate-actions">
-      <button className="primary-button" disabled={busy || candidate.validation.some((item) => item.isBlocking)}
-        onClick={() => void review(candidate, inventoryCodes.decision.approve, null, null)}>Approve source values</button>
-      <button className="secondary-button" disabled={busy} onClick={() => setEditing(true)}>Correct fields</button>
+    {canReview && <div className="candidate-actions">
       <RejectButton candidate={candidate} busy={busy} review={review} />
     </div>}
-    {canReview && editing && <CorrectionForm candidate={candidate} busy={busy} submit={correct}
-      cancel={() => setEditing(false)} />}
   </article>
-}
-
-function CorrectionForm({ candidate, busy, submit, cancel }: {
-  candidate: InventoryCandidate; busy: boolean
-  submit: (event: FormEvent<HTMLFormElement>) => void; cancel: () => void
-}) {
-  const value = candidate.values
-  return <form className="correction-form" onSubmit={submit}>
-    <Input name="productCode" label="Product code" value={value.productCode} />
-    <Input name="name" label="Product name" value={value.name} />
-    <Input name="channel" label="Channel code" value={value.channel} />
-    <Input name="productType" label="Product type" value={value.productType} />
-    <Input name="geography" label="Geography" value={value.geography} />
-    <Input name="address" label="Address" value={value.address} required={false} />
-    <Input name="latitude" label="Latitude" value={value.latitude} type="number" />
-    <Input name="longitude" label="Longitude" value={value.longitude} type="number" />
-    <Input name="rateType" label="Rate type" value={value.rateType} />
-    <Input name="currency" label="Currency" value={value.currency} />
-    <Input name="rateAmountMinor" label="Rate in minor units" value={value.rateAmountMinor} type="number" />
-    <Input name="availability" label="Availability" value={value.availability} />
-    <div className="candidate-actions"><button className="primary-button" disabled={busy}>Save correction and approve</button>
-      <button className="secondary-button" type="button" onClick={cancel}>Cancel</button></div>
-  </form>
 }
 
 function RejectButton({ candidate, busy, review }: {
@@ -84,11 +53,6 @@ function RejectButton({ candidate, busy, review }: {
       onClick={() => void review(candidate, inventoryCodes.decision.reject, null, reason)}>Reject candidate</button></div>
 }
 
-function Input({ name, label, value, type = 'text', required = true }: {
-  name: string; label: string; value: string | number | null; type?: string; required?: boolean
-}) { return <label className="field-group">{label}<input name={name} type={type}
-  step={type === 'number' ? 'any' : undefined} defaultValue={value ?? ''} required={required} /></label> }
-
 function Fact({ label, value }: { label: string; value: string | null }) {
   return <div><span>{label}</span><strong>{value ?? 'Not supplied'}</strong></div>
 }
@@ -96,21 +60,4 @@ function Fact({ label, value }: { label: string; value: string | null }) {
 function money(values: InventoryValues): string | null {
   if (values.rateAmountMinor === null || !values.currency) return null
   return formatMoney(values.rateAmountMinor, values.currency)
-}
-
-function valuesFrom(form: FormData, original: InventoryValues): InventoryValues {
-  const text = (name: string) => String(form.get(name) ?? '').trim() || null
-  const number = (name: string) => {
-    const value = text(name); return value === null ? null : Number(value)
-  }
-  return { productCode: text('productCode'), name: text('name'), channel: text('channel'),
-    productType: text('productType'), geography: text('geography'), address: text('address'),
-    latitude: number('latitude'), longitude: number('longitude'), rateType: text('rateType'),
-    currency: text('currency'), rateAmountMinor: number('rateAmountMinor'),
-    availability: text('availability'), extension: original.extension,
-    audienceProfile: original.audienceProfile, description: original.description,
-    supplierCommercial: original.supplierCommercial,
-    supplierContacts: original.supplierContacts,
-    commercialTerms: original.commercialTerms, deliverable: original.deliverable,
-    spatial: original.spatial, package: original.package }
 }

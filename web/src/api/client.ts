@@ -1,10 +1,14 @@
 import type { ZodType } from 'zod'
 import { masterDataCodes } from '../generated/master-data-codes'
+import { bindPendingCommandsToActor, clearPendingCommandKeys,
+  completeCommand, reserveCommandKey } from './pending-command-keys'
+export { clearPendingCommandKeys } from './pending-command-keys'
 import {
   agencyPageSchema,
   clientAccountPageSchema,
   contactPageSchema,
   currentUserSchema,
+  oidcSignOutSchema,
   problemSchema,
   sessionSchema,
   tenantSchema,
@@ -136,16 +140,35 @@ export async function request<T>(
   init: RequestInit = {},
   options: RequestOptions = {},
 ): Promise<{ data: T; etag?: string }> {
-  const headers = createHeaders(init, options)
+  const reservation = await reserveCommandKey(
+    path, init, options.idempotencyKey, options.expectedVersion)
+  const headers = createHeaders(init, {
+    ...options, idempotencyKey: reservation?.key ?? options.idempotencyKey,
+  })
   const response = await safeFetch(path, { ...init, credentials: 'same-origin', headers })
-  const payload = await readJson(response)
-  if (!response.ok) {
-    if (response.status === 401) window.dispatchEvent(new Event(sessionExpiredEvent))
-    throw toFailure(response.status, payload)
+  if (reservation && isClientFailure(response.status)) {
+    completeCommand(reservation.fingerprint)
   }
+  const payload = await readJson(response)
+  ensureSuccess(response, payload)
   const parsed = schema.safeParse(payload)
   if (!parsed.success) throw new ApiFailure('INVALID_API_RESPONSE', response.status)
+  if (reservation) completeCommand(reservation.fingerprint)
   return { data: parsed.data, etag: response.headers.get('ETag') ?? undefined }
+}
+
+function isClientFailure(status: number): boolean {
+  return status >= 400 && status < 500
+}
+
+function ensureSuccess(response: Response, payload: unknown): void {
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearPendingCommandKeys()
+      window.dispatchEvent(new Event(sessionExpiredEvent))
+    }
+    throw toFailure(response.status, payload)
+  }
 }
 
 function createHeaders(init: RequestInit, options: RequestOptions): Headers {
@@ -191,7 +214,9 @@ function toFailure(status: number, payload: unknown): ApiFailure {
 
 export const api = {
   async getSession(): Promise<BrowserSession> {
-    return (await request('/api/v1/session', sessionSchema)).data
+    const session = (await request('/api/v1/session', sessionSchema)).data
+    if (!session.authenticated) clearPendingCommandKeys()
+    return session
   },
 
   async signIn(antiforgeryToken: string): Promise<BrowserSession> {
@@ -215,9 +240,19 @@ export const api = {
     if (!response.ok) throw toFailure(response.status, await readJson(response))
   },
 
+  async signOutOidc(path: string, antiforgeryToken: string): Promise<string> {
+    return (await request(
+      path,
+      oidcSignOutSchema,
+      { method: 'POST' },
+      { antiforgeryToken },
+    )).data.redirectUrl
+  },
+
   async getCurrentUser(): Promise<{ user: CurrentUser; etag: string }> {
     const response = await request('/api/v1/me', currentUserSchema)
     if (!response.etag) throw new ApiFailure('INVALID_API_RESPONSE', 200)
+    bindPendingCommandsToActor(response.data.id)
     return { user: response.data, etag: response.etag }
   },
 

@@ -26,21 +26,14 @@ public sealed partial class MeasurementReportRecordStore
     {
         var row = await FindAsync(reportId, false, cancellationToken);
         if (row is null) return null;
-        var evidence = new List<PerformanceEvidenceView>();
-        foreach (var source in row.EvidenceVersions())
-        {
-            var view = await evidenceStore.GetViewAsync(source.Id, false, cancellationToken);
-            if (view is null || view.Version != source.Version)
-                throw new InvalidOperationException("Measurement evidence is unavailable.");
-            evidence.Add(view);
-        }
-        return ToView(row, evidence);
+        return (await BuildViewsAsync([row], evidenceStore, [], cancellationToken))[0];
     }
 
     internal async Task<IReadOnlyList<MeasurementReportView>> ListApprovedCampaignAsync(
         Guid campaignId,
         PerformanceEvidenceRecordStore evidenceStore,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IReadOnlyList<PerformanceEvidenceView>? loadedEvidence = null)
     {
         var rows = await DbContext.Database.SqlQuery<MeasurementReportRow>(
             FormattableStringFactory.Create(
@@ -48,14 +41,27 @@ public sealed partial class MeasurementReportRecordStore
                 " AND report.status_code = {1} ORDER BY report.version_no, report.id",
                 campaignId, MasterDataCodes.LifecycleStatuses.Approved))
             .ToListAsync(cancellationToken);
-        var reports = new List<MeasurementReportView>(rows.Count);
-        foreach (var row in rows)
+        return await BuildViewsAsync(rows, evidenceStore, loadedEvidence ?? [], cancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<MeasurementReportView>> BuildViewsAsync(
+        IReadOnlyList<MeasurementReportRow> rows,
+        PerformanceEvidenceRecordStore evidenceStore,
+        IReadOnlyList<PerformanceEvidenceView> loadedEvidence,
+        CancellationToken cancellationToken)
+    {
+        var byId = loadedEvidence.ToDictionary(view => view.Id);
+        var missingIds = rows.SelectMany(row => row.EvidenceVersions())
+            .Select(source => source.Id).Distinct().Where(id => !byId.ContainsKey(id));
+        foreach (var view in await evidenceStore.GetViewsAsync(missingIds, cancellationToken))
+            byId.Add(view.Id, view);
+        return rows.Select(row => ToView(row, row.EvidenceVersions().Select(source =>
         {
-            var view = await GetViewAsync(row.Id, evidenceStore, cancellationToken)
-                ?? throw new InvalidOperationException("Measurement report is unavailable.");
-            reports.Add(view);
-        }
-        return reports;
+            if (!byId.TryGetValue(source.Id, out var view) || view.Version != source.Version ||
+                view.CampaignId != row.CampaignId)
+                throw new InvalidOperationException("Measurement evidence is unavailable.");
+            return view;
+        }).ToArray())).ToArray();
     }
 
     private static MeasurementReportView ToView(

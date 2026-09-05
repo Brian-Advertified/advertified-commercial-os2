@@ -31,15 +31,7 @@ except ModuleNotFoundError:
         write_json,
     )
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_EVIDENCE = REPO_ROOT / "artifacts" / "inventory-corpus"
 RETAINED_PROVIDER = "retained-docling-projection"
-CALIBRATION_DOCUMENTS = (
-    "DMS Digital Rate Card .xlsx",
-    "Reveel - ZA - Publisher Media Kit.pptx",
-    "SABC May 2026 TV Rates (1).pdf",
-    "Algoa FM - Algoa Club Package - Plan A - Generic & Sponsorship -2026.pdf",
-)
 
 
 def main() -> int:
@@ -93,12 +85,12 @@ def main() -> int:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--evidence", type=Path, default=DEFAULT_EVIDENCE
+        "--evidence", type=Path, required=True
     )
     parser.add_argument("--document", action="append", default=[])
     parser.add_argument(
         "--all", action="store_true",
-        help="Explicitly select the complete governed corpus.",
+        help="Explicitly select all documents in the supplied evaluation manifest.",
     )
     parser.add_argument(
         "--maximum", type=int, default=4,
@@ -133,17 +125,19 @@ def select_documents(
         raise ValueError(
             "--document and --all are mutually exclusive."
         )
-    if maximum not in range(1, 44):
+    if maximum < 1:
         raise ValueError(
-            "The maximum batch size must be between 1 and 43."
+            "The maximum batch size must be positive."
         )
+    if not requested and not select_all:
+        raise ValueError("Select --document or --all explicitly.")
     names = set(
         document["relativePath"]
         for document in manifest["documents"]
         if select_all
     )
     if not names:
-        names = set(requested or CALIBRATION_DOCUMENTS)
+        names = set(requested)
     selected = [
         document for document in manifest["documents"]
         if document["relativePath"] in names

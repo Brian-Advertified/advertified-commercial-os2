@@ -1,37 +1,29 @@
+param(
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('BuildApi', 'RestartApi', 'BuildMigrator', 'ApplyMigrations')]
+    [string]$Action,
+    [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string[]]$ComposeFiles
+)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-
-$repo = Split-Path -Parent $PSScriptRoot
-Set-Location $repo
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 . (Join-Path $PSScriptRoot 'advertified-compose.ps1')
-
-$composeFiles = @(
-    'infrastructure/docker-compose.yml',
-    'infrastructure/docker-compose.app.yml',
-    'artifacts/inventory-corpus/docker-compose.override.yml'
-)
-
-Assert-AdvertifiedComposeProject -RequireExisting
-Write-Host 'Building only the existing OS2 API image...'
-& docker build `
-    --file 'api/Dockerfile' `
-    --target 'api' `
-    --tag 'advertified/commercial-api-dev:local' `
-    '.'
-if ($LASTEXITCODE -ne 0) {
-    throw 'The OS2 API image build failed.'
+Push-Location $repoRoot
+try {
+    Assert-AdvertifiedComposeProject -RequireExisting
+    # Each invocation performs exactly the requested action. Migration, restart and
+    # build authority are separate. No pruning, cleanup, seed or provider calls.
+    switch ($Action) {
+        'BuildApi' { Invoke-AdvertifiedCompose $ComposeFiles @('build', 'api') }
+        'BuildMigrator' { Invoke-AdvertifiedCompose $ComposeFiles @('build', 'migrator') }
+        'RestartApi' {
+            Invoke-AdvertifiedCompose $ComposeFiles @('up', '-d', '--no-build', '--no-deps', '--force-recreate', 'api')
+            Wait-AdvertifiedService $ComposeFiles 'api'
+        }
+        'ApplyMigrations' {
+            Invoke-AdvertifiedCompose $ComposeFiles @('up', '--no-build', '--no-deps', '--force-recreate',
+                '--abort-on-container-exit', '--exit-code-from', 'migrator', 'migrator')
+        }
+    }
 }
-
-Write-Host 'Replacing only advertified-os2-dev-api-1...'
-Invoke-AdvertifiedCompose $composeFiles @(
-    'up', '-d', '--no-build', '--no-deps', '--force-recreate', 'api'
-)
-Wait-AdvertifiedService $composeFiles 'api'
-Assert-AdvertifiedComposeProject -RequireExisting
-
-Write-Host 'Removing only dangling superseded image layers...'
-& docker image prune --force | Out-Host
-if ($LASTEXITCODE -ne 0) {
-    throw 'Unable to prune superseded dangling API layers.'
-}
-Invoke-AdvertifiedCompose $composeFiles @('ps', 'api')
+finally { Pop-Location }

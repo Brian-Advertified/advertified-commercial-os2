@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: c366c5eeeb3bd6e192599b208fca1a1722cb401dc5f20e9e6f28e91023ce8c35
+# source-sha256: 227b1bd4ffc8725159adad40fb18573de8158cdff80e3afdab2d6c9d3bd0bb0a
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.29.0"
+REGISTRY_VERSION = "2.30.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -72,6 +72,7 @@ class Permissions(StrEnum):
     INVENTORY_REVIEW = "inventory_review"
     INVENTORY_ASSET_RIGHTS_REVIEW = "inventory_asset_rights_review"
     INVENTORY_PUBLISH = "inventory_publish"
+    SUPPLIER_CLAIM_MANAGE = "supplier_claim_manage"
     PLAN_VIEW = "plan_view"
     PLAN_GENERATE = "plan_generate"
     PLAN_EDIT = "plan_edit"
@@ -194,6 +195,7 @@ class HumanTaskTypes(StrEnum):
     PROPOSAL_APPROVAL = "PROPOSAL_APPROVAL"
     SPATIAL_CLARIFICATION = "SPATIAL_CLARIFICATION"
     ASSET_RIGHTS_REVALIDATION = "ASSET_RIGHTS_REVALIDATION"
+    INVENTORY_SUPERSESSION_REVIEW = "INVENTORY_SUPERSESSION_REVIEW"
 
 class EvidenceClassifications(StrEnum):
     FACT = "FACT"
@@ -229,6 +231,43 @@ class InventoryReviewDecisions(StrEnum):
     APPROVE = "APPROVE"
     REJECT = "REJECT"
     EDIT = "EDIT"
+
+class SupplierClaimStatuses(StrEnum):
+    UNCLAIMED = "UNCLAIMED"
+    INVITED = "INVITED"
+    CLAIMED = "CLAIMED"
+
+class InventorySupplierResolutionStatuses(StrEnum):
+    PENDING = "PENDING"
+    RESOLVED = "RESOLVED"
+    AMBIGUOUS = "AMBIGUOUS"
+
+class SupplierInvitationStatuses(StrEnum):
+    ACTIVE = "ACTIVE"
+    ACCEPTED = "ACCEPTED"
+    REVOKED = "REVOKED"
+    EXPIRED = "EXPIRED"
+
+class InventoryReplacementModes(StrEnum):
+    INITIAL_SNAPSHOT = "INITIAL_SNAPSHOT"
+    FULL_REPLACEMENT = "FULL_REPLACEMENT"
+    DELTA = "DELTA"
+
+class InventoryReleaseStatuses(StrEnum):
+    CURRENT = "CURRENT"
+    SUPERSEDED = "SUPERSEDED"
+
+class ProposalInventoryReviewStatuses(StrEnum):
+    CURRENT = "CURRENT"
+    REVIEW_REQUIRED = "REVIEW_REQUIRED"
+    RESOLVED = "RESOLVED"
+
+class ProposalInventoryImpactStatuses(StrEnum):
+    OPEN = "OPEN"
+    RESOLVED = "RESOLVED"
+
+class ProposalInventoryImpactTypes(StrEnum):
+    SUPPLIER_RELEASE_SUPERSEDED = "SUPPLIER_RELEASE_SUPERSEDED"
 
 class AvailabilityStatuses(StrEnum):
     UNKNOWN = "UNKNOWN"
@@ -557,6 +596,10 @@ class CommercialResourceTypes(StrEnum):
     INVENTORY_DUPLICATE_CANDIDATE = "inventory_duplicate_candidate"
     INVENTORY_EMBEDDING = "inventory_embedding"
     INVENTORY_AVAILABILITY_EXCEPTION = "inventory_availability_exception"
+    INVENTORY_SUPPLIER = "inventory_supplier"
+    SUPPLIER_CLAIM_INVITATION = "supplier_claim_invitation"
+    INVENTORY_SUPPLIER_RELEASE = "inventory_supplier_release"
+    PROPOSAL_INVENTORY_IMPACT = "proposal_inventory_impact"
 
 class CommercialActions(StrEnum):
     TENANT_UPDATED = "tenant.updated"
@@ -659,6 +702,15 @@ class CommercialActions(StrEnum):
     INVENTORY_EXTRACTION_RECONCILED = "inventory_extraction.reconciled"
     INVENTORY_EXTRACTION_REPROJECTION_REQUESTED = "inventory_extraction.reprojection_requested"
     INVENTORY_EXTRACTION_REPROJECTED = "inventory_extraction.reprojected"
+    INVENTORY_SUPPLIER_CREATED_FROM_INVENTORY = "inventory_supplier.created_from_inventory"
+    INVENTORY_IMPORT_SUPPLIER_RESOLVED = "inventory_import.supplier_resolved"
+    SUPPLIER_CLAIM_INVITATION_ISSUED = "supplier_claim.invitation_issued"
+    SUPPLIER_CLAIM_INVITATION_REVOKED = "supplier_claim.invitation_revoked"
+    SUPPLIER_CLAIM_ACCEPTED = "supplier_claim.accepted"
+    INVENTORY_RELEASE_PUBLISHED = "inventory_release.published"
+    INVENTORY_RELEASE_SUPERSEDED = "inventory_release.superseded"
+    PROPOSAL_INVENTORY_REVIEW_REQUIRED = "proposal.inventory_review_required"
+    PROPOSAL_INVENTORY_REVIEW_RESOLVED = "proposal.inventory_review_resolved"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -761,6 +813,15 @@ class CommercialEventTypes(StrEnum):
     INVENTORY_EXTRACTION_RECONCILED = "InventoryExtractionReconciled"
     INVENTORY_EXTRACTION_REPROJECTION_REQUESTED = "InventoryExtractionReprojectionRequested"
     INVENTORY_EXTRACTION_REPROJECTED = "InventoryExtractionReprojected"
+    INVENTORY_SUPPLIER_CREATED_FROM_INVENTORY = "InventorySupplierCreatedFromInventory"
+    INVENTORY_IMPORT_SUPPLIER_RESOLVED = "InventoryImportSupplierResolved"
+    SUPPLIER_CLAIM_INVITATION_ISSUED = "SupplierClaimInvitationIssued"
+    SUPPLIER_CLAIM_INVITATION_REVOKED = "SupplierClaimInvitationRevoked"
+    SUPPLIER_CLAIM_ACCEPTED = "SupplierClaimAccepted"
+    INVENTORY_SUPPLIER_RELEASE_PUBLISHED = "InventorySupplierReleasePublished"
+    INVENTORY_SUPPLIER_RELEASE_SUPERSEDED = "InventorySupplierReleaseSuperseded"
+    PROPOSAL_INVENTORY_REVIEW_REQUIRED = "ProposalInventoryReviewRequired"
+    PROPOSAL_INVENTORY_REVIEW_RESOLVED = "ProposalInventoryReviewResolved"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"

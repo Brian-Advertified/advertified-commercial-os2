@@ -2,6 +2,9 @@ using Advertified.Commercial.Domain.Governance;
 
 namespace Advertified.Commercial.Application.Brief;
 
+public sealed class SuppliedBriefInterpretationUnavailableException()
+    : Exception("Supplied-brief interpretation is not configured.");
+
 public sealed record UnderstandSuppliedBriefRequest(
     string SourceTitle,
     string SourceContent,

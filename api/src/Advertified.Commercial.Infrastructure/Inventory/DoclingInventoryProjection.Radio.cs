@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.MasterData;
 
@@ -11,6 +12,11 @@ internal static partial class DoclingInventoryProjection
         @"^\s*\d{1,2}:\d{2}\s*[-–—]\s*\d{1,2}:\d{2}\s*$",
         RegexOptions.CultureInvariant)]
     private static partial Regex RadioTimeBandPattern();
+
+    [GeneratedRegex(
+        @"(?<![A-Za-z0-9])(?<station>(?:[A-Za-z0-9!&.'-]+\s+){1,5}FM|[A-Za-z0-9!&.'-]+FM|RADIO\s+\d{2,4}|RSG|SAFM|CHANNEL\s+AFRICA)\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex RadioStationPattern();
 
     private static InventoryExtractedRow[] ReadRadioSchedule(
         InventoryTableRow[] rows,
@@ -136,26 +142,17 @@ internal static partial class DoclingInventoryProjection
     {
         foreach (var text in pageTexts)
         {
-            var line = text.Split(
-                ['\r', '\n'],
-                StringSplitOptions.RemoveEmptyEntries |
-                StringSplitOptions.TrimEntries).FirstOrDefault();
-            if (line is null)
-                continue;
-            var separator = line.IndexOf(
-                " is ", StringComparison.OrdinalIgnoreCase);
-            var candidate = separator > 0
-                ? line[..separator].Trim()
-                : line.Trim();
-            if (candidate.Length is < 2 or > 60)
-                continue;
-            if (Regex.IsMatch(
-                    candidate,
-                    @"\bFM\b|\bRADIO\b|^RSG$|^SAFM$|CHANNEL\s+AFRICA",
-                    RegexOptions.IgnoreCase |
-                    RegexOptions.CultureInvariant))
+            foreach (var line in text.Split(
+                         ['\r', '\n'],
+                         StringSplitOptions.RemoveEmptyEntries |
+                         StringSplitOptions.TrimEntries))
             {
-                return NormalizeStationName(candidate);
+                var match = RadioStationPattern().Match(line);
+                if (!match.Success)
+                    continue;
+                var candidate = match.Groups["station"].Value.Trim();
+                if (candidate.Length is >= 2 and <= 60)
+                    return NormalizeStationName(candidate);
             }
         }
         return null;

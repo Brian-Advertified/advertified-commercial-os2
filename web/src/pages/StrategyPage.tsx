@@ -4,6 +4,7 @@ import { humanMessage } from '../api/client'
 import { opportunityApi } from '../api/opportunity-client'
 import type { Strategy } from '../api/schemas'
 import { useWorkspace } from '../auth/workspace-state'
+import { ExperienceSignals, type ExperienceSignal } from '../components/ExperienceSignals'
 import { LoadingState, MessageState } from '../components/PageState'
 import { humanizeCode } from '../presentation/format'
 
@@ -50,6 +51,7 @@ function StrategyWorkspace({ strategy }: { strategy: Strategy }) {
     <header className="approved-strategy-header"><div><p className="eyebrow">Strategy & STP</p>
       <h1 id="strategy-title">Campaign strategy</h1><p>{artifact.diagnosis}</p></div>
       <span className={`approved-strategy-status ${unresolved.length ? 'needs-review' : ''}`}>{humanizeCode(strategy.status, true)}</span></header>
+    <ExperienceSignals title="Strategy intelligence" signals={strategySignals(artifact, unresolved.length)} />
     <div className="approved-strategy-layout">
       <aside className="approved-strategy-nav">
         {['Summary', 'Segmentation', 'Targeting', 'Positioning', 'Insights', 'Review'].map((label, index) =>
@@ -97,5 +99,50 @@ function parseStrategy(value: string): StrategyArtifact {
     return { diagnosis: value, growthThesis: 'Not supplied', objectives: [], audiences: [], proposition: 'Not supplied', message: 'Not supplied', channelImplications: [], risks: [] }
   }
 }
+function strategySignals(artifact: StrategyArtifact, unresolved: number): ExperienceSignal[] {
+  return [audienceSignal(artifact), objectiveSignal(artifact), channelSignal(artifact), strategyReviewSignal(unresolved)]
+}
+
+function audienceSignal(artifact: StrategyArtifact): ExperienceSignal {
+  const count = artifact.audiences.length
+  if (count === 0) return {
+    label: 'Audience shape', value: 'No hypotheses', icon: 'users', tone: 'neutral',
+    detail: 'Audience hypotheses still need to be established.', why: 'No audience hypotheses are present in the strategy artifact.',
+  }
+  return {
+    label: 'Audience shape', value: `${count} hypothesis${count === 1 ? '' : 'es'}`, icon: 'users', tone: 'blue',
+    detail: 'The strategy has explicit audience groups to take into targeting.', why: artifact.audiences.slice(0, 3).join(' · '),
+  }
+}
+
+function objectiveSignal(artifact: StrategyArtifact): ExperienceSignal {
+  const additional = Math.max(0, artifact.objectives.length - 1)
+  return {
+    label: 'Campaign objective', value: artifact.objectives[0] ?? 'Not supplied', icon: 'target', tone: 'violet',
+    detail: additional > 0 ? `${additional} additional objective${additional === 1 ? '' : 's'} retained.` : 'This is the leading persisted campaign objective.',
+    why: artifact.growthThesis,
+  }
+}
+
+function channelSignal(artifact: StrategyArtifact): ExperienceSignal {
+  const count = artifact.channelImplications.length
+  return {
+    label: 'Channel implications', value: `${count} signal${count === 1 ? '' : 's'}`, icon: 'plan', tone: count ? 'positive' : 'neutral',
+    detail: count ? 'Strategy has explicit implications for the later media mix.' : 'No channel implications are currently retained.',
+    why: count ? artifact.channelImplications.slice(0, 3).join(' · ') : 'Planning should not infer channel direction that is absent from the strategy.',
+  }
+}
+
+function strategyReviewSignal(unresolved: number): ExperienceSignal {
+  if (unresolved === 0) return {
+    label: 'Review state', value: 'Clear to progress', icon: 'evidence', tone: 'positive',
+    detail: 'No unresolved material strategy objections remain.', why: 'Only persisted objections without a resolution are treated as unresolved.',
+  }
+  return {
+    label: 'Review state', value: `${unresolved} unresolved`, icon: 'evidence', tone: 'warning',
+    detail: 'Material objections still need a recorded resolution.', why: 'This signal counts only persisted objections without a recorded resolution.',
+  }
+}
+
 function text(value: unknown) { return typeof value === 'string' && value.trim() ? value : 'Not supplied' }
 function list(value: unknown) { return Array.isArray(value) ? value.map(String).filter(Boolean) : [] }

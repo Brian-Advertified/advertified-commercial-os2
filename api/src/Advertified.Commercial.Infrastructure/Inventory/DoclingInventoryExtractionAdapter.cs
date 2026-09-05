@@ -203,8 +203,7 @@ public sealed partial class DoclingInventoryExtractionAdapter(
             rows);
         var projected = NativeOfficeInventoryProjection.Apply(
             request, provider);
-        return InventorySourceContextProjection.Apply(
-            request, projected);
+        return projected;
     }
 
     private static MultipartFormDataContent CreateForm(

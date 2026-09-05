@@ -1,9 +1,10 @@
 using System.Globalization;
+
 using Npgsql;
 
 namespace Advertified.Commercial.Infrastructure.Worker;
 
-public sealed class WorkerSchedulerStore(string connectionString)
+public sealed partial class WorkerSchedulerStore(string connectionString)
 {
     public async Task<bool> CheckHealthAsync(CancellationToken cancellationToken)
     {
@@ -134,6 +135,26 @@ public sealed class WorkerSchedulerStore(string connectionString)
         return await command.ExecuteScalarAsync(cancellationToken) is true;
     }
 
+    public Task<InventoryExtractionWakeListener> OpenInventoryExtractionListenerAsync(
+        CancellationToken cancellationToken) =>
+        InventoryExtractionWakeListener.OpenAsync(connectionString, cancellationToken);
+
+    public async Task<DateTimeOffset?> NextInventoryExtractionDueAsync(
+        int maxConcurrency, CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            "SELECT commercial.next_inventory_extraction_due(@max_concurrency)", connection);
+        command.Parameters.AddWithValue("max_concurrency", maxConcurrency);
+        var value = await command.ExecuteScalarAsync(cancellationToken);
+        return value switch
+        {
+            DateTime timestamp => new DateTimeOffset(timestamp),
+            DateTimeOffset timestamp => timestamp,
+            _ => null,
+        };
+    }
+
     private static InventoryExtractionWorkerClaim ReadInventoryExtractionClaim(
         NpgsqlDataReader reader) => new(
         reader.GetGuid(0), reader.GetGuid(1), reader.GetGuid(2), reader.GetInt64(3),
@@ -148,9 +169,17 @@ public sealed class WorkerSchedulerStore(string connectionString)
     private async Task<NpgsqlConnection> OpenAsync(CancellationToken cancellationToken)
     {
         var connection = new NpgsqlConnection(connectionString);
-        await connection.OpenAsync(cancellationToken);
-        await using var role = new NpgsqlCommand("SET ROLE advertified_worker", connection);
-        await role.ExecuteNonQueryAsync(cancellationToken);
-        return connection;
+        try
+        {
+            await connection.OpenAsync(cancellationToken);
+            await using var role = new NpgsqlCommand("SET ROLE advertified_worker", connection);
+            await role.ExecuteNonQueryAsync(cancellationToken);
+            return connection;
+        }
+        catch
+        {
+            await connection.DisposeAsync();
+            throw;
+        }
     }
 }

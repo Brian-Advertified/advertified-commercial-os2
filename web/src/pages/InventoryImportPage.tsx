@@ -1,3 +1,5 @@
+import { InventoryReleaseSummary } from '../inventory/InventoryReleaseSummary'
+import { InventoryInterpretationReview } from '../inventory/InventoryInterpretationReview'
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
@@ -59,7 +61,7 @@ function ImportRecord({ tenantId, importId, canReview }: {
     </div>
     {record.status === inventoryCodes.importStatus.uploaded
       ? <ApprovedClassifyStage tenantId={tenantId} record={record} actions={actions} />
-      : <ApprovedCandidateStage record={record} canReview={canReview} actions={actions} />}
+      : <ApprovedCandidateStage tenantId={tenantId} record={record} canReview={canReview} actions={actions} />}
     <div id="publication-action"><ImportCompletionActions tenantId={tenantId} record={record}
       model={model} actions={actions} /></div>
   </section>
@@ -136,12 +138,17 @@ function ApprovedClassifyStage({ tenantId, record, actions }: {
   </section>
 }
 
-function ApprovedCandidateStage({ record, canReview, actions }: {
+function ApprovedCandidateStage({ tenantId, record, canReview, actions }: {
+  tenantId: string
   record: InventoryImport
   canReview: boolean
   actions: ReturnType<typeof useImportActions>
 }) {
   return <>
+    <InventoryInterpretationReview key={record.interpretation?.mappingRevision} record={record}
+      tenantId={tenantId} canReview={canReview} busy={actions.busy} run={actions.run} />
+    <InventoryReleaseSummary tenantId={tenantId} supplierId={record.supplierId}
+      approvedCandidates={record.candidateCounts.approved} />
     <section className="approved-candidate-table-card"><header><div><h2>Extract Candidates</h2>
       <p>{record.candidateCounts.total.toLocaleString()} candidate record{record.candidateCounts.total === 1 ? '' : 's'} extracted with source coordinates.</p></div>
       <span>Source evidence and validation retained</span></header>
@@ -165,6 +172,7 @@ function ApprovedCandidateStage({ record, canReview, actions }: {
     </section>
   </>
 }
+
 
 function formatCandidateMoney(amountMinor: number, currency: string) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 0 }).format(amountMinor / 100)

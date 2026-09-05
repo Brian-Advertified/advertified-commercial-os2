@@ -54,6 +54,12 @@ internal static class InventoryCandidateValidator
         InventoryCodeSets codes)
     {
         var issues = new List<InventoryValidationIssueView>();
+        if (values.Extension?.ContainsKey(InventoryDiscoveredCandidateNormalizer.UnresolvedMarker) == true)
+            issues.Add(Block("schema", MasterDataCodes.ValidationIssueTypes.CommercialTermsInvalid,
+                "Unmapped, conflicting or ambiguous source evidence requires review."));
+        if (values.Extension?.ContainsKey(InventoryProjectionRowMatch.AmbiguityField) == true)
+            issues.Add(Block("source", MasterDataCodes.ValidationIssueTypes.CommercialTermsInvalid,
+                "Multiple physical rows match this provider row. Resolve the exact source binding before publication."));
         Required(issues, "productCode", values.ProductCode);
         Required(issues, "name", values.Name);
         RequiredCode(issues, "channel", values.Channel, codes.Channels);

@@ -80,9 +80,11 @@ function InventoryIndex({ tenantId, canImport, canReview }: {
     }
     setBusy(true); setError(null)
     try {
-      const record = await inventoryApi.upload(
+      const uploaded = await inventoryApi.upload(
         tenantId, String(values.get('supplierName')), file, session.antiforgeryToken)
-      notifications.success('The source is protected and ready to process.')
+      const record = await inventoryApi.execute(
+        tenantId, uploaded, session.antiforgeryToken)
+      notifications.success('The source is protected and extraction is queued.')
       navigate(`/inventory/imports/${record.id}`)
     } catch (failure) {
       setError(humanMessage(failure))

@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
@@ -171,11 +172,14 @@ internal static class OpportunityCommandSupport
         ResourceTypeCode resourceType,
         ActionCode action,
         EventTypeCode eventType,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        JsonElement? eventPayload = null,
+        JsonElement? persistedData = null)
         where TCommand : notnull
         where TResult : notnull =>
         CommandOutcomeFactory.Create(
-            envelope, view, resourceId, version, resourceType, action, eventType, now);
+            envelope, view, resourceId, version, resourceType, action, eventType, now,
+            eventPayload, persistedData);
 
     public static async Task EnsureDifferentActiveReviewerAsync(
         GovernanceDbContext dbContext,

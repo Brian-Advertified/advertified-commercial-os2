@@ -180,14 +180,14 @@ internal static partial class NativePresentationProjection
     {
         var values = shapes
             .Where(shape => IsGeography(shape.Text))
-            .Select(shape => shape.Text.Replace('\n', ' ').Trim())
+            .Select(shape => shape.Text[(shape.Text.IndexOf(':') + 1)..].Replace('\n', ' ').Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
         if (values.Length == 0)
             return;
         var locator = shapes.First(shape =>
             values.Contains(
-                shape.Text.Replace('\n', ' ').Trim(),
+                shape.Text[(shape.Text.IndexOf(':') + 1)..].Replace('\n', ' ').Trim(),
                 StringComparer.OrdinalIgnoreCase));
         SetDerived(
             state,

@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { briefApi } from '../api/brief-client'
-import { campaignApi } from '../api/campaign-client'
-import type { Campaign } from '../api/campaign-schemas'
+export { MeasurementIndexPage, ReportsIndexPage } from './MeasurementIndexPages'
 import { humanMessage } from '../api/client'
 import { opportunityApi } from '../api/opportunity-client'
 import { proposalApi } from '../api/proposal-client'
@@ -17,7 +16,6 @@ import { masterDataCodes } from '../generated/master-data-codes'
 import { formatDateTime, humanizeCode } from '../presentation/format'
 
 type BriefListState = { briefs: CampaignBriefSummary[] }
-type CampaignListState = { campaigns: Campaign[] }
 type TaskListState = { tasks: HumanTask[] }
 type ProposalListState = { proposals: ProposalSummary[] }
 type PlanningListState = { planning: PlanningSummary[] }
@@ -39,9 +37,6 @@ const loadProposals = async (
 }
 const loadTasks = async (tenantId: string): Promise<TaskListState> => ({
   tasks: await opportunityApi.listTasks(tenantId),
-})
-const loadCampaigns = async (tenantId: string): Promise<CampaignListState> => ({
-  campaigns: await campaignApi.list(tenantId),
 })
 
 export function BriefsIndexPage() {
@@ -108,27 +103,6 @@ export function ApprovalsIndexPage() {
   }}</TaskData>
 }
 
-export function MeasurementIndexPage() {
-  return <CampaignData>{campaigns => <WorkspaceIndex title="Measurement"
-    subtitle="Reviewed performance evidence and campaign measurement outputs.">
-    {campaigns.length === 0 ? <Empty label="No campaign measurement is available yet" /> : campaigns.map(campaign =>
-      <IndexRow key={campaign.id} icon="chart" title={campaign.title}
-        meta={`${humanizeCode(campaign.status, true)} · ${campaign.performanceEvidence.length} evidence item(s) · ${campaign.measurementReports.length} report(s)`}
-        updated={campaign.updatedAtUtc} to={`/campaigns/${campaign.id}#measurement`} />)}
-  </WorkspaceIndex>}</CampaignData>
-}
-
-export function ReportsIndexPage() {
-  return <CampaignData>{campaigns => {
-    const reports = campaigns.flatMap(campaign => campaign.measurementReports.map(report => ({ campaign, report })))
-    return <WorkspaceIndex title="Reports" subtitle="Campaign measurement reports built from reviewed evidence.">
-      {reports.length === 0 ? <Empty label="No measurement reports have been generated yet" /> : reports.map(({ campaign, report }) =>
-        <IndexRow key={report.id} icon="evidence" title={`${campaign.title} · Report ${report.versionNumber}`}
-          meta={`${humanizeCode(report.status, true)} · ${report.evidence.length} evidence source(s)`}
-          updated={report.updatedAtUtc} to={`/measurement-reports/${report.id}`} />)}
-    </WorkspaceIndex>
-  }}</CampaignData>
-}
 
 function WorkspaceIndex({ title, subtitle, action, children }: {
   title: string
@@ -185,29 +159,43 @@ function TaskData({ children }: { children: (tasks: HumanTask[]) => ReactNode })
   return <>{children(state.value.tasks)}</>
 }
 
-function CampaignData({ children }: { children: (campaigns: Campaign[]) => ReactNode }) {
-  const state = useTenantLoad(loadCampaigns)
-  if (state.loading) return <LoadingState label="Loading campaign work" />
-  if (state.error || !state.value) return <MessageState title="Campaign work could not be opened" message={state.error ?? 'Campaign work is unavailable.'} />
-  return <>{children(state.value.campaigns)}</>
-}
 
 function useTenantLoad<T>(load: (tenantId: string) => Promise<T>) {
-  const { selected, loading } = useWorkspace()
+  const { selected, loading: workspaceLoading } = useWorkspace()
   const [value, setValue] = useState<T | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadedTenantId, setLoadedTenantId] = useState<string | undefined>()
   const tenantId = selected?.tenantId
   useEffect(() => {
-    if (!tenantId) return
+    setValue(null)
+    setError(null)
+    setLoadedTenantId(tenantId)
+    if (!tenantId) {
+      setLoading(false)
+      return
+    }
+    setLoading(true)
     let active = true
-    void load(tenantId).then(result => { if (active) setValue(result) })
+    void load(tenantId).then(result => {
+      if (active) setValue(result)
+    })
       .catch((failure: unknown) => { if (active) setError(humanMessage(failure)) })
+      .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [tenantId, load])
-  return useMemo(() => ({ selected, loading, value, error }), [selected, loading, value, error])
+  return useMemo(
+    () => ({ selected,
+      loading: workspaceLoading || loading || loadedTenantId !== tenantId,
+      value: loadedTenantId === tenantId ? value : null,
+      error: loadedTenantId === tenantId ? error : null }),
+    [selected, workspaceLoading, loading, loadedTenantId, tenantId, value, error],
+  )
 }
 
 function taskRoute(task: HumanTask) {
+  if (task.resourceType === masterDataCodes.commercialResourceTypes.inventoryImport)
+    return `/inventory/imports/${task.resourceId}`
   if (task.resourceType.toLowerCase().includes('proposal')) return `/proposals/${task.resourceId}`
   if (task.resourceType.toLowerCase().includes(
     masterDataCodes.commercialResourceTypes.strategy,

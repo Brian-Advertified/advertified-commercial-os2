@@ -36,7 +36,7 @@ public sealed partial class ProposalCommands
         {
             throw new ApprovalRequiredException();
         }
-        await EnsureProposalPlansCurrentAsync(
+        await inventoryReadiness.EnsureProposalPlansCurrentAsync(
             envelope.TenantId, proposalVersionId, cancellationToken);
         var now = timeProvider.GetUtcNow();
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
@@ -47,6 +47,8 @@ public sealed partial class ProposalCommands
                 approval_requested_at_utc = {now}, version = version + 1
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {proposalVersionId}
               AND status_code = {MasterDataCodes.LifecycleStatuses.Draft}
+              AND inventory_review_status_code =
+                    {MasterDataCodes.ProposalInventoryReviewStatuses.Current}
               AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1) throw new VersionConflictException();
@@ -75,13 +77,14 @@ public sealed partial class ProposalCommands
     {
         var (proposal, brief) = await LoadApprovalContextAsync(
             proposalVersionId, envelope.TenantId, cancellationToken);
+        EnsureProposalInventoryCurrent(proposal);
         if (proposal.ExpiryAtUtc <= timeProvider.GetUtcNow())
         {
             throw new InvalidLifecycleTransitionException();
         }
         var approvalMode = await ResolveApprovalModeAsync(
             proposalVersionId, proposal, brief, envelope, cancellationToken);
-        await EnsureProposalPlansCurrentAsync(
+        await inventoryReadiness.EnsureProposalPlansCurrentAsync(
             envelope.TenantId, proposalVersionId, cancellationToken);
         var now = timeProvider.GetUtcNow();
         var updated = await PersistProposalApprovalAsync(
@@ -141,7 +144,10 @@ public sealed partial class ProposalCommands
                 approved_by = {envelope.ActorId.Value}, approved_at_utc = {now},
                 approval_mode_code = {approvalMode}, version = version + 1
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {proposalVersionId}
-              AND status_code = {proposal.Status} AND version = {envelope.ExpectedVersion}
+              AND status_code = {proposal.Status}
+              AND inventory_review_status_code =
+                    {MasterDataCodes.ProposalInventoryReviewStatuses.Current}
+              AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1) throw new VersionConflictException();
         if (approvalMode == MasterDataCodes.ApprovalModes.Independent)

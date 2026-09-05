@@ -22,15 +22,24 @@ internal static class InventoryCandidateAdmissionPolicy
         string sourceHash,
         string selectedSupplier,
         InventoryCodeSets codes,
-        DateTimeOffset capturedAtUtc) =>
-        rows.Select(row => InventoryCandidateNormalizer.Normalize(
-                row, sourceHash, capturedAtUtc))
-            .Where(IsSellableCandidate)
-            .Select(candidate =>
-                InventoryExtractionCompletionPolicy.PrepareCandidate(
-                    candidate, selectedSupplier, codes))
-            .Where(IsAdmitted)
-            .ToArray();
+        DateTimeOffset capturedAtUtc)
+    {
+        var result = new List<PreparedInventoryCandidate>();
+        foreach (var row in rows)
+        {
+            var candidate = InventoryCandidateNormalizer.Normalize(row, sourceHash, capturedAtUtc);
+            if (candidate.HasDiscoveredSchema)
+            {
+                // Record boundaries come from the validated schema. Missing meanings
+                // are review exceptions, not permission to discard the source record.
+                if (!candidate.Evidence.Any(field => HasText(field.RawValue))) continue;
+            }
+            else if (!IsSellableCandidate(candidate)) continue;
+            var prepared = InventoryExtractionCompletionPolicy.PrepareCandidate(candidate, selectedSupplier, codes);
+            if (candidate.HasDiscoveredSchema || IsAdmitted(prepared)) result.Add(prepared);
+        }
+        return result.ToArray();
+    }
 
     internal static bool IsSellableCandidate(
         ExtractedInventoryCandidate candidate)

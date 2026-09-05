@@ -216,17 +216,8 @@ def test_semantic_output_schema_only_allows_supplied_source_locators() -> None:
     assert bounded["properties"]["omitted_source_locators"]["items"]["enum"] == expected
 
 
-def test_source_operation_schema_prevents_cross_stage_fields() -> None:
-    class Located(BaseModel):
-        locator: str
-
-    class Request(BaseModel):
-        operation: str
-        source_items: tuple[Located, ...]
-        source_images: tuple[Located, ...]
-        existing_rows: tuple[Located, ...]
-
-    schema = json.dumps({
+def _source_operation_schema():
+    return json.dumps({
         "type": "object",
         "$defs": {
             "ProposedInventoryCandidate": {
@@ -274,6 +265,19 @@ def test_source_operation_schema_prevents_cross_stage_fields() -> None:
             },
         },
     })
+
+
+def test_source_operation_schema_prevents_cross_stage_fields() -> None:
+    class Located(BaseModel):
+        locator: str
+
+    class Request(BaseModel):
+        operation: str
+        source_items: tuple[Located, ...]
+        source_images: tuple[Located, ...]
+        existing_rows: tuple[Located, ...]
+
+    schema = _source_operation_schema()
     sources = (Located(locator="text:1"),)
     images = (Located(locator="image:1"),)
     rows = (Located(locator="row:1"),)

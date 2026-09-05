@@ -187,8 +187,8 @@ def extract_horizontal_units(
 
     priority = (
         "element", "placement", "ad unit", "advertising unit",
-        "programme", "program", "show", "description", "name",
-        "product", "platform", "site", "site number", "site code",
+        "programme", "program", "show", "name", "product",
+        "site", "site number", "site code", "platform", "description",
     )
     identity_column = next(
         (

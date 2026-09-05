@@ -23,7 +23,8 @@ public sealed partial class DatabaseRecoveryAcceptanceTests
     private const string Username = "advertified_recovery";
     private const string Password = "advertified-recovery-local-only";
     private const string ArchivePath = "/tmp/advertified-recovery.dump";
-    private const int ExpectedProtectedTableCount = 93;
+    // Must agree with the audited initial-baseline tenant-isolation contract.
+    private const int ExpectedProtectedTableCount = 101;
     private static readonly Guid TenantId =
         Guid.Parse("e1000000-0000-0000-0000-000000000001");
     private static readonly Guid OtherTenantId =
@@ -176,7 +177,7 @@ public sealed partial class DatabaseRecoveryAcceptanceTests
         Assert.Equal(1, await CountAsync(connection, "SELECT count(*)::integer FROM commercial.outbox_messages WHERE published_at_utc IS NULL"));
         Assert.Equal(1, await CountAsync(connection, """
             SELECT count(*)::integer FROM "__EFMigrationsHistory"
-            WHERE "MigrationId" = '202608300024_MeasurementReports'
+            WHERE "MigrationId" = '202609050001_InitialBaseline'
             """));
         Assert.Equal(1, await CountAsync(connection, $"""
             SELECT count(DISTINCT registry_version)::integer

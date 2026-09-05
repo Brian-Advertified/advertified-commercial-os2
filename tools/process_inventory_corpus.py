@@ -21,7 +21,6 @@ try:
 except ModuleNotFoundError:
     from inventory_corpus_api import InventoryApi
 
-GOVERNED_DOCUMENT_COUNT = 43
 HOLDOUT_RATIO = 0.20
 SUPPORTED_MEDIA_TYPES = {
     ".pdf": "application/pdf",
@@ -63,7 +62,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("source", type=Path)
     parser.add_argument("--evidence", type=Path, required=True)
     parser.add_argument("--process", action="store_true")
-    parser.add_argument("--partition", choices=("train", "holdout", "all"), default="train")
+    parser.add_argument("--partition", choices=("train", "holdout", "all"), default="all")
     parser.add_argument("--document", action="append", default=[])
     parser.add_argument("--api-base-url", default="http://127.0.0.1:5097")
     parser.add_argument("--origin", default="http://localhost:3017")
@@ -89,13 +88,13 @@ def load_or_create_manifest(source_root: Path, manifest_path: Path) -> dict[str,
         verify_unchanged(source_root, manifest)
         return manifest
     documents = inspect_sources(source_root)
-    if len(documents) != GOVERNED_DOCUMENT_COUNT:
-        raise ValueError(f"Expected exactly {GOVERNED_DOCUMENT_COUNT} source files.")
+    if not documents:
+        raise ValueError("Select at least one supported source file for evaluation.")
     assign_partitions(documents)
     corpus_hash = hash_text("\n".join(item["sha256"] for item in documents))
     manifest = {
         "schemaVersion": "inventory-corpus-manifest-v1",
-        "datasetVersion": f"inventory-corpus-2026-09-03-{corpus_hash[:12]}",
+        "datasetVersion": f"inventory-evaluation-{corpus_hash[:12]}",
         "createdAtUtc": now_utc(),
         "sourceRoot": str(source_root),
         "expectedPaidAiCostUsd": 0.0,
@@ -137,7 +136,7 @@ def assign_partitions(documents: list[dict[str, Any]]) -> None:
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for document in documents:
         groups[document["extension"]].append(document)
-    target = math.ceil(len(documents) * HOLDOUT_RATIO)
+    target = max(len(groups), math.ceil(len(documents) * HOLDOUT_RATIO))
     quotas = {key: max(1, math.ceil(len(items) * HOLDOUT_RATIO)) for key, items in groups.items()}
     while sum(quotas.values()) > target:
         candidates = [key for key, quota in quotas.items() if quota > 1]
@@ -152,11 +151,12 @@ def assign_partitions(documents: list[dict[str, Any]]) -> None:
 
 
 def verify_unchanged(source_root: Path, manifest: dict[str, Any]) -> None:
-    if manifest.get("documentCount") != GOVERNED_DOCUMENT_COUNT:
-        raise ValueError("The recorded corpus does not match the governed document count.")
+    documents = manifest.get("documents") or []
+    if not documents or manifest.get("documentCount") != len(documents):
+        raise ValueError("The recorded document count does not match its evaluation manifest.")
     recorded = {item["relativePath"]: item for item in manifest["documents"]}
     current = sorted(path for path in source_root.rglob("*") if path.is_file())
-    if len(current) != GOVERNED_DOCUMENT_COUNT:
+    if len(recorded) != len(documents) or len(current) != len(documents):
         raise ValueError("The source corpus file count changed after manifest creation.")
     for path in current:
         relative = path.relative_to(source_root).as_posix()

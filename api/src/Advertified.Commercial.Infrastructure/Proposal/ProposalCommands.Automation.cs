@@ -66,6 +66,8 @@ public sealed partial class ProposalCommands
                 shared_at_utc = {now}, version = version + 1
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {proposalVersionId}
               AND status_code = {MasterDataCodes.LifecycleStatuses.Approved}
+              AND inventory_review_status_code =
+                    {MasterDataCodes.ProposalInventoryReviewStatuses.Current}
               AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1)

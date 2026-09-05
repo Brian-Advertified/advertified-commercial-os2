@@ -12,6 +12,7 @@ public interface IIdempotentCommandUnitOfWork
     Task<CommandReceipt> ExecuteOnceAsync<TCommand>(
         CommandEnvelope<TCommand> envelope,
         Func<CancellationToken, Task<CommandOutcome>> handler,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<CancellationToken, Task>? authorizeResource = null)
         where TCommand : notnull;
 }

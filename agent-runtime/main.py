@@ -5,7 +5,8 @@ import secrets
 from typing import Literal
 
 from fastapi import FastAPI, Header, HTTPException, Request
-from pydantic import BaseModel
+from anyio import to_thread
+from pydantic import BaseModel, ValidationError
 
 from agent_registry import AgentCode
 from bedrock_provider import BEDROCK_MODE, bedrock_configuration_ready
@@ -17,6 +18,7 @@ from inventory_embedding_service import (
     deterministic_embedding,
 )
 from runtime_execution import DETERMINISTIC_MODE, execute_agent, implemented_agents
+from runtime_admission import admitted_request
 
 RUNTIME_MODE_KEY = "ADVERTIFIED_AGENT_RUNTIME_MODE"
 SERVICE_KEY = "ADVERTIFIED_AGENT_RUNTIME_SERVICE_KEY"
@@ -93,16 +95,33 @@ async def invoke(
 ) -> dict[str, object]:
     mode = _runtime_mode()
     _require_service(mode, x_advertified_service_key)
-    return execute_agent(agent_code, await http_request.body(), mode)
+    async with admitted_request(http_request) as request_body:
+        return await to_thread.run_sync(
+            execute_agent,
+            agent_code,
+            request_body,
+            mode,
+        )
 
 
 @app.post("/v1/inventory-embeddings", response_model=InventoryEmbeddingResponse)
-def create_inventory_embedding(
-    request: InventoryEmbeddingRequest,
+async def create_inventory_embedding(
+    http_request: Request,
     x_advertified_service_key: str | None = Header(default=None),
 ) -> InventoryEmbeddingResponse:
     mode = _runtime_mode()
     _require_service(mode, x_advertified_service_key)
+    async with admitted_request(http_request) as body:
+        try:
+            request = InventoryEmbeddingRequest.model_validate_json(body)
+        except ValidationError as error:
+            raise HTTPException(422, "Invalid inventory embedding request.") from error
+        return await to_thread.run_sync(_execute_embedding, request, mode)
+
+
+def _execute_embedding(
+    request: InventoryEmbeddingRequest, mode: str,
+) -> InventoryEmbeddingResponse:
     if mode == DETERMINISTIC_MODE:
         return deterministic_embedding(request)
     try:

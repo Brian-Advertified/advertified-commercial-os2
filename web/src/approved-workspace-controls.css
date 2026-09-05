@@ -1,0 +1,123 @@
+/* Final authenticated consistency layer. Inventory roots are excluded because their
+   styling is being changed independently. Everything else inherits one action/contrast language. */
+.approved-page-frame > :not(.inventory-workbench-page):not(.inventory-import-page):not(.inventory-record-page)
+  :is(.primary-button, .new-brief-action) {
+  min-height: var(--ui-control-height);
+  color: #fff !important;
+  background: var(--approved-purple) !important;
+  border-color: var(--approved-purple) !important;
+  border-radius: var(--ui-radius-sm);
+  box-shadow: none;
+}
+
+.approved-page-frame > :not(.inventory-workbench-page):not(.inventory-import-page):not(.inventory-record-page)
+  :is(.primary-button, .new-brief-action):hover:not(:disabled) {
+  color: #fff !important;
+  background: var(--approved-purple-2) !important;
+  border-color: var(--approved-purple-2) !important;
+}
+
+.approved-page-frame > :not(.inventory-workbench-page):not(.inventory-import-page):not(.inventory-record-page)
+  :is(.secondary-button, .light-action) {
+  min-height: var(--ui-control-height);
+  color: var(--approved-ink) !important;
+  background: #fff !important;
+  border-color: var(--approved-line) !important;
+  border-radius: var(--ui-radius-sm);
+  box-shadow: none;
+}
+
+.approved-page-frame > :not(.inventory-workbench-page):not(.inventory-import-page):not(.inventory-record-page)
+  :is(.secondary-button, .light-action):hover:not(:disabled) {
+  color: var(--approved-purple) !important;
+  background: var(--approved-purple-soft) !important;
+  border-color: #cfc3ff !important;
+}
+
+.approved-page-frame > :not(.inventory-workbench-page):not(.inventory-import-page):not(.inventory-record-page)
+  .eyebrow {
+  color: var(--approved-purple) !important;
+}
+
+.approved-page-frame > :not(.inventory-workbench-page):not(.inventory-import-page):not(.inventory-record-page)
+  :is(.approved-panel, .operations-panel) {
+  color: var(--approved-body);
+  background: #fff;
+  border-color: var(--approved-line);
+}
+
+.approved-page-frame > :not(.inventory-workbench-page):not(.inventory-import-page):not(.inventory-record-page)
+  :is(.approved-panel, .operations-panel) :is(h2, h3, strong) {
+  color: var(--approved-ink);
+}
+
+.approved-page-frame > :not(.inventory-workbench-page):not(.inventory-import-page):not(.inventory-record-page)
+  :is(.approved-panel, .operations-panel) :is(p, small) {
+  color: var(--approved-muted);
+}
+
+/* Compact status/count labels must remain legible on the light workspace. */
+.approved-page-frame > :not(.inventory-workbench-page):not(.inventory-import-page):not(.inventory-record-page)
+  :is(.status-chip, .operations-state-label) {
+  color: var(--approved-ink) !important;
+  background: #f5f3ff !important;
+  border: 1px solid #ddd6fe !important;
+}
+
+.approved-page-frame .approved-opportunity-list > header,
+.approved-page-frame .approved-opportunity-create > header {
+  background: #fff;
+}
+
+.approved-page-frame .approved-opportunity-list > header h2,
+.approved-page-frame .approved-opportunity-create > header h2 {
+  color: var(--approved-ink) !important;
+}
+
+.approved-page-frame .approved-opportunity-list > header p,
+.approved-page-frame .approved-opportunity-create > header p {
+  color: var(--approved-muted) !important;
+  font-size: var(--ui-font-sm);
+  line-height: 1.45;
+}
+
+/* Dashboard campaign rows show persisted state, never fabricated percentage progress. */
+.approved-dashboard .approved-campaign-row {
+  grid-template-columns: 48px minmax(0, 1fr) minmax(130px, auto) 18px;
+}
+.approved-dashboard .approved-campaign-stage {
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+.approved-dashboard .approved-campaign-stage strong {
+  color: var(--approved-ink);
+  font-size: var(--ui-font-sm);
+}
+.approved-dashboard .approved-campaign-stage small {
+  color: var(--approved-muted);
+  font-size: var(--ui-font-xs);
+}
+.approved-dashboard .approved-campaign-row > b {
+  color: var(--approved-purple);
+  font-size: 16px;
+}
+
+/* Subtle movement communicates interactivity without turning the OS into a decorative dashboard. */
+.approved-page-frame > :not(.inventory-workbench-page):not(.inventory-import-page):not(.inventory-record-page)
+  :is(.approved-panel, .operations-panel, .proposal-section, .planning-section) {
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.approved-page-frame > :not(.inventory-workbench-page):not(.inventory-import-page):not(.inventory-record-page)
+  :is(.approved-panel, .operations-panel):hover {
+  border-color: #d9d2f8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .approved-page-frame *,
+  .experience-signal {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

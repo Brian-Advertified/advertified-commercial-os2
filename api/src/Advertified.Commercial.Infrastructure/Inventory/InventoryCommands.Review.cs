@@ -32,13 +32,20 @@ public sealed partial class InventoryCommands
             throw new InvalidLifecycleTransitionException();
         }
         var decision = NormalizeDecision(envelope.Command.Decision);
-        var values = ResolveReviewValues(row, envelope.Command, decision);
+        if (row.Version != envelope.ExpectedVersion) throw new VersionConflictException();
+        var artifact = await InventoryRetainedAcceptance.LoadAsync(store.DbContext,
+            envelope.TenantId, candidateId, cancellationToken);
+        if (decision != MasterDataCodes.InventoryReviewDecisions.Reject)
+            return await ReviewInterpretationAsync(row, source, artifact, envelope, cancellationToken);
+        if (envelope.Command.CorrectedSchema is not null)
+            throw new ArgumentException("Schema corrections require a retained schema interpretation and edit decision.");
+        var values = ResolveReviewValues(row, envelope.Command);
         var codes = await InventoryCodeSets.LoadAsync(store.DbContext, cancellationToken);
         var validation = InventoryCandidateValidator.Validate(values, codes);
-        ValidateDecision(decision, envelope.Command, validation);
+        if (string.IsNullOrWhiteSpace(envelope.Command.RejectionReason))
+            throw new ArgumentException("A rejection reason is required.");
         var now = timeProvider.GetUtcNow();
-        var status = decision == MasterDataCodes.InventoryReviewDecisions.Reject
-            ? MasterDataCodes.LifecycleStatuses.Rejected : MasterDataCodes.LifecycleStatuses.Approved;
+        var status = MasterDataCodes.LifecycleStatuses.Rejected;
         await ChangeCandidateAsync(
             envelope, row, values, validation, status, now, cancellationToken);
         await InsertReviewDecisionAsync(
@@ -93,14 +100,8 @@ public sealed partial class InventoryCommands
 
     private static InventoryCandidateValues ResolveReviewValues(
         InventoryCandidateRow row,
-        ReviewInventoryCandidateCommand command,
-        string decision)
+        ReviewInventoryCandidateCommand command)
     {
-        if (decision == MasterDataCodes.InventoryReviewDecisions.Edit)
-        {
-            return InventoryReviewSupport.NormalizeCorrection(command.CorrectedValues
-                ?? throw new ArgumentException("Corrected values are required for an edit."));
-        }
         if (command.CorrectedValues is not null)
         {
             throw new ArgumentException("Use the edit decision when correcting fields.");
@@ -117,25 +118,6 @@ public sealed partial class InventoryCommands
             or MasterDataCodes.InventoryReviewDecisions.Edit
             ? decision
             : throw new ArgumentException("Select a supported review decision.");
-    }
-
-    private static void ValidateDecision(
-        string decision,
-        ReviewInventoryCandidateCommand command,
-        IReadOnlyList<InventoryValidationIssueView> validation)
-    {
-        if (decision == MasterDataCodes.InventoryReviewDecisions.Reject)
-        {
-            if (string.IsNullOrWhiteSpace(command.RejectionReason))
-            {
-                throw new ArgumentException("A rejection reason is required.");
-            }
-            return;
-        }
-        if (validation.Any(issue => issue.IsBlocking))
-        {
-            throw new InventoryPublishBlockedException();
-        }
     }
 
     private async Task ChangeCandidateAsync(
@@ -224,15 +206,5 @@ public sealed partial class InventoryCommands
             await RecordStepAsync(tenantId, importId, MasterDataCodes.InventoryImportStepTypes.Review,
                 MasterDataCodes.LifecycleStatuses.Completed, now, cancellationToken);
         }
-    }
-}
-
-internal static class InventoryReviewSupport
-{
-    internal static InventoryCandidateValues NormalizeCorrection(InventoryCandidateValues values)
-    {
-        var normalized = InventoryCandidateValueNormalization.Normalize(values);
-        InventoryCandidateValueNormalization.EnsureCorrectionLimits(normalized);
-        return normalized;
     }
 }

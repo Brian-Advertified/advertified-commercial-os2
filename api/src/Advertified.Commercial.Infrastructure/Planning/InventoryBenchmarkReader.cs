@@ -2,12 +2,14 @@ using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Infrastructure.Inventory;
 
 namespace Advertified.Commercial.Infrastructure.Planning;
 
 public sealed class InventoryBenchmarkReader(
     PlanningRecordStore store,
     ITenantAuthorizer authorizer,
+    InventorySupplierAccessPolicy supplierAccess,
     PlanningPolicy planningPolicy,
     TimeProvider timeProvider) : IInventoryBenchmarkReader
 {
@@ -19,6 +21,9 @@ public sealed class InventoryBenchmarkReader(
     {
         await EnsureAllowedAsync(actorId, tenantId, cancellationToken);
         await using var transaction = await store.BeginSessionAsync(
+            actorId, tenantId, cancellationToken);
+        await supplierAccess.EnsureProductAccessAsync(actorId, tenantId, productId, cancellationToken);
+        var supplierScope = await supplierAccess.ResolveSupplierScopeAsync(
             actorId, tenantId, cancellationToken);
         var target = await store.FindInventoryAsync(tenantId, productId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Inventory access denied.");
@@ -35,6 +40,8 @@ public sealed class InventoryBenchmarkReader(
             throw new InventoryBenchmarkUnavailableException();
         }
         var inventory = await store.ListInventoryAsync(tenantId, cancellationToken);
+        if (supplierScope is not null)
+            inventory = inventory.Where(item => supplierScope.Contains(item.SupplierId)).ToList();
         var spatialPeers = await store.ListSpatialPeersAsync(
             tenantId, target.ProductVersionId, planningPolicy.OohRadiiKilometres[^1],
             cancellationToken);

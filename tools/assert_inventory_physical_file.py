@@ -1,7 +1,7 @@
 """Fail closed unless one corpus file has a passing physical certification.
 
 This command performs no extraction and makes no provider calls. It is intended
-for chaining the one-file-at-a-time production certification workflow.
+for an explicitly selected evaluation file, not application readiness.
 """
 
 from __future__ import annotations
@@ -10,19 +10,17 @@ import argparse
 import json
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-MANIFEST = REPO_ROOT / "artifacts" / "inventory-corpus" / "source-manifest.json"
-CERTIFICATIONS = (
-    REPO_ROOT / "artifacts" / "inventory-corpus" / "physical-certification"
-)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--document", required=True)
+    parser.add_argument("--evidence", type=Path, required=True)
     args = parser.parse_args()
 
-    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    root = args.evidence.resolve(strict=True)
+    certifications = root / "physical-certification"
+    manifest = json.loads((root / "source-manifest.json").read_text(encoding="utf-8"))
     matches = [
         item for item in manifest.get("documents", [])
         if item.get("relativePath") == args.document
@@ -31,7 +29,7 @@ def main() -> int:
         raise SystemExit(f"Expected one manifest entry for {args.document!r}.")
 
     source_hash = matches[0]["sha256"]
-    report_path = CERTIFICATIONS / f"{source_hash}.json"
+    report_path = certifications / f"{source_hash}.json"
     report = json.loads(report_path.resolve(strict=True).read_text(encoding="utf-8"))
     failures = report.get("failures") or []
     passed = (
@@ -54,7 +52,7 @@ def main() -> int:
         "bedrockCalled": False,
     }
     print(json.dumps(summary, indent=2))
-    marker = CERTIFICATIONS / f"{source_hash}.pass.json"
+    marker = certifications / f"{source_hash}.pass.json"
     if passed:
         marker.write_text(
             json.dumps(summary, indent=2, sort_keys=True) + "\n",

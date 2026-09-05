@@ -10,8 +10,11 @@ public sealed class WorkerDispatchOptions
     public int MaxEmailAttempts { get; init; } = 5;
     public int InventoryExtractionLeaseSeconds { get; init; } = 120;
     public int InventoryExtractionMaxConcurrency { get; init; } = 1;
+    public int InventoryExtractionRecoverySweepSeconds { get; init; } = 300;
 
     public TimeSpan PollInterval => TimeSpan.FromMilliseconds(PollMilliseconds);
+    public TimeSpan InventoryExtractionRecoverySweepInterval =>
+        TimeSpan.FromSeconds(InventoryExtractionRecoverySweepSeconds);
 
     public static bool HasSafeTiming(WorkerDispatchOptions options) =>
         options.PollMilliseconds is >= 100 and <= 5_000 &&
@@ -19,8 +22,10 @@ public sealed class WorkerDispatchOptions
         options.FailureDelaySeconds is >= 15 and <= 900 &&
         options.MaxEmailAttempts is >= 1 and <= 20 &&
         options.InventoryExtractionLeaseSeconds is >= 30 and <= 600 &&
-        options.InventoryExtractionMaxConcurrency is >= 1 and <= 4;
+        options.InventoryExtractionMaxConcurrency is >= 1 and <= 4 &&
+        options.InventoryExtractionRecoverySweepSeconds is >= 30 and <= 3_600;
 }
+
 
 public static class EmailWorkerCompletion
 {

@@ -143,6 +143,7 @@ public sealed partial class InventoryExtractionAttemptStore
 
         await MarkReprojectionStepsAsync(
             source, now, cancellationToken);
+        await SignalInventoryWorkAsync(source.Id, cancellationToken);
     }
 
     internal async Task<InventoryProjectionSource>
@@ -157,6 +158,7 @@ public sealed partial class InventoryExtractionAttemptStore
                 SELECT extraction.id AS "InputArtifactId",
                     extraction.adapter_code AS "AdapterCode",
                     extraction.provider_json::text AS "ProviderJson",
+                    extraction.canonical_json::text AS "CanonicalJson",
                     source.source_file_name AS "FileName",
                     source.declared_media_type
                         AS "DeclaredMediaType",
@@ -192,7 +194,7 @@ public sealed partial class InventoryExtractionAttemptStore
             new InventoryExtractionRequest(
                 row.FileName, row.DeclaredMediaType,
                 row.DocumentClass, claim.SourceHash, content),
-            row.ProviderJson);
+            row.ProviderJson, row.CanonicalJson);
     }
 
     private Task<int> MarkReprojectionStepsAsync(
@@ -311,7 +313,8 @@ public sealed partial class InventoryExtractionAttemptStore
 internal sealed record InventoryProjectionSource(
     Guid InputArtifactId,
     InventoryExtractionRequest Request,
-    string ProviderJson);
+    string ProviderJson,
+    string CanonicalJson);
 
 internal sealed record InventoryProjectionSourceRow
 {
@@ -319,6 +322,7 @@ internal sealed record InventoryProjectionSourceRow
     public string AdapterCode { get; set; } =
         string.Empty;
     public string ProviderJson { get; set; } = "{}";
+    public string CanonicalJson { get; set; } = "{}";
     public string FileName { get; set; } = string.Empty;
     public string DeclaredMediaType { get; set; } =
         string.Empty;

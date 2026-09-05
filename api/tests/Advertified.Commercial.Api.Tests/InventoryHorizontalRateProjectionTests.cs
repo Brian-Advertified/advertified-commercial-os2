@@ -54,9 +54,7 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
             request.SourceHash,
             json,
             rows);
-        var contextual = InventorySourceContextProjection.Apply(
-            request,
-            provider);
+        var contextual = provider;
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(
             contextual.Rows,
             request.SourceHash,

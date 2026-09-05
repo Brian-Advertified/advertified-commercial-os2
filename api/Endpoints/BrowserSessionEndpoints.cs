@@ -24,10 +24,12 @@ public static class BrowserSessionEndpoints
             .WithName("BeginOidcBrowserSession")
             .AllowAnonymous()
             .RequireRateLimiting(RequestRateLimitPolicies.BrowserSession);
-        group.MapGet("/logout", EndOidcAsync)
+        group.MapPost("/logout", EndOidcAsync)
             .WithName("EndOidcBrowserSession")
             .AllowAnonymous()
-            .RequireRateLimiting(RequestRateLimitPolicies.BrowserSession);
+            .RequireRateLimiting(RequestRateLimitPolicies.BrowserSession)
+            .Produces<OidcSignOutView>()
+            .WithBrowserProblems();
         group.MapPost("", StartAsync)
             .WithName("StartLocalBrowserSession")
             .AllowAnonymous()
@@ -79,16 +81,19 @@ public static class BrowserSessionEndpoints
     private static async Task<IResult> EndOidcAsync(
         HttpContext context,
         IConfiguration configuration,
+        BrowserRequestGuard requestGuard,
         IBrowserSessionStore sessionStore,
         IOptions<BrowserSessionOptions> sessionOptions,
         IOptions<OidcAuthenticationOptions> oidcOptions,
         CancellationToken cancellationToken)
     {
         EnsureOidcMode(configuration);
+        await requestGuard.ValidateAsync(context);
         await InvalidateCurrentAsync(
             context, sessionStore, sessionOptions.Value, cancellationToken);
         BrowserSessionCookie.Delete(context.Response, sessionOptions.Value);
-        return Results.Redirect(BuildOidcLogoutUrl(oidcOptions.Value));
+        return Results.Ok(new OidcSignOutView(
+            BuildOidcLogoutUrl(oidcOptions.Value)));
     }
 
     private static async Task<IResult> StartAsync(
@@ -246,3 +251,5 @@ public sealed record BrowserSessionView(
     DateTimeOffset? ExpiresAtUtc,
     string? SignInPath,
     string? SignOutPath);
+
+public sealed record OidcSignOutView(string RedirectUrl);

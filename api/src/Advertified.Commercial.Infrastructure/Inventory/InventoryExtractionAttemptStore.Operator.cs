@@ -49,6 +49,7 @@ public sealed partial class InventoryExtractionAttemptStore
             """, cancellationToken);
         if (inserted != 1) throw new InvalidOperationException("Extraction retry was not queued.");
         await IncrementImportVersionAsync(source, now, cancellationToken);
+        await SignalInventoryWorkAsync(source.Id, cancellationToken);
     }
 
     internal async Task CancelAsync(
@@ -97,6 +98,10 @@ public sealed partial class InventoryExtractionAttemptStore
         else
             await UpdateReconciliationAsync(source, latest, envelope, cancellationToken);
         await IncrementImportVersionAsync(source, UtcNow, cancellationToken, allowUploaded: true);
+        if (!string.IsNullOrWhiteSpace(envelope.Command.ExternalTaskId))
+        {
+            await SignalInventoryWorkAsync(source.Id, cancellationToken);
+        }
     }
 
     private async Task InsertReconciliationAsync(

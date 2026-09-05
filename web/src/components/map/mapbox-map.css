@@ -1,0 +1,46 @@
+.advertified-map {
+  position: relative;
+  min-height: 22rem;
+  overflow: hidden;
+  background: #f8fafc;
+  border: 1px solid var(--approved-line, #d0d5dd);
+  border-radius: var(--ui-radius, 10px);
+}
+
+.advertified-map-canvas {
+  width: 100%;
+  min-height: 22rem;
+}
+
+.advertified-map-message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  color: var(--approved-muted, #667085);
+  background: linear-gradient(180deg, rgb(255 255 255 / 92%), rgb(248 250 252 / 96%));
+  text-align: center;
+  font-size: var(--ui-font-sm, 12px);
+  line-height: 1.5;
+}
+
+.advertified-map-message code {
+  padding: .1rem .3rem;
+  color: var(--approved-ink, #101828);
+  background: #f2f4f7;
+  border-radius: 4px;
+}
+
+.advertified-map .mapboxgl-ctrl-group {
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgb(16 24 40 / 14%);
+}
+
+@media (max-width: 760px) {
+  .advertified-map,
+  .advertified-map-canvas {
+    min-height: 18rem;
+  }
+}

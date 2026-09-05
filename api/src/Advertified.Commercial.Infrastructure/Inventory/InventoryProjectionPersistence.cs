@@ -32,7 +32,7 @@ internal static class InventoryProjectionPersistence
         TenantId tenantId,
         Guid importId,
         Guid inputArtifactId,
-        Guid attemptId,
+        Guid? attemptId,
         InventoryExtractionResult extraction,
         int candidateCount,
         Guid createdBy,
@@ -79,7 +79,10 @@ internal static class InventoryProjectionPersistence
                 {extraction.SchemaVersion},
                 {canonicalJson}::jsonb,
                 {extraction.CanonicalOutputHash},
-                {candidateCount}, {createdBy}, {now})
+                {candidateCount}, {createdBy}, GREATEST({now}, COALESCE((
+                    SELECT MAX(created_at_utc) + INTERVAL '1 microsecond'
+                    FROM commercial.inventory_extraction_projections
+                    WHERE tenant_id = {tenantId.Value} AND import_id = {importId}), {now})))
             """, cancellationToken);
 
     internal static async Task SupersedeCurrentCandidatesAsync(
@@ -88,7 +91,8 @@ internal static class InventoryProjectionPersistence
         Guid importId,
         Guid actorId,
         DateTimeOffset now,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool interpretationCorrection = false)
     {
         var unsafeState = await dbContext.Database
             .SqlQuery<bool>($"""
@@ -99,7 +103,7 @@ internal static class InventoryProjectionPersistence
                       AND candidate.import_id = {importId}
                       AND candidate.superseded_at_utc IS NULL
                       AND (
-                          candidate.status_code <>
+                          (NOT {interpretationCorrection} AND (candidate.status_code <>
                             {MasterDataCodes.LifecycleStatuses.ReviewRequired}
                           OR candidate.reviewed_by IS NOT NULL
                           OR EXISTS (
@@ -108,7 +112,7 @@ internal static class InventoryProjectionPersistence
                               WHERE decision.tenant_id =
                                     candidate.tenant_id
                                 AND decision.candidate_id =
-                                    candidate.id)
+                                    candidate.id)))
                           OR EXISTS (
                               SELECT 1
                               FROM commercial.inventory_product_versions version

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Inventory;
@@ -71,7 +72,7 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         Assert.Equal("R8 000", row.Values["rate"]);
         Assert.Equal("2026/09/04", row.Values["scheduledate"]);
         Assert.Equal("02:00", row.Values["timeslot"]);
-        Assert.Equal(MasterDataCodes.Channels.Tv, row.Values["channel"]);
+        Assert.False(row.Values.ContainsKey("channel")); // A TV filename is not source evidence.
         Assert.Equal(
             MasterDataCodes.InventoryEvidenceBases.DerivedPolicy,
             row.FieldEvidenceBases!["ratetype"]);

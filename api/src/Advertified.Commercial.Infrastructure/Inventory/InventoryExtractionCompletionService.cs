@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
@@ -14,6 +15,8 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 public sealed class InventoryExtractionCompletionService(
     InventoryExtractionAttemptStore attemptStore,
     InventoryRecordStore inventoryStore,
+    InventorySchemaExtractionStep schemaExtraction,
+    InventorySchemaExecutionGuard schemaGuard,
     InventorySemanticEnrichmentService semanticEnrichment,
     TimeProvider timeProvider)
 {
@@ -25,6 +28,9 @@ public sealed class InventoryExtractionCompletionService(
     {
         InventoryExtractionCompletionPolicy.VerifyResult(
             extraction, claim.SourceHash);
+        var (context, codes) = await schemaGuard.PrepareAsync(claim, cancellationToken);
+        extraction = await schemaExtraction.ApplyAsync(
+            extraction, codes, context, cancellationToken);
         extraction = await semanticEnrichment.EnrichAsync(
             claim, extraction, cancellationToken);
         InventoryExtractionCompletionPolicy.VerifyResult(
@@ -44,16 +50,20 @@ public sealed class InventoryExtractionCompletionService(
         {
             throw new InvalidLifecycleTransitionException();
         }
-        var reviewer = await FindReviewerAsync(source, cancellationToken);
         var now = timeProvider.GetUtcNow();
-        var codes = await InventoryCodeSets.LoadAsync(
-            attemptStore.DbContext, cancellationToken);
+        var supplier = InventorySupplierIdentityService.ResolveExtraction(source, extraction);
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(
             extraction.Rows,
             source.SourceHash,
-            source.SupplierName,
+            supplier.SupplierName,
             codes,
             now);
+        candidates = InventoryAcceptancePolicy.Apply(extraction, source.SourceHash,
+            claim.SourceFileVersion, codes, candidates, now);
+        Guid? reviewer = extraction.Document.SchemaDiscoveryFailure is not null ||
+            candidates.Any(InventoryCandidateReviewPolicy.RequiresReview)
+            ? await InventoryReviewerAssignment.FindAsync(attemptStore.DbContext, source.TenantId, source.CreatedBy, cancellationToken)
+            : null;
         var artifactId = Guid.NewGuid();
         var tenantId = new TenantId(claim.TenantId);
         await InsertArtifactAsync(
@@ -68,7 +78,10 @@ public sealed class InventoryExtractionCompletionService(
             artifactId, reviewer, now, candidates,
             cancellationToken);
         var importVersion = await CompleteImportAsync(
-            source, now, cancellationToken);
+            source, supplier, now, cancellationToken);
+        if (extraction.Document.SchemaDiscoveryFailure is { } failure)
+            await InventoryDocumentReviewPersistence.InsertAsync(attemptStore.DbContext,
+                source, reviewer, importVersion, failure, now, cancellationToken);
         var completed = await CompleteAttemptAsync(
             claim, artifactId, poll, now, cancellationToken);
         if (completed != 1)
@@ -103,24 +116,6 @@ public sealed class InventoryExtractionCompletionService(
         return matches.Count == 1;
     }
 
-    private async Task<Guid> FindReviewerAsync(
-        InventoryImportRow source,
-        CancellationToken cancellationToken)
-    {
-        var reviewers = await attemptStore.DbContext.Database.SqlQuery<Guid>($"""
-            SELECT membership.user_id AS "Value"
-            FROM commercial.memberships membership
-            WHERE membership.tenant_id = {source.TenantId}
-              AND membership.user_id <> {source.CreatedBy}
-              AND membership.status_code = {MasterDataCodes.LifecycleStatuses.Active}
-              AND membership.role_code = ANY({InventoryReviewerRoles.Inventory})
-            ORDER BY membership.role_code, membership.user_id LIMIT 1
-            """).ToListAsync(cancellationToken);
-        return reviewers.Count == 1
-            ? reviewers[0]
-            : throw new ApprovalRequiredException();
-    }
-
     private Task<int> InsertArtifactAsync(
         InventoryExtractionWorkerClaim claim,
         Guid artifactId,
@@ -141,12 +136,18 @@ public sealed class InventoryExtractionCompletionService(
 
     private async Task<long> CompleteImportAsync(
         InventoryImportRow source,
+        InventorySupplierResolution supplier,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         var versions = await attemptStore.DbContext.Database.SqlQuery<long>($"""
             UPDATE commercial.inventory_imports
             SET status_code = {MasterDataCodes.LifecycleStatuses.ReviewRequired},
+                supplier_id = {supplier.SupplierId},
+                supplier_name_hint = {supplier.SupplierName},
+                supplier_resolution_status_code = {supplier.Status},
+                supplier_identity_evidence_json = {supplier.EvidenceJson}::jsonb,
+                failure_code = NULL,
                 version = version + 1, updated_at_utc = {now}
             WHERE tenant_id = {source.TenantId} AND id = {source.Id}
               AND status_code = {MasterDataCodes.LifecycleStatuses.Extracting}

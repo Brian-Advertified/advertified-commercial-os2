@@ -6,17 +6,13 @@ read-only and never calls a paid provider.
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable
 
-ROOT = Path(__file__).resolve().parents[1]
-CORPUS = ROOT / "artifacts" / "inventory-corpus"
-MANIFEST = CORPUS / "source-manifest.json"
-SOURCE_MAPS = CORPUS / "semantic-v1"
-OUTPUT = CORPUS / "physical-source-profile.json"
 
 MONEY = re.compile(r"(?<![A-Za-z])(?:ZAR|R)\s*\d[\d\s.,\u00a0]*", re.I)
 CODE = re.compile(r"\b[A-Z]{1,8}[- ]?\d{2,8}[A-Z]{0,4}\b", re.I)
@@ -38,11 +34,14 @@ HEADER_LABELS = {
 
 
 def main() -> int:
-    manifest = read_json(MANIFEST)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--evidence", type=Path, required=True)
+    root = parser.parse_args().evidence.resolve(strict=True)
+    manifest = read_json(root / "source-manifest.json")
     documents = []
     for item in manifest.get("documents", []):
         source_hash = str(item["sha256"])
-        source_map_path = SOURCE_MAPS / f"{source_hash}.json"
+        source_map_path = root / "semantic-v1" / f"{source_hash}.json"
         profile = profile_source(item, read_json(source_map_path))
         documents.append(profile)
     result = {
@@ -62,14 +61,15 @@ def main() -> int:
         },
         "documents": documents,
     }
-    OUTPUT.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    output = root / "physical-source-profile.json"
+    output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({
         "sourceCount": result["sourceCount"],
         "formatCounts": result["formatCounts"],
         "totals": result["totals"],
-        "output": str(OUTPUT.relative_to(ROOT)),
+        "output": str(output),
     }, indent=2))
-    return 0 if len(documents) == 43 else 2
+    return 0 if documents else 2
 
 
 def profile_source(manifest: dict[str, Any], source: dict[str, Any]) -> dict[str, Any]:

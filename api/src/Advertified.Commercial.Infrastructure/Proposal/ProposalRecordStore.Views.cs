@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.Governance;
 
@@ -16,6 +17,8 @@ public sealed partial class ProposalRecordStore
         var options = await ListOptionsAsync(tenantId, proposal.Id, cancellationToken);
         var document = await FindDocumentAsync(tenantId, proposal.Id, cancellationToken);
         var decision = await FindDecisionAsync(tenantId, proposal.Id, cancellationToken);
+        var impacts = await ListInventoryImpactsAsync(
+            tenantId, proposal.Id, cancellationToken);
         return new ProposalVersionView(
             proposal.Id, proposal.BriefId, proposal.BriefVersionId, proposal.VersionNumber,
             proposal.Title, proposal.ExecutiveSummary, proposal.Terms, proposal.ExpiryAtUtc,
@@ -33,6 +36,7 @@ public sealed partial class ProposalRecordStore
             proposal.ApprovalAssigneeUserId, proposal.ApprovalRequestedBy,
             proposal.ApprovalRequestedAtUtc, proposal.ApprovalRejectedBy,
             proposal.ApprovalRejectionReason, proposal.ApprovalRejectedAtUtc,
+            proposal.InventoryReviewStatus, impacts,
             proposal.Version, proposal.CreatedAtUtc);
     }
 

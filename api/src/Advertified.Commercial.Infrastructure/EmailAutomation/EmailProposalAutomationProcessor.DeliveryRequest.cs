@@ -19,15 +19,24 @@ public sealed partial class EmailProposalAutomationProcessor
         var content = await proposalReader.GetDocumentAsync(
             owner, tenantId, document.Id, cancellationToken);
         var providerCode = run.DeliveryProviderCode ?? context.Provider;
-        var provider = emailProviders.Resolve(providerCode);
+        emailProviders.Resolve(providerCode);
         var idempotencyKey = run.DeliveryIdempotencyKey ??
             BuildDeliveryIdempotencyKey(run.Id, context.ReplyToEmail);
         var delivery = CreateDelivery(context, proposal, content, idempotencyKey);
         var intent = await store.BeginDeliveryAsync(
             tenantId, owner, context.InboundEmailId, providerCode, idempotencyKey,
             timeProvider.GetUtcNow(), correlationId, cancellationToken);
-        var receipt = await ResolveDeliveryReceiptAsync(
-            intent, provider, delivery, idempotencyKey, cancellationToken);
+        EmailDeliveryReceipt receipt;
+        try
+        {
+            receipt = await durableDelivery.DeliverAsync(new ProposalEmailBinding(
+                tenantId, owner, proposal.Id, document.Id, proposal.Version, providerCode),
+                delivery, intent.ShouldSend, cancellationToken);
+        }
+        catch (EmailDeliveryAcceptanceUnknownException)
+        {
+            throw DeliveryAmbiguous();
+        }
         try
         {
             return await AcceptAndFinalizeAsync(
@@ -47,38 +56,6 @@ public sealed partial class EmailProposalAutomationProcessor
         }
     }
 
-    private static async Task<EmailDeliveryReceipt> ResolveDeliveryReceiptAsync(
-        DeliveryIntentResult intent,
-        IEmailProviderClient provider,
-        ProposalEmailDelivery delivery,
-        string idempotencyKey,
-        CancellationToken cancellationToken)
-    {
-        if (!intent.ShouldSend)
-        {
-            return await ReconcileAsync(provider, idempotencyKey, cancellationToken);
-        }
-        try
-        {
-            return await provider.SendAsync(delivery, cancellationToken);
-        }
-        catch (EmailDeliveryAcceptanceUnknownException)
-        {
-            throw DeliveryAmbiguous();
-        }
-        catch (EmailDeliveryFailedException)
-        {
-            throw;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch
-        {
-            throw DeliveryAmbiguous();
-        }
-    }
 
     private ProposalEmailDelivery CreateDelivery(
         EmailAutomationContextRow context,

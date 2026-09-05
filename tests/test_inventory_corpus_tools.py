@@ -241,10 +241,10 @@ def test_manifest_checkpoint_retries_transient_windows_sharing_violation(
     assert json.loads(destination.read_text(encoding="utf-8")) == {"documentCount": 43}
 
 
-def test_evaluator_requires_the_verified_document_count() -> None:
+def test_evaluator_requires_nonempty_selected_evidence() -> None:
     evaluator = load_tool("evaluate_inventory_extraction")
-    with pytest.raises(ValueError, match="exactly 43 documents"):
-        evaluator.validate_manifest({"datasetVersion": "v1", "documents": [{}] * 42})
+    with pytest.raises(ValueError, match="selected documents"):
+        evaluator.validate_manifest({"datasetVersion": "v1", "documents": []})
 
 
 def test_collector_refuses_to_infer_an_unqueued_import(tmp_path: Path) -> None:
@@ -289,7 +289,7 @@ def test_quality_report_fails_every_file_without_gold_comparison(tmp_path: Path)
             }],
         }), encoding="utf-8")
     manifest = evidence / "source-manifest.json"
-    manifest.write_text(json.dumps({"datasetVersion": "v1", "documents": documents}),
+    manifest.write_text(json.dumps({"datasetVersion": "v1", "documentCount": len(documents), "documents": documents}),
                         encoding="utf-8")
 
     report = reporter.build_report(source, manifest)
@@ -301,62 +301,3 @@ def test_quality_report_fails_every_file_without_gold_comparison(tmp_path: Path)
     assert report["candidatesWithPolicyDefaultAvailability"] == 43
     assert all(item["semanticStatus"].startswith("FAILED_")
                for item in report["documents"])
-
-
-def test_dms_file_gold_covers_physical_rows_and_safety_contract() -> None:
-    digest = (
-        "2e2bb6e6a70bbd8c54b6d03deb3643d72126e1040752d7ef0e05c9ec456a25b5"
-    )
-    path = REPO_ROOT / "artifacts" / "inventory-corpus" / "gold" / f"{digest}.json"
-    gold = json.loads(path.read_text(encoding="utf-8"))
-
-    assert gold["documentId"] == digest
-    assert gold["relativePath"] == "DMS Digital Rate Card .xlsx"
-    assert gold["sourceEvidence"] == {
-        "positioningImage": (
-            "xlsx:sheet=Sheet1;image=1;cell=B11;"
-            "embedded-part=xl%2Fmedia%2Fimage1.png"
-        ),
-        "rateTableImage": (
-            "xlsx:sheet=Sheet1;image=2;cell=A1;"
-            "embedded-part=xl%2Fmedia%2Fimage2.png"
-        ),
-    }
-    records: dict[str, dict[str, str]] = {}
-    for cell in gold["goldCells"]:
-        records.setdefault(cell["recordKey"], {})[cell["field"]] = cell["value"]
-
-    assert list(records) == ["row-1", "row-2", "row-3", "row-4"]
-    required = {
-        "supplier", "inventory_identity", "placement", "dimensions",
-        "format_specification", "price", "currency", "media_type",
-    }
-    assert all(required.issubset(record) for record in records.values())
-    assert [record["inventory_identity"] for record in records.values()] == [
-        "DStv Stream VOD",
-        "DStv Stream VOD",
-        "DStv Stream Live",
-        "You Tube",
-    ]
-    assert [record["price"] for record in records.values()] == [
-        "R575", "R1,10", "R500", "R200",
-    ]
-    assert all(record["supplier"] == "DStv Media Sales"
-               for record in records.values())
-    assert all(record["media_type"] == "DIGITAL"
-               for record in records.values())
-
-    safety = gold["safetyExpectations"]
-    assert safety["requiredCandidateCount"] == 4
-    assert safety["requiredAmbiguityNoteRecordKeys"] == ["row-2"]
-    assert safety["expectedNullNormalizedRateRecordKeys"] == ["row-2"]
-    assert safety["expectedRateAmountMinor"] == {
-        "row-1": 57_500,
-        "row-2": None,
-        "row-3": 50_000,
-        "row-4": 20_000,
-    }
-    assert "rate_type" in safety["expectedUnknownFields"]
-    assert "FLAT_RATE" in safety["prohibitedInventedValues"]
-    assert safety["uniqueFieldsPerCandidate"] is True
-    assert safety["publicationAllowed"] is False

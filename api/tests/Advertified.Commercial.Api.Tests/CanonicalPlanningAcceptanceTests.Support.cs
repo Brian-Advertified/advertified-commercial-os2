@@ -67,7 +67,9 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", userId.ToString());
         builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
         builder.UseDeterministicInventoryProtection();
-        builder.UseSetting("ProposalDelivery:Mode", "Deterministic");
+        builder.UseSetting("SuppliedBrief:Mode", "Deterministic");
+        builder.UseSetting("EmailAutomation:Mode", "Deterministic");
+        builder.UseSetting("EmailAutomation:SenderAddress", "proposals@advertified.test");
         if (enableEmailAutomation)
         {
             builder.UseSetting("EmailAutomation:Mode", "Deterministic");

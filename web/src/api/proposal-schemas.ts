@@ -106,6 +106,31 @@ const proposalDecisionSchema = z.object({
   evidenceReference: z.string().nullable(),
 }).strict()
 
+export const proposalInventoryImpactSchema = z.object({
+  id: z.guid(),
+  proposalVersionId: z.guid(),
+  proposalOptionId: z.guid(),
+  mediaPlanLineId: z.guid(),
+  inventoryTenantId: z.guid(),
+  supplierId: z.guid(),
+  oldReleaseId: z.guid(),
+  replacementReleaseId: z.guid(),
+  oldProductId: z.guid(),
+  oldProductVersionId: z.guid(),
+  oldRateId: z.guid(),
+  oldAvailabilityId: z.guid().nullable(),
+  replacementProductId: z.guid().nullable(),
+  replacementProductVersionId: z.guid().nullable(),
+  replacementRateId: z.guid().nullable(),
+  replacementAvailabilityId: z.guid().nullable(),
+  impactType: requiredText,
+  status: requiredText,
+  comparisonJson: requiredText,
+  resolvedBy: z.guid().nullable(),
+  resolvedAtUtc: z.iso.datetime({ offset: true }).nullable(),
+  version: z.number().int().positive(),
+}).strict()
+
 export const proposalSchema = z.object({
   id: z.guid(),
   briefId: z.guid(),
@@ -129,6 +154,8 @@ export const proposalSchema = z.object({
   approvalRejectedBy: z.guid().nullable(),
   approvalRejectionReason: z.string().nullable(),
   approvalRejectedAtUtc: z.iso.datetime({ offset: true }).nullable(),
+  inventoryReviewStatus: requiredText,
+  inventoryImpacts: z.array(proposalInventoryImpactSchema),
   version: z.number().int().positive(),
   createdAtUtc: z.iso.datetime({ offset: true }),
 }).strict()

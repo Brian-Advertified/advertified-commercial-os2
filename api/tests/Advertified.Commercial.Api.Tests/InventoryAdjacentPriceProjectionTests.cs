@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Inventory;
@@ -34,7 +35,7 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
             "docling", "test",
             InventoryExtractionOptions.CurrentSchemaVersion,
             request.SourceHash, json, rows);
-        var contextual = InventorySourceContextProjection.Apply(request, provider);
+        var contextual = provider;
         var candidates = contextual.Rows.Select(row =>
             InventoryCandidateNormalizer.Normalize(
                 row, request.SourceHash, DateTimeOffset.UnixEpoch)).ToArray();
@@ -84,6 +85,48 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
             rateEvidence.NormalizedValue);
         Assert.Equal(MasterDataCodes.RateTypes.MonthRate,
             candidate.Values.RateType);
+    }
+
+    [Fact]
+    public void RoadNumberIsNotProjectedAsACommercialRate()
+    {
+        var json = JsonSerializer.Serialize(new
+        {
+            texts = new object[]
+            {
+                Text("ISO 32 - R21 Freeway, towards Pretoria", 3),
+            },
+            tables = new[]
+            {
+                new
+                {
+                    prov = new[] { new { page_no = 3 } },
+                    data = new
+                    {
+                        table_cells = new object[]
+                        {
+                            Cell("Name", 0, 0),
+                            Cell("Rate", 0, 1),
+                            Cell("ISO 32", 1, 0),
+                            Cell("R90 000", 1, 1),
+                        },
+                    },
+                },
+            },
+        });
+        var request = new InventoryExtractionRequest(
+            "Insight Outdoor ZA - Publisher Media Kit - 2025.pptx",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            MasterDataCodes.DocumentClasses.Pptx,
+            new string('e', 64),
+            [1]);
+
+        var rows = DoclingInventoryProjection.ReadRows(request, json);
+
+        Assert.DoesNotContain(rows, row =>
+            row.Values.GetValueOrDefault("rate") == "R21");
+        Assert.Contains(rows, row =>
+            row.Values.GetValueOrDefault("rate") == "R90 000");
     }
 
     private static object Text(string text, int page) => new

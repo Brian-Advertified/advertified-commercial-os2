@@ -64,6 +64,8 @@ public sealed partial class InventoryCommands
             CommandEnvelope<ReprojectInventoryExtractionCommand> envelope,
             CancellationToken cancellationToken)
     {
+        if (envelope.Command.ReevaluateAcceptance || envelope.Command.CorrectedSchema is not null)
+            return await ReevaluateDocumentAsync(importId, envelope, cancellationToken);
         var (source, latest, _) =
             await ReadOperatorContextAsync(
                 importId, envelope.TenantId,

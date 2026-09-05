@@ -486,8 +486,7 @@ Advertified supports role-scoped organisations and workspaces.
 - **Agency Campaign User** — briefs, collaboration, plans and proposals for assigned advertisers.
 - **Advertiser Admin** — own organisation, users, briefs and campaigns.
 - **Advertiser Approver** — assigned commercial decisions where the organisation uses separated approval.
-- **Supplier Admin** — own catalogue, users, rates, availability, RFQs and bookings.
-- **Supplier User** — assigned supplier inventory and requests.
+- **Supplier User** — own supplier catalogue, rates, availability, RFQs, bookings and assigned requests. This is the only active supplier-user role; it has no supplier administration hierarchy or unrelated tenant-management authority.
 - **Influencer / Representative** — own or represented profiles, rate cards, requests and deliverables.
 - **Service identities** — least-privilege runtime/worker identities; never interactive commercial approvers.
 
@@ -1626,10 +1625,14 @@ If those questions cannot be answered, extraction may be technically complete bu
 
 ## 11.21 Extraction release acceptance [Policy]
 
-The confidential internal evaluation corpus contains 43 legitimately supplied documents and
-is not committed to the public repository. Its source manifest reserves an untouched 20% holdout
-set and records source provenance; the independently human-authored versioned gold dataset must
-bind to that manifest. PDFs, spreadsheets, presentations, scans and images are measured
+Evaluation uses an explicitly selected, versioned collection of legitimately supplied documents,
+kept outside application source and public distribution. The collection used on 2026-09-03 had 43
+documents; that is historical evaluation scope, not a required inventory count or system dependency.
+Each evaluation manifest records its own membership, source hashes and provenance. A changed
+collection requires a new evaluation version, not changes to application code. The evaluation
+reserves an untouched 20% holdout where the sample permits; an insufficient sample cannot establish
+generalisation. Independently human-authored versioned gold must bind to that manifest, never be
+generated from the extraction being scored. PDFs, spreadsheets, presentations, scans and images are measured
 separately; an insufficiently represented format remains human-review-
 only rather than blocking the entire OOH_ONLY release.
 
@@ -1645,8 +1648,10 @@ Every accepted extracted field has a page, cell, region or other exact source ev
 pointer. A corrupt, password-protected, handwritten, unreadable or structurally ambiguous
 document, conflicting price/date, unclear currency/VAT treatment, formula without a usable
 calculated value, or result below an applicable threshold routes to human handling. Initial
-production extraction creates review candidates only; it never publishes or changes canonical
-inventory without the existing approval process.
+extraction creates candidates subject to the evidence-based acceptance policy in Section 11.23;
+clean candidates may be automatically accepted, while exceptions remain pending. Evaluation metrics
+are not per-candidate numeric schema-confidence thresholds. Neither evaluation success nor candidate
+acceptance publishes or changes canonical inventory without the existing human publication decision.
 
 ## 11.22 Durable external extraction orchestration [Policy]
 
@@ -1678,6 +1683,39 @@ cannot be proven.
 Day 0 production inventory intake is an explicit administrator action, not a continuously running
 inventory-discovery process.
 
+### Replaceable source documents, not application dependencies
+
+The owner's 2026-09-05 dataset-independence correction establishes that current supplier inventory
+files are external, replaceable inputs. An operator may upload one file, any selected collection or
+an entirely different collection without an application code or deployment change. The system must
+also operate with no inventory loaded. Supported-format and evidence requirements still apply;
+unreadable or unsupported inputs fail explicitly rather than receiving invented content.
+
+Production extraction, interpretation, validation, acceptance, publication and startup must not
+require particular filenames, supplier rosters, source hashes, folder paths, document counts,
+certification markers or privately retained evaluation artefacts. Filenames may identify sources or
+assist supported-format dispatch, but never supply missing commercial facts. Source hashes bind
+versions, integrity and valid reuse; they must not select known-document answers or bypass checks.
+
+Use the existing upload pipeline for every source. Do not create an offline parallel transcriber,
+row-by-row semantic processor, canonical-product assembler or generated-workbook reimport route to
+make current supplier files pass. Original source bytes and raw reader evidence remain authoritative.
+No Python tool may repair commercial values, accept candidates or substitute a local certificate for
+the C# acceptance and human publication decisions. Governed reference data and authorised supplier
+ownership remain distinct from evidence extracted from documents.
+
+Specific supplier examples may exist as isolated test inputs or versioned evaluation evidence, never
+as implementation rules. Automated regression checks must not require the owner's private inventory
+directory or today's dataset. Useful checks include a single upload, renamed inputs, arbitrary
+unfamiliar names and changed input collections. A fixture pass is not proof of physical extraction
+correctness or generalisation. Dataset certification reports describe only the exact evaluated
+sources and revisions; they are not authoritative application-production readiness reports.
+
+Physical/visual comparison against original files remains required for the separately authorised
+current certification exercise before paid Bedrock evaluation. It is not a permanent manual gate
+for future uploads and must not make one document depend on unrelated inventory. Historical
+evaluation and usage evidence is retained as history, not executable product policy.
+
 ```text
 authorised administrator selects a source file
 → upload, protect and classify
@@ -1701,7 +1739,10 @@ does not waive malware protection, extraction correctness, evidence, duplicate, 
 publication guards. The administrator remains accountable for resolving material extraction and
 supplier-identity ambiguity.
 
-The pipeline extracts supplier identity and available contact evidence from the source, then:
+The pipeline extracts supplier identity and available contact evidence from the source. Under the
+owner's subsequent generic-ingestion direction, authenticated or explicitly selected supplier
+ownership is fixed independently of document content. For an unresolved administrator import,
+extraction proposes identity evidence; an explicit administrator resolution/creation command then:
 
 - links the import to the existing permanent Supplier ID when identity is established;
 - creates one `UNCLAIMED` administrator-managed Supplier record when no existing supplier exists and
@@ -1712,12 +1753,68 @@ The pipeline extracts supplier identity and available contact evidence from the 
   ID, never merely to the displayed supplier name.
 
 An unclaimed supplier may own active published inventory. The administrator may later issue a
-single-use, expiring and revocable registration invitation bound to that exact Supplier ID and an
-allowed supplier role. Accepting the invitation creates or links the user's authenticated identity
+single-use, expiring and revocable registration invitation bound to that exact Supplier ID and the
+`supplier_user` role. Accepting the invitation creates or links the user's authenticated identity
 and supplier membership to the existing Supplier record. The supplier then sees the inventory
 already loaded on its behalf, and all later supplier uploads remain attached to the same Supplier
 ID. Claiming a supplier does not recreate, transfer or rewrite its inventory or audit history.
 Invitation issue, resend, revocation and acceptance are audited.
+
+### Evidence-based inventory acceptance — policy `inventory-acceptance/1.0`
+
+The owner's 2026-09-05 correction supersedes the earlier request for mandatory manual schema
+approval of every document. Continue the existing pipeline: upload → Docling/applicable source
+readers → source-evidence and extraction-completeness checks → Bedrock interpretation of each
+distinct structure → deterministic application to all source records → versioned validation →
+automatic acceptance of passing candidates and review of exceptions → separate human publication.
+Clean documents and rows require no schema-approval task. Model confidence is diagnostic only.
+
+Every applicable mandatory check must positively pass. Each recorded check is passed, failed,
+not evaluated or not applicable; not applicable requires an explicit policy condition and reason.
+Missing, skipped or unavailable checks keep acceptance pending. Policy 1.0 checks source identity
+and revision, evidence-backed commercial mappings, record boundaries across distinct structures,
+application beyond representative rows, accounting for source content/exclusions/extraction gaps,
+existing required commercial fields and relationships, values/units/dates/governed classifications,
+material ambiguity, and preservation of raw evidence and permitted transformations. Existing
+business applicability rules remain authoritative; absent optional information is not a blanket
+blocker. Defaults require explicit existing policy and policy-derived provenance.
+
+Readers retain actual content, locations and raw values. Interpretation proposes reusable bindings,
+record boundaries and contextual commercial meaning, including headings, notes, footnotes, units
+and periods. It may not invent missing extraction content, rewrite every row, assign ownership,
+replace inventory, accept candidates or publish. Supplier-, filename-, template- and known-corpus
+shortcuts are prohibited. Do not add an overlapping enrichment pass after schema interpretation.
+
+Isolated row problems hold the affected candidates; shared mapping problems hold their dependants;
+document-wide or unisolatable problems hold the document. Reuse the existing source-versus-
+interpretation review workflow for exceptions, showing mappings, affected candidates, evidence and
+specific reasons. Human corrections create traceable interpretation revisions and require fresh
+validation; a review decision may not bypass missing or failed acceptance evidence.
+
+The existing reprojection command also supports retained-evidence reevaluation and traceable
+mapping corrections at import scope, including imports with no candidate rows or no pending rows.
+It requires the current import version and exact retained interpretation revision, an independent
+authorised reviewer and a recorded reason. The same review screen exposes retained source structure,
+raw locations, field mappings and access-controlled download of the clean protected original.
+Reevaluation performs no extraction or paid interpretation. Historical rejections and deletion
+tombstones remain effective across mapping revisions, even when a rejected source record was
+temporarily omitted. Missing reviewer assignment must not discard extraction artifacts or silently
+accept unresolved candidates; evidence remains pending until an eligible reviewer is available.
+Publication revalidates server-owned retained artifacts, rejects absent schema evidence or changed
+canonical values, and records the fresh evaluation in the existing immutable publication audit.
+Editable candidate-extension metadata is not authority for acceptance or publication.
+
+Retain source version/hash, extraction and mapping revisions, model/prompt provenance, policy
+version, check results, reasons, outcome and timestamp. Preserve historical decisions. Compatible
+unchanged retries may reuse retained artifacts; policy changes require reevaluation, not another
+paid interpretation when retained evidence suffices. Outages/interruption remain recoverable and
+pending. Source authority, acceptance and human publication remain distinct. This correction does
+not alter supplier ownership/onboarding, replacement, expiry or proposal-impact rules.
+
+Current certification still requires physical comparison of the current extractions with their
+source files before separately authorised paid Bedrock evaluation, then inspection of actual
+requests and responses file by file. Certification is not a permanent manual schema-approval gate.
+The correction itself authorises no paid run, corpus re-import, deployment or container change.
 
 ### Supplier inventory replacement and atomic cutover
 
@@ -2425,6 +2522,87 @@ Campaign stages such as Strategy & STP, Planning, Proposal, Approval, Delivery, 
 A visible global menu item must open its own real product area. It must never point to an unrelated screen as a placeholder. A process step that has no valid destination remains non-navigational rather than secretly routing elsewhere.
 
 Use readable typography, charts/graphs where useful, consistent icons, subtle orientation/feedback animation, maps when geography matters, and clear spacing/hierarchy.
+
+### 21.3.2 Agency command-centre experience [Principle]
+
+Advertified must feel like an intelligent campaign command centre rather than an administrative form system.
+
+The product should visibly demonstrate that work has been understood, analysed and advanced. Where truthful backend evidence exists, surfaces should expose useful moments of intelligence such as:
+
+- likely audience groups and buying contexts;
+- inferred campaign mode and why it was selected;
+- geography, route, catchment and POI implications;
+- recommended channel roles and media-mix reasoning;
+- verified inventory counts and shortlist quality;
+- budget balance, over-concentration and allocation trade-offs;
+- commercial/rate benchmarks and materially better-value alternatives;
+- measurement gaps, evidence limitations and unresolved decisions;
+- supplier responses, availability changes and proposal consequences;
+- creative territories, concepts or examples where the creative workflow supports them.
+
+Intelligence should not be hidden behind backend execution. When the system has reached a useful conclusion, the user should be able to see the conclusion, its confidence/evidence basis and the next decision it enables.
+
+The desired agency feeling is: **"I gave Advertified a commercial problem and, within minutes, I understand the audience, market, media options, risks and what I should do next."**
+
+### 21.3.3 Visual momentum and delight [Policy]
+
+Professional consistency is the baseline, not the complete experience. Advertified should create restrained moments of visual reward as users move work forward.
+
+Use, where the underlying data supports them:
+
+- responsive campaign summaries and decision cards;
+- animated but non-distracting stage/progress feedback;
+- maps that react to geography, route, POI and selected-site changes;
+- visual media-allocation bars with stable per-channel colours and channel icons/logos;
+- editable per-channel running-period/timeline bars;
+- immediate budget-total and allocation feedback when users make planning changes;
+- benchmark, reach, frequency, performance and comparison charts when the data is defensible;
+- shortlist scoring and clear selected/rejected states;
+- supplier/media-owner identity and approved logos where rights permit;
+- creative previews and concept examples when generated or supplied assets exist;
+- concise "what changed" feedback after AI or human actions;
+- meaningful empty states that explain how to create value rather than showing dead space.
+
+Motion must communicate state, causality, progress or orientation. Decorative animation that slows work, causes layout instability or misrepresents progress is prohibited.
+
+### 21.3.4 Explainability as an interaction [Principle]
+
+Important recommendations should support a concise **Why this?** interaction where practical.
+
+Users should be able to understand why Advertified recommended or rejected an audience, geography, channel, media product, supplier, rate, allocation or measurement approach. Explanations must use retained evidence and governed reasoning; they must not fabricate certainty after the fact.
+
+### 21.3.5 Dashboard as live work command centre [Policy]
+
+The authenticated home/dashboard should answer **"What needs my attention now?"**, not merely display aggregate counts.
+
+Where persisted truth exists it should surface actionable changes such as:
+
+- approvals or corrections requiring attention;
+- supplier responses or availability changes;
+- proposals ready for review or client decision;
+- campaign, proof, booking or measurement deadlines;
+- meaningful campaign performance or delivery exceptions;
+- work that became blocked or unblocked;
+- material changes since the user's last interaction.
+
+Counts may support this view, but counts alone are not the dashboard experience.
+
+### 21.3.6 Map standard [Policy]
+
+PostGIS remains the canonical geographic truth and eligibility engine. Mapbox is the standard authenticated frontend map-rendering and interaction layer unless this specification is explicitly changed.
+
+All authenticated map surfaces must reuse the shared Advertified map component rather than introducing page-specific mapping stacks. The common map capability should support, as applicable:
+
+- points and inventory/site markers;
+- radius/catchment overlays;
+- routes and governed route buffers;
+- polygons and administrative/catchment boundaries;
+- POIs;
+- clustered dense result sets;
+- selected/rejected/highlighted inventory states;
+- fit-to-data behaviour and accessible map fallbacks.
+
+Maps are decision surfaces, not decorative backgrounds. They must render canonical or explicitly draft geography and clearly distinguish unverified/draft geometry from verified commercial geography.
 
 Avoid clutter, repeated banners, decorative stock-image dependency, internal technical copy, fake metrics/progress, per-screen themes, per-screen typography scales, arbitrary component sizing, or actions shown before the user has enough information to decide.
 
@@ -3646,13 +3824,13 @@ Permissions are independent of UI visibility. The Commercial API re-authorises e
 
 ## 41.1 Canonical role codes
 
-`platform_admin`, `internal_planner`, `inventory_ops`, `agency_admin`, `agency_campaign_user`, `advertiser_admin`, `advertiser_approver`, `supplier_admin`, `supplier_user`, `influencer_rep`, `agent_runtime_service`, `worker_service`.
+`platform_admin`, `internal_planner`, `inventory_ops`, `agency_admin`, `agency_campaign_user`, `advertiser_admin`, `advertiser_approver`, `supplier_user`, `influencer_rep`, `agent_runtime_service`, `worker_service`. The retained `supplier_admin` code is inactive historical reference data and must not be assigned.
 
 ## 41.2 Capability matrix
 
 | Capability | Platform/Admin & internal | Agency | Advertiser | Supplier | Service identities |
 |---|---|---|---|---|---|
-| Tenant/user administration | platform_admin; delegated tenant admins | agency_admin | advertiser_admin | supplier_admin | none interactively |
+| Tenant/user administration | platform_admin; delegated tenant admins | agency_admin | advertiser_admin | no | none interactively |
 | Opportunity create/edit | platform_admin/internal_planner | agency_admin/campaign_user assigned | view assigned | no | runtime reads approved inputs only |
 | Evidence register | platform_admin/internal_planner | agency users assigned | supplied through allowed flows | own supplier evidence where workflow permits | workers capture only via allowed tools |
 | Evidence review | platform_admin/inventory_ops or governed reviewer | no unless explicitly permissioned | no unless explicit task | own confirmations not equivalent to independent review | no approval |
@@ -4509,6 +4687,12 @@ remain unresolved. No live provider, production resource or external communicati
 
 ### 49.2.9 Consolidated production-readiness, Day 0 inventory and Bedrock-cost implementation plan — 2026-09-04
 
+Dataset-specific completion conditions in this historical plan are superseded by the owner's
+2026-09-05 correction in Sections 11.21, 11.23 and 49.2.13. Processing, certifying or publishing the
+then-current supplier collection is not an application installation or system-completion gate.
+Historical source manifests, file counts, evaluation costs and results below remain dated evidence,
+not mandatory product configuration or authority to recreate the removed parallel processing tools.
+
 This plan consolidates the 4 September 2026 production-readiness audit, the Bedrock cost-lever
 audit and the owner decisions in Section 11.23. Those reports are dated executable observations,
 not authority to override this specification. Every reported defect must be re-verified against the
@@ -4750,6 +4934,230 @@ The release decision is binary. One unresolved false-success path, unsupported p
 supplier/inventory data-loss risk, security blocker, missing recovery proof or unexecuted mandatory
 acceptance journey remains `NO-GO`. Cost optimisation cannot waive product correctness or
 operability.
+
+### 49.2.10 Day 0 supplier inventory lifecycle implementation — 2026-09-04
+
+The Day 0 inventory rules in Section 11.23 are implemented locally as one additive, production-
+intent vertical slice. An administrator upload now creates the protected import and immediately
+queues its durable extraction before opening the import workspace. Inventory extraction no longer
+polls an empty scheduler queue: the worker performs startup recovery, polls only while a claimed
+external attempt is active, then blocks on a PostgreSQL `LISTEN/NOTIFY` wake. Initial attempts and
+authorised retries emit the same transactional notification, and listener reconnection triggers a
+durable recovery check.
+
+Migration `202609040052_DayZeroInventoryLifecycle` adds permanent supplier claim state, hashed
+single-use claim invitations, exact supplier-user scopes, supplier inventory releases, import-to-
+product bindings, supplier-identity issues, product/import/candidate supersession fields and
+proposal inventory impacts. Source-extracted supplier identity is reconciled against the declared
+identity and existing permanent Supplier IDs. A proven new identity creates one administrator-
+managed `UNCLAIMED` Supplier; missing, conflicting or duplicate identities block publication rather
+than creating an unsafe duplicate. A claimed supplier's later uploads are bound to the exact
+supplier scope and cannot be redirected through a typed supplier name.
+
+Successful `FULL_REPLACEMENT` publication performs one transactional cutover. It establishes the
+new current supplier release, supersedes the previous release, expires products absent from the new
+release, supersedes prior versions, soft-deletes older pending imports/candidates from ordinary
+views, preserves all historical rows and registers impacts against uncommitted proposals. Failed or
+blocked publication rolls the transaction back and leaves the previous release current. Ordinary
+catalogue search excludes superseded inventory; permissioned release-history and supplier-current-
+product endpoints retain traceability.
+
+Uncommitted affected proposals are marked `INVENTORY_REVIEW_REQUIRED`; approval, send, selection and
+booking transitions are rejected until an authorised replacement proposal version resolves every
+impact. The old proposal and line references remain readable. Confirmed bookings are excluded from
+this invalidation path. The import and proposal workspaces show the replacement warning and impact,
+including current/new inventory counts, pending records, old/replacement release references and
+whether a possible product replacement exists.
+
+An authorised administrator can create, view and revoke an expiring supplier registration link.
+Only its SHA-256 token hash is stored; the raw link is returned once for copying. Acceptance requires
+an authenticated user whose verified email matches the invitation, creates the exact supplier scope
+and links the user to the existing Supplier ID and already-loaded inventory. Existing platform or
+supplier authority is preserved; an incompatible agency/advertiser membership is never silently
+converted and instead produces an explicit role-conflict failure. Creating a replacement link for
+the same supplier/email revokes the earlier active link.
+
+The local verification batch compiled the Release API, ran the focused Day 0 worker, inventory
+acceptance, extraction-durability, migration and OpenAPI tests, regenerated and synchronized the
+canonical OpenAPI contract, ran the dedicated Day 0 source-contract checks, the architecture suite,
+web type-check/lint/unit/build checks and `git diff --check`. Disposable databases inside the one
+existing `advertified-os2-dev` PostgreSQL service exercised unclaimed supplier creation, two atomic
+release cutovers, expiry/supersession, pending soft deletion, stale-proposal blocking, compatible
+invitation acceptance and incompatible-role preservation. The disposable databases were removed.
+No shared application data, existing service container, persistent volume, production resource,
+external communication or live/paid AI provider was changed or invoked. The implementation remains
+uncommitted in the pre-existing dirty worktree and must be reconciled with concurrent inventory work
+before release.
+
+### 49.2.11 Inventory schema-discovery takeover — 2026-09-05
+
+The owner requested incorporation of the generic inventory extraction architecture while preserving
+the concurrent lifecycle/UI changes, then authorised necessary tests, builds and local Docker
+deployment, followed by committing and pushing all changes when complete. This is not authority
+for paid/live provider calls, production deployment or commercial publication.
+
+The bounded takeover reconciles structural extraction, once-per-document schema discovery,
+deterministic batch evidence projection, normalization and exception review. Unknown labels and
+supplier names must not require code changes. Supplier ownership comes from authentication or an
+explicit administrator decision, never a filename or an AI interpretation. Raw values, source
+positions and proposed meanings survive rejection; ambiguous values must remain unresolved.
+Retained reprojection uses stored schema/evidence without repeating provider work. A rejected or
+absent schema requires document review and must not fall back to commercial heuristics.
+
+The preceding release gate is not delivered or approved by this takeover. Acceptance still requires
+affected builds, focused safety regressions, architecture checks, supplier isolation/replacement
+journeys and truthful unfamiliar-format evidence. Processing the current supplier collection is
+a separate data task, not a product release prerequisite. Deterministic interpreter fixtures
+prove batching and evidence contracts, not model generalization or production readiness. Current
+commands, results and unresolved findings are retained in the machine-readable takeover disposition;
+earlier Section 49.2.10 verification describes its dated state, not the reconciled working tree.
+
+
+### 49.2.12 Opportunity agent notification dispatch - 2026-09-05
+
+The owner's focused source-only request replaces the opportunity dispatcher's 100 ms idle
+claim loop with the existing PostgreSQL notification transport. This work does not advance the
+unapproved release gate described in Section 49.2.11. The preceding dated inventory evidence was
+inspected; its concurrent implementation is preserved apart from a shared listener channel overload.
+The exact work packet, baseline and verification disposition are retained under
+`artifacts/agent-dispatch-fix/`; these are local evidence, not a second normative specification.
+
+`commercial.agent_runs` remains durable and `commercial.claim_next_agent_run` remains the sole
+execution claim authority. The listener subscribes on `advertified_agent_run` before draining
+queued/recoverable jobs, including at startup and after reconnect. Migration
+`202609050056_AgentRunNotificationDispatch` adds transactional, empty-payload notifications for
+inserts and relevant scheduling changes across all producers, including automatic retries and
+human resumes. Rollbacks do not deliver notifications. Step checkpoints, unrelated updates and
+ordinary lease extensions do not notify. A claim's new running lease also signals other listeners
+so they can reconsider recovery deadlines. Signals neither create jobs nor grant authority.
+
+After draining, the worker waits for a notification, the earliest eligible retry/lease deadline,
+or `AgentRuntime:RecoverySweepSeconds` (default 300; range 30-3600), whichever comes first.
+The deadline function uses two ordered partial indexes and matches claim eligibility: queued
+next-attempt time, or the later of a running lease expiry and its next-attempt time. A running
+record with no lease expiry is not recoverable under the existing claim and is excluded. A
+one-second wait for already-due timestamps bounds contention/clock skew and crosses strict lease
+expiry; future deadlines are awaited directly, including subsecond deadlines. Lost signals
+are repaired by durable sweeps; reconnect always resubscribes before checking work. The existing
+two-minute lease, serial processing per instance, attempt accounting and 30/120/600-second
+HTTP-failure retry policy are unchanged. No new exactly-once or stale-worker fencing guarantee is
+claimed; existing opportunity completion/lease protections have not been redesigned.
+
+`AgentRuntime:ReconnectMinSeconds` defaults to 5 (range 5-60) and
+`AgentRuntime:ReconnectMaxSeconds` to 60 (at least the minimum, at most 300). Failed sessions use
+capped exponential backoff and log the first failure per outage; a successful drain/deadline/wait
+cycle resets the backoff and logs recovery. Shutdown cancels waiting and backoff. The removed
+`AgentRuntime:PollMilliseconds` setting must be removed from external overrides. Worker enablement
+still requires a worker-capable process role and an AgentRuntime mode other than Disabled.
+The existing `WorkerSchedulerDatabase` connection is reused, without granting worker table access.
+The new SECURITY DEFINER deadline function has a fixed search path, migrator ownership, PUBLIC
+execution revoked and only worker execution granted. Application `SET LOCAL ROLE` is unchanged.
+
+Base and Development logging set `Microsoft.EntityFrameworkCore.Database.Command` to Warning;
+application Information logging, database warnings/errors and job outcome logs remain available.
+Repository Console settings change formatting only and do not override this category. External
+logging overrides and the deployed configuration still require verification. Log filtering is not
+proof of reduced database activity. An otherwise idle opportunity worker now intends one empty
+claim and one deadline query per five-minute sweep, plus startup/signals, instead of about ten
+claim transactions per second; no measured deployed reduction or financial savings is asserted.
+
+Deployment prerequisites are a separately authorised forward migration followed by deployment
+of the matching worker/API source. The new worker must not be deployed ahead of the migration.
+No running service may be rebuilt, restarted or recreated, and no migration may be applied under
+this task. Runtime proof remains pending for trigger commit/rollback, subscription races, buffered
+signals, multiple workers/atomic claiming, offline work, reconnect, retry/lease recovery, query
+plans and idle database activity. Deterministic session tests verify scheduling control flow only.
+The existing database migration test also contains a listener commit/rollback transport probe,
+which requires separately authorised database integration verification.
+
+Source validation completed with the repository Dockerfile's SDK 10.0.400 test target:
+Release API/migrator and test assembly compiled; all 15 focused `AgentRunDispatchSessionTests`
+passed with zero build warnings/errors. `python -m pytest tests/architecture -q` passed all 46
+checks; `git diff --check` passed. Earlier unittest discovery (no tests), the PowerShell wrapper's
+native-stderr handling, and five nullable-number fixture conversion failures are recorded in the
+local evidence with their corrected final outcomes. Database integration tests were not executed.
+These outcomes do not constitute deployment verification or owner release approval.
+
+Adjacent loops remain outside this fix: `api/Background/CommercialWorkerService.cs` uses
+`WorkerDispatch:PollMilliseconds` (default 500) for email/outbox idle checks;
+`api/Background/OutboxDispatchDispatcher.cs` uses `OutboxDispatch:PollMilliseconds` (default 250).
+Active email/inventory/outbox lease maintenance and external active-extraction monitoring remain
+necessary and unchanged. This is not a claim that the whole application is free of polling.
+
+### 49.2.13 Dataset-independence correction — 2026-09-05
+
+The owner directed removal of the mistaken coupling between Advertified and current supplier files,
+including the parallel offline transcription, row-wise Bedrock processing, product assembly,
+generated-workbook reimport, bulk approval/publication and fixed-dataset production-completion
+tools. The application upload, source-reader/schema interpretation, validation and publication
+workflow remains the canonical path. Supplier-specific repair/gold generators and private-file
+regression dependencies were removed; original supplier inputs and historical evidence were not.
+Web package shortcuts embedding the current supplier roster were removed. Retained evaluation
+selection is explicit and manifest-scoped; it must not imply that all tenant inventory is in scope.
+
+Sections 11.21 and 11.23 now separate replaceable input data from application dependencies.
+Product readiness concerns implemented and verified capabilities, document readiness concerns the
+specific source revision and its evidence/decisions, and campaign readiness concerns suitable supply
+for the campaign. No loaded inventory is a valid application state: searches return no available
+supply and dependent workflow steps explain what is missing. Replacing inventory uses the existing
+release/history and affected-uncommitted-work rules, not application redevelopment.
+
+The local correction is verified only by the exact repeatable commands recorded in
+`artifacts/audit-remediation/2026-09-05-disposition.json`; it is not a production-readiness approval.
+No physical inventory extraction, paid provider call, migration or deployment was performed for
+this correction. Current-file visual certification remains a separately scoped, deferred data task.
+
+The subsequent completion work uses synthetic fixtures and isolated disposable test databases only.
+Its migration verification identified and corrected a fresh-install dependency in the pending
+Day Zero migration: the human-task collection must exist before its reference item is inserted.
+No running application database or supplier data is changed by this test setup. Test/build results
+and remaining limitations are retained in the same disposition evidence; implementation alone is
+not a declaration of readiness or owner approval.
+
+### 49.2.14 Owner-approved pre-release database baseline (2026-09-05)
+
+The owner confirmed that no production deployment exists and approved consolidating the
+development migration history into a fresh-install baseline. The baseline represents the current
+intended schema, including constraints, indexes, functions, ownership, grants and tenant isolation.
+It contains no supplier inventory, tenant/user fixtures or other replaceable business data.
+Required reference data continues to come from the governed master-data registry and its existing
+idempotent bootstrap, not a dump of an operator database.
+
+The superseded development migration implementations are deleted from the active application;
+version control retains historical evidence. The owner explicitly clarified that there is no
+working database requiring compatibility: this is a development reset, not an upgrade project.
+There is no compatibility bridge, old-history restamping or retained backfill chain. Subsequent
+schema changes use incremental migrations from this baseline. Its ordinary initial-migration
+rollback drops its application schemas and is destructive; verification runs it only in disposable
+databases. This code change does not execute a reset against any existing Docker stack.
+
+Verification uses disposable databases to prove clean installation and idempotence and exercise
+the affected security and persistence boundaries. A schema-only comparison is implementation
+evidence for accidental omissions, not authority to retain obsolete product behaviour.
+Exact outcomes are retained in `artifacts/audit-remediation/2026-09-05-migration-baseline.json`.
+This work is distinct from inventory extraction and is not production-readiness approval.
+
+Local completion evidence (2026-09-05): the pinned API/migrator build and 78 selected deterministic
+tests passed. Twelve baseline/security/durability/restore integration cases passed in the broader
+disposable run; all six inventory lifecycle cases and the command-replay case passed on the final
+source. Earlier failing runs remain recorded: export search-path interference, publication SQL
+alias ambiguity, empty publication-audit metadata, oversized multipart error classification and
+obsolete direct-approval fixtures were corrected without weakening acceptance/publication guards.
+All 50 architecture checks, 29 source-tool checks, 23 agent-runtime checks and three desktop
+inventory browser scenarios passed. Web build/lint passed with the existing large-chunk warning
+and two synchronous-effect warnings. Tracked/untracked source secret scans and diff checks passed.
+
+The final API validation command is `powershell -NoProfile -File tools/run-api-release-tests.ps1`
+with `-Filter 'FullyQualifiedName~MasterDataMigrationTests.ModelSnapshotMatchesCurrentPersistenceModel|FullyQualifiedName~InventoryAcceptancePolicyRegressionTests|FullyQualifiedName~InventoryInterpretationRevisionTests|FullyQualifiedName~InventorySchemaEvidenceRegressionTests|FullyQualifiedName~OpenApiContractTests.RetainedV1ContractMatchesTheRunningApi|FullyQualifiedName~DoclingInventoryExtractionAdapterTests|FullyQualifiedName~CommandIdentityRegressionTests'`
+and `-IntegrationFilter 'FullyQualifiedName~InventoryAcceptanceTests|FullyQualifiedName~PersistedCommandAcceptanceTests'`.
+Baseline/security/restore cases can be reproduced through the same pinned path using
+`-IntegrationFilter 'FullyQualifiedName~MasterDataMigrationTests.MigrationBootstraps|FullyQualifiedName~TenantIsolationMigrationTests|FullyQualifiedName~WorkerSchedulingMigrationTests|FullyQualifiedName~OutboxDispatchDurabilityMigrationTests|FullyQualifiedName~EmailDeliveryDurabilityMigrationTests|FullyQualifiedName~InventoryExtractionDurabilityTests|FullyQualifiedName~CommercialPolicyAcceptanceTests|FullyQualifiedName~DatabaseRecoveryAcceptanceTests'`.
+Run `python -m pytest tests/architecture -q` from the repository root. The web journey command is
+`npx playwright test e2e/inventory-workflow.spec.ts --project=desktop` from `web`, after
+`npm run build` and `npm run lint`. Detailed local command/results logs remain under
+`artifacts/audit-remediation/`; this is scoped inventory/baseline verification, not closure of every
+historical product-wide audit finding. No supplier corpus was processed, no paid provider called,
+and no existing application stack redeployed.
 
 ## 49.3 Release evidence
 

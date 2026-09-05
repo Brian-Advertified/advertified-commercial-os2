@@ -9,7 +9,7 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 
 internal static partial class InventoryCandidateNormalizer
 {
-    private static string Availability(
+    private static string? Availability(
         Dictionary<string, string> values,
         List<InventoryFieldEvidenceView> evidence,
         string sourceHash,
@@ -20,6 +20,8 @@ internal static partial class InventoryCandidateNormalizer
         {
             return AvailabilityCode(suppliedAvailability);
         }
+        if (evidence.Any(field => field.FieldName == "availability" && field.RawValue is not null))
+            return null; // A rejected/conflicting source claim is not a missing business default.
         var availability =
             MasterDataCodes.AvailabilityStatuses.PlanningAvailable;
         evidence.Add(Evidence(
@@ -52,6 +54,8 @@ internal static partial class InventoryCandidateNormalizer
                 ? MasterDataCodes.Currencies.Zar
                 : supplied;
         }
+        if (evidence.Any(field => field.FieldName == "currency" && field.RawValue is not null))
+            return null; // Do not replace a disputed currency with an inferred one.
         if (!values.TryGetValue("rate", out var raw) ||
             !InventoryMoneyParser.TryParse(
                 raw, out _, out var parsedCurrency) ||
@@ -112,7 +116,8 @@ internal static partial class InventoryCandidateNormalizer
         values.TryGetValue(field, out var raw) &&
         decimal.TryParse(
             raw,
-            NumberStyles.Number,
+            NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint |
+                NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite,
             CultureInfo.InvariantCulture,
             out var result)
             ? result
@@ -133,7 +138,7 @@ internal static partial class InventoryCandidateNormalizer
             .ToUpperInvariant()
             .Replace(' ', '_');
 
-    private static string? NormalizeField(
+    internal static string? NormalizeField(
         string field,
         string value,
         Dictionary<string, string> values) =>
@@ -154,6 +159,10 @@ internal static partial class InventoryCandidateNormalizer
                 value.Trim().ToUpperInvariant().Replace(' ', '_'),
             "name" => Text(values, "name"),
             "product_code" => Text(values, "product_code"),
+            "latitude" or "longitude" or "poi_latitude" or "poi_longitude" =>
+                Decimal(values, field)?.ToString(CultureInfo.InvariantCulture),
+            "rate_valid_from" or "rate_valid_to" or "booking_deadline" or "material_deadline" =>
+                Date(values, field)?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             "dimensions" => NormalizedDimensions(values),
             "rate" when
                 InventoryMoneyParser.IsAmbiguousTruncatedRate(value) =>
@@ -204,7 +213,7 @@ internal static partial class InventoryCandidateNormalizer
             _ => MasterDataCodes.InventoryTransformationTypes.Trim,
         };
 
-    private static InventoryFieldEvidenceView Evidence(
+    internal static InventoryFieldEvidenceView Evidence(
         string field,
         string? raw,
         string? normalized,

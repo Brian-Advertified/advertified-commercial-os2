@@ -1,4 +1,5 @@
 import { expect, test, type Route } from '@playwright/test'
+import { inventoryImportSchema, inventoryProductSchema } from '../src/api/inventory-schemas'
 
 const tenantId = 'd1000000-0000-0000-0000-000000000001'
 const userId = 'd2000000-0000-0000-0000-000000000001'
@@ -13,12 +14,31 @@ type State = {
   importStatus: 'UPLOADED' | 'REVIEW_REQUIRED' | 'COMPLETED'
   candidateStatus: 'REVIEW_REQUIRED' | 'APPROVED'
   published: boolean
+  interpretation?: boolean
+  reevaluations?: number
+  noCandidates?: boolean
 }
 
-test('supplier intake reaches operator review and searchable inventory', async ({ page }) => {
+for (const noCandidates of [false, true]) test(`document evidence can be reevaluated without a pending row (${noCandidates ? 'empty' : 'approved'})`, async ({ page }) => {
+  const state: State = { role: 'inventory_ops', importStatus: 'REVIEW_REQUIRED', candidateStatus: 'APPROVED',
+    published: false, interpretation: true, noCandidates }
+  await page.addInitScript(id => sessionStorage.setItem('advertified.workspace', JSON.stringify({ tenantId: id })), tenantId)
+  await page.route('**/api/v1/**', route => handleApi(route, state))
+  await page.goto(`/inventory/imports/${importId}`)
+  await expect(page.getByRole('heading', { name: 'Source interpretation and acceptance' })).toBeVisible()
+  await expect(page.getByText(/Retained source value/)).toBeVisible()
+  await expect(page.getByRole('link', { name: /protected original/ })).toHaveAttribute('href',
+    `/api/v1/tenants/${tenantId}/inventory-imports/${importId}/source`)
+  await page.getByLabel('Reason for correction or reevaluation').fill('Recheck against the current policy.')
+  await page.getByRole('button', { name: 'Reevaluate retained evidence' }).click()
+  await expect.poll(() => state.reevaluations).toBe(1)
+  expect(state.published).toBe(false)
+})
+
+test('operator intake accepts validated candidates before separate publication', async ({ page }) => {
   const state: State = {
-    role: 'supplier_admin', importStatus: 'UPLOADED',
-    candidateStatus: 'REVIEW_REQUIRED', published: false,
+    role: 'inventory_ops', importStatus: 'UPLOADED',
+    candidateStatus: 'APPROVED', published: false, interpretation: true,
   }
   await page.addInitScript((id) => {
     sessionStorage.setItem('advertified.workspace', JSON.stringify({ tenantId: id }))
@@ -27,22 +47,20 @@ test('supplier intake reaches operator review and searchable inventory', async (
 
   await page.goto('/inventory')
   await expect(page.getByRole('heading', { name: 'Inventory' })).toBeVisible()
-  await page.getByLabel('Supplier name').fill('City Media')
-  await page.getByLabel('Source file').setInputFiles({
+  await page.getByLabel('Supplier / media owner').fill('City Media')
+  await page.getByLabel(/Drag & drop files here/).setInputFiles({
     name: 'city-sites.csv', mimeType: 'text/csv',
     buffer: Buffer.from('product_code,name\nOOH-001,Bree Street Gantry\n'),
   })
-  await page.getByRole('button', { name: 'Protect and import' }).click()
+  await page.getByRole('button', { name: /Start import/ }).click()
   await expect(page.getByRole('heading', { name: 'city-sites.csv' })).toBeVisible()
-  await page.getByRole('button', { name: 'Extract candidates' }).click()
   await expect(page.getByRole('heading', { name: 'Bree Street Gantry' })).toBeVisible()
 
   state.role = 'inventory_ops'
   await page.reload()
-  await page.getByRole('button', { name: 'Approve source values' }).click()
   await expect(page.getByText('APPROVED', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Publish reviewed inventory' }).click()
-  await expect(page.getByText('COMPLETED', { exact: true })).toBeVisible()
+  await expect(page.getByText('Completed', { exact: true }).first()).toBeVisible()
 
   await page.getByRole('link', { name: 'Inventory', exact: true }).click()
   const productLink = page.getByRole('link', { name: /Bree Street Gantry/ })
@@ -62,6 +80,11 @@ async function handleApi(route: Route, state: State) {
   const path = new URL(request.url()).pathname
   if (request.method() === 'GET') return handleRead(route, state, path)
   assertMutation(route)
+  if (path.endsWith(`${importId}:reproject-extraction`)) {
+    expect(request.postDataJSON()).toMatchObject({ reevaluateAcceptance: true, expectedMappingRevision: 'fixture-revision' })
+    state.reevaluations = (state.reevaluations ?? 0) + 1
+    return json(route, importFixture(state))
+  }
   if (path.endsWith('/inventory-imports')) {
     expect(request.headers()['content-type']).toContain('multipart/form-data')
     return json(route, importFixture(state), 201)
@@ -84,9 +107,9 @@ async function handleRead(route: Route, state: State, path: string) {
   if (path === '/api/v1/session') return json(route, sessionFixture())
   if (path === '/api/v1/workspaces') return json(route, [workspaceFixture(state.role)])
   if (path === '/api/v1/me') return json(route, userFixture(), 200, { ETag: '"1"' })
-  if (path.endsWith(`/inventory-imports/${importId}`)) return json(route, importFixture(state))
+  if (path.endsWith(`/inventory-imports/${importId}`)) return json(route, inventoryImportSchema.parse(importFixture(state)))
   if (path.endsWith(`/inventory-products/${productId}/benchmark`)) return json(route, benchmarkFixture())
-  if (path.endsWith(`/inventory-products/${productId}`)) return json(route, productFixture())
+  if (path.endsWith(`/inventory-products/${productId}`)) return json(route, inventoryProductSchema.parse(productFixture()))
   if (path.endsWith('/inventory-products')) return json(route, {
     items: state.published ? [productSummary()] : [], nextCursor: null,
     maximumSourceBytes: 104857600,
@@ -97,11 +120,15 @@ async function handleRead(route: Route, state: State, path: string) {
 function importFixture(state: State) {
   return {
     id: importId, supplierId, supplierName: 'City Media', fileName: 'city-sites.csv',
+    supplierNameHint: null, supplierResolutionStatus: 'RESOLVED', supplierIdentityEvidenceJson: '{}',
+    replacementMode: 'FULL_REPLACEMENT', publishedReleaseId: null, extractionAttempts: [],
+    interpretation: state.interpretation ? { mappingRevision: 'fixture-revision', schemaJson: '{"records":[]}',
+      structureJson: '{"rawText":"Retained source value","locator":"cell:1"}', failure: null } : null,
     declaredMediaType: 'text/csv', documentClass: 'CSV', status: state.importStatus,
     scanStatus: 'CLEAN', sourceHash: 'a'.repeat(64), sourceSize: 52, failureCode: null,
     steps: [{ stepType: 'UPLOAD_PROTECTION', status: 'COMPLETED',
       startedAtUtc: now, completedAtUtc: now }],
-    candidates: state.importStatus === 'UPLOADED' ? [] : [candidateFixture(state)],
+    candidates: state.importStatus === 'UPLOADED' || state.noCandidates ? [] : [candidateFixture(state)],
     candidateCounts: {
       total: state.importStatus === 'UPLOADED' ? 0 : 1,
       reviewRequired: state.candidateStatus === 'REVIEW_REQUIRED' &&
@@ -122,7 +149,9 @@ function candidateFixture(state: State) {
     values: valuesFixture(), validation: [{ fieldName: 'availability', code: 'AVAILABILITY_UNKNOWN',
       message: 'Availability is not supplied and must be confirmed before booking.', isBlocking: false }],
     evidence: [{ fieldName: 'product_code', rawValue: 'OOH-001', normalizedValue: 'OOH-001',
-      transformation: 'TRIM', sourceLocator: 'csv#row=2', sourceHash: 'a'.repeat(64) }],
+      transformation: 'TRIM', sourceLocator: 'csv#row=2', sourceHash: 'a'.repeat(64),
+      evidenceBasis: 'DOCUMENT_EXPLICIT', verificationState: 'UNVERIFIED', requiredAction: 'NONE',
+      capturedAtUtc: now, effectiveOn: null, freshUntil: null, extractionMethod: 'SOURCE_IMPORT', extractionConfidence: null }],
     sourceLocator: 'csv#row=2', reviewedBy: state.candidateStatus === 'APPROVED' ? userId : null,
     version: state.candidateStatus === 'APPROVED' ? 2 : 1, updatedAtUtc: now,
   }
@@ -132,7 +161,7 @@ function valuesFixture() {
   return { productCode: 'OOH-001', name: 'Bree Street Gantry', channel: 'OOH',
     productType: 'OOH_SITE', geography: 'Johannesburg', address: 'Bree Street',
     latitude: -26.2041, longitude: 28.0473, rateType: 'MONTH_RATE', currency: 'ZAR',
-    rateAmountMinor: 125000, availability: 'UNKNOWN', extension: {} }
+    rateAmountMinor: 125000, availability: 'UNKNOWN', extension: {}, audienceProfile: null }
 }
 
 function productSummary() {
@@ -143,10 +172,15 @@ function productSummary() {
 
 function productFixture() {
   return { product: productSummary(), address: 'Bree Street', latitude: -26.2041, longitude: 28.0473,
+    productVersionId: 'd8000000-0000-0000-0000-000000000001', audienceProfile: null, description: null,
+    supplierCommercial: null, supplierContacts: [], deliverable: null, spatial: null, packages: [], availabilityExceptions: [],
     extension: {}, rate: { rateType: 'MONTH_RATE', currency: 'ZAR', amountMinor: 125000,
-      sourceLocator: 'csv#row=2' }, availability: { status: 'UNKNOWN', observedAtUtc: now,
+      sourceLocator: 'csv#row=2', effectiveFrom: null, effectiveTo: null, vatTreatment: null, commercialTerms: null },
+      availability: { status: 'UNKNOWN', observedAtUtc: now,
       validUntilUtc: null, sourceLocator: 'csv#row=2' }, assets: [{ assetType: 'RATE_CARD',
-        mediaType: 'text/csv', contentHash: 'a'.repeat(64), sourceReference: `inventory-import:${importId}` }],
+        mediaType: 'text/csv', contentHash: 'a'.repeat(64), sourceReference: `inventory-import:${importId}`,
+        assetId: null, rightsStatus: null, rightsBasis: null, licensedUntil: null, proposalEligible: false,
+        rightsVersion: 1, rightsScopes: [], territoryCode: 'ZA', effectiveOn: null, untilRevoked: false }],
     sourceImportId: importId, sourceCandidateId: candidateId, versionNumber: 1, publishedAtUtc: now }
 }
 
@@ -173,7 +207,7 @@ function assertMutation(route: Route) {
   expect(headers['idempotency-key']).toBeTruthy()
 }
 
-function sessionFixture() { return { authenticated: true, antiforgeryToken: 'csrf-inventory', expiresAtUtc: '2026-08-29T22:00:00Z' } }
+function sessionFixture() { return { authenticated: true, antiforgeryToken: 'csrf-inventory', expiresAtUtc: '2099-08-29T22:00:00Z', signInPath: null, signOutPath: null } }
 function workspaceFixture(role: State['role']) { return { membershipId: 'd7000000-0000-0000-0000-000000000001', tenantId, name: 'Media Workspace', slug: 'media-workspace', roleCode: role, version: 1 } }
 function userFixture() { return { id: userId, email: 'operator@example.com', displayName: 'Inventory Operator', phone: null, mfaEnabled: true, version: 1 } }
 

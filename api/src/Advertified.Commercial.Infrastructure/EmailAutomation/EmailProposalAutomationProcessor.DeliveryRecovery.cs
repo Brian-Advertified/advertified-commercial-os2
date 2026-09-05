@@ -23,8 +23,14 @@ public sealed partial class EmailProposalAutomationProcessor
             ?? throw new InvalidOperationException("The delivery provider was not retained.");
         var idempotencyKey = run.DeliveryIdempotencyKey
             ?? throw new InvalidOperationException("The delivery request key was not retained.");
-        var provider = emailProviders.Resolve(providerCode);
-        var receipt = await ReconcileAsync(provider, idempotencyKey, cancellationToken);
+        EmailDeliveryReceipt receipt;
+        try
+        {
+            receipt = await durableDelivery.RecoverAsync(new TenantId(context.TenantId), owner,
+                run.ProposalVersionId ?? throw new InvalidOperationException("The delivery proposal was not retained."),
+                providerCode, idempotencyKey, cancellationToken);
+        }
+        catch (EmailDeliveryAcceptanceUnknownException) { throw DeliveryAmbiguous(); }
         return await AcceptAndFinalizeAsync(
             context, run, owner, receipt, correlationId, cancellationToken);
     }
@@ -106,21 +112,6 @@ public sealed partial class EmailProposalAutomationProcessor
                 MasterDataReferences.CommercialActions.EmailAutomationSent,
                 MasterDataReferences.CommercialEventTypes.EmailProposalAutomationSent),
             cancellationToken);
-
-    private static async Task<EmailDeliveryReceipt> ReconcileAsync(
-        IEmailProviderClient provider,
-        string idempotencyKey,
-        CancellationToken cancellationToken)
-    {
-        var result = await provider.ReconcileDeliveryAsync(
-            idempotencyKey, cancellationToken);
-        if (result.Outcome == EmailDeliveryReconciliationOutcome.Accepted &&
-            result.Receipt is not null)
-        {
-            return result.Receipt;
-        }
-        throw DeliveryAmbiguous();
-    }
 
     private static EmailAutomationReviewRequiredException DeliveryAmbiguous() =>
         ReviewRequired(

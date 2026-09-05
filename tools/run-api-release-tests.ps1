@@ -1,30 +1,23 @@
+param(
+    [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Filter,
+    [string]$IntegrationFilter
+)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$testProject = Join-Path $repoRoot `
-    'api\tests\Advertified.Commercial.Api.Tests\Advertified.Commercial.Api.Tests.csproj'
-
-Get-CimInstance Win32_Process -Filter "Name = 'testhost.exe'" |
-    Where-Object {
-        $_.CommandLine -and
-        $_.CommandLine.IndexOf(
-            $repoRoot,
-            [StringComparison]::OrdinalIgnoreCase
-        ) -ge 0
-    } |
-    ForEach-Object {
-        Write-Host "Stopping stale repository testhost PID $($_.ProcessId)..."
-        Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop
-    }
-
-Push-Location (Join-Path $repoRoot 'api')
-try {
-    dotnet test $testProject -c Release --no-restore
-    if ($LASTEXITCODE -ne 0) {
-        throw "API Release tests failed with exit code $LASTEXITCODE."
-    }
+# Explicit Docker-pinned validation only: never kill host processes or launch a stack.
+# The build is socket-free. An explicitly selected integration run below uses
+# disposable Testcontainers databases, never the application's running database.
+& docker build --file (Join-Path $repoRoot 'api/Dockerfile') --target tests `
+    --build-arg "TEST_FILTER=$Filter" --tag advertified/api-validation:local --progress plain $repoRoot
+if ($LASTEXITCODE -ne 0) {
+    throw "Docker-pinned API validation failed with exit code $LASTEXITCODE."
 }
-finally {
-    Pop-Location
+if ($IntegrationFilter) {
+    & docker run --rm --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock `
+        --add-host host.docker.internal:host-gateway -e TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal `
+        advertified/api-validation:local dotnet test `
+        api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj `
+        --configuration Release --no-build --no-restore --filter $IntegrationFilter --logger 'console;verbosity=detailed'
+    if ($LASTEXITCODE -ne 0) { throw "Disposable API integration validation failed with exit code $LASTEXITCODE." }
 }

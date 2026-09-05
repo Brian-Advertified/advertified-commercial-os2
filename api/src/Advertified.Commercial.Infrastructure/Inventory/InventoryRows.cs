@@ -7,8 +7,13 @@ internal sealed record InventoryImportRow
 {
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }
-    public Guid SupplierId { get; set; }
+    public Guid? SupplierId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
+    public string? SupplierNameHint { get; set; }
+    public string SupplierResolutionStatus { get; set; } = string.Empty;
+    public string SupplierIdentityEvidenceJson { get; set; } = "{}";
+    public string ReplacementMode { get; set; } = string.Empty;
+    public Guid? PublishedReleaseId { get; set; }
     public string FileName { get; set; } = string.Empty;
     public string DeclaredMediaType { get; set; } = string.Empty;
     public string? DocumentClass { get; set; }
@@ -35,6 +40,7 @@ internal sealed record InventoryImportStepRow
 internal sealed record InventoryCandidateRow
 {
     public Guid Id { get; set; }
+    public Guid? ProjectionId { get; set; }
     public Guid ImportId { get; set; }
     public int RowNumber { get; set; }
     public string Status { get; set; } = string.Empty;

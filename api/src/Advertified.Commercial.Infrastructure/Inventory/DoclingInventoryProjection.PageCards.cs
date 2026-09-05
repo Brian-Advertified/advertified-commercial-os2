@@ -1,5 +1,6 @@
-using System.Globalization;
 using System.Text.RegularExpressions;
+
+using System.Globalization;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.MasterData;
 
@@ -268,12 +269,7 @@ internal static partial class DoclingInventoryProjection
             .Select(item => item.Text.Replace('\n', ' ').Trim())
             .Where(text =>
                 text.Length is >= 5 and <= 220 &&
-                !text.Contains(':') &&
-                !Regex.IsMatch(
-                    text,
-                    @"^(Gauteng|Western Cape|KwaZulu-Natal|KENA OUTDOOR)$",
-                    RegexOptions.IgnoreCase |
-                    RegexOptions.CultureInvariant))
+                !text.Contains(':'))
             .FirstOrDefault();
 
     private static decimal? MinimumTextConfidence(

@@ -22,6 +22,11 @@ public sealed partial class PerformanceEvidenceRecordStore
     internal Task<List<PerformanceMetricRow>> ListMetricsAsync(
         Guid evidenceId,
         CancellationToken cancellationToken) =>
+        ListMetricsAsync([evidenceId], cancellationToken);
+
+    private Task<List<PerformanceMetricRow>> ListMetricsAsync(
+        Guid[] evidenceIds,
+        CancellationToken cancellationToken) =>
         DbContext.Database.SqlQuery<PerformanceMetricRow>($"""
             SELECT metric.id AS "Id", metric.evidence_set_id AS "EvidenceId",
                 metric.metric_type_code AS "MetricType", metric.value AS "Value",
@@ -29,7 +34,7 @@ public sealed partial class PerformanceEvidenceRecordStore
                 metric.period_end AS "PeriodEnd",
                 metric.source_locator AS "SourceLocator"
             FROM commercial.performance_metrics metric
-            WHERE metric.evidence_set_id = {evidenceId}
+            WHERE metric.evidence_set_id = ANY({evidenceIds})
             ORDER BY metric.metric_type_code, metric.period_start, metric.id
             """).ToListAsync(cancellationToken);
 
@@ -57,12 +62,34 @@ public sealed partial class PerformanceEvidenceRecordStore
                 campaignId,
                 MasterDataCodes.LifecycleStatuses.Approved,
                 MasterDataCodes.LifecycleStatuses.Rejected)).ToListAsync(cancellationToken);
-        var views = new List<PerformanceEvidenceView>(rows.Count);
-        foreach (var row in rows)
+        return await BuildViewsAsync(rows, cancellationToken);
+    }
+
+    internal async Task<IReadOnlyList<PerformanceEvidenceView>> GetViewsAsync(
+        IEnumerable<Guid> evidenceIds,
+        CancellationToken cancellationToken)
+    {
+        var views = new List<PerformanceEvidenceView>();
+        foreach (var batch in evidenceIds.Distinct().Chunk(256))
         {
-            views.Add(PerformanceEvidenceRowMapper.ToView(
-                row, await ListMetricsAsync(row.Id, cancellationToken)));
+            var rows = await DbContext.Database.SqlQuery<PerformanceEvidenceRow>(
+                FormattableStringFactory.Create(
+                    EvidenceSelect + " WHERE evidence.id = ANY({0})", (object)batch))
+                .ToListAsync(cancellationToken);
+            views.AddRange(await BuildViewsAsync(rows, cancellationToken));
         }
         return views;
+    }
+
+    private async Task<IReadOnlyList<PerformanceEvidenceView>> BuildViewsAsync(
+        IReadOnlyList<PerformanceEvidenceRow> rows,
+        CancellationToken cancellationToken)
+    {
+        var metrics = new List<PerformanceMetricRow>();
+        foreach (var batch in rows.Select(row => row.Id).Distinct().Chunk(256))
+            metrics.AddRange(await ListMetricsAsync(batch, cancellationToken));
+        var byEvidence = metrics.ToLookup(metric => metric.EvidenceId);
+        return rows.Select(row => PerformanceEvidenceRowMapper.ToView(
+            row, byEvidence[row.Id].ToArray())).ToArray();
     }
 }

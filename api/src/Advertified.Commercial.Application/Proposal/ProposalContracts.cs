@@ -269,6 +269,8 @@ public sealed record ProposalVersionView(
     Guid? ApprovalRejectedBy,
     string? ApprovalRejectionReason,
     DateTimeOffset? ApprovalRejectedAtUtc,
+    string InventoryReviewStatus,
+    IReadOnlyList<ProposalInventoryImpactView> InventoryImpacts,
     long Version,
     DateTimeOffset CreatedAtUtc);
 

@@ -1,3 +1,4 @@
+using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Application.Campaign;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Identity;
@@ -12,10 +13,14 @@ public static class CampaignEndpoints
         var group = endpoints.MapGroup("/api/v1/tenants/{tenantId:guid}/campaigns")
             .WithTags("Campaign delivery").RequireAuthorization();
         group.MapGet(string.Empty, ListAsync)
-            .WithName("ListCampaigns").Produces<IReadOnlyList<CampaignView>>()
+            .WithName("ListCampaigns")
+            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
+            .Produces<IReadOnlyList<CampaignView>>()
             .WithQueryProblems();
         group.MapGet("/{campaignId:guid}", GetAsync)
-            .WithName("GetCampaign").Produces<CampaignView>().WithQueryProblems();
+            .WithName("GetCampaign")
+            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
+            .Produces<CampaignView>().WithQueryProblems();
         group.MapPost("/{campaignId:guid}:confirm-bookings", ConfirmBookingsAsync)
             .WithName("ConfirmCampaignBookings").Produces<CampaignView>()
             .WithCommandProblems(requiresVersion: true);

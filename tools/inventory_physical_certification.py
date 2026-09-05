@@ -1,9 +1,10 @@
-"""Compare projected inventory with independently discovered physical facts."""
+"""Automated source-map comparison; not a visual source-certification attestation."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import re
 from typing import Any
 
 from inventory_physical_anchor_discovery import discover_anchors
@@ -50,18 +51,16 @@ class FileCertification:
 
 
 def supplier_identity_required(physical: Any) -> bool:
-    """Return true only when the physical source or filename names an owner."""
-    haystack = (physical.relative_path + "\n" + physical.searchable_text).lower()
-    strong_identities = (
-        "algoa fm", "arena holdings", "blackspace", "business day tv",
-        "dstv media sales", "eleven8", "emedia", "ignition tv",
-        "insight outdoor", "jacaranda fm", "jcdecaux", "jit tv",
-        "jozi fm", "kena outdoor", "mamg", "volt.africa", "volt africa",
-        "primedia", "relativ media", "reveel", "rsd rate cards", "sabc",
-        "sb outdoor", "smile 90.4", "summit ooh", "the home channel",
-        "virgin active", "yfm", "kaya fm",
-    )
-    return any(identity in haystack for identity in strong_identities)
+    """Check explicitly labelled supplier evidence, never filenames or known brands.
+
+    This supports a labelled-field check only, not proof that all unlabelled
+    supplier context was interpreted or that ownership has been established.
+    """
+    labels = {"supplier", "suppliername"}
+    if any(normalize_compact(cell) in labels for table in physical.tables
+           for row in table.rows for cell in row):
+        return True
+    return bool(re.search(r"(?im)^\s*supplier(?:\s+name)?\s*:\s*\S", physical.searchable_text))
 
 
 def certify_file(

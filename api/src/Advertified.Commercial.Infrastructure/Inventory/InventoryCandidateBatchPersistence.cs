@@ -1,5 +1,7 @@
 using System.Text.Json;
+
 using Advertified.Commercial.Application.Inventory;
+using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.MasterData;
@@ -11,17 +13,55 @@ internal static class InventoryCandidateBatchPersistence
 {
     private const int BatchSize = 250;
 
+    // Exception-based review: only candidates flagged by the review policy
+    // become ReviewRequired with a human task; clean candidates are persisted
+    // as Approved with an explicit auto-certification basis marker.
     internal static async Task PersistAsync(
         GovernanceDbContext dbContext,
         TenantId tenantId,
         Guid importId,
         Guid projectionId,
-        Guid reviewer,
+        Guid? reviewer,
         DateTimeOffset now,
         IReadOnlyList<PreparedInventoryCandidate> candidates,
+        CancellationToken cancellationToken,
+        IReadOnlySet<Guid>? rejectedCandidateIds = null)
+    {
+        var retainedRejections = candidates.Where(candidate => rejectedCandidateIds?.Contains(candidate.Id) == true).ToArray();
+        var eligible = candidates.Where(candidate => rejectedCandidateIds?.Contains(candidate.Id) != true).ToArray();
+        var review = eligible
+            .Where(InventoryCandidateReviewPolicy.RequiresReview)
+            .ToArray();
+        var autoCertified = eligible
+            .Where(candidate => !InventoryCandidateReviewPolicy.RequiresReview(candidate))
+            .Select(InventoryCandidateReviewPolicy.MarkAutoCertified)
+            .ToArray();
+        await PersistAsync(dbContext, tenantId, importId, projectionId,
+            reviewer, now, review,
+            MasterDataCodes.LifecycleStatuses.ReviewRequired,
+            withTasks: reviewer.HasValue, cancellationToken);
+        await PersistAsync(dbContext, tenantId, importId, projectionId,
+            reviewer, now, autoCertified,
+            MasterDataCodes.LifecycleStatuses.Approved,
+            withTasks: false, cancellationToken);
+        await PersistAsync(dbContext, tenantId, importId, projectionId,
+            reviewer, now, retainedRejections, MasterDataCodes.LifecycleStatuses.Rejected,
+            withTasks: false, cancellationToken);
+    }
+
+    private static async Task PersistAsync(
+        GovernanceDbContext dbContext,
+        TenantId tenantId,
+        Guid importId,
+        Guid projectionId,
+        Guid? reviewer,
+        DateTimeOffset now,
+        PreparedInventoryCandidate[] candidates,
+        string statusCode,
+        bool withTasks,
         CancellationToken cancellationToken)
     {
-        for (var offset = 0; offset < candidates.Count; offset += BatchSize)
+        for (var offset = 0; offset < candidates.Length; offset += BatchSize)
         {
             var batch = candidates.Skip(offset).Take(BatchSize).ToArray();
             var candidateJson = JsonSerializer.Serialize(
@@ -36,7 +76,7 @@ internal static class InventoryCandidateBatchPersistence
                     source_locator, version, created_at_utc, updated_at_utc)
                 SELECT value."id", {tenantId.Value}, {importId},
                     {projectionId}, value."rowNumber",
-                    {MasterDataCodes.LifecycleStatuses.ReviewRequired},
+                    {statusCode},
                     value."valuesJson"::jsonb, value."valuesJson"::jsonb,
                     value."validationJson"::jsonb, value."sourceLocator", 1, {now}, {now}
                 FROM jsonb_to_recordset({candidateJson}::jsonb) AS value(
@@ -64,25 +104,39 @@ internal static class InventoryCandidateBatchPersistence
                     "requiredAction" text, "capturedAtUtc" timestamptz,
                     "effectiveOn" date, "freshUntil" date,
                     "extractionMethod" text, "extractionConfidence" numeric);
-
-                INSERT INTO commercial.human_tasks (
-                    id, tenant_id, opportunity_id, task_type_code, status_code, title,
-                    why_it_matters, resource_type_code, resource_id, resource_version,
-                    assignee_user_id, action_schema_json, version, created_at_utc)
-                SELECT value."taskId", {tenantId.Value}, NULL,
-                    {MasterDataCodes.HumanTaskTypes.InventoryCandidateReview},
-                    {MasterDataCodes.LifecycleStatuses.Pending},
-                    {"Review inventory candidate"},
-                    {"Verify source-linked fields before inventory publication."},
-                    {MasterDataReferences.CommercialResourceTypes.InventoryCandidate.Value},
-                    value."id", 1, {reviewer}, {"{}"}::jsonb, 1, {now}
-                FROM jsonb_to_recordset({candidateJson}::jsonb) AS value(
-                    "id" uuid, "rowNumber" integer, "valuesJson" text,
-                    "validationJson" text, "sourceLocator" text,
-                    "taskId" uuid);
                 """, cancellationToken);
+            if (withTasks)
+            {
+                await InsertReviewTasksAsync(dbContext, tenantId,
+                    reviewer!.Value, candidateJson, now, cancellationToken);
+            }
         }
     }
+
+    private static Task<int> InsertReviewTasksAsync(
+        GovernanceDbContext dbContext,
+        TenantId tenantId,
+        Guid reviewer,
+        string candidateJson,
+        DateTimeOffset now,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO commercial.human_tasks (
+                id, tenant_id, opportunity_id, task_type_code, status_code, title,
+                why_it_matters, resource_type_code, resource_id, resource_version,
+                assignee_user_id, action_schema_json, version, created_at_utc)
+            SELECT value."taskId", {tenantId.Value}, NULL,
+                {MasterDataCodes.HumanTaskTypes.InventoryCandidateReview},
+                {MasterDataCodes.LifecycleStatuses.Pending},
+                {"Review inventory candidate"},
+                {"Verify source-linked fields before inventory publication."},
+                {MasterDataReferences.CommercialResourceTypes.InventoryCandidate.Value},
+                value."id", 1, {reviewer}, {"{}"}::jsonb, 1, {now}
+            FROM jsonb_to_recordset({candidateJson}::jsonb) AS value(
+                "id" uuid, "rowNumber" integer, "valuesJson" text,
+                "validationJson" text, "sourceLocator" text,
+                "taskId" uuid);
+            """, cancellationToken);
 
     private static CandidatePayload ToCandidatePayload(PreparedInventoryCandidate candidate) =>
         new(
@@ -136,4 +190,5 @@ internal sealed record PreparedInventoryCandidate(
     IReadOnlyList<InventoryValidationIssueView> Validation,
     string SourceLocator,
     IReadOnlyList<InventoryFieldEvidenceView> Evidence,
-    Guid TaskId);
+    Guid TaskId,
+    bool HasDiscoveredSchema = false);

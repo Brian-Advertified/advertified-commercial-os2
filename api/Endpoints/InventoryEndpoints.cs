@@ -2,7 +2,10 @@ using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Planning;
+using Advertified.Commercial.Application.Security;
+using Advertified.Commercial.Infrastructure.Inventory;
 using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Domain.MasterData;
 
 namespace Advertified.Commercial.Api.Endpoints;
 
@@ -39,10 +42,14 @@ public static class InventoryEndpoints
         group.MapGet("/inventory-imports/{importId:guid}", GetImportAsync)
             .WithName("GetInventoryImport").Produces<InventoryImportView>()
             .WithQueryProblems();
+        group.MapGet("/inventory-imports/{importId:guid}/source", GetImportSourceAsync)
+            .WithName("GetInventoryImportSource").Produces(StatusCodes.Status200OK)
+            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork).WithQueryProblems();
         group.MapGet(
                 "/inventory-semantic-preflight",
                 GetSemanticPreflightAsync)
             .WithName("GetInventorySemanticPreflight")
+            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
             .Produces<InventorySemanticPreflightView>()
             .WithQueryProblems();
         group.MapPost("/inventory-candidates/{candidateId:guid}:review", ReviewCandidateAsync)
@@ -74,6 +81,7 @@ public static class InventoryEndpoints
             .WithCommandProblems(requiresVersion: true);
         group.MapGet("/inventory-assets/{assetId:guid}/content", GetApprovedAssetAsync)
             .WithName("GetApprovedInventoryAsset")
+            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
             .Produces(StatusCodes.Status200OK)
             .WithQueryProblems();
         group.MapPost("/inventory-products/{productId:guid}/embedding", SubmitEmbeddingAsync)
@@ -81,6 +89,7 @@ public static class InventoryEndpoints
             .WithCommandProblems(requiresVersion: true);
         group.MapGet("/inventory-products/{productId:guid}/semantic-recall", GetSemanticRecallAsync)
             .WithName("GetInventorySemanticRecall")
+            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
             .Produces<IReadOnlyList<InventorySemanticRecallView>>()
             .WithQueryProblems();
         group.MapPost("/inventory-products/{productId:guid}/semantic-duplicate-candidates",
@@ -98,24 +107,38 @@ public static class InventoryEndpoints
             .Produces<InventoryDuplicateCandidateView>()
             .WithCommandProblems(requiresVersion: true);
         group.MapGet("/inventory-products/{productId:guid}/benchmark", GetBenchmarkAsync)
-            .WithName("GetInventoryProductBenchmark").Produces<InventoryProductBenchmarkView>()
+            .WithName("GetInventoryProductBenchmark")
+            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
+            .Produces<InventoryProductBenchmarkView>()
             .WithQueryProblems();
+        endpoints.MapSupplierClaimEndpoints();
+        endpoints.MapInventoryReleaseEndpoints();
         return endpoints;
     }
 
     private static async Task<IResult> CreateImportAsync(
         Guid tenantId, HttpContext context, ICurrentIdentity identity,
-        IInventoryCommands commands, TimeProvider clock,
+        IInventoryCommands commands, InventorySupplierAccessPolicy supplierAccess, TimeProvider clock,
         CancellationToken cancellationToken)
     {
-        var form = await context.Request.ReadFormAsync(cancellationToken);
-        var file = form.Files.GetFile("source")
-            ?? throw new BadHttpRequestException("An inventory source file is required.");
-        await using var stream = new MemoryStream();
-        await file.CopyToAsync(stream, cancellationToken);
+        await supplierAccess.EnsureUploadAccessAsync(
+            identity.ActorId, new TenantId(tenantId), null, cancellationToken);
+        var (form, source) = await InventoryUploadBody.ReadAsync(context, cancellationToken);
+        var supplierIdValue = form["supplierId"].ToString();
+        Guid? supplierId = null;
+        if (!string.IsNullOrWhiteSpace(supplierIdValue))
+        {
+            if (!Guid.TryParse(supplierIdValue, out var parsedSupplierId))
+            {
+                throw new BadHttpRequestException(
+                    "The selected supplier identifier is invalid.");
+            }
+            supplierId = parsedSupplierId;
+        }
         var command = new CreateInventoryImportCommand(
             form["supplierName"].ToString(),
-            new InventorySourceFile(file.FileName, file.ContentType, stream.ToArray()));
+            source,
+            supplierId);
         return await CommandEndpointExecutor.ExecuteAsync(
             tenantId, command, context, identity, clock, requireVersion: false,
             commands.CreateAsync,
@@ -242,20 +265,18 @@ public static class InventoryEndpoints
 
     private static async Task<IResult> UploadAssetAsync(
         Guid tenantId, Guid productId, HttpContext context, ICurrentIdentity identity,
-        IInventoryCommands commands, TimeProvider clock,
+        IInventoryCommands commands, InventorySupplierAccessPolicy supplierAccess, TimeProvider clock,
         CancellationToken cancellationToken)
     {
-        var form = await context.Request.ReadFormAsync(cancellationToken);
-        var file = form.Files.GetFile("source")
-            ?? throw new BadHttpRequestException("An inventory asset file is required.");
-        await using var stream = new MemoryStream();
-        await file.CopyToAsync(stream, cancellationToken);
+        await supplierAccess.EnsureUploadAccessAsync(
+            identity.ActorId, new TenantId(tenantId), productId, cancellationToken);
+        var (form, source) = await InventoryUploadBody.ReadAsync(context, cancellationToken);
         var versionText = form["productVersionId"].ToString();
         if (!Guid.TryParse(versionText, out var productVersionId))
             throw new BadHttpRequestException("The current product version is required.");
         var command = new UploadInventoryAssetCommand(
             productVersionId, form["assetType"].ToString(),
-            new InventorySourceFile(file.FileName, file.ContentType, stream.ToArray()));
+            source);
         return await CommandEndpointExecutor.ExecuteAsync(
             tenantId, command, context, identity, clock, requireVersion: true,
             (envelope, token) => commands.UploadAssetAsync(productId, envelope, token),
@@ -276,6 +297,14 @@ public static class InventoryEndpoints
         ExecuteAsync(tenantId, command, context, identity, clock, true,
             (envelope, token) => commands.RecordAvailabilityExceptionAsync(
                 productId, envelope, token), cancellationToken);
+
+    private static async Task<IResult> GetImportSourceAsync(Guid tenantId, Guid importId,
+        HttpContext context, ICurrentIdentity identity, IInventoryReader reader, CancellationToken cancellationToken)
+    {
+        var source = await reader.GetImportSourceAsync(identity.ActorId, new TenantId(tenantId), importId, cancellationToken);
+        context.Response.Headers.CacheControl = "no-store";
+        return Results.File(source.Content, "application/octet-stream", source.FileName);
+    }
 
     private static async Task<IResult> GetApprovedAssetAsync(
         Guid tenantId, Guid assetId, ICurrentIdentity identity,

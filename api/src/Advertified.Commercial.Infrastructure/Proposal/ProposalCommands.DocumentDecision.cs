@@ -1,4 +1,5 @@
 using Advertified.Commercial.Application.Commands;
+using Advertified.Commercial.Application.EmailAutomation;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.Commercial;
@@ -22,7 +23,7 @@ public sealed partial class ProposalCommands
         {
             throw new InvalidLifecycleTransitionException();
         }
-        await EnsureProposalPlansCurrentAsync(envelope.TenantId, proposalVersionId, cancellationToken);
+        await inventoryReadiness.EnsureProposalPlansCurrentAsync(envelope.TenantId, proposalVersionId, cancellationToken);
         var view = await store.BuildViewAsync(envelope.TenantId, proposal, cancellationToken);
         var rendered = ProposalPdfRenderer.Render(view);
         var documentId = Guid.NewGuid();
@@ -46,6 +47,7 @@ public sealed partial class ProposalCommands
     private async Task<CommandOutcome> ShareOutcomeAsync(
         Guid proposalVersionId,
         CommandEnvelope<ShareProposalCommand> envelope,
+        EmailDeliveryReceipt receipt,
         CancellationToken cancellationToken)
     {
         var proposal = await LoadOwnedProposalAsync(proposalVersionId, envelope, cancellationToken);
@@ -55,7 +57,7 @@ public sealed partial class ProposalCommands
         {
             throw new ProposalDocumentRequiredException();
         }
-        await EnsureProposalPlansCurrentAsync(envelope.TenantId, proposalVersionId, cancellationToken);
+        await inventoryReadiness.EnsureProposalPlansCurrentAsync(envelope.TenantId, proposalVersionId, cancellationToken);
         var recipient = await store.FindRecipientAsync(
             envelope.TenantId, envelope.Command.RecipientUserId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Client recipient is unavailable.");
@@ -64,21 +66,15 @@ public sealed partial class ProposalCommands
         {
             throw new UnauthorizedAccessException("Client recipient is unavailable.");
         }
-        var receipt = await deliveryClient.DeliverAsync(new ProposalDeliveryRequest(
-            envelope.TenantId.Value, proposalVersionId, envelope.Command.RecipientUserId,
-            recipient.Email, proposal.Title), cancellationToken);
-        if (receipt.IncrementalCostMinor != 0)
-        {
-            throw new InvalidOperationException(
-                "The proposal delivery exceeded its configured provider cost policy.");
-        }
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.proposal_versions
             SET status_code = {MasterDataCodes.LifecycleStatuses.Sent},
                 recipient_user_id = {envelope.Command.RecipientUserId},
-                shared_at_utc = {receipt.DeliveredAtUtc}, version = version + 1
+                shared_at_utc = {receipt.AcceptedAtUtc}, version = version + 1
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {proposalVersionId}
               AND status_code = {MasterDataCodes.LifecycleStatuses.Approved}
+              AND inventory_review_status_code =
+                    {MasterDataCodes.ProposalInventoryReviewStatuses.Current}
               AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1) throw new VersionConflictException();
@@ -91,7 +87,7 @@ public sealed partial class ProposalCommands
         var view = await store.BuildViewAsync(envelope.TenantId, updated, cancellationToken);
         return ProposalOutcome(envelope, view, proposalVersionId, updated.Version,
             MasterDataReferences.CommercialActions.ProposalShared,
-            MasterDataReferences.CommercialEventTypes.ProposalShared, receipt.DeliveredAtUtc);
+            MasterDataReferences.CommercialEventTypes.ProposalShared, receipt.AcceptedAtUtc);
     }
 
     private async Task<CommandOutcome> RecordExternalDecisionOutcomeAsync(
@@ -126,6 +122,10 @@ public sealed partial class ProposalCommands
                 envelope.TenantId, proposalVersionId, cancellationToken) is not null)
         {
             throw new InvalidLifecycleTransitionException();
+        }
+        if (!envelope.Command.Declined)
+        {
+            EnsureProposalInventoryCurrent(proposal);
         }
         if (envelope.Command.OptionId.HasValue)
         {
@@ -165,6 +165,8 @@ public sealed partial class ProposalCommands
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {proposalVersionId}
               AND status_code = {MasterDataCodes.LifecycleStatuses.Sent}
               AND recipient_user_id IS NULL
+              AND ({envelope.Command.Declined} OR inventory_review_status_code =
+                    {MasterDataCodes.ProposalInventoryReviewStatuses.Current})
               AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1)
@@ -233,6 +235,10 @@ public sealed partial class ProposalCommands
             throw new UnauthorizedAccessException("This proposal decision is not assigned to you.");
         }
         if (proposal.ExpiryAtUtc <= now) throw new ProposalExpiredException();
+        if (decision == MasterDataCodes.LifecycleStatuses.Selected)
+        {
+            EnsureProposalInventoryCurrent(proposal);
+        }
         if (await store.FindDecisionAsync(envelope.TenantId, proposalVersionId, cancellationToken) is not null)
         {
             throw new InvalidLifecycleTransitionException();
@@ -253,9 +259,13 @@ public sealed partial class ProposalCommands
                 {decision}, {reason}, {envelope.ActorId.Value}, {now})
             """, cancellationToken);
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            UPDATE commercial.proposal_versions SET status_code = {decision}, version = version + 1
+            UPDATE commercial.proposal_versions
+            SET status_code = {decision}, version = version + 1
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {proposalVersionId}
               AND status_code = {MasterDataCodes.LifecycleStatuses.Sent}
+              AND ({decision} = {MasterDataCodes.LifecycleStatuses.Declined}
+                   OR inventory_review_status_code =
+                        {MasterDataCodes.ProposalInventoryReviewStatuses.Current})
               AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1) throw new VersionConflictException();
@@ -273,6 +283,8 @@ public sealed partial class ProposalCommands
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.proposal_versions SET version = version + 1
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {proposal.Id}
+              AND inventory_review_status_code =
+                    {MasterDataCodes.ProposalInventoryReviewStatuses.Current}
               AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1) throw new VersionConflictException();

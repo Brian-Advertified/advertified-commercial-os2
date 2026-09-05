@@ -35,8 +35,6 @@ public sealed partial class InventoryCommands
             return await QueueDurableExtractionAsync(
                 source, envelope, durableProvider, cancellationToken);
         }
-        var reviewer = await FindReviewerAsync(
-            envelope.TenantId, source.CreatedBy, cancellationToken);
         var content = await store.ObjectStore.ReadAsync(
             source.ProtectedObjectKey, cancellationToken);
         InventoryExtractionCompletionPolicy.VerifySource(content, source.SourceHash);
@@ -45,19 +43,27 @@ public sealed partial class InventoryCommands
                 source.FileName, source.DeclaredMediaType, source.DocumentClass,
                 source.SourceHash, content), cancellationToken);
         InventoryExtractionCompletionPolicy.VerifyResult(extraction, source.SourceHash);
+        var codes = await InventoryCodeSets.LoadAsync(store.DbContext, cancellationToken);
         var artifactId = Guid.NewGuid();
         await InsertExtractionAsync(
             envelope.TenantId, source.Id, artifactId,
-            extraction, cancellationToken);
+            extraction, source.Version, cancellationToken);
         var rows = extraction.Rows;
-        var codes = await InventoryCodeSets.LoadAsync(store.DbContext, cancellationToken);
         var now = timeProvider.GetUtcNow();
+        var supplier = InventorySupplierIdentityService.ResolveExtraction(source, extraction);
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(
             rows,
             source.SourceHash,
-            source.SupplierName,
+            supplier.SupplierName,
             codes,
             now);
+        candidates = InventoryAcceptancePolicy.Apply(extraction, source.SourceHash,
+            source.Version, codes, candidates, now);
+        var documentReview = extraction.Document.DiscoveredSchema is null || candidates.Length == 0;
+        Guid? reviewer = documentReview || candidates.Any(InventoryCandidateReviewPolicy.RequiresReview)
+            ? await InventoryReviewerAssignment.FindAsync(
+                store.DbContext, source.TenantId, source.CreatedBy, cancellationToken)
+            : null;
         await InventoryProjectionPersistence.InsertInitialAsync(
             store.DbContext, envelope.TenantId, source.Id,
             artifactId, null, extraction, candidates.Length,
@@ -67,7 +73,12 @@ public sealed partial class InventoryCommands
             artifactId, reviewer, now, candidates,
             cancellationToken);
         await CompleteExecutionAsync(
-            envelope.TenantId, importId, source.Version, now, cancellationToken);
+            envelope.TenantId, importId, source.Version, supplier,
+            now, cancellationToken);
+        if (documentReview)
+            await InventoryDocumentReviewPersistence.InsertAsync(store.DbContext, source, reviewer, source.Version + 1,
+                extraction.Document.SchemaDiscoveryFailure ?? "No source-backed inventory interpretation is available.",
+                now, cancellationToken);
         var updated = await store.FindImportAsync(
             envelope.TenantId, importId, false, cancellationToken)
             ?? throw new InvalidOperationException("The inventory import was not persisted.");
@@ -87,6 +98,9 @@ public sealed partial class InventoryCommands
     {
         await extractionAttemptStore.QueueInitialAsync(
             source, envelope, provider, cancellationToken);
+        await store.DbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_notify({Advertified.Commercial.Infrastructure.Worker.InventoryExtractionWakeListener.ChannelName}, {source.Id.ToString()})",
+            cancellationToken);
         var queued = await store.FindImportAsync(
             envelope.TenantId, source.Id, false, cancellationToken)
             ?? throw new InvalidOperationException("The inventory import was not persisted.");
@@ -99,54 +113,41 @@ public sealed partial class InventoryCommands
             timeProvider.GetUtcNow());
     }
 
-    private async Task<Guid> FindReviewerAsync(
-        TenantId tenantId,
-        Guid creatorId,
-        CancellationToken cancellationToken)
-    {
-        var reviewers = await store.DbContext.Database.SqlQuery<Guid>($"""
-            SELECT membership.user_id AS "Value"
-            FROM commercial.memberships membership
-            WHERE membership.tenant_id = {tenantId.Value}
-              AND membership.user_id <> {creatorId}
-              AND membership.status_code = {MasterDataCodes.LifecycleStatuses.Active}
-              AND membership.role_code = ANY({InventoryReviewerRoles.Inventory})
-            ORDER BY membership.role_code, membership.user_id
-            LIMIT 1
-            """).ToListAsync(cancellationToken);
-        return reviewers.Count == 1
-            ? reviewers[0] : throw new ApprovalRequiredException();
-    }
-
     private Task<int> InsertExtractionAsync(
         TenantId tenantId,
         Guid importId,
         Guid artifactId,
         InventoryExtractionResult extraction,
+        long sourceFileVersion,
         CancellationToken cancellationToken) =>
         store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.inventory_extractions (
                 id, tenant_id, import_id, source_hash, adapter_code, adapter_version,
                 schema_version, provider_json, provider_output_hash,
-                canonical_json, canonical_output_hash, completed_at_utc)
+                canonical_json, canonical_output_hash, completed_at_utc, source_file_version)
             VALUES ({artifactId}, {tenantId.Value}, {importId}, {extraction.SourceHash},
                 {extraction.AdapterCode}, {extraction.AdapterVersion},
                 {extraction.SchemaVersion}, {extraction.ProviderJson}::jsonb,
                 {extraction.ProviderOutputHash}, {extraction.CanonicalJson}::jsonb,
-                {extraction.CanonicalOutputHash}, {timeProvider.GetUtcNow()})
+                {extraction.CanonicalOutputHash}, {timeProvider.GetUtcNow()}, {sourceFileVersion})
             """, cancellationToken);
 
     private async Task CompleteExecutionAsync(
         TenantId tenantId,
         Guid importId,
         long expectedVersion,
+        InventorySupplierResolution supplier,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.inventory_imports
-            SET status_code = {MasterDataCodes.LifecycleStatuses.ReviewRequired}, version = version + 1,
-                updated_at_utc = {now}
+            SET status_code = {MasterDataCodes.LifecycleStatuses.ReviewRequired},
+                supplier_id = {supplier.SupplierId},
+                supplier_name_hint = {supplier.SupplierName},
+                supplier_resolution_status_code = {supplier.Status},
+                supplier_identity_evidence_json = {supplier.EvidenceJson}::jsonb,
+                version = version + 1, updated_at_utc = {now}
             WHERE tenant_id = {tenantId.Value} AND id = {importId}
               AND status_code = {MasterDataCodes.LifecycleStatuses.Uploaded}
               AND version = {expectedVersion}

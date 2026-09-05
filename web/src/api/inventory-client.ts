@@ -1,4 +1,4 @@
-import type { ZodType } from 'zod'
+import { z, type ZodType } from 'zod'
 import { request } from './client'
 import { inventoryCodes, type InventoryDecision } from './inventory-constants'
 import {
@@ -22,6 +22,11 @@ import {
   type InventoryProductPage,
   type InventoryValues,
 } from './inventory-schemas'
+
+import {
+  inventorySupplierLifecycleSchema, supplierClaimInvitationSchema, proposalInventoryImpactSchema,
+  type SupplierClaimInvitation, type ProposalInventoryImpact,
+} from './inventory-lifecycle-schemas'
 
 async function command<T>(
   path: string,
@@ -63,6 +68,80 @@ export const inventoryApi = {
     return (await request(
       `/api/v1/tenants/${tenantId}/inventory-imports/${importId}?${query}`,
       inventoryImportSchema,
+    )).data
+  },
+
+  async listSupplierClaimInvitations(
+    tenantId: string,
+    supplierId: string,
+  ): Promise<SupplierClaimInvitation[]> {
+    return (await request(
+      `/api/v1/tenants/${tenantId}/inventory-suppliers/${supplierId}`,
+      inventorySupplierLifecycleSchema,
+    )).data.invitations
+  },
+
+  async issueSupplierClaimInvitation(
+    tenantId: string,
+    supplierId: string,
+    values: { email: string; role: string; validForDays: number },
+    version: number,
+    token: string,
+  ): Promise<SupplierClaimInvitation> {
+    return (await request(
+      `/api/v1/tenants/${tenantId}/inventory-suppliers/${supplierId}/claim-invitations`,
+      supplierClaimInvitationSchema,
+      { method: 'POST', body: JSON.stringify(values) },
+      { antiforgeryToken: token, expectedVersion: version, idempotencyKey: crypto.randomUUID() },
+    )).data
+  },
+
+  async revokeSupplierClaimInvitation(
+    tenantId: string,
+    invitationId: string,
+    version: number,
+    reason: string,
+    token: string,
+  ): Promise<void> {
+    await request(
+      `/api/v1/tenants/${tenantId}/supplier-claim-invitations/${invitationId}:revoke`,
+      supplierClaimInvitationSchema,
+      { method: 'POST', body: JSON.stringify({ reason }) },
+      { antiforgeryToken: token, expectedVersion: version, idempotencyKey: crypto.randomUUID() },
+    )
+  },
+
+  async acceptSupplierClaimInvitation(
+    tenantId: string,
+    invitationId: string,
+    registrationToken: string,
+    token: string,
+  ): Promise<{ supplierId: string }> {
+    return (await request(
+      `/api/v1/tenants/${tenantId}/supplier-claim-invitations/${invitationId}:accept`,
+      supplierClaimInvitationSchema,
+      { method: 'POST', body: JSON.stringify({ token: registrationToken }) },
+      { antiforgeryToken: token, idempotencyKey: crypto.randomUUID() },
+    )).data
+  },
+
+  async getSupplierLifecycle(
+    tenantId: string,
+    supplierId: string,
+  ) {
+    return (await request(
+      `/api/v1/tenants/${tenantId}/inventory-suppliers/${supplierId}`,
+      inventorySupplierLifecycleSchema,
+    )).data
+  },
+
+  async proposalInventoryImpacts(
+    tenantId: string,
+    proposalVersionId: string,
+  ): Promise<ProposalInventoryImpact[]> {
+    return (await request(
+      `/api/v1/tenants/${tenantId}/proposal-versions/${proposalVersionId}/inventory-impacts`,
+      z.array(proposalInventoryImpactSchema),
     )).data
   },
 
@@ -115,10 +194,11 @@ export const inventoryApi = {
   reprojectExtraction(
     tenantId: string, record: InventoryImport,
     token: string, reason: string,
+    interpretation?: { reevaluateAcceptance: true; expectedMappingRevision: string; correctedSchema?: unknown },
   ) {
     return command(
       `/api/v1/tenants/${tenantId}/inventory-imports/${record.id}:reproject-extraction`,
-      inventoryImportSchema, { reason }, token, record.version)
+      inventoryImportSchema, { reason, ...interpretation }, token, record.version)
   },
 
   cancelExtraction(tenantId: string, record: InventoryImport, token: string, reason: string) {
@@ -144,13 +224,14 @@ export const inventoryApi = {
     decision: InventoryDecision,
     correctedValues: InventoryValues | null,
     rejectionReason: string | null,
+    interpretation?: { correctedSchema: unknown; expectedMappingRevision: string; notes: string },
   ) {
     return command(
       `/api/v1/tenants/${tenantId}/inventory-candidates/${candidateId}:review`,
       inventoryCandidateSchema,
       { decision, correctedValues, rejectionReason,
         notes: decision === inventoryCodes.decision.reject
-          ? 'Rejected during source review.' : 'Source checked.' },
+          ? 'Rejected during source review.' : 'Source checked.', ...interpretation },
       token, candidateVersion)
   },
 

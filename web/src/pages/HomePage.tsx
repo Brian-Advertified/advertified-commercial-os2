@@ -10,9 +10,11 @@ import type { InventoryProductPage } from '../api/inventory-schemas'
 import { opportunityApi } from '../api/opportunity-client'
 import type { CurrentUser, HumanTask, Tenant, Workspace } from '../api/schemas'
 import { useWorkspace } from '../auth/workspace-state'
+import { ExperienceSignals, type ExperienceSignal } from '../components/ExperienceSignals'
 import { Icon } from '../components/Icon'
 import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
+import { mediaVisual } from '../planning/media-visuals'
 import { formatMoney, formatNumber, humanizeCode } from '../presentation/format'
 
 type DashboardData = {
@@ -70,16 +72,16 @@ type DashboardView = ReturnType<typeof dashboardView>
 
 function ApprovedDashboard({ data }: { data: DashboardData }) {
   const view = dashboardView(data)
+  const [showGettingStarted, setShowGettingStarted] = useState(true)
   return <section className="approved-dashboard" aria-labelledby="home-title">
     <header className="approved-dashboard-greeting">
-      <h1 id="home-title">Good morning, {firstName(data.user.displayName)} 👋</h1>
-      <p>Here&apos;s what&apos;s happening with your media.</p>
+      <h1 id="home-title">{greeting()}, {firstName(data.user.displayName)} 👋</h1>
+      <p>Your live workspace is prioritised around decisions, campaign movement and evidence-backed signals.</p>
     </header>
+    <ExperienceSignals title="What needs attention now" signals={dashboardSignals(data, view)} />
     <DashboardKpis data={data} view={view} />
     <DashboardGrid data={data} view={view} />
-    <GettingStarted />
-    <AssistantInsights campaigns={view.activeCampaigns.length}
-      tasks={data.tasks.length} inventory={data.inventory?.items.length ?? 0} />
+    {showGettingStarted && <GettingStarted onDismiss={() => setShowGettingStarted(false)} />}
   </section>
 }
 
@@ -192,10 +194,10 @@ function DashboardRight({ data, campaigns }: {
   </div>
 }
 
-function GettingStarted() {
+function GettingStarted({ onDismiss }: { onDismiss: () => void }) {
   return <div className="approved-help-row">
     <article className="approved-getting-started">
-      <button type="button" aria-label="Dismiss">×</button>
+      <button type="button" aria-label="Dismiss" onClick={onDismiss}>×</button>
       <h2>Need help getting started?</h2>
       <p>Create a brief, explore inventory or let Adverti Assistant guide you.</p>
       <div><Link to="/briefs/new"><Icon name="brief" /><span>
@@ -246,39 +248,59 @@ function Panel({ title, action, children, className = '' }: { title: string; act
 }
 
 function CampaignRow({ campaign, index }: { campaign: Campaign; index: number }) {
-  const progress = progressFor(campaign.status)
   return <Link className="approved-campaign-row" to={`/campaigns/${campaign.id}`}>
     <img src={thumbnails[index % thumbnails.length]} alt="" /><div><strong>{campaign.title}</strong>
       <small>{formatDateRange(campaign.startDate, campaign.endDate)}</small><em>{humanizeCode(campaign.status, true)}</em></div>
-    <span className="approved-progress-copy"><strong>{progress}%</strong><small>{progress >= 100 ? 'Completed' : 'On track'}</small></span>
-    <span className="approved-progress-track"><i style={{ width: `${progress}%` }} /></span><b>⋮</b>
+    <span className="approved-campaign-stage"><strong>{humanizeCode(campaign.status, true)}</strong><small>Persisted campaign state</small></span>
+    <b aria-hidden="true">→</b>
   </Link>
 }
 
 function InvestmentChart({ rows, total, currency }: { rows: Array<[string, number]>; total: number; currency: string }) {
-  const colors = ['#6538f5', '#2089ff', '#27bfd3', '#f7a72f', '#ef75aa', '#8794a8']
-  const gradient = rows.length === 0 ? '#eef1f7 0 100%' : buildGradient(rows, total, colors)
+  const gradient = rows.length === 0 ? '#eef1f7 0 100%' : buildGradient(rows, total)
   return <div className="approved-investment-chart"><div className="approved-donut" style={{ background: `conic-gradient(${gradient})` }}>
     <span><strong>{formatMoney(total, currency, 0)}</strong><small>Total</small></span></div>
-    <div className="approved-channel-legend">{rows.length === 0 ? <Empty message="No booked spend by channel yet." /> : rows.map(([channel, amount], index) =>
-      <div key={channel}><span style={{ background: colors[index % colors.length] }} /><strong>{humanizeCode(channel, true)}</strong>
-        <small>{formatMoney(amount, currency, 0)} ({Math.round(amount / Math.max(total, 1) * 100)}%)</small></div>)}</div></div>
-}
-
-function AssistantInsights({ campaigns, tasks, inventory }: { campaigns: number; tasks: number; inventory: number }) {
-  return <article className="approved-assistant-insights"><header><span>✦</span><div><strong>Adverti Assistant Insights</strong><small>Evidence-led workspace signals</small></div></header>
-    <div><span className="insight-icon">◔</span><p><strong>{campaigns} active campaign{campaigns === 1 ? '' : 's'}</strong><small>Open campaign work that may need monitoring.</small></p></div>
-    <div><span className="insight-icon orange">⌘</span><p><strong>{inventory} inventory item{inventory === 1 ? '' : 's'} visible</strong><small>Published supply available to this workspace.</small></p></div>
-    <div><span className="insight-icon purple">◆</span><p><strong>{tasks} task{tasks === 1 ? '' : 's'} waiting</strong><small>Only persisted human actions are counted.</small></p></div>
-  </article>
+    <div className="approved-channel-legend">{rows.length === 0 ? <Empty message="No booked spend by channel yet." /> : rows.map(([channel, amount]) => {
+      const visual = mediaVisual(channel)
+      return <div key={channel}><span style={{ background: visual.color }} /><strong>{visual.label}</strong>
+        <small>{formatMoney(amount, currency, 0)} ({Math.round(amount / Math.max(total, 1) * 100)}%)</small></div>
+    })}</div></div>
 }
 
 function Empty({ message }: { message: string }) { return <p className="approved-empty">{message}</p> }
 function metricTotal(campaigns: Campaign[], metric: string) { return campaigns.flatMap(c => c.performanceEvidence).flatMap(e => e.metrics).filter(m => m.metricType === metric).reduce((sum, m) => sum + m.value, 0) }
 function investmentByChannel(bookings: Booking[]) { const totals = new Map<string, number>(); for (const item of bookings) totals.set(item.channel, (totals.get(item.channel) ?? 0) + (item.clientPriceMinor ?? 0)); return [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6) }
 function compact(value: number) { if (value >= 1_000_000) return `${formatNumber(value / 1_000_000, 1)}M`; if (value >= 1_000) return `${formatNumber(value / 1_000, 1)}K`; return formatNumber(value) }
-function progressFor(status: string) { const key = status.toUpperCase(); if (key === masterDataCodes.lifecycleStatuses.completed) return 100; if (key === masterDataCodes.lifecycleStatuses.live) return 78; if (key === masterDataCodes.lifecycleStatuses.ready) return 60; if (key === masterDataCodes.lifecycleStatuses.creativePending) return 50; if (key === masterDataCodes.lifecycleStatuses.booked) return 40; if (key === masterDataCodes.lifecycleStatuses.planned) return 20; return 8 }
 function relative(value: string) { const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000)); if (minutes < 60) return `${minutes}m ago`; const hours = Math.round(minutes / 60); if (hours < 24) return `${hours}h ago`; return `${Math.round(hours / 24)}d ago` }
 function formatDateRange(start: string, end: string) { return `${new Date(start).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} – ${new Date(end).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}` }
-function buildGradient(rows: Array<[string, number]>, total: number, colors: string[]) { let cursor = 0; return rows.map(([, amount], index) => { const start = cursor; cursor += amount / Math.max(total, 1) * 100; return `${colors[index % colors.length]} ${start}% ${cursor}%` }).join(', ') }
+function buildGradient(rows: Array<[string, number]>, total: number) { let cursor = 0; return rows.map(([channel, amount]) => { const start = cursor; cursor += amount / Math.max(total, 1) * 100; return `${mediaVisual(channel).color} ${start}% ${cursor}%` }).join(', ') }
+function dashboardSignals(data: DashboardData, view: DashboardView): ExperienceSignal[] {
+  const topChannel = view.channelSpend[0]
+  return [
+    {
+      label: 'Human decisions', value: `${data.tasks.length} waiting`, icon: 'tasks',
+      tone: data.tasks.length > 0 ? 'warning' : 'positive',
+      detail: data.tasks.length > 0 ? 'Persisted approvals or corrections need attention.' : 'No assigned human checkpoints are currently waiting.',
+      why: 'This count comes only from persisted HumanTask records for the current workspace.',
+    },
+    {
+      label: 'Campaign movement', value: `${view.activeCampaigns.length} active`, icon: 'plan', tone: 'violet',
+      detail: `${data.campaigns.length} campaign${data.campaigns.length === 1 ? '' : 's'} exist in this workspace.`,
+      why: 'Completed and cancelled campaigns are excluded from the active count.',
+    },
+    {
+      label: 'Investment concentration',
+      value: topChannel ? mediaVisual(topChannel[0]).label : 'No spend yet', icon: 'chart', tone: 'blue',
+      detail: topChannel ? `${Math.round(topChannel[1] / Math.max(view.totalInvestmentMinor, 1) * 100)}% of persisted booked investment is in this channel.` : 'Booked channel investment will appear here as commercial lines are confirmed.',
+      why: 'The signal is calculated from persisted booking client-price values, not a forecast.',
+    },
+    {
+      label: 'Evidence readiness', value: view.reach > 0 ? 'Reach available' : 'Reach pending', icon: 'evidence',
+      tone: view.reach > 0 ? 'positive' : 'neutral',
+      detail: view.reach > 0 ? `${compact(view.reach)} reviewed reach is recorded.` : 'No reviewed reach evidence is available yet.',
+      why: 'Advertified only surfaces reach when reviewed campaign evidence contains a reach metric.',
+    },
+  ]
+}
+function greeting() { const hour = new Date().getHours(); if (hour < 12) return 'Good morning'; if (hour < 18) return 'Good afternoon'; return 'Good evening' }
 function firstName(displayName: string) { return displayName.trim().split(/\s+/)[0] || 'there' }

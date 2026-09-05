@@ -6,6 +6,8 @@ using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Advertified.Commercial.Infrastructure.Planning;
+using Advertified.Commercial.Infrastructure.EmailAutomation;
+using Microsoft.Extensions.Options;
 
 namespace Advertified.Commercial.Infrastructure.Proposal;
 
@@ -15,7 +17,9 @@ public sealed partial class ProposalCommands(
     CommandDispatcher dispatcher,
     ITenantAuthorizer authorizer,
     IProposalNarrativeClient narrativeClient,
-    IProposalDeliveryClient deliveryClient,
+    ProposalInventoryReadiness inventoryReadiness,
+    DurableProposalEmailDelivery emailDelivery,
+    IOptions<EmailAutomationOptions> emailOptions,
     ProposalPolicy proposalPolicy,
     TimeProvider timeProvider) : IProposalCommands
 {
@@ -59,11 +63,15 @@ public sealed partial class ProposalCommands(
             envelope, MasterDataReferences.Permissions.ProposalEdit,
             token => RenderOutcomeAsync(proposalVersionId, envelope, token), cancellationToken);
 
-    public Task<CommandResult<ProposalVersionView>> ShareAsync(
+    public async Task<CommandResult<ProposalVersionView>> ShareAsync(
         Guid proposalVersionId, CommandEnvelope<ShareProposalCommand> envelope,
-        CancellationToken cancellationToken) => DispatchAsync(
+        CancellationToken cancellationToken)
+    {
+        var receipt = await SendProposalAsync(proposalVersionId, envelope, cancellationToken);
+        return await DispatchAsync(
             envelope, MasterDataReferences.Permissions.ProposalShare,
-            token => ShareOutcomeAsync(proposalVersionId, envelope, token), cancellationToken);
+            token => ShareOutcomeAsync(proposalVersionId, envelope, receipt, token), cancellationToken);
+    }
 
     public Task<CommandResult<ProposalVersionView>> RecordAutomatedDeliveryAsync(
         Guid proposalVersionId,

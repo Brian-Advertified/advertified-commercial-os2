@@ -8,53 +8,24 @@ internal sealed record ExtractedInventoryCandidate(
     IReadOnlyList<InventoryFieldEvidenceView> Evidence,
     string Locator,
     int RowNumber,
-    string? SupplierName);
+    string? SupplierName,
+    bool HasDiscoveredSchema = false);
 
 internal static partial class InventoryCandidateNormalizer
 {
     private static readonly Dictionary<string, string> Aliases =
         BuildAliases();
 
-    private static readonly Dictionary<string, string> ProductTypes =
-        new(StringComparer.Ordinal)
-        {
-            [MasterDataCodes.Channels.Ooh] =
-                MasterDataCodes.InventoryProductTypes.OohSite,
-            [MasterDataCodes.Channels.Dooh] =
-                MasterDataCodes.InventoryProductTypes.DoohScreen,
-            [MasterDataCodes.Channels.Radio] =
-                MasterDataCodes.InventoryProductTypes.RadioSpot,
-            [MasterDataCodes.Channels.Tv] =
-                MasterDataCodes.InventoryProductTypes.TvSpot,
-            [MasterDataCodes.Channels.Print] =
-                MasterDataCodes.InventoryProductTypes.PrintPlacement,
-            [MasterDataCodes.Channels.Digital] =
-                MasterDataCodes.InventoryProductTypes.DigitalPlacement,
-            [MasterDataCodes.Channels.Social] =
-                MasterDataCodes.InventoryProductTypes.SocialPlacement,
-            [MasterDataCodes.Channels.Influencer] =
-                MasterDataCodes.InventoryProductTypes.InfluencerPackage,
-            [MasterDataCodes.Channels.Experiential] =
-                MasterDataCodes.InventoryProductTypes.Experience,
-            [MasterDataCodes.Channels.Podcast] =
-                MasterDataCodes.InventoryProductTypes.PodcastSpot,
-            [MasterDataCodes.Channels.Retail] =
-                MasterDataCodes.InventoryProductTypes.RetailPlacement,
-            [MasterDataCodes.Channels.Transit] =
-                MasterDataCodes.InventoryProductTypes.TransitPlacement,
-            [MasterDataCodes.Channels.Mall] =
-                MasterDataCodes.InventoryProductTypes.MallPlacement,
-            [MasterDataCodes.Channels.Email] =
-                MasterDataCodes.InventoryProductTypes.EmailPlacement,
-            [MasterDataCodes.Channels.Mobile] =
-                MasterDataCodes.InventoryProductTypes.MobilePlacement,
-        };
+    internal static IReadOnlySet<string> CanonicalMeanings { get; } =
+        Aliases.Values.ToHashSet(StringComparer.Ordinal);
 
     internal static ExtractedInventoryCandidate Normalize(
         InventoryExtractedRow row,
         string sourceHash,
         DateTimeOffset capturedAtUtc)
     {
+        if (row.DiscoveredFields is not null)
+            return InventoryDiscoveredCandidateNormalizer.Normalize(row, sourceHash, capturedAtUtc);
         var canonical = new Dictionary<string, string>(
             StringComparer.Ordinal);
         var extension = new Dictionary<string, string>(
@@ -82,7 +53,6 @@ internal static partial class InventoryCandidateNormalizer
         }
         ApplyContextualMappings(row, canonical, sources);
         ApplyProductCodeContext(canonical, sources);
-        ApplyKnownBrandCasing(canonical);
         ApplyDimensionContext(canonical, sources);
         if (canonical.TryGetValue("rate", out var rawRate) &&
             InventoryMoneyParser.IsAmbiguousTruncatedRate(rawRate))
@@ -127,7 +97,7 @@ internal static partial class InventoryCandidateNormalizer
             canonical.GetValueOrDefault("supplier_name")?.Trim());
     }
 
-    private static InventoryCandidateValues ToValues(
+    internal static InventoryCandidateValues ToValues(
         Dictionary<string, string> values,
         Dictionary<string, string> extension,
         List<InventoryFieldEvidenceView> evidence,
@@ -135,31 +105,8 @@ internal static partial class InventoryCandidateNormalizer
         string sourceHash,
         DateTimeOffset capturedAtUtc)
     {
-        var channel = SourceChannel(
-            values,
-            evidence,
-            locator,
-            sourceHash,
-            capturedAtUtc);
+        var channel = Code(values, "channel");
         var productType = Code(values, "product_type");
-        if (productType is null &&
-            channel is not null &&
-            ProductTypes.TryGetValue(channel, out var derived))
-        {
-            productType = derived;
-            evidence.Add(Evidence(
-                "product_type",
-                channel,
-                derived,
-                MasterDataCodes.InventoryTransformationTypes
-                    .DerivedFromChannel,
-                locator,
-                sourceHash,
-                capturedAtUtc,
-                MasterDataCodes.InventoryExtractionMethods.PolicyDefault,
-                evidenceBasis: MasterDataCodes
-                    .InventoryEvidenceBases.DerivedPolicy));
-        }
         var availability = Availability(
             values,
             evidence,

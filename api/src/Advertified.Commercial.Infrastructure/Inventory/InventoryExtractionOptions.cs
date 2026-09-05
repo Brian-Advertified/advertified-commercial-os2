@@ -6,7 +6,7 @@ public sealed class InventoryExtractionOptions
     public const string DoclingMode = "Docling";
     public const string DeterministicMode = "Deterministic";
     public const string PinnedAdapterVersion =
-        "docling-serve/1.30.0;docling/2.118.0;advertified-projection/3.8.0;" +
+        "docling-serve/1.30.0;docling/2.118.0;advertified-projection/3.9.0;" +
         NativeOfficeInventoryProjection.AdapterVersion + ";" +
         DoclingInventoryExtractionAdapter.EmbeddedImageProjectionVersion;
     public const string CurrentSchemaVersion = "advertified.inventory-extraction.v3";

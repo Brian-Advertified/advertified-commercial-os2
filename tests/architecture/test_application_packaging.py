@@ -19,10 +19,7 @@ CANONICAL_LOCAL_COMPOSE_PROJECT = "advertified-os2-dev"
 LOCAL_DOCKER_ENTRYPOINTS = (
     "tools/advertified-compose.ps1",
     "tools/restore-os2-safe.ps1",
-    "tools/update-os2-api-and-repair-dms.ps1",
-    "tools/checkpoint-inventory-production-release.ps1",
     "tools/inspect-os2-corpus-storage.ps1",
-    "tools/materialize-os2-corpus-sources.ps1",
     "tools/update-os2-api-only.ps1",
     "tools/apply-local-development-seed.mjs",
     "tools/extract_inventory_sources.py",

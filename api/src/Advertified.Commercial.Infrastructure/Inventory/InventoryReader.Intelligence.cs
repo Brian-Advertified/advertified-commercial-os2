@@ -20,6 +20,10 @@ public sealed partial class InventoryReader
         if (limit is < 1 or > 50) throw new ArgumentOutOfRangeException(nameof(limit));
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
+        await supplierAccess.EnsureProductAccessAsync(
+            actorId, tenantId, productId, cancellationToken);
+        var supplierScope = await supplierAccess.ResolveSupplierScopeAsync(
+            actorId, tenantId, cancellationToken);
         var rows = await store.DbContext.Database.SqlQuery<InventorySemanticRecallRow>($"""
             WITH target AS (
                 SELECT embedding.embedding, embedding.provider_code, embedding.model_code,
@@ -52,7 +56,8 @@ public sealed partial class InventoryReader
              AND peer.status_code = {MasterDataCodes.LifecycleStatuses.Active}
             JOIN commercial.inventory_product_versions version
               ON version.tenant_id = peer.tenant_id AND version.id = peer.current_version_id
-            WHERE NOT EXISTS (
+            WHERE ({supplierScope}::uuid[] IS NULL OR peer.supplier_id = ANY({supplierScope}))
+              AND NOT EXISTS (
                 SELECT 1 FROM commercial.inventory_product_identity_links identity_link
                 WHERE identity_link.tenant_id = peer.tenant_id
                   AND identity_link.duplicate_product_id = peer.id)
@@ -104,6 +109,7 @@ public sealed partial class InventoryReader
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
         var now = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+        await supplierAccess.EnsureAssetAccessAsync(actorId, tenantId, assetId, cancellationToken);
         var rows = await store.DbContext.Database.SqlQuery<ApprovedAssetRow>($"""
             SELECT object_key AS "ObjectKey", media_type AS "MediaType",
                 content_hash AS "ContentHash"
@@ -111,8 +117,8 @@ public sealed partial class InventoryReader
             """).ToListAsync(cancellationToken);
         var row = rows.SingleOrDefault()
             ?? throw new UnauthorizedAccessException("Approved inventory asset access denied.");
-        var content = await store.ObjectStore.ReadAsync(row.ObjectKey, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        var content = await store.ObjectStore.ReadAsync(row.ObjectKey, cancellationToken);
         return new(content, row.MediaType, row.ContentHash);
     }
 

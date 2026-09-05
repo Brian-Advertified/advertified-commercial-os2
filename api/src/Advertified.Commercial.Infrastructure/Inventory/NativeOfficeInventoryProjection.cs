@@ -1,4 +1,5 @@
 using System.Globalization;
+
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.MasterData;
 
@@ -7,12 +8,14 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 internal static class NativeOfficeInventoryProjection
 {
     internal const string AdapterVersion =
-        "advertified-openxml/1.0.0";
+        "advertified-openxml/1.1.0";
 
     internal static InventoryExtractionResult Apply(
         InventoryExtractionRequest request,
         InventoryExtractionResult provider)
     {
+        if (provider.Document.DiscoveredSchema is not null)
+            return provider;
         var native = request.DocumentClass switch
         {
             MasterDataCodes.DocumentClasses.Xlsx =>
@@ -24,7 +27,10 @@ internal static class NativeOfficeInventoryProjection
         if (native.Count == 0)
             return provider;
         var rows = Merge(
-            native, provider.Rows, request.SourceHash);
+            native,
+            provider.Rows,
+            request.SourceHash,
+            request.DocumentClass);
         return InventoryExtractionContract.Create(
             provider.AdapterCode,
             provider.AdapterVersion,
@@ -34,27 +40,51 @@ internal static class NativeOfficeInventoryProjection
             rows);
     }
 
-    private static InventoryExtractedRow[] Merge(
+    internal static InventoryExtractedRow[] Merge(
         IReadOnlyList<InventoryExtractedRow> native,
         IReadOnlyList<InventoryExtractedRow> provider,
-        string sourceHash)
+        string sourceHash,
+        string documentClass)
     {
         var rows = new List<InventoryExtractedRow>();
-        var identities = new Dictionary<string, int>(
+        var identities = new Dictionary<string, List<int>>(
             StringComparer.Ordinal);
-        foreach (var row in native.Concat(provider))
+        var includeOrdinalScope = documentClass ==
+            MasterDataCodes.DocumentClasses.Pptx;
+
+        foreach (var row in native)
         {
             if (IsVisualBlocker(row) &&
                 (native.Count > 1 || provider.Count > 0))
                 continue;
-            var identity = Identity(row, sourceHash);
-            if (identities.TryGetValue(identity, out var index))
-                rows[index] = MergeMissing(rows[index], row);
-            else
+            var index = rows.Count;
+            rows.Add(row);
+            var identity = Identity(row, sourceHash, includeOrdinalScope);
+            if (!identities.TryGetValue(identity, out var matches)) identities[identity] = matches = [];
+            matches.Add(index);
+        }
+        foreach (var row in provider)
+        {
+            if (IsVisualBlocker(row) && native.Count > 0)
+                continue;
+            var identity = Identity(
+                row,
+                sourceHash,
+                includeOrdinalScope);
+            var matches = identities.GetValueOrDefault(identity) ?? [];
+            var compatible = matches.Where(index => InventoryProjectionRowMatch.Compatible(rows[index], row, sourceHash)).ToArray();
+            var physical = compatible.Where(index => InventoryProjectionRowMatch.SamePhysicalEvidence(rows[index], row)).ToArray();
+            var selected = physical.Length == 1 ? physical : compatible;
+            if (selected.Length == 1)
             {
-                identities[identity] = rows.Count;
-                rows.Add(row);
+                rows[selected[0]] = MergeMissing(rows[selected[0]], row);
+                continue;
             }
+            if (selected.Length > 1)
+                foreach (var index in selected) rows[index] = InventoryProjectionRowMatch.MarkAmbiguous(rows[index]);
+            if (!identities.ContainsKey(identity)) identities[identity] = matches;
+            matches.Add(rows.Count);
+            rows.Add(selected.Length > 1 ? InventoryProjectionRowMatch.MarkAmbiguous(row) : row);
         }
         return rows.Select((row, index) =>
             row with { Number = index + 1 }).ToArray();
@@ -62,23 +92,26 @@ internal static class NativeOfficeInventoryProjection
 
     private static string Identity(
         InventoryExtractedRow row,
-        string sourceHash)
+        string sourceHash,
+        bool includeOrdinalScope)
     {
         var candidate = InventoryCandidateNormalizer.Normalize(
             row, sourceHash, DateTimeOffset.UnixEpoch).Values;
         var identity = candidate.Name;
+        var scope = includeOrdinalScope
+            ? PresentationScope(row.Locator)
+            : string.Empty;
         if (!string.IsNullOrWhiteSpace(identity))
         {
+            var rateKey = candidate.RateAmountMinor?.ToString(
+                CultureInfo.InvariantCulture)
+                ?? Normalize(SourceRate(row));
             return string.Join(
                 '|',
                 Normalize(identity),
-                PresentationScope(row.Locator),
-                Normalize(candidate.Channel),
-                Normalize(candidate.Geography),
-                candidate.RateAmountMinor?.ToString(
-                    CultureInfo.InvariantCulture) ?? string.Empty,
-                Normalize(candidate.Currency),
-                Normalize(candidate.RateType),
+                scope,
+                rateKey,
+                Normalize(candidate.Deliverable?.Placement),
                 Normalize(candidate.Deliverable?.Programme),
                 Normalize(candidate.Deliverable?.Daypart),
                 Normalize(candidate.Deliverable?.Format),
@@ -87,7 +120,7 @@ internal static class NativeOfficeInventoryProjection
         if (!string.IsNullOrWhiteSpace(candidate.ProductCode))
         {
             return "code|" + Normalize(candidate.ProductCode) + "|" +
-                PresentationScope(row.Locator);
+                scope;
         }
         return "raw|" + string.Join(
             '|',
@@ -96,6 +129,13 @@ internal static class NativeOfficeInventoryProjection
                     Normalize(item.Key) + "=" +
                     Normalize(item.Value)));
     }
+
+    private static string SourceRate(InventoryExtractedRow row) =>
+        row.Values.GetValueOrDefault("rate")
+        ?? row.Values.GetValueOrDefault("price")
+        ?? row.Values.GetValueOrDefault("cost")
+        ?? row.Values.GetValueOrDefault("baseprice")
+        ?? string.Empty;
 
     private static string PresentationScope(string locator)
     {

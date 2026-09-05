@@ -1,8 +1,8 @@
 """Physically certify every retained inventory source against API projections.
 
 The command is read-only with respect to imports and never invokes Bedrock.  It
-writes immutable comparison evidence and promotes file gold only when every
-physical anchor is covered and every projected candidate is source-supported.
+writes automated comparison evidence, not physical/visual attestation or human
+gold. Only the explicitly selected evaluation manifest is in scope.
 """
 
 from __future__ import annotations
@@ -28,14 +28,22 @@ CORPUS_ROOT = REPO_ROOT / "artifacts" / "inventory-corpus"
 TENANT_ID = "10000000-0000-0000-0000-000000000020"
 
 
+from inventory_physical_certification_report import (
+    physical_baseline,
+    build_register,
+    render_markdown,
+    escape,
+    escape_markdown,
+)
+
 def main() -> int:
     args = parse_args()
     root = args.evidence.resolve(strict=True)
     manifest = read_json(root / "source-manifest.json")
     documents = manifest.get("documents") or []
-    if len(documents) != 43:
+    if not documents or manifest.get("documentCount") != len(documents):
         raise RuntimeError(
-            f"Expected exactly 43 physical sources; found {len(documents)}."
+            "The evaluation manifest must contain its declared source documents."
         )
 
     client = InventoryApi(args.api_base_url, args.origin, args.tenant_id)
@@ -51,9 +59,9 @@ def main() -> int:
         str(item["sourceHash"]): item
         for item in preflight.get("sources") or []
     }
-    if set(sources) != {str(item["sha256"]) for item in documents}:
+    if not {str(item["sha256"]) for item in documents}.issubset(sources):
         raise RuntimeError(
-            "The live OS2 source set does not match the 43-file manifest."
+            "A selected evaluation source is missing from the retained API artifacts."
         )
 
     output = root / "physical-certification"
@@ -96,11 +104,9 @@ def main() -> int:
 
     register = build_register(manifest, preflight, records)
     write_json(output / "corpus-physical-certification.json", register)
-    (output / "CORPUS_PHYSICAL_CERTIFICATION.md").write_text(
+    (output / "CORPUS_PHYSICAL_CERTIFICATION.txt").write_text(
         render_markdown(register), encoding="utf-8"
     )
-    if args.promote and register["verdict"] == "PASS":
-        promote_gold(root, records)
 
     print(json.dumps({
         "verdict": register["verdict"],
@@ -256,15 +262,10 @@ def load_records(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--evidence", type=Path, default=CORPUS_ROOT)
+    parser.add_argument("--evidence", type=Path, required=True)
     parser.add_argument("--api-base-url", default="http://127.0.0.1:5197")
     parser.add_argument("--origin", default="http://localhost:3017")
     parser.add_argument("--tenant-id", default=TENANT_ID)
-    parser.add_argument(
-        "--promote",
-        action="store_true",
-        help="Write file-level gold only after all 43 comparison results pass.",
-    )
     parser.add_argument(
         "--start-position",
         type=int,
@@ -274,7 +275,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--maximum-files",
         type=int,
-        default=43,
+        default=1,
         help="Maximum source files evaluated by this invocation.",
     )
     parser.add_argument(
@@ -283,142 +284,6 @@ def parse_args() -> argparse.Namespace:
         help="Build the corpus verdict from existing per-file reports.",
     )
     return parser.parse_args()
-
-
-def physical_baseline(
-    document: dict[str, Any],
-    source: dict[str, Any],
-    import_view: dict[str, Any],
-    passed: bool,
-) -> dict[str, Any]:
-    candidates = []
-    for item in import_view.get("candidates") or []:
-        candidates.append({
-            "id": item.get("id"),
-            "rowNumber": item.get("rowNumber"),
-            "status": item.get("status"),
-            "sourceLocator": item.get("sourceLocator"),
-            "values": (
-                item.get("canonicalValues")
-                or item.get("proposedValues")
-                or item.get("values")
-                or {}
-            ),
-            "evidence": item.get("evidence") or [],
-            "validation": item.get("validation") or [],
-        })
-    return {
-        "schemaVersion": "advertified.inventory-physical-baseline.v1",
-        "sourceHash": document["sha256"],
-        "fileName": document["relativePath"],
-        "importId": source["importId"],
-        "physicalCertificationPassed": passed,
-        "candidateCount": len(candidates),
-        "candidates": candidates,
-    }
-
-
-def build_register(
-    manifest: dict[str, Any],
-    preflight: dict[str, Any],
-    records: list[dict[str, Any]],
-) -> dict[str, Any]:
-    passed = [item for item in records if item["passed"]]
-    failed = [item for item in records if not item["passed"]]
-    return {
-        "schemaVersion": "advertified.inventory-physical-certification.v2",
-        "generatedAtUtc": datetime.now(UTC).isoformat(),
-        "datasetVersion": manifest.get("datasetVersion"),
-        "sourceCount": len(records),
-        "passedSourceCount": len(passed),
-        "failedSourceCount": len(failed),
-        "candidateCount": sum(item["candidate_count"] for item in records),
-        "expectedAnchorCount": sum(
-            item["expected_anchor_count"] for item in records
-        ),
-        "matchedAnchorCount": sum(
-            item["matched_anchor_count"] for item in records
-        ),
-        "unsupportedCandidateCount": sum(
-            item["unsupported_candidate_count"] for item in records
-        ),
-        "blockingCandidateCount": sum(
-            item["blocking_candidate_count"] for item in records
-        ),
-        "bedrockLiveExecutionEnabled": bool(
-            preflight.get("liveExecutionEnabled")
-        ),
-        "bedrockCommittedCostUsdMicros": int(
-            preflight.get("existingCommittedCostUsdMicros") or 0
-        ),
-        "verdict": "PASS" if len(passed) == 43 else "FAIL",
-        "documents": records,
-    }
-
-
-def promote_gold(root: Path, records: list[dict[str, Any]]) -> None:
-    gold_root = root / "gold"
-    gold_root.mkdir(parents=True, exist_ok=True)
-    for record in records:
-        if not record["passed"]:
-            continue
-        source_hash = record["source_hash"]
-        source = load_source(
-            root / "semantic-v1" / f"{source_hash}.json"
-        )
-        anchors = [asdict(item) for item in discover_anchors(source)]
-        payload = {
-            "schemaVersion": "advertified.inventory-file-gold.v2",
-            "documentId": source_hash,
-            "fileName": record["file_name"],
-            "certifiedAtUtc": datetime.now(UTC).isoformat(),
-            "certificationMethod": (
-                "INDEPENDENT_PHYSICAL_SOURCE_MAP_TO_API_COMPARISON"
-            ),
-            "expectedCandidateCount": record["candidate_count"],
-            "expectedAnchors": anchors,
-            "publicationRequiresHumanReview": True,
-        }
-        write_json(gold_root / f"{source_hash}.json", payload)
-
-
-def render_markdown(register: dict[str, Any]) -> str:
-    rows = [
-        "# Corpus physical certification",
-        "",
-        f"Verdict: **{register['verdict']}**",
-        "",
-        "| Measure | Result |",
-        "|---|---:|",
-        f"| Sources | {register['sourceCount']} |",
-        f"| Passed | {register['passedSourceCount']} |",
-        f"| Failed | {register['failedSourceCount']} |",
-        f"| Expected physical anchors | {register['expectedAnchorCount']} |",
-        f"| Matched physical anchors | {register['matchedAnchorCount']} |",
-        f"| API candidates | {register['candidateCount']} |",
-        f"| Unsupported API candidates | {register['unsupportedCandidateCount']} |",
-        "",
-        "| File | Format | Candidates | Anchors | Matched | Verdict | Failures |",
-        "|---|---|---:|---:|---:|---|---|",
-    ]
-    for item in register["documents"]:
-        rows.append(
-            f"| {escape(item['file_name'])} | {item['document_format']}"
-            f" | {item['candidate_count']} | {item['expected_anchor_count']}"
-            f" | {item['matched_anchor_count']}"
-            f" | {'PASS' if item['passed'] else 'FAIL'}"
-            f" | {escape(', '.join(item['failures']))} |"
-        )
-    rows.append("")
-    return "\n".join(rows)
-
-
-def escape(value: str) -> str:
-    return value.replace("|", "\\|").replace("\n", " ")
-
-
-def escape_markdown(value: str) -> str:
-    return value.replace("|", "\\|").replace("\n", " ")
 
 
 def read_json(path: Path) -> dict[str, Any]:

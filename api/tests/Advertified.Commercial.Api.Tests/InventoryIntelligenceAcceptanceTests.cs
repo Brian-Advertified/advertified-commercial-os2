@@ -23,7 +23,8 @@ public sealed partial class InventoryAcceptanceTests
         var connectionString = postgres.GetConnectionString();
         await DisposableDatabaseRoles.ProvisionAsync(connectionString);
         await SeedAsync(connectionString);
-        await using var importerFactory = CreateFactory(connectionString, ImporterId);
+        await using var importerFactory = CreateFactory(connectionString, ImporterId,
+            new SchemaFixtureAdapter(readCsvIdentity: true));
         await using var reviewerFactory = CreateFactory(connectionString, ReviewerId);
         using var importer = importerFactory.CreateClient();
         using var reviewer = reviewerFactory.CreateClient();
@@ -112,21 +113,15 @@ public sealed partial class InventoryAcceptanceTests
         string key,
         FileFixture fixture)
     {
-        using var upload = await UploadAsync(importer, $"{key}-upload", "City Media", fixture);
+        using var upload = await UploadAsync(importer, $"{key}-upload", $"Synthetic supplier {key}", fixture);
         using var created = await ReadJsonAsync(upload);
         var importId = created.RootElement.GetProperty("id").GetGuid();
         using var execute = await CommandAsync(
             importer, $"/api/v1/tenants/{TenantId}/inventory-imports/{importId}:execute",
             $"{key}-execute", 1, new { });
         using var extracted = await ReadJsonAsync(execute);
-        var candidateId = extracted.RootElement.GetProperty("candidates")[0]
-            .GetProperty("id").GetGuid();
-        using var review = await CommandAsync(
-            reviewer, $"/api/v1/tenants/{TenantId}/inventory-candidates/{candidateId}:review",
-            $"{key}-review", 1,
-            new { decision = "APPROVE", rejectionReason = (string?)null,
-                notes = "Source identity and rate verified.", correctedValues = (object?)null });
-        review.EnsureSuccessStatusCode();
+        Assert.Equal("APPROVED", extracted.RootElement.GetProperty("candidates")[0]
+            .GetProperty("status").GetString());
         using var publish = await CommandAsync(
             reviewer, $"/api/v1/tenants/{TenantId}/inventory-imports/{importId}:publish",
             $"{key}-publish", 2, new { });

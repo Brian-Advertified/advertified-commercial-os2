@@ -42,7 +42,7 @@ internal static partial class NativePresentationProjection
         return normalized.Length <= 80 &&
             Regex.IsMatch(
                 normalized,
-                @"^(Gauteng|Western Cape|Eastern Cape|KwaZulu-Natal|Free State|Limpopo|Mpumalanga|North West|Northern Cape|Johannesburg|Cape Town|Durban|Pretoria|Tshwane|Soweto|Sandton|Bryanston|Fourways|Umhlanga|Ballito|JHB CBD)$",
+                @"^(?:geography|province|city|region)\s*:\s*\S",
                 RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     }
 

@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Advertified.Commercial.Application.Marketplace;
 using Advertified.Commercial.Application.Security;
+using Advertified.Commercial.Infrastructure.Inventory;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,7 @@ namespace Advertified.Commercial.Infrastructure.Marketplace;
 public sealed class MarketplaceReader(
     MarketplaceRecordStore store,
     ITenantAuthorizer authorizer,
+    InventorySupplierAccessPolicy supplierAccess,
     TimeProvider timeProvider) : IMarketplaceReader
 {
     public async Task<MarketplaceListingPage> SearchListingsAsync(
@@ -25,8 +27,9 @@ public sealed class MarketplaceReader(
         var cursor = MarketplaceCursor.Decode(query.Cursor);
         await using var transaction = await store.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
+        var supplierScope = await supplierAccess.ResolveSupplierScopeAsync(actorId, tenantId, cancellationToken);
         var rows = await SearchListingRowsAsync(
-            filters, cursor, pageSize + 1, cancellationToken);
+            filters, cursor, pageSize + 1, supplierScope, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         var page = rows.Take(pageSize).ToArray();
         var next = rows.Count > pageSize
@@ -44,6 +47,13 @@ public sealed class MarketplaceReader(
             actorId, tenantId, cancellationToken);
         var row = await store.FindListingAsync(listingId, false, cancellationToken)
             ?? throw new UnauthorizedAccessException("Marketplace listing access denied.");
+        var scope = await supplierAccess.ResolveSupplierScopeAsync(actorId, tenantId, cancellationToken);
+        if (scope is not null)
+        {
+            if (row.SupplierTenantId != tenantId.Value)
+                throw new UnauthorizedAccessException("Marketplace listing access denied.");
+            await supplierAccess.EnsureProductAccessAsync(actorId, tenantId, row.ProductId, cancellationToken);
+        }
         await transaction.CommitAsync(cancellationToken);
         return row.ToView();
     }
@@ -84,11 +94,13 @@ public sealed class MarketplaceReader(
 
     private Task<List<MarketplaceListingRow>> SearchListingRowsAsync(
         MarketplaceSearchFilters filters, MarketplaceCursorValue? cursor, int take,
+        Guid[]? supplierScope,
         CancellationToken cancellationToken)
     {
         var suffix = cursor is null
             ? """
                 WHERE listing.status_code = {3}
+                  AND ({5}::uuid[] IS NULL OR version.supplier_id = ANY({5}))
                   AND ({0}::text IS NULL OR version.product_name ILIKE '%' || {0} || '%'
                        OR version.supplier_name ILIKE '%' || {0} || '%')
                   AND ({1}::text IS NULL OR version.channel_code = {1})
@@ -97,6 +109,7 @@ public sealed class MarketplaceReader(
                 """
             : """
                 WHERE listing.status_code = {3}
+                  AND ({7}::uuid[] IS NULL OR version.supplier_id = ANY({7}))
                   AND ({0}::text IS NULL OR version.product_name ILIKE '%' || {0} || '%'
                        OR version.supplier_name ILIKE '%' || {0} || '%')
                   AND ({1}::text IS NULL OR version.channel_code = {1})
@@ -106,10 +119,10 @@ public sealed class MarketplaceReader(
                 """;
         var args = cursor is null
             ? new object?[] { filters.Search, filters.Channel, filters.Geography,
-                MasterDataCodes.MarketplaceListingStatuses.Published, take }
+                MasterDataCodes.MarketplaceListingStatuses.Published, take, supplierScope }
             : [filters.Search, filters.Channel, filters.Geography,
                 MasterDataCodes.MarketplaceListingStatuses.Published,
-                cursor.UpdatedAtUtc, cursor.Id, take];
+                cursor.UpdatedAtUtc, cursor.Id, take, supplierScope];
         return store.DbContext.Database.SqlQuery<MarketplaceListingRow>(
             FormattableStringFactory.Create(
                 MarketplaceRecordStore.ListingSelect + Environment.NewLine + suffix, args))

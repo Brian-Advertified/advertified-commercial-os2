@@ -1,0 +1,17 @@
+.brief-spatial-editor > .advertified-map,
+.brief-spatial-map-empty {
+  margin: 12px 0 16px;
+}
+
+.brief-spatial-map-empty {
+  min-height: 8rem;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  color: var(--approved-muted, #667085);
+  background: #f8fafc;
+  border: 1px dashed var(--approved-line, #d0d5dd);
+  border-radius: var(--ui-radius, 10px);
+  text-align: center;
+  font-size: var(--ui-font-sm, 12px);
+}

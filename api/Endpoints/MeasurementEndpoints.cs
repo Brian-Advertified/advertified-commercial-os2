@@ -34,13 +34,25 @@ public static class MeasurementEndpoints
                 "/api/v1/tenants/{tenantId:guid}/performance-evidence")
             .WithTags("Campaign measurement").RequireAuthorization();
         evidence.MapGet("/{evidenceId:guid}", GetAsync)
-            .WithName("GetPerformanceEvidence").Produces<PerformanceEvidenceView>()
+            .WithName("GetPerformanceEvidence")
+            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
+            .Produces<PerformanceEvidenceView>()
             .WithQueryProblems();
         var reports = endpoints.MapGroup(
                 "/api/v1/tenants/{tenantId:guid}/measurement-reports")
             .WithTags("Campaign measurement").RequireAuthorization();
+        reports.MapGet("", ListReportsAsync)
+            .WithName("ListMeasurementReports")
+            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
+            .Produces<MeasurementReportPage>().WithQueryProblems();
+        campaigns.MapGet("/measurement-summaries", ListCampaignSummariesAsync)
+            .WithName("ListCampaignMeasurementSummaries")
+            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
+            .Produces<MeasurementCampaignPage>().WithQueryProblems();
         reports.MapGet("/{reportId:guid}", GetReportAsync)
-            .WithName("GetMeasurementReport").Produces<MeasurementReportView>()
+            .WithName("GetMeasurementReport")
+            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
+            .Produces<MeasurementReportView>()
             .WithQueryProblems();
         return endpoints;
     }
@@ -53,6 +65,18 @@ public static class MeasurementEndpoints
             tenantId, command, context, identity, clock, false,
             (envelope, token) => commands.SubmitAsync(campaignId, envelope, token),
             cancellationToken);
+
+    private static async Task<IResult> ListReportsAsync(
+        Guid tenantId, int? pageSize, Guid? cursor, ICurrentIdentity identity,
+        IMeasurementReportReader reader, CancellationToken cancellationToken) =>
+        Results.Ok(await reader.ListAsync(identity.ActorId, new TenantId(tenantId),
+            pageSize ?? 50, cursor, cancellationToken));
+
+    private static async Task<IResult> ListCampaignSummariesAsync(
+        Guid tenantId, int? pageSize, Guid? cursor, ICurrentIdentity identity,
+        IMeasurementReportReader reader, CancellationToken cancellationToken) =>
+        Results.Ok(await reader.ListCampaignsAsync(identity.ActorId, new TenantId(tenantId),
+            pageSize ?? 50, cursor, cancellationToken));
 
     private static Task<IResult> ReviewAsync(
         Guid tenantId, Guid campaignId, Guid evidenceId,

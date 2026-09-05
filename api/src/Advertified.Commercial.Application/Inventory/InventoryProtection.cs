@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Advertified.Commercial.Application.Inventory;
 
 public sealed record MalwareScanResult(bool IsClean, string? ThreatName);
@@ -38,11 +40,19 @@ public sealed record InventoryExtractedRow(
     IReadOnlyDictionary<string, string>? FieldLocators = null,
     IReadOnlyDictionary<string, decimal?>? FieldConfidences = null,
     IReadOnlyDictionary<string, string>? FieldEvidenceBases = null,
-    IReadOnlyDictionary<string, string>? FieldTransformations = null);
+    IReadOnlyDictionary<string, string>? FieldTransformations = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<InventoryDiscoveredField>? DiscoveredFields = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<string>? SchemaWarnings = null);
 
 public sealed record InventoryExtractionDocument(
     string SchemaVersion,
-    IReadOnlyList<InventoryExtractedRow> Rows);
+    IReadOnlyList<InventoryExtractedRow> Rows,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    DiscoveredInventorySchema? DiscoveredSchema = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? SchemaDiscoveryFailure = null);
 
 public sealed record InventoryExtractionResult(
     string AdapterCode,

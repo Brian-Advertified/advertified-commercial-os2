@@ -20,6 +20,7 @@ public sealed partial class EmailProposalAutomationProcessor(
     IProposalCommands proposalCommands,
     IProposalReader proposalReader,
     IEmailProviderResolver emailProviders,
+    DurableProposalEmailDelivery durableDelivery,
     IAutomationCommandEnvelopeFactory envelopes,
     IStpReadinessEvaluator stpReadiness,
     IEmailAutomationInventorySelector inventorySelector,

@@ -14,7 +14,7 @@ internal sealed record StoredCommandOutcome(
     public static StoredCommandOutcome FromDomain(CommandOutcome outcome)
     {
         return new StoredCommandOutcome(
-            outcome.Data.Clone(),
+            outcome.PersistedData.Clone(),
             outcome.AggregateVersion,
             StoredAuditRecord.FromDomain(outcome.Audit),
             StoredOutboxMessage.FromDomain(outcome.Outbox),
@@ -61,7 +61,8 @@ internal sealed record StoredAuditRecord(
     Guid CorrelationId,
     string Action,
     StoredResourceReference Resource,
-    DateTimeOffset OccurredAtUtc)
+    DateTimeOffset OccurredAtUtc,
+    JsonElement? Metadata = null)
 {
     public static StoredAuditRecord FromDomain(AuditRecord audit)
     {
@@ -73,7 +74,8 @@ internal sealed record StoredAuditRecord(
             audit.CorrelationId.Value,
             audit.Action.Value,
             StoredResourceReference.FromDomain(audit.Resource),
-            audit.OccurredAtUtc);
+            audit.OccurredAtUtc,
+            audit.Metadata);
     }
 
     public AuditRecord ToDomain()
@@ -86,7 +88,8 @@ internal sealed record StoredAuditRecord(
             new CorrelationId(CorrelationId),
             new ActionCode(Action),
             Resource.ToDomain(),
-            OccurredAtUtc);
+            OccurredAtUtc,
+            Metadata);
     }
 }
 

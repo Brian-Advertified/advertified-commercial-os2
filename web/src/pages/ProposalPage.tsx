@@ -22,6 +22,18 @@ const preparationRoles = new Set<string>([
   masterDataCodes.roles.agencyCampaignUser,
 ])
 
+const inventoryImpactComparisonSchema = z.object({
+  oldProductName: z.string().optional(),
+  oldGeography: z.string().optional(),
+  oldRateMinor: z.number().nullable().optional(),
+  newProductFound: z.boolean().optional(),
+  newProductName: z.string().nullable().optional(),
+  newGeography: z.string().nullable().optional(),
+  newRateMinor: z.number().nullable().optional(),
+  rateChanged: z.boolean().optional(),
+  geographyChanged: z.boolean().optional(),
+}).passthrough()
+
 type ProposalContext = {
   tenantId: string
   proposalId: string
@@ -110,14 +122,61 @@ function ProposalContent(props: ProposalContentProps) {
     <ProposalHero proposal={proposal} />
     <ProposalNavigation canPrepare={canPrepare} hasFunding={Boolean(proposal.decision?.optionId)} />
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
+    <ProposalInventoryUpdateNotice proposal={proposal} />
     {canPrepare ? <AgencyProposalContent {...props} /> : <ClientProposalContent {...props} />}
     <ProposalFundingNextStep proposal={proposal} canPrepare={canPrepare} />
   </section>
 }
 
+function ProposalInventoryUpdateNotice({ proposal }: { proposal: Proposal }) {
+  if (proposal.inventoryReviewStatus ===
+      masterDataCodes.proposalInventoryReviewStatuses.current) return null
+  return <section className="proposal-section inline-alert" role="alert"
+    aria-labelledby="proposal-inventory-update-title">
+    <p className="eyebrow">Supplier inventory updated</p>
+    <h2 id="proposal-inventory-update-title">This proposal requires a current inventory review</h2>
+    <p>The proposal remains available as a historical version, but it cannot be approved, shared,
+      accepted or converted to a booking until an authorised user creates a current version.</p>
+    {proposal.inventoryImpacts.length > 0 && <div className="candidate-stack">
+      {proposal.inventoryImpacts.map(impact => {
+        const comparison = readInventoryImpact(impact.comparisonJson)
+        return <article key={impact.id}><strong>
+          {comparison?.oldProductName ?? 'Affected inventory line'}</strong>
+          <p>{comparison?.newProductFound
+            ? `A replacement was found${comparison.newProductName ? `: ${comparison.newProductName}` : ''}.`
+            : 'No equivalent product was found in the replacement inventory.'}</p>
+          <small>{impactSummary(comparison)}</small>
+        </article>
+      })}
+    </div>}
+  </section>
+}
+
+function readInventoryImpact(json: string) {
+  try {
+    const parsed = inventoryImpactComparisonSchema.safeParse(JSON.parse(json))
+    return parsed.success ? parsed.data : null
+  } catch {
+    return null
+  }
+}
+
+function impactSummary(comparison: z.infer<typeof inventoryImpactComparisonSchema> | null) {
+  if (!comparison) return 'Review the source-linked old and replacement inventory.'
+  const changes = [
+    comparison.rateChanged ? 'rate changed' : null,
+    comparison.geographyChanged ? 'geography changed' : null,
+  ].filter(Boolean)
+  return changes.length > 0
+    ? `Material differences: ${changes.join(', ')}.`
+    : 'No automatic material difference was established; human review is still required.'
+}
+
 function AgencyProposalContent(props: ProposalContentProps) {
   const { proposal, busy, tenantId, token, act } = props
-  const draft = proposal.status === masterDataCodes.lifecycleStatuses.draft
+  const draft = proposal.status === masterDataCodes.lifecycleStatuses.draft &&
+    proposal.inventoryReviewStatus ===
+      masterDataCodes.proposalInventoryReviewStatuses.current
   return <>
     <div id="proposal-details">{draft ? <ProposalEditor key={`${proposal.id}-${proposal.version}`}
       proposal={proposal} busy={busy} onSave={(input: ProposalUpdateInput) => act(() =>

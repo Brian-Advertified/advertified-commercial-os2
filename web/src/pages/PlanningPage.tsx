@@ -6,6 +6,7 @@ import type { MediaAllocation, MediaMix, MediaPlan, PlanningWorkspace, Shortlist
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
 import { CampaignModeBinding } from '../campaign-flow/CampaignFlowBindings'
+import { ExperienceSignals, type ExperienceSignal } from '../components/ExperienceSignals'
 import { Icon } from '../components/Icon'
 import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
@@ -14,6 +15,7 @@ import { MediaPlanPanel } from '../planning/MediaPlanPanel'
 import { MediaTimeline } from '../planning/MediaTimeline'
 import { ShortlistPanel } from '../planning/ShortlistPanel'
 import { announcePlanningChanged } from '../planning/planning-events'
+import { mediaVisual } from '../planning/media-visuals'
 import { formatMoney, humanizeCode } from '../presentation/format'
 
 export function PlanningPage() {
@@ -81,6 +83,7 @@ function PlanningWorkspaceContent(props: PlanningContext & {
       <h1 id="planning-title">Media Planning Overview</h1>
       <p>Allocate investment, select eligible supply and reconcile the client-ready media plan.</p></div>
       <span className="status-chip status-positive">{workspace.campaignMode?.mode === masterDataCodes.campaignModes.oohOnly ? 'OOH / DOOH only' : 'Full campaign'}</span></header>
+    <ExperienceSignals title="Planning intelligence" signals={planningSignals(workspace, mix, shortlist, plan)} />
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
     {mix && <ApprovedPlanningOverview mix={mix} plan={plan} />}
     <MixStage {...props} mix={mix} />
@@ -90,14 +93,13 @@ function PlanningWorkspaceContent(props: PlanningContext & {
 }
 
 function ApprovedPlanningOverview({ mix, plan }: { mix: MediaMix; plan: MediaPlan | null }) {
-  const colors = ['#6538f5', '#2089ff', '#22bdd0', '#f5a524', '#ec6ba8', '#8f94a5']
   const total = Math.max(mix.totalBudgetMinor, 1)
   const selectedLines = plan?.lines ?? []
   const gradient = mix.allocations.map((item, index) => {
     const previous = mix.allocations.slice(0, index).reduce((sum, value) => sum + value.budgetMinor, 0)
     const start = previous / total * 100
     const end = (previous + item.budgetMinor) / total * 100
-    return `${colors[index % colors.length]} ${start}% ${end}%`
+    return `${mediaVisual(item.channel).color} ${start}% ${end}%`
   }).join(', ')
   return <section className="approved-planning-overview" aria-labelledby="approved-planning-overview-title">
     <header><div><p className="eyebrow">Media Planning Overview</p><h2 id="approved-planning-overview-title">Integrated plan across selected channels</h2></div>
@@ -111,11 +113,12 @@ function ApprovedPlanningOverview({ mix, plan }: { mix: MediaMix; plan: MediaPla
     <div className="approved-planning-visual-grid">
       <article className="approved-planning-investment"><header><h3>Investment by Channel</h3></header>
         <div><div className="approved-plan-donut" style={{ background: `conic-gradient(${gradient || '#edf0f4 0 100%'})` }}><span><strong>{formatMoney(mix.totalBudgetMinor, mix.currency, 0)}</strong><small>Total</small></span></div>
-          <div className="approved-plan-legend">{mix.allocations.map((item, index) => <div key={item.channel}><i style={{ background: colors[index % colors.length] }} />
-            <strong>{humanizeCode(item.channel, true)}</strong><span>{Math.round(item.budgetMinor / total * 100)}%</span><small>{formatMoney(item.budgetMinor, mix.currency, 0)}</small></div>)}</div></div></article>
+          <div className="approved-plan-legend">{mix.allocations.map((item) => { const visual = mediaVisual(item.channel); return <div key={item.channel}><i style={{ background: visual.color }} />
+            <strong>{visual.label}</strong><span>{Math.round(item.budgetMinor / total * 100)}%</span><small>{formatMoney(item.budgetMinor, mix.currency, 0)}</small></div> })}</div></div></article>
       <article className="approved-media-flight"><header><h3>Media Flight</h3></header><div>{mix.allocations.map((item, index) => {
         const period = item.runningPeriods[0]
-        return <div key={item.channel}><strong>{humanizeCode(item.channel, true)}</strong><span><i style={{ width: `${Math.max(18, 88 - index * 9)}%`, background: colors[index % colors.length] }} /></span>
+        const visual = mediaVisual(item.channel)
+        return <div key={item.channel}><strong>{visual.label}</strong><span><i style={{ width: `${Math.max(18, 88 - index * 9)}%`, background: visual.color }} /></span>
           <small>{period ? `${period.start} → ${period.end}` : 'Dates not supplied'}</small></div>
       })}</div></article>
     </div>
@@ -210,6 +213,65 @@ function currentShortlist(workspace: PlanningWorkspace, mix: MediaMix | null): S
 function currentPlan(workspace: PlanningWorkspace, mix: MediaMix | null): MediaPlan | null {
   if (!mix || workspace.mediaPlan?.mixVersionId !== mix.id) return null
   return workspace.mediaPlan
+}
+
+function planningSignals(workspace: PlanningWorkspace, mix: MediaMix | null, shortlist: Shortlist | null, plan: MediaPlan | null): ExperienceSignal[] {
+  return [campaignScopeSignal(workspace), allocationSignal(mix), supplySignal(shortlist), readinessSignal(plan)]
+}
+
+function campaignScopeSignal(workspace: PlanningWorkspace): ExperienceSignal {
+  const oohOnly = workspace.campaignMode?.mode === masterDataCodes.campaignModes.oohOnly
+  return {
+    label: 'Campaign scope', value: oohOnly ? 'OOH / DOOH' : 'Full campaign', icon: 'target', tone: 'violet',
+    detail: workspace.campaignMode?.isLocked ? 'The media scope is locked to this Brief lineage.' : 'The current media scope is not yet locked.',
+    why: workspace.campaignMode?.reason || 'This mode is the persisted campaign-mode decision for the current Brief version.',
+  }
+}
+
+function allocationSignal(mix: MediaMix | null): ExperienceSignal {
+  const largest = largestAllocation(mix)
+  if (!mix || !largest) return {
+    label: 'Investment emphasis', value: 'Not allocated', icon: 'chart', tone: 'neutral',
+    detail: 'Create the media mix to expose channel concentration.',
+    why: 'No persisted media allocation exists yet.',
+  }
+  return {
+    label: 'Investment emphasis', value: mediaVisual(largest.channel).label, icon: 'chart', tone: 'blue',
+    detail: `${Math.round(largest.budgetMinor / Math.max(mix.totalBudgetMinor, 1) * 100)}% of the current mix is allocated here.`,
+    why: largest.role || 'The signal follows the largest persisted channel allocation; it does not claim that the channel is optimal.',
+  }
+}
+
+function largestAllocation(mix: MediaMix | null) {
+  return mix?.allocations.reduce<MediaAllocation | null>((largest, item) =>
+    !largest || item.budgetMinor > largest.budgetMinor ? item : largest, null) ?? null
+}
+
+function supplySignal(shortlist: Shortlist | null): ExperienceSignal {
+  if (!shortlist) return {
+    label: 'Supply selection', value: 'Not shortlisted', icon: 'inventory', tone: 'neutral',
+    detail: 'Eligible supply follows approval of the media mix.', why: 'No shortlist exists for the current mix version yet.',
+  }
+  const selected = shortlist.candidates.filter(item => item.isSelected).length
+  return {
+    label: 'Supply selection', value: `${selected} selected`, icon: 'inventory', tone: selected > 0 ? 'positive' : 'neutral',
+    detail: `${shortlist.candidates.length} candidate${shortlist.candidates.length === 1 ? '' : 's'} have been evaluated.`,
+    why: 'Selected and rejected states come directly from the current shortlist version.',
+  }
+}
+
+function readinessSignal(plan: MediaPlan | null): ExperienceSignal {
+  if (!plan) return {
+    label: 'Commercial readiness', value: 'Plan pending', icon: 'evidence', tone: 'neutral',
+    detail: 'Commercial reconciliation starts after supply is confirmed.', why: 'No media plan exists for the current shortlist yet.',
+  }
+  const unresolved = plan.objections.filter(item => !item.resolution).length
+  return {
+    label: 'Commercial readiness', value: unresolved ? `${unresolved} objection${unresolved === 1 ? '' : 's'}` : 'Ready to review',
+    icon: 'evidence', tone: unresolved ? 'warning' : 'positive',
+    detail: `${plan.lines.length} priced plan line${plan.lines.length === 1 ? '' : 's'} are reconciled in the current version.`,
+    why: 'Only unresolved persisted plan objections are counted here.',
+  }
 }
 
 function hasPeriods(mix: MediaMix) {

@@ -147,17 +147,7 @@ internal static partial class DoclingInventoryProjection
                         MasterDataCodes.RateTypes.SpotRate,
                     ["scheduledate"] = date.Value,
                 };
-                var locators = values.Keys.ToDictionary(
-                    key => key, _ => locator);
-                locators["scheduledate"] = CellLocator(
-                    page, tableNumber, headerRow, date.Key);
-                if (!string.IsNullOrWhiteSpace(time.Value))
-                {
-                    values["timeslot"] = time.Value.Trim();
-                    locators["timeslot"] = CellLocator(
-                        page, tableNumber,
-                        row.SourceRow, time.Key);
-                }
+                if (!string.IsNullOrWhiteSpace(time.Value)) values["timeslot"] = time.Value.Trim();
 
                 var dataConfidence = CellConfidence(
                     cells, row.SourceRow, date.Key);
@@ -171,25 +161,11 @@ internal static partial class DoclingInventoryProjection
                             cells, row.SourceRow, time.Key),
                         _ => dataConfidence,
                     });
-                result.Add(new InventoryExtractedRow(
-                    rowOffset + result.Count + 1,
-                    locator,
-                    values,
-                    method,
-                    confidence,
-                    locators,
-                    fieldConfidences,
-                    new Dictionary<string, string>
-                    {
-                        ["ratetype"] = MasterDataCodes
-                            .InventoryEvidenceBases.DerivedPolicy,
-                    },
-                    new Dictionary<string, string>
-                    {
-                        ["ratetype"] = MasterDataCodes
-                            .InventoryTransformationTypes
-                            .DerivedFromSourceContext,
-                    }));
+                result.Add(InventoryScheduleEvidence.Create(
+                    rowOffset + result.Count + 1, values, locator,
+                    CellLocator(page, tableNumber, headerRow, date.Key),
+                    CellLocator(page, tableNumber, row.SourceRow, time.Key),
+                    method, confidence, fieldConfidences));
             }
         }
         return result.ToArray();

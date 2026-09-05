@@ -48,6 +48,8 @@ public sealed partial class ProposalCommands
                 version = version + 1
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {proposalVersionId}
               AND status_code = {MasterDataCodes.LifecycleStatuses.Draft}
+              AND inventory_review_status_code =
+                    {MasterDataCodes.ProposalInventoryReviewStatuses.Current}
               AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1) throw new VersionConflictException();
@@ -84,6 +86,7 @@ public sealed partial class ProposalCommands
         var proposal = await store.FindProposalAsync(
             envelope.TenantId, proposalVersionId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Proposal access denied.");
+        EnsureProposalInventoryCurrent(proposal);
         var brief = await store.FindPlanningReadyBriefAsync(
             envelope.TenantId, proposal.BriefId, cancellationToken)
             ?? throw new ProposalStaleException();

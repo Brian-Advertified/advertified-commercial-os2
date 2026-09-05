@@ -31,6 +31,7 @@ REQUIRED_MASTER_COLLECTIONS = {
     "inventoryExtractionMethods",
     "inventoryExtractionAttemptStatuses",
     "inventoryExtractionFailureClasses",
+    "inventorySupplierResolutionStatuses",
     "verificationLevels",
     "inventoryProductTypes",
     "inventoryImportStepTypes",
@@ -86,6 +87,13 @@ REQUIRED_MASTER_COLLECTIONS = {
     "commercialResourceTypes",
     "commercialActions",
     "commercialEventTypes",
+    "inventoryReleaseStatuses",
+    "inventoryReplacementModes",
+    "proposalInventoryImpactStatuses",
+    "proposalInventoryImpactTypes",
+    "proposalInventoryReviewStatuses",
+    "supplierClaimStatuses",
+    "supplierInvitationStatuses",
 }
 
 BASIC_HUMAN_ROLES = {
@@ -96,7 +104,6 @@ BASIC_HUMAN_ROLES = {
     "agency_campaign_user",
     "advertiser_admin",
     "advertiser_approver",
-    "supplier_admin",
     "supplier_user",
     "influencer_rep",
 }
@@ -104,7 +111,6 @@ ADMIN_ROLES = {
     "platform_admin",
     "agency_admin",
     "advertiser_admin",
-    "supplier_admin",
 }
 AGENCY_ADMIN_ROLES = {"platform_admin", "agency_admin"}
 FOUNDATION_PERMISSION_ROLES = {
@@ -169,12 +175,13 @@ INVENTORY_PERMISSION_ROLES = {
     "inventory_view": {
         "platform_admin", "internal_planner", "inventory_ops", "agency_admin",
         "agency_campaign_user", "advertiser_admin", "advertiser_approver",
-        "supplier_admin", "supplier_user",
+        "supplier_user",
     },
-    "inventory_import": {"platform_admin", "inventory_ops", "supplier_admin"},
+    "inventory_import": {"platform_admin", "inventory_ops", "supplier_user"},
     "inventory_review": {"platform_admin", "inventory_ops"},
-    "inventory_asset_rights_review": {"platform_admin", "supplier_admin"},
+    "inventory_asset_rights_review": {"platform_admin", "supplier_user"},
     "inventory_publish": {"platform_admin", "inventory_ops"},
+    "supplier_claim_manage": {"platform_admin", "inventory_ops"},
 }
 PLANNING_PERMISSION_ROLES = {
     "plan_view": {
@@ -220,14 +227,14 @@ EMAIL_AUTOMATION_PERMISSION_ROLES = {
 }
 MARKETPLACE_PERMISSION_ROLES = {
     "marketplace_view": BASIC_HUMAN_ROLES - {"influencer_rep"},
-    "supplier_inventory_manage": {"platform_admin", "supplier_admin", "supplier_user"},
+    "supplier_inventory_manage": {"platform_admin", "supplier_user"},
     "rfq_create": {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
     },
     "rfq_send": {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
     },
-    "rfq_respond": {"platform_admin", "supplier_admin", "supplier_user"},
+    "rfq_respond": {"platform_admin"},
     "rfq_review": {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
     },
@@ -237,7 +244,7 @@ COMMERCIAL_PERMISSION_ROLES = {
     "commercial_settings_manage": {"platform_admin", "agency_admin"},
 }
 BOOKING_PERMISSION_ROLES = {
-    "booking_view": BASIC_HUMAN_ROLES - {"influencer_rep"},
+    "booking_view": BASIC_HUMAN_ROLES - {"influencer_rep", "supplier_user"},
     "booking_create": {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
     },
@@ -245,7 +252,7 @@ BOOKING_PERMISSION_ROLES = {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
     },
     "booking_confirm": {
-        "platform_admin", "inventory_ops", "supplier_admin", "supplier_user",
+        "platform_admin", "inventory_ops",
     },
 }
 FUNDING_PERMISSION_ROLES = {
@@ -276,8 +283,7 @@ CAMPAIGN_PERMISSION_ROLES = {
     },
     "creative_view": {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
-        "advertiser_admin", "advertiser_approver", "inventory_ops", "supplier_admin",
-        "supplier_user",
+        "advertiser_admin", "advertiser_approver", "inventory_ops",
     },
     "creative_upload": {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",
@@ -286,7 +292,7 @@ CAMPAIGN_PERMISSION_ROLES = {
         "platform_admin", "advertiser_admin", "advertiser_approver",
     },
     "creative_supplier_review": {
-        "platform_admin", "inventory_ops", "supplier_admin", "supplier_user",
+        "platform_admin", "inventory_ops",
     },
     "campaign_approve_creative": {
         "platform_admin", "advertiser_admin", "advertiser_approver",
@@ -300,10 +306,9 @@ CAMPAIGN_PERMISSION_ROLES = {
     "delivery_proof_view": {
         "platform_admin", "internal_planner", "inventory_ops", "agency_admin",
         "agency_campaign_user", "advertiser_admin", "advertiser_approver",
-        "supplier_admin", "supplier_user",
     },
     "delivery_proof_submit": {
-        "platform_admin", "inventory_ops", "supplier_admin", "supplier_user",
+        "platform_admin", "inventory_ops",
     },
     "delivery_proof_review": {
         "platform_admin", "internal_planner", "agency_admin", "agency_campaign_user",

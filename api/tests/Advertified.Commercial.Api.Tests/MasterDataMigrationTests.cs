@@ -39,8 +39,15 @@ public sealed class MasterDataMigrationTests
 
         var operation = new DatabaseMigrationOperation(new FixedTimeProvider());
         var applied = await operation.ApplyAsync(postgres.GetConnectionString());
+        Assert.Equal("202609050001_InitialBaseline", Assert.Single(applied.AppliedMigrations));
         var first = applied.MasterData;
-        var second = (await operation.ApplyAsync(postgres.GetConnectionString())).MasterData;
+        var repeated = await operation.ApplyAsync(postgres.GetConnectionString());
+        Assert.Empty(repeated.AppliedMigrations);
+        var second = repeated.MasterData;
+        Assert.Empty(await dbContext.Tenants.ToListAsync());
+        Assert.Empty(await dbContext.Users.ToListAsync());
+        Assert.Equal(0, await dbContext.Database.SqlQueryRaw<int>(
+            "SELECT count(*)::integer AS \"Value\" FROM commercial.inventory_imports").SingleAsync());
 
         Assert.Equal(first, second);
         Assert.Equal(first.CollectionCount, await dbContext.MasterDataSets.CountAsync());

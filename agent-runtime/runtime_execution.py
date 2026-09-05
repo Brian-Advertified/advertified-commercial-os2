@@ -20,6 +20,12 @@ from inventory_semantic_contracts import (
     InventorySemanticAgentRequest,
     InventorySemanticExtractionArtifact,
 )
+from inventory_schema_contracts import (
+    OPERATION as SCHEMA_DISCOVERY, SchemaDiscoveryRequest, InventorySchemaProposal,
+)
+from inventory_schema_service import (
+    INSTRUCTION as SCHEMA_INSTRUCTION, unavailable_schema_discovery, validate_schema_grounding,
+)
 from inventory_semantic_service import (
     SEMANTIC_ENRICHMENT,
     SOURCE_TRANSCRIPTION,
@@ -73,37 +79,6 @@ OPPORTUNITY_ARTIFACTS: dict[AgentCode, ArtifactType] = {
     AgentCode.BRIEF_DRAFTING: BriefDraftArtifact,
 }
 
-TRANSCRIPTION_INSTRUCTION = (
-    "Transcribe sellable inventory source facts from only the bounded source "
-    "items and attached images. This is source transcription, not semantic "
-    "classification. Extract every visible commercial table row as a distinct "
-    "candidate. Preserve exact supplier, platform, ad unit, format, dimensions, "
-    "rate text and non-governed source terms. Do not return channel, product "
-    "type, description, currency, rate type, availability or commercial dates "
-    "during transcription; deterministic parsing, human review or stage-two "
-    "enrichment owns those fields. Use the exact source locator for every field "
-    "and copy raw_value verbatim. Set normalized_value to null for every field. "
-    "Mark every field SUPPLIER_SUPPLIED. Never infer geography, missing digits "
-    "or any other commercial meaning. A price does not establish FLAT_RATE or "
-    "any buying basis. A file "
-    "name, file timestamp, current date or document metadata does not establish "
-    "commercial validity. If a rate such as R1,10 is visibly incomplete or "
-    "ambiguous, preserve it exactly and add an ambiguity note. Do not repair it. "
-    "A Platform cell is the candidate name. An Ad Unit cell is placement, never "
-    "an address. Do not invent product codes. Do not create candidates from a "
-    "logo alone, but transcribe an explicitly named supplier or brand and attach "
-    "explicitly matching positioning copy to the relevant products. Every "
-    "candidate must contain name or product_code and no field may repeat. "
-    "For structured output, fields is an object keyed once by field name, not "
-    "a list or a set of columns. Create one candidate object per physical data "
-    "row; never flatten multiple rows into one candidate. Do not emit headings "
-    "or labels such as a rate-card title, Streaming, Ad Unit, Width, Format or "
-    "Rate as row values. The Platform data cell is name and the Ad Unit data "
-    "cell is placement; never map Ad Unit to address. "
-    "Account for every attached image by citing it or listing its locator in "
-    "omitted_source_locators. Return only the requested artifact; deterministic "
-    "code owns status, governance and acceptance."
-)
 
 ENRICHMENT_INSTRUCTION = (
     "Enrich only the deterministic inventory rows supplied in existing_rows. "
@@ -200,40 +175,45 @@ def execute_agent(
                 ),
             )
         instruction = (
-            _semantic_instruction(request)
+            SCHEMA_INSTRUCTION if isinstance(request, SchemaDiscoveryRequest) else ENRICHMENT_INSTRUCTION
             if isinstance(request, InventorySemanticAgentRequest)
             else INSTRUCTIONS[agent_code]
         )
-        try:
-            output = generate_with_bedrock(
-                agent_code,
-                request,
-                artifact_type,
-                instruction,
-            )
-            try:
-                _validate_operation_output(request, output)
-            except ValueError as error:
-                raise BedrockProviderError(
-                    str(error),
-                    stage="GROUNDING_VALIDATION",
-                    acceptance="ACCEPTED",
-                    usage=output.usage,
-                    rejected_output=output.model_dump(
-                        mode="json",
-                        exclude={"usage"},
-                    ),
-                ) from error
-        except BedrockProviderError as error:
-            raise HTTPException(
-                status_code=503,
-                detail=error.detail(),
-            ) from error
+        output = _grounded_bedrock_output(agent_code, request, artifact_type, instruction)
         return output.model_dump(mode="json")
     raise HTTPException(
         status_code=503,
         detail="Agent runtime provider is disabled.",
     )
+
+
+def _grounded_bedrock_output(agent_code, request, artifact_type, instruction):
+    try:
+        output = generate_with_bedrock(
+            agent_code,
+            request,
+            artifact_type,
+            instruction,
+        )
+        try:
+            _validate_operation_output(request, output)
+        except ValueError as error:
+            raise BedrockProviderError(
+                str(error),
+                stage="GROUNDING_VALIDATION",
+                acceptance="ACCEPTED",
+                usage=output.usage,
+                rejected_output=output.model_dump(
+                    mode="json",
+                    exclude={"usage"},
+                ),
+            ) from error
+    except BedrockProviderError as error:
+        raise HTTPException(
+            status_code=503,
+            detail=error.detail(),
+        ) from error
+    return output
 
 
 def implemented_agents() -> set[AgentCode]:
@@ -253,86 +233,32 @@ def _contract(
     body: bytes,
 ) -> tuple[BaseModel, ArtifactType, Handler]:
     if agent_code in OPPORTUNITY_ARTIFACTS:
-        request = _validate(OpportunityAgentRequest, body)
-        _require_agent_match(request.invocation.agent_code, agent_code)
-        return (
-            request,
-            OPPORTUNITY_ARTIFACTS[agent_code],
-            HANDLERS[agent_code],
-        )  # type: ignore[return-value]
-    if agent_code == AgentCode.AUDIENCE:
-        request = _validate(AudienceAgentRequest, body)
-        _require_agent_match(request.invocation.agent_code, agent_code)
-        return (
-            request,
-            AudienceDefinitionSetArtifact,
-            propose_audiences,
-        )  # type: ignore[return-value]
-    if agent_code == AgentCode.MEDIA_PLANNING:
-        request = _validate(MediaPlanningAgentRequest, body)
-        _require_agent_match(request.invocation.agent_code, agent_code)
-        return (
-            request,
-            MediaMixDraftArtifact,
-            propose_media_mix,
-        )  # type: ignore[return-value]
-    if agent_code == AgentCode.INVENTORY_INTELLIGENCE:
-        if _operation(body) in {
-            SOURCE_TRANSCRIPTION,
-            SEMANTIC_ENRICHMENT,
-        }:
-            request = _validate(InventorySemanticAgentRequest, body)
-            _require_agent_match(request.invocation.agent_code, agent_code)
-            return (
-                request,
-                InventorySemanticExtractionArtifact,
-                propose_semantic_extraction,
-            )  # type: ignore[return-value]
-        request = _validate(InventoryIntelligenceAgentRequest, body)
-        _require_agent_match(request.invocation.agent_code, agent_code)
-        return (
-            request,
-            InventoryShortlistDraftArtifact,
-            interpret_inventory,
-        )  # type: ignore[return-value]
-    if agent_code == AgentCode.PROPOSAL_NARRATIVE:
-        request = _validate(ProposalNarrativeAgentRequest, body)
-        _require_agent_match(request.invocation.agent_code, agent_code)
-        return (
-            request,
-            ProposalNarrativeDraftArtifact,
-            propose_narrative,
-        )  # type: ignore[return-value]
-    if agent_code == AgentCode.CREATIVE:
-        request = _validate(CreativeAgentRequest, body)
-        _require_agent_match(request.invocation.agent_code, agent_code)
-        return (
-            request,
-            CreativeConceptSetArtifact,
-            generate_creative_concepts,
-        )  # type: ignore[return-value]
-    if agent_code == AgentCode.MEASUREMENT:
-        request = _validate(MeasurementAgentRequest, body)
-        _require_agent_match(request.invocation.agent_code, agent_code)
-        return (
-            request,
-            MeasurementInterpretationArtifact,
-            interpret_measurement,
-        )  # type: ignore[return-value]
-    raise HTTPException(
-        status_code=404,
-        detail="Agent is not implemented.",
-    )
+        types = (OpportunityAgentRequest, OPPORTUNITY_ARTIFACTS[agent_code], HANDLERS[agent_code])
+    elif agent_code == AgentCode.INVENTORY_INTELLIGENCE:
+        types = _inventory_contract_types(body)
+    else:
+        types = {
+            AgentCode.AUDIENCE: (AudienceAgentRequest, AudienceDefinitionSetArtifact, propose_audiences),
+            AgentCode.MEDIA_PLANNING: (MediaPlanningAgentRequest, MediaMixDraftArtifact, propose_media_mix),
+            AgentCode.PROPOSAL_NARRATIVE: (ProposalNarrativeAgentRequest, ProposalNarrativeDraftArtifact, propose_narrative),
+            AgentCode.CREATIVE: (CreativeAgentRequest, CreativeConceptSetArtifact, generate_creative_concepts),
+            AgentCode.MEASUREMENT: (MeasurementAgentRequest, MeasurementInterpretationArtifact, interpret_measurement),
+        }.get(agent_code)
+    if types is None:
+        raise HTTPException(status_code=404, detail="Agent is not implemented.")
+    request_type, artifact_type, handler = types
+    request = _validate(request_type, body)
+    _require_agent_match(request.invocation.agent_code, agent_code)
+    return request, artifact_type, handler
 
 
-def _semantic_instruction(
-    request: InventorySemanticAgentRequest,
-) -> str:
-    return (
-        TRANSCRIPTION_INSTRUCTION
-        if request.operation == SOURCE_TRANSCRIPTION
-        else ENRICHMENT_INSTRUCTION
-    )
+def _inventory_contract_types(body: bytes):
+    operation = _operation(body)
+    if operation == SCHEMA_DISCOVERY:
+        return SchemaDiscoveryRequest, InventorySchemaProposal, unavailable_schema_discovery
+    if operation in {SOURCE_TRANSCRIPTION, SEMANTIC_ENRICHMENT}:
+        return InventorySemanticAgentRequest, InventorySemanticExtractionArtifact, propose_semantic_extraction
+    return InventoryIntelligenceAgentRequest, InventoryShortlistDraftArtifact, interpret_inventory
 
 
 def _validate_operation_output(
@@ -344,6 +270,8 @@ def _validate_operation_output(
             request,
             output,  # type: ignore[arg-type]
         )
+    elif isinstance(request, SchemaDiscoveryRequest):
+        validate_schema_grounding(request, output)
 
 
 def _operation(body: bytes) -> str | None:

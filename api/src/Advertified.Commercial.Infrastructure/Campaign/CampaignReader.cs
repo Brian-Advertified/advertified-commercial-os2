@@ -47,7 +47,7 @@ public sealed class CampaignReader(
         var performanceEvidence = await measurementStore.ListCampaignViewsAsync(
             campaignId, cancellationToken);
         var measurementReports = await reportStore.ListApprovedCampaignAsync(
-            campaignId, measurementStore, cancellationToken);
+            campaignId, measurementStore, cancellationToken, performanceEvidence);
         await transaction.CommitAsync(cancellationToken);
         return row.ToView() with
         {

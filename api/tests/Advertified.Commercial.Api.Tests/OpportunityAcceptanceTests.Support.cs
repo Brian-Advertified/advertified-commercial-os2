@@ -56,7 +56,7 @@ public sealed partial class OpportunityAcceptanceTests
                 builder.UseSetting(
                     "ConnectionStrings:WorkerSchedulerDatabase", connectionString);
             }
-            builder.UseSetting("AgentRuntime:PollMilliseconds", "25");
+            builder.UseSetting("AgentRuntime:RecoverySweepSeconds", "300");
             builder.UseSetting("Logging:LogLevel:Default", "Warning");
             builder.UseSetting("Logging:LogLevel:Microsoft.EntityFrameworkCore", "Warning");
         });

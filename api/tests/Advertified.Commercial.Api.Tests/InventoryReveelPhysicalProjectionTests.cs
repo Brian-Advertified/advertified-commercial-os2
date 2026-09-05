@@ -37,14 +37,14 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
             sourceHash,
             "{}",
             [row]);
-        var contextual = InventorySourceContextProjection.Apply(request, provider);
+        var contextual = provider;
 
         var candidate = InventoryCandidateNormalizer.Normalize(
             Assert.Single(contextual.Rows),
             sourceHash,
             DateTimeOffset.UnixEpoch);
 
-        Assert.Equal("Reveel", candidate.SupplierName);
+        Assert.Null(candidate.SupplierName);
         Assert.Equal("RV034", candidate.Values.ProductCode);
         Assert.Equal(
             "Rv034 The Maslow Dagieos Sandton",

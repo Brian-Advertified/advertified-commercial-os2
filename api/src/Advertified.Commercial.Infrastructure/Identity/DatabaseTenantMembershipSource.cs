@@ -52,6 +52,9 @@ public sealed class DatabaseTenantMembershipSource(GovernanceDbContext dbContext
             .Select(item => (string?)item.Role.Value)
             .SingleOrDefaultAsync(cancellationToken);
         if (membershipRole is null ||
+            !await dbContext.MasterDataItems.AsNoTracking().AnyAsync(
+                item => item.CollectionCode == MasterDataCodes.Roles.Collection &&
+                    item.Code == membershipRole && item.IsActive, cancellationToken) ||
             !await ActiveIdentityAndTenantExistAsync(userId, tenantId, cancellationToken))
         {
             return null;

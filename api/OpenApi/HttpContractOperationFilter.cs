@@ -48,7 +48,8 @@ public sealed class HttpContractOperationFilter : IOperationFilter
                 operation,
                 BrowserSessionOptions.AntiforgeryHeaderName,
                 required: operation.OperationId is "StartLocalBrowserSession"
-                    or "EndBrowserSession",
+                    or "EndBrowserSession"
+                    or "EndOidcBrowserSession",
                 "Required for unsafe cookie-authenticated browser requests.");
         }
 

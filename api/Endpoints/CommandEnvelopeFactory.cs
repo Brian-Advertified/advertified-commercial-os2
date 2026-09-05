@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text.Json;
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Domain.Governance;
@@ -9,6 +8,10 @@ internal static class CommandEnvelopeFactory
 {
     private const string IdempotencyHeader = "Idempotency-Key";
     private const string VersionHeader = "If-Match";
+    private static readonly JsonSerializerOptions PayloadJson = new()
+    {
+        Converters = { new InventorySourceIdentityConverter() },
+    };
 
     public static CommandEnvelope<TCommand> Create<TCommand>(
         HttpContext context,
@@ -26,17 +29,33 @@ internal static class CommandEnvelopeFactory
             throw new IdempotencyKeyRequiredException();
         }
 
-        var payload = JsonSerializer.SerializeToUtf8Bytes(
-            new CommandPayload<TCommand>(typeof(TCommand).Name, command));
-        var digest = Convert.ToHexStringLower(SHA256.HashData(payload));
+        var expectedVersion = requireVersion
+            ? ReadExpectedVersion(context, allowZeroVersion)
+            : 0;
+        var operation = context.GetEndpoint()?.Metadata
+            .GetMetadata<IEndpointNameMetadata>()?.EndpointName;
+        if (string.IsNullOrWhiteSpace(operation))
+        {
+            throw new InvalidOperationException(
+                "Command endpoints must declare a stable endpoint name.");
+        }
+        var routeValues = context.Request.RouteValues
+            .OrderBy(item => item.Key, StringComparer.Ordinal)
+            .ToDictionary(
+                item => item.Key,
+                item => Convert.ToString(item.Value, System.Globalization.CultureInfo.InvariantCulture),
+                StringComparer.Ordinal);
+        var digest = CommandPayloadDigest.Create(new CommandPayload<TCommand>(
+            1, operation, tenantId.Value, actorId.Value, expectedVersion,
+            routeValues, command), PayloadJson);
         return new CommandEnvelope<TCommand>(
             tenantId,
             actorId,
             new CommandId(Guid.NewGuid()),
             new CorrelationId(Guid.Parse(context.TraceIdentifier)),
             new IdempotencyKey(idempotencyValue),
-            new Sha256Digest(digest),
-            requireVersion ? ReadExpectedVersion(context, allowZeroVersion) : 0,
+            digest,
+            expectedVersion,
             timeProvider.GetUtcNow(),
             command);
     }
@@ -70,5 +89,12 @@ internal static class CommandEnvelopeFactory
             : throw new ArgumentException("The record version is invalid.");
     }
 
-    private sealed record CommandPayload<TCommand>(string Operation, TCommand Command);
+    private sealed record CommandPayload<TCommand>(
+        int ProtocolVersion,
+        string Operation,
+        Guid TenantId,
+        Guid ActorId,
+        long ExpectedVersion,
+        IReadOnlyDictionary<string, string?> RouteValues,
+        TCommand Command);
 }

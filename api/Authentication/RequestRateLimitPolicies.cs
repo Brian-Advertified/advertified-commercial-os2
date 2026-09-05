@@ -17,6 +17,7 @@ public static class RequestRateLimitPolicies
     public const string HeavyWork = "heavy-work";
 
     private const int BusinessMutationPermitLimit = 60;
+    private const int BusinessReadPermitLimit = 300;
     private const int AgentWorkPermitLimit = 12;
     private const int HeavyWorkPermitLimit = 20;
     private static readonly TimeSpan OneMinute = TimeSpan.FromMinutes(1);
@@ -31,13 +32,25 @@ public static class RequestRateLimitPolicies
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.OnRejected = WriteRejectionAsync;
-            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+            options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
+                PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                    context.Request.HasFormContentType
+                        ? RateLimitPartition.GetConcurrencyLimiter("multipart", _ => new ConcurrencyLimiterOptions
+                        {
+                            PermitLimit = 2, QueueLimit = 0,
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        })
+                        : RateLimitPartition.GetNoLimiter("not-multipart")),
+                PartitionedRateLimiter.Create<HttpContext, string>(context =>
                 IsSafeMethod(context.Request.Method)
-                    ? RateLimitPartition.GetNoLimiter("safe-request")
+                    ? FixedWindow(
+                        "read:" + Actor(context),
+                        BusinessReadPermitLimit,
+                        OneMinute)
                     : FixedWindow(
-                        "business:" + ActorTenant(context),
+                        "business:" + Actor(context),
                         BusinessMutationPermitLimit,
-                        OneMinute));
+                        OneMinute)));
             options.AddPolicy(BrowserSession, context => FixedWindow(
                 "session:" + RemoteAddress(context), 20, OneMinute));
             options.AddPolicy(BrowserSessionStatus, context => FixedWindow(
@@ -45,11 +58,11 @@ public static class RequestRateLimitPolicies
             options.AddPolicy(ProviderCallback, context => FixedWindow(
                 "provider:" + RemoteAddress(context), 120, OneMinute));
             options.AddPolicy(InventoryUpload, context => FixedWindow(
-                "inventory:" + ActorTenant(context), 30, TenMinutes));
+                "inventory:" + Actor(context), 30, TenMinutes));
             options.AddPolicy(AgentWork, context => FixedWindow(
-                "agent:" + ActorTenant(context), AgentWorkPermitLimit, OneMinute));
+                "agent:" + Actor(context), AgentWorkPermitLimit, OneMinute));
             options.AddPolicy(HeavyWork, context => FixedWindow(
-                "heavy:" + ActorTenant(context), HeavyWorkPermitLimit, FiveMinutes));
+                "heavy:" + Actor(context), HeavyWorkPermitLimit, FiveMinutes));
         });
 
     private static RateLimitPartition<string> FixedWindow(
@@ -92,14 +105,6 @@ public static class RequestRateLimitPolicies
 
     private static bool IsSafeMethod(string method) =>
         HttpMethods.IsGet(method) || HttpMethods.IsHead(method) || HttpMethods.IsOptions(method);
-
-    private static string ActorTenant(HttpContext context)
-    {
-        var tenant = context.Request.RouteValues.TryGetValue("tenantId", out var value)
-            ? value?.ToString() ?? "none"
-            : "none";
-        return tenant + ':' + Actor(context);
-    }
 
     private static string Actor(HttpContext context) =>
         context.User.FindFirstValue("advertified:actor_id")

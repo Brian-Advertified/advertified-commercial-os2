@@ -1,7 +1,8 @@
 """Certify every retained inventory file against immutable physical evidence.
 
 This command is read-only with respect to API/DB state. It makes no Bedrock
-request and writes a per-file audit plus an aggregate production register.
+request and writes a per-file comparison plus an evaluation register, never a
+production-readiness decision or a substitute for visual verification.
 """
 
 from __future__ import annotations
@@ -20,7 +21,6 @@ from inventory_corpus_api import InventoryApi
 from inventory_corpus_certification import certify_file, write_certification
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_ROOT = REPO_ROOT / "artifacts" / "inventory-corpus"
 TENANT_ID = "10000000-0000-0000-0000-000000000020"
 
 
@@ -29,8 +29,8 @@ def main() -> int:
     root = args.evidence.resolve(strict=True)
     manifest = read_json(root / "source-manifest.json")
     documents = manifest.get("documents") or []
-    if len(documents) != 43:
-        raise RuntimeError(f"Expected 43 physical sources; found {len(documents)}.")
+    if not documents or manifest.get("documentCount") != len(documents):
+        raise RuntimeError("The nonempty evaluation manifest must match its declared count.")
 
     api = InventoryApi(args.api, args.origin, args.tenant)
     api.start_session()
@@ -83,16 +83,16 @@ def main() -> int:
         json.dumps(register, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    (output / "CORPUS_PHYSICAL_CERTIFICATION.md").write_text(
+    (output / "CORPUS_PHYSICAL_CERTIFICATION.txt").write_text(
         render_markdown(register),
         encoding="utf-8",
     )
     for marker in output.glob("STATUS_*.marker"):
         marker.unlink()
     marker_name = (
-        "STATUS_PASS_43_OF_43.marker"
+        f"STATUS_PASS_{len(documents)}_OF_{len(documents)}.marker"
         if register["verdict"] == "PASS"
-        else f"STATUS_FAIL_{register['summary']['failed']}_OF_43.marker"
+        else f"STATUS_FAIL_{register['summary']['failed']}_OF_{len(documents)}.marker"
     )
     marker_payload = json.dumps({
         "verdict": register["verdict"],
@@ -155,7 +155,7 @@ def load_human_gold(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--evidence", type=Path, default=DEFAULT_ROOT)
+    parser.add_argument("--evidence", type=Path, required=True)
     parser.add_argument("--api", default="http://127.0.0.1:5197")
     parser.add_argument("--origin", default="http://localhost:3017")
     parser.add_argument("--tenant", default=TENANT_ID)
@@ -187,7 +187,9 @@ def aggregate(
         "generatedAtUtc": datetime.now(UTC).isoformat(),
         "datasetVersion": manifest.get("datasetVersion"),
         "providerVersion": provider_version,
-        "verdict": "PASS" if len(passed) == 43 else "FAIL",
+        "verdict": "PASS" if passed and not failed and len(results) == len(manifest["documents"]) and
+        {item.source_hash for item in passed} ==
+        {item["sha256"] for item in manifest["documents"]} else "FAIL",
         "summary": {
             "sourceCount": len(results),
             "passed": len(passed),
@@ -288,9 +290,10 @@ def render_markdown(register: dict[str, Any]) -> str:
         )
     lines.extend([
         "",
-        "Certification passes only when all 43 immutable physical sources match "
+        "This evaluation passes only when all selected immutable sources match "
         "the current candidate projection with no unsupported, duplicate, stale, "
-        "approved or published records. Bedrock is evaluated only after this gate.",
+        "approved or published records. This is not a system-readiness decision "
+        "or independent visual attestation.",
         "",
     ])
     return "\n".join(lines)

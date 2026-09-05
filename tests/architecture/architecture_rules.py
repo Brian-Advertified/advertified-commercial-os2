@@ -9,9 +9,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 GENERATED_PARTS = {"__pycache__", "bin", "node_modules", "obj"}
-FORBIDDEN_RUNTIME_IMPORTS = {"asyncpg", "boto3", "psycopg", "psycopg2", "sqlalchemy"}
+FORBIDDEN_RUNTIME_IMPORTS = {"asyncpg", "boto3", "botocore", "psycopg", "psycopg2", "sqlalchemy"}
 ALLOWED_RUNTIME_IMPORTS_BY_FILE = {
-    "bedrock_provider.py": frozenset({"boto3"}),
+    "bedrock_provider.py": frozenset({"botocore"}),
+    "bedrock_multimodal.py": frozenset({"botocore"}),
+    "inventory_embedding_service.py": frozenset({"botocore"}),
+    "tests/test_provider.py": frozenset({"botocore"}),
 }
 PROJECT_POLICIES = {
     "Advertified.Commercial.Domain": (
@@ -103,7 +106,8 @@ def python_import_violations(root: Path) -> list[str]:
             for node in ast.walk(tree)
             for imported_name in _node_imports(node)
         }
-        allowed = ALLOWED_RUNTIME_IMPORTS_BY_FILE.get(path.name, frozenset())
+        allowed = ALLOWED_RUNTIME_IMPORTS_BY_FILE.get(
+            path.relative_to(root).as_posix(), frozenset())
         forbidden = sorted(imports.intersection(FORBIDDEN_RUNTIME_IMPORTS) - allowed)
         if forbidden:
             violations.append(f"{path.as_posix()}: {forbidden}")

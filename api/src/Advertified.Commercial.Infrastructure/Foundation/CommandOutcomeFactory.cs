@@ -14,11 +14,15 @@ internal static class CommandOutcomeFactory
         ResourceTypeCode resourceType,
         ActionCode action,
         EventTypeCode eventType,
-        DateTimeOffset occurredAtUtc)
+        DateTimeOffset occurredAtUtc,
+        JsonElement? eventPayload = null,
+        JsonElement? persistedData = null,
+        JsonElement? auditMetadata = null)
         where TCommand : notnull
         where TResult : notnull
     {
         var payload = JsonSerializer.SerializeToElement(data);
+        var durableEventPayload = eventPayload ?? payload;
         var resource = new ResourceReference(resourceType, resourceId, version);
         return new CommandOutcome(
             payload,
@@ -31,7 +35,8 @@ internal static class CommandOutcomeFactory
                 envelope.CorrelationId,
                 action,
                 resource,
-                occurredAtUtc),
+                occurredAtUtc,
+                auditMetadata),
             new OutboxMessage(
                 Guid.NewGuid(),
                 envelope.TenantId,
@@ -39,8 +44,9 @@ internal static class CommandOutcomeFactory
                 envelope.CorrelationId,
                 eventType,
                 resource,
-                payload,
-                occurredAtUtc));
+                durableEventPayload,
+                occurredAtUtc),
+            persistedData: persistedData);
     }
 
     public static CommandResult<TResult> ToResult<TResult>(CommandReceipt receipt)

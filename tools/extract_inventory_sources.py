@@ -14,20 +14,17 @@ from inventory_source_readers import read_source
 SCHEMA_VERSION = "advertified.inventory-source-map.v2"
 EXTRACTOR_VERSION = "advertified-source-reader/2.0.0"
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_MANIFEST = REPO_ROOT / "artifacts" / "inventory-corpus" / "source-manifest.json"
-DEFAULT_EVIDENCE = REPO_ROOT / "artifacts" / "inventory-corpus"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("source", type=Path, nargs="?")
+    parser.add_argument("source", type=Path)
     parser.add_argument(
-        "manifest", type=Path, nargs="?",
-        default=DEFAULT_MANIFEST,
+        "manifest", type=Path,
     )
     parser.add_argument(
         "--evidence", type=Path,
-        default=DEFAULT_EVIDENCE,
+        required=True,
     )
     parser.add_argument("--document", action="append", default=[])
     parser.add_argument(
@@ -40,9 +37,9 @@ def main() -> int:
     )
     args = parser.parse_args()
     if (args.maximum_new is not None and
-            args.maximum_new not in range(1, 44)):
+            args.maximum_new < 1):
         raise ValueError(
-            "Maximum new maps must be between 1 and 43."
+            "Maximum new maps must be positive."
         )
     manifest_path = args.manifest.resolve(strict=True)
     manifest = json.loads(

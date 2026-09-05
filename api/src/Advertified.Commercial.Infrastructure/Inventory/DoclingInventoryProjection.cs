@@ -7,7 +7,6 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 
 internal static partial class DoclingInventoryProjection
 {
-    private const string SourceFileLocator = "source:file-name";
     private static readonly HashSet<string> GlobalFields =
     [
         "supplier", "suppliername", "mediaowner", "mediaownername",
@@ -47,7 +46,7 @@ internal static partial class DoclingInventoryProjection
         using var document = JsonDocument.Parse(json);
         var root = document.RootElement;
         var texts = ReadTexts(root);
-        var context = ReadContext(request, root);
+        var context = ReadContext(root);
         var rows = new List<InventoryExtractedRow>();
         var pageCards = ReadPageCards(texts, rows.Count);
         rows.AddRange(pageCards);
@@ -201,7 +200,6 @@ internal static partial class DoclingInventoryProjection
     }
 
     private static ProjectionContext ReadContext(
-        InventoryExtractionRequest request,
         JsonElement root)
     {
         var values = new SortedDictionary<string, string>(
@@ -241,15 +239,6 @@ internal static partial class DoclingInventoryProjection
             StringComparer.Ordinal);
         var transformations = new Dictionary<string, string>(
             StringComparer.Ordinal);
-        var channel = InferChannel(request.FileName);
-        if (channel is not null && values.TryAdd("channel", channel))
-        {
-            locators["channel"] = SourceFileLocator;
-            bases["channel"] =
-                MasterDataCodes.InventoryEvidenceBases.DerivedPolicy;
-            transformations["channel"] = MasterDataCodes
-                .InventoryTransformationTypes.DerivedFromSourceContext;
-        }
         return new ProjectionContext(
             values, locators, bases, transformations);
     }
@@ -351,35 +340,6 @@ internal static partial class DoclingInventoryProjection
                 StringComparison.OrdinalIgnoreCase)
                 .Trim(' ', '-', ':', '|'),
             500);
-    }
-
-    private static string? InferChannel(string fileName)
-    {
-        if (Regex.IsMatch(
-                fileName,
-                @"\bDOOH\b|digital\s+screens?",
-                RegexOptions.IgnoreCase |
-                RegexOptions.CultureInvariant))
-            return MasterDataCodes.Channels.Dooh;
-        if (Regex.IsMatch(
-                fileName,
-                @"\bOOH\b|outdoor|billboard",
-                RegexOptions.IgnoreCase |
-                RegexOptions.CultureInvariant))
-            return MasterDataCodes.Channels.Ooh;
-        if (Regex.IsMatch(
-                fileName,
-                @"\bFM\b|radio",
-                RegexOptions.IgnoreCase |
-                RegexOptions.CultureInvariant))
-            return MasterDataCodes.Channels.Radio;
-        if (Regex.IsMatch(
-                fileName,
-                @"\bTV\b|television",
-                RegexOptions.IgnoreCase |
-                RegexOptions.CultureInvariant))
-            return MasterDataCodes.Channels.Tv;
-        return null;
     }
 
     private static string Limit(string value, int maximum) =>

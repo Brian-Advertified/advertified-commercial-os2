@@ -300,13 +300,9 @@ def non_primary_rate(identity: str) -> bool:
     return any(label in normalized for label in NON_PRIMARY_RATE_LABELS)
 
 
-def looks_like_site_inventory(file_name: str) -> bool:
-    normalized = file_name.lower()
-    return any(token in normalized for token in (
-        "ooh", "outdoor", "billboard", "site inventory", "screens",
-        "jcdecaux", "reveel", "rsd rate", "relativ media",
-        "virgin active",
-    ))
+def has_site_evidence(source: PhysicalSource) -> bool:
+    """Recognize explicit source labels, not a supplier or filename convention."""
+    return bool(re.search(r"(?i)\bsite\s*(?:code|number|no\.?|inventory)\b", source.searchable_text))
 
 
 def station_for(source: PhysicalSource, ordinal: int) -> str | None:

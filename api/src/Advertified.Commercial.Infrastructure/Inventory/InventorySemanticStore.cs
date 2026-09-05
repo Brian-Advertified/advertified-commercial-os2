@@ -137,11 +137,10 @@ public sealed class InventorySemanticStore(
         await transaction.CommitAsync(cancellationToken);
     }
 
-    internal async Task MarkCompletedAsync(
+    internal async Task MarkCompletedAsync<TArtifact>(
         InventorySemanticContext context,
         InventorySemanticRunRow run,
-        AgentRuntimeResponse<
-            InventorySemanticExtractionArtifact> response,
+        AgentRuntimeResponse<TArtifact> response,
         CancellationToken cancellationToken)
     {
         var json = JsonSerializer.Serialize(
@@ -234,11 +233,9 @@ public sealed class InventorySemanticStore(
         await transaction.CommitAsync(cancellationToken);
     }
 
-    internal static AgentRuntimeResponse<
-        InventorySemanticExtractionArtifact> ReadResponse(
+    internal static AgentRuntimeResponse<TArtifact> ReadResponse<TArtifact>(
         InventorySemanticRunRow row) =>
-        JsonSerializer.Deserialize<AgentRuntimeResponse<
-            InventorySemanticExtractionArtifact>>(
+        JsonSerializer.Deserialize<AgentRuntimeResponse<TArtifact>>(
                 row.ResponseJson ??
                     throw new InvalidOperationException(
                         "Semantic cache response is absent."),

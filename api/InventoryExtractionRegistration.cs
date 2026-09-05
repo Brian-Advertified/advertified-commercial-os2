@@ -1,3 +1,4 @@
+using Advertified.Commercial.Api.Startup;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Inventory;
@@ -29,6 +30,15 @@ internal static class InventoryExtractionRegistration
             settings.Mode == InventoryExtractionOptions.DoclingMode
                 ? serviceProvider.GetRequiredService<DoclingInventoryExtractionAdapter>()
                 : new DeterministicInventoryExtractionAdapter());
+        builder.Services.AddHttpClient<InventorySchemaAgentClient>(
+            AgentRuntimeClientConfiguration.Configure)
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+        builder.Services.AddScoped<InventoryAgentInvocationLedger>();
+        builder.Services.AddScoped<IInventorySchemaInterpreter>(serviceProvider =>
+            serviceProvider.GetRequiredService<InventorySchemaAgentClient>());
+        builder.Services.AddScoped<InventorySchemaDiscoveryService>();
+        builder.Services.AddScoped<InventorySchemaExtractionStep>();
+        builder.Services.AddScoped<InventorySchemaExecutionGuard>();
     }
 
     internal static void AddInventorySemantic(

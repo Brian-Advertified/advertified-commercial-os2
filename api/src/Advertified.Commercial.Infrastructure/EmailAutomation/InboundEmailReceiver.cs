@@ -64,8 +64,16 @@ public sealed class InboundEmailReceiver(
             new CommandId(Guid.NewGuid()),
             correlationId,
             new IdempotencyKey(BuildIdempotencyKey(provider.ProviderCode, providerEventId)),
-            new Sha256Digest(OpportunityCommandSupport.Hash(
-                JsonSerializer.Serialize(command))),
+            CommandPayloadDigest.Create(new
+                {
+                    ProtocolVersion = 1,
+                    Operation = "receive-inbound-email",
+                    TenantId = tenantId.Value,
+                    ActorId = mailbox.OwnerUserId,
+                    Provider = provider.ProviderCode,
+                    ProviderEventId = providerEventId,
+                    Command = command,
+                }),
             0,
             now,
             command);

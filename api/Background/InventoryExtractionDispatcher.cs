@@ -11,23 +11,18 @@ public sealed partial class InventoryExtractionDispatcher(
     TimeProvider timeProvider,
     ILogger<InventoryExtractionDispatcher> logger) : BackgroundService
 {
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var lanes = Enumerable.Range(0, options.Value.InventoryExtractionMaxConcurrency)
-            .Select(_ => RunLaneAsync(Guid.NewGuid(), stoppingToken));
-        return Task.WhenAll(lanes);
-    }
+        var workerIds = Enumerable
+            .Range(0, options.Value.InventoryExtractionMaxConcurrency)
+            .Select(_ => Guid.NewGuid())
+            .ToArray();
 
-    private async Task RunLaneAsync(Guid workerId, CancellationToken stoppingToken)
-    {
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                if (!await ProcessNextAsync(workerId, stoppingToken))
-                {
-                    await Task.Delay(options.Value.PollInterval, timeProvider, stoppingToken);
-                }
+                await RunListenerSessionAsync(workerIds, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -36,7 +31,50 @@ public sealed partial class InventoryExtractionDispatcher(
             catch (Exception exception)
             {
                 LogCycleFailure(logger, exception);
-                await Task.Delay(options.Value.PollInterval, timeProvider, stoppingToken);
+                await Task.Delay(
+                    TimeSpan.FromSeconds(options.Value.FailureDelaySeconds),
+                    timeProvider,
+                    stoppingToken);
+            }
+        }
+    }
+
+    private async Task RunListenerSessionAsync(
+        IReadOnlyList<Guid> workerIds,
+        CancellationToken cancellationToken)
+    {
+        await using var listener = await scheduler
+            .OpenInventoryExtractionListenerAsync(cancellationToken);
+        await DrainAvailableAsync(workerIds, cancellationToken);
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var due = await scheduler.NextInventoryExtractionDueAsync(
+                options.Value.InventoryExtractionMaxConcurrency, cancellationToken);
+            var wait = options.Value.InventoryExtractionRecoverySweepInterval;
+            if (due.HasValue)
+            {
+                var activeDelay = due.Value - timeProvider.GetUtcNow();
+                if (activeDelay < TimeSpan.FromSeconds(1)) activeDelay = TimeSpan.FromSeconds(1);
+                if (activeDelay < wait) wait = activeDelay;
+            }
+            await listener.WaitAsync(
+                wait,
+                cancellationToken);
+            await DrainAvailableAsync(workerIds, cancellationToken);
+        }
+    }
+
+    private async Task DrainAvailableAsync(
+        IReadOnlyList<Guid> workerIds,
+        CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var processed = await Task.WhenAll(workerIds.Select(
+                workerId => ProcessNextAsync(workerId, cancellationToken)));
+            if (!processed.Any(value => value))
+            {
+                return;
             }
         }
     }

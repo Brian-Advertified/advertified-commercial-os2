@@ -36,7 +36,6 @@ THRESHOLDS = {
     "critical_numeric_ocr_confidence": 0.95,
 }
 EXACT_TYPES = {"numeric", "currency", "date"}
-GOVERNED_DOCUMENT_COUNT = 43
 
 
 @dataclass(frozen=True)
@@ -80,11 +79,8 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
     documents = manifest.get("documents")
     if not isinstance(version, str) or not version.strip():
         raise ValueError("A versioned gold dataset is required.")
-    if not isinstance(documents, list) or len(documents) != GOVERNED_DOCUMENT_COUNT:
-        raise ValueError(
-            "The governed extraction corpus must contain exactly "
-            f"{GOVERNED_DOCUMENT_COUNT} documents."
-        )
+    if not isinstance(documents, list) or not documents:
+        raise ValueError("The evaluation manifest must contain selected documents.")
     validate_document_set(documents)
     validate_release_modes(documents)
     validate_gold_data(documents)

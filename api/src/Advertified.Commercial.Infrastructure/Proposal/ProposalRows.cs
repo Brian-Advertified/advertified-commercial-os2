@@ -10,6 +10,7 @@ internal sealed record ProposalRow(
     string Terms,
     DateTimeOffset ExpiryAtUtc,
     string Status,
+    string InventoryReviewStatus,
     string InputHash,
     Guid CreatedBy,
     Guid? ApprovedBy,

@@ -131,9 +131,18 @@ builder.Services.AddScoped<BriefClientResolver>();
 builder.Services.AddScoped<IBriefReader, BriefReader>();
 builder.Services.AddScoped<IBriefCommands, BriefCommands>();
 builder.Services.AddSingleton(SuppliedBriefAgentPolicy.Load());
-builder.Services.AddScoped<ISuppliedBriefAgentClient, DeterministicSuppliedBriefAgentClient>();
+builder.AddSuppliedBriefInterpretation();
 builder.Services.AddScoped<ISuppliedBriefUnderstandingService, SuppliedBriefUnderstandingService>();
 builder.Services.AddScoped<InventoryRecordStore>();
+builder.Services.AddScoped<InventorySupplierAccessPolicy>();
+builder.Services.AddScoped<InventorySupplierIdentityService>();
+builder.Services.AddScoped<InventorySupplierLifecycleStore>();
+builder.Services.AddScoped<
+    IInventorySupplierLifecycleReader,
+    InventorySupplierLifecycleReader>();
+builder.Services.AddScoped<
+    IInventorySupplierLifecycleCommands,
+    InventorySupplierLifecycleCommands>();
 builder.Services.AddScoped<InventoryExtractionAttemptStore>();
 builder.Services.AddScoped<InventorySemanticStore>();
 builder.Services.AddScoped<InventorySemanticEnrichmentService>();
@@ -163,7 +172,7 @@ builder.Services.AddSingleton(ProposalPolicy.Load());
 builder.Services.AddScoped<IProposalReader, ProposalReader>();
 builder.Services.AddScoped<IProposalCommands, ProposalCommands>();
 builder.Services.AddScoped<DeterministicProposalNarrativeClient>();
-builder.Services.AddScoped<IProposalDeliveryClient, DeterministicProposalDeliveryClient>();
+builder.Services.AddScoped<ProposalInventoryReadiness>();
 builder.AddEmailAutomation(emailAutomation);
 builder.AddCommercialWorkers(processRole);
 builder.AddInventoryExtraction(inventoryExtraction);
@@ -211,8 +220,7 @@ builder.Services.AddOptions<AgentRuntimeOptions>()
     .Validate(AgentRuntimeOptions.HasSafeRoutes,
         "The agent runtime model or cost route is invalid.")
     .Validate(
-        options => options.PollMilliseconds is >= 25 and <= 5_000 &&
-            options.TimeoutSeconds is >= 1 and <= 120,
+        AgentRuntimeOptions.HasSafeTiming,
         "The agent runtime timing configuration is invalid.")
     .Validate(
         options => !options.UsesHttp ||
@@ -221,12 +229,12 @@ builder.Services.AddOptions<AgentRuntimeOptions>()
         "The HTTP agent runtime requires an absolute URL and service key.")
     .ValidateOnStart();
 builder.AddInventorySemantic(agentRuntime);
-builder.Services.AddHttpClient<HttpOpportunityAgentClient>(ConfigureAgentRuntimeHttpClient);
-builder.Services.AddHttpClient<HttpPlanningAgentClient>(ConfigureAgentRuntimeHttpClient);
-builder.Services.AddHttpClient<HttpProposalNarrativeClient>(ConfigureAgentRuntimeHttpClient);
-builder.Services.AddHttpClient<HttpMeasurementAgentClient>(ConfigureAgentRuntimeHttpClient);
+builder.Services.AddHttpClient<HttpOpportunityAgentClient>(AgentRuntimeClientConfiguration.Configure);
+builder.Services.AddHttpClient<HttpPlanningAgentClient>(AgentRuntimeClientConfiguration.Configure);
+builder.Services.AddHttpClient<HttpProposalNarrativeClient>(AgentRuntimeClientConfiguration.Configure);
+builder.Services.AddHttpClient<HttpMeasurementAgentClient>(AgentRuntimeClientConfiguration.Configure);
 builder.Services.AddHttpClient<InventorySemanticAgentClient>(
-    ConfigureAgentRuntimeHttpClient);
+    AgentRuntimeClientConfiguration.Configure);
 builder.Services.AddScoped<IOpportunityAgentClient>(serviceProvider =>
     agentRuntime.UsesHttp
         ? serviceProvider.GetRequiredService<HttpOpportunityAgentClient>()
@@ -319,6 +327,7 @@ builder.Services.AddSwaggerGen(options =>
         Version = "1.0.0",
     });
     options.OperationFilter<HttpContractOperationFilter>();
+    options.DocumentFilter<BrowserSecurityDocumentFilter>();
 });
 
 var app = builder.Build();
@@ -374,16 +383,6 @@ if (processRole.RunsApi)
 else
 {
     app.MapWorkerHealthEndpoints();
-}
-
-static void ConfigureAgentRuntimeHttpClient(
-    IServiceProvider serviceProvider,
-    HttpClient client)
-{
-    var options = serviceProvider.GetRequiredService<
-        Microsoft.Extensions.Options.IOptions<AgentRuntimeOptions>>().Value;
-    client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
-    client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
 }
 
 app.Run();

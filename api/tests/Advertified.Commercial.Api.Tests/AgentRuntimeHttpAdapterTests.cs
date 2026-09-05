@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Infrastructure.Opportunity;

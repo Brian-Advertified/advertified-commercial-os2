@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api, humanMessage, sessionExpiredEvent } from '../api/client'
+import { api, clearPendingCommandKeys, humanMessage, sessionExpiredEvent } from '../api/client'
 import type { BrowserSession } from '../api/schemas'
 import { SessionContext } from './session-state'
 
@@ -68,9 +68,14 @@ function useSessionActions(store: ReturnType<typeof useSessionStore>) {
 
   const signOut = useCallback(async () => {
     if (!session) return false
+    clearPendingCommandKeys()
     sessionStorage.removeItem('advertified.workspace')
     if (session.signOutPath) {
-      window.location.assign(session.signOutPath)
+      const redirectUrl = await api.signOutOidc(
+        session.signOutPath,
+        session.antiforgeryToken,
+      )
+      window.location.assign(redirectUrl)
       return true
     }
     setLoading(true)

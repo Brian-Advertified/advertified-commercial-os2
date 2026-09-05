@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.MasterData;
 
@@ -46,7 +47,10 @@ internal static class InventoryExtractionCompletionPolicy
         string selectedSupplier,
         InventoryCodeSets codes)
     {
-        extracted = InventoryCandidateOperationalNormalizer.Normalize(extracted);
+        // Schema-derived records must not acquire a guessed identifier or billing
+        // period from the legacy whole-row context heuristics.
+        if (!extracted.HasDiscoveredSchema)
+            extracted = InventoryCandidateOperationalNormalizer.Normalize(extracted);
         var validation = InventoryPendingSupplierValidationPolicy.Apply(
             extracted.Values,
             InventoryCandidateValidator.Validate(extracted.Values, codes)
@@ -55,7 +59,8 @@ internal static class InventoryExtractionCompletionPolicy
                     extracted.SupplierName, selectedSupplier)));
         return new PreparedInventoryCandidate(
             Guid.NewGuid(), extracted.RowNumber, extracted.Values, validation,
-            extracted.Locator, extracted.Evidence, Guid.NewGuid());
+            extracted.Locator, extracted.Evidence, Guid.NewGuid(),
+            extracted.HasDiscoveredSchema);
     }
 
     private static IReadOnlyList<InventoryValidationIssueView> ValidateSupplierIdentity(

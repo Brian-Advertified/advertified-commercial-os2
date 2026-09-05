@@ -23,6 +23,8 @@ public sealed class InventorySemanticEnrichmentService(
         InventoryExtractionResult extraction,
         CancellationToken cancellationToken)
     {
+        if (extraction.Document.DiscoveredSchema is not null || extraction.Document.SchemaDiscoveryFailure is not null)
+            return extraction;
         var settings = semanticOptions.Value;
         if (!settings.Enabled)
             return extraction;
@@ -203,7 +205,7 @@ public sealed class InventorySemanticEnrichmentService(
         if (run.Status ==
             MasterDataCodes.LifecycleStatuses.Completed)
         {
-            return InventorySemanticStore.ReadResponse(run);
+            return InventorySemanticStore.ReadResponse<InventorySemanticExtractionArtifact>(run);
         }
         if (run.Status !=
             MasterDataCodes.LifecycleStatuses.Pending)
@@ -338,7 +340,7 @@ public sealed class InventorySemanticEnrichmentService(
         codes.Currencies.Order(StringComparer.Ordinal).ToArray(),
         codes.Availability.Order(StringComparer.Ordinal).ToArray());
 
-    private static void EnsureLiveConfiguration(
+    internal static void EnsureLiveConfiguration(
         AgentRuntimeOptions runtime,
         InventorySemanticOptions semantic)
     {

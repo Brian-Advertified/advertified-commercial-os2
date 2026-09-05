@@ -55,18 +55,15 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         var provider = InventoryExtractionContract.Create(
             "docling", "test", InventoryExtractionOptions.CurrentSchemaVersion,
             request.SourceHash, json, rows);
-        var contextual = InventorySourceContextProjection.Apply(
-            request, provider);
+        var contextual = provider;
         var candidate = InventoryCandidateNormalizer.Normalize(
             Assert.Single(contextual.Rows),
             request.SourceHash,
             DateTimeOffset.UnixEpoch);
 
-        Assert.Equal("Insight Outdoor ZA", candidate.SupplierName);
+        Assert.Null(candidate.SupplierName); // No supplier appears in the source cells.
         Assert.Equal(MasterDataCodes.Channels.Dooh, candidate.Values.Channel);
-        Assert.Equal(
-            MasterDataCodes.InventoryProductTypes.DoohScreen,
-            candidate.Values.ProductType);
+        Assert.Null(candidate.Values.ProductType);
         Assert.Contains(
             "PTA - Centurion",
             candidate.Values.Name,
@@ -151,8 +148,7 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         var provider = InventoryExtractionContract.Create(
             "docling", "test", InventoryExtractionOptions.CurrentSchemaVersion,
             request.SourceHash, json, rows);
-        var contextual = InventorySourceContextProjection.Apply(
-            request, provider);
+        var contextual = provider;
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(
             contextual.Rows,
             request.SourceHash,
@@ -164,14 +160,9 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
 
         Assert.Equal(6, candidates.Length);
         var first = candidates[0];
-        Assert.Contains(
-            first.Evidence,
-            item => item.FieldName == "supplier_name" &&
-                item.RawValue == "SABC");
+        Assert.DoesNotContain(first.Evidence, item => item.FieldName == "supplier_name");
         Assert.Equal(MasterDataCodes.Channels.Radio, first.Values.Channel);
-        Assert.Equal(
-            MasterDataCodes.InventoryProductTypes.RadioSpot,
-            first.Values.ProductType);
+        Assert.Null(first.Values.ProductType);
         Assert.Equal(
             MasterDataCodes.RateTypes.SpotRate,
             first.Values.RateType);
@@ -232,8 +223,7 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         var provider = InventoryExtractionContract.Create(
             "docling", "test", InventoryExtractionOptions.CurrentSchemaVersion,
             request.SourceHash, json, rows);
-        var contextual = InventorySourceContextProjection.Apply(
-            request, provider);
+        var contextual = provider;
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(
             contextual.Rows,
             request.SourceHash,
@@ -242,15 +232,10 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
             DateTimeOffset.UnixEpoch);
 
         var candidate = Assert.Single(candidates);
-        Assert.Contains(
-            candidate.Evidence,
-            item => item.FieldName == "supplier_name" &&
-                item.RawValue == "Arena Holdings");
+        Assert.DoesNotContain(candidate.Evidence, item => item.FieldName == "supplier_name");
         Assert.Equal("Front Page Strip 10x8", candidate.Values.Name);
-        Assert.Equal(MasterDataCodes.Channels.Print, candidate.Values.Channel);
-        Assert.Equal(
-            MasterDataCodes.InventoryProductTypes.PrintPlacement,
-            candidate.Values.ProductType);
+        Assert.Null(candidate.Values.Channel);
+        Assert.Null(candidate.Values.ProductType);
         Assert.Equal("ZAR", candidate.Values.Currency);
         Assert.Equal(5_680_000, candidate.Values.RateAmountMinor);
         Assert.Null(candidate.Values.RateType);
@@ -302,8 +287,7 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         var provider = InventoryExtractionContract.Create(
             "docling", "test", InventoryExtractionOptions.CurrentSchemaVersion,
             request.SourceHash, json, rows);
-        var contextual = InventorySourceContextProjection.Apply(
-            request, provider);
+        var contextual = provider;
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(
             contextual.Rows,
             request.SourceHash,
@@ -313,13 +297,8 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
 
         var candidate = Assert.Single(candidates);
         Assert.Equal("WCD001", candidate.Values.ProductCode);
-        Assert.Contains(
-            candidate.Evidence,
-            item => item.FieldName == "supplier_name" &&
-                item.RawValue == "RSD");
-        Assert.Equal(MasterDataCodes.Channels.Dooh, candidate.Values.Channel);
-        Assert.Equal(
-            MasterDataCodes.InventoryProductTypes.DoohScreen,
-            candidate.Values.ProductType);
+        Assert.DoesNotContain(candidate.Evidence, item => item.FieldName == "supplier_name");
+        Assert.Null(candidate.Values.Channel);
+        Assert.Null(candidate.Values.ProductType);
     }
 }

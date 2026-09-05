@@ -1,19 +1,21 @@
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.MasterData;
+using System.Text.Json.Nodes;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
 public sealed partial class DoclingInventoryExtractionAdapter
 {
     internal const string EmbeddedImageProjectionVersion =
-        "advertified-embedded-image-docling/1.2.0";
+        "advertified-embedded-image-docling/1.4.0";
 
-    internal async Task<InventoryExtractionResult>
+    internal static Task<InventoryExtractionResult>
         ReprojectRetainedAsync(
             InventoryExtractionRequest request,
             string providerJson,
             CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var rows = DoclingInventoryProjection.ReadRows(
             request, providerJson);
         var provider = InventoryExtractionContract.Create(
@@ -25,10 +27,7 @@ public sealed partial class DoclingInventoryExtractionAdapter
             rows);
         var extraction = NativeOfficeInventoryProjection.Apply(
             request, provider);
-        var enriched = await EnrichEmbeddedOfficeImagesAsync(
-            request, extraction, cancellationToken);
-        return InventorySourceContextProjection.Apply(
-            request, enriched);
+        return Task.FromResult(extraction);
     }
 
     private async Task<InventoryExtractionResult>
@@ -52,13 +51,16 @@ public sealed partial class DoclingInventoryExtractionAdapter
         }
 
         var projected = new List<InventoryExtractedRow>();
-        var positioning = new List<EmbeddedPositioningContext>();
+        var retainedImages = new JsonArray();
         foreach (var image in images)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var imageRequest = ImageRequest(request, image);
             if (imageRequest is null)
+            {
+                retainedImages.Add(MissingImageEvidence(image));
                 continue;
+            }
             try
             {
                 var result = await ExtractEmbeddedImageAsync(
@@ -66,11 +68,12 @@ public sealed partial class DoclingInventoryExtractionAdapter
                 projected.AddRange(result.Rows
                     .Where(IsSellableEmbeddedRow)
                     .Select(row => Rebase(row, image.Locator)));
-                var context = ReadPositioningContext(
-                    result.ProviderJson,
-                    image.Locator);
-                if (context is not null)
-                    positioning.Add(context);
+                retainedImages.Add(new JsonObject
+                {
+                    ["sourceLocator"] = image.Locator,
+                    ["sourceHash"] = image.Sha256,
+                    ["document"] = JsonNode.Parse(result.ProviderJson),
+                });
             }
             catch (Exception error) when (
                 error is InventoryExtractionUnavailableException or
@@ -78,29 +81,36 @@ public sealed partial class DoclingInventoryExtractionAdapter
             {
                 // Preserve the original visual-review blocker when local OCR
                 // cannot safely reconstruct the embedded image.
+                retainedImages.Add(MissingImageEvidence(image));
             }
         }
-        if (projected.Count == 0)
+        if (retainedImages.Count == 0)
             return extraction;
 
-        var rows = ApplyPositioningContext(
-                extraction.Rows
+        var rows = extraction.Rows
                     .Where(row =>
                         !NativeOfficeImageReader.IsRequired([row]))
                     .Concat(projected)
-                    .ToArray(),
-                positioning)
             .Select((row, index) =>
                 row with { Number = index + 1 })
             .ToArray();
+        var provider = JsonNode.Parse(extraction.ProviderJson)!.AsObject();
+        provider["embeddedOfficeImages"] = retainedImages;
         return InventoryExtractionContract.Create(
             extraction.AdapterCode,
             InventoryExtractionOptions.PinnedAdapterVersion,
             extraction.SchemaVersion,
             extraction.SourceHash,
-            extraction.ProviderJson,
+            provider.ToJsonString(),
             rows);
     }
+
+    private static JsonObject MissingImageEvidence(InventoryOfficeImage image) => new()
+    {
+        ["sourceLocator"] = image.Locator,
+        ["sourceHash"] = image.Sha256,
+        ["document"] = null,
+    };
 
     private async Task<InventoryExtractionResult> ExtractEmbeddedImageAsync(
         InventoryExtractionRequest request,

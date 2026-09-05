@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Inventory;
@@ -94,7 +95,7 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
             [
                 "DStv Stream VOD",
                 "DStv Stream VOD",
-                "DStv Stream Live",
+                "Dstv Stream Live",
                 "You Tube",
             ],
             candidates.Select(item => item.Values.Name));
@@ -102,29 +103,20 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         {
             Assert.Equal("DStv Media Sales", item.SupplierName);
             Assert.Equal("ZAR", item.Values.Currency);
-            Assert.Equal(
-                MasterDataCodes.Channels.Digital,
-                item.Values.Channel);
-            Assert.Equal(
-                MasterDataCodes.InventoryProductTypes.DigitalPlacement,
-                item.Values.ProductType);
+            Assert.Null(item.Values.Channel); // Reader output precedes schema interpretation.
+            Assert.Null(item.Values.ProductType);
             Assert.Null(item.Values.RateType);
             Assert.Null(item.Values.CommercialTerms);
             Assert.Equal("16 x 9", item.Values.Deliverable!.Dimensions);
         });
-        Assert.All(candidates.Take(3), item =>
-        {
-            Assert.Equal(
-                "Welcome to DStv on Digital | Live & VOD Options | " +
-                "ACCESS ANYWHERE, ANY DEVICE, ANYTIME",
-                item.Values.Description);
-            Assert.Contains(item.Evidence, evidence =>
-                evidence.FieldName == "description" &&
-                evidence.SourceLocator.StartsWith(
-                    "xlsx:sheet=Rates;image=1;cell=A1;",
-                    StringComparison.Ordinal));
-        });
-        Assert.Null(candidates[3].Values.Description);
+        // Context is retained for schema interpretation, never attached by a brand-name rule.
+        Assert.All(candidates, item => Assert.Null(item.Values.Description));
+        using var provider = JsonDocument.Parse(result.ProviderJson);
+        Assert.Equal(2, provider.RootElement.GetProperty("embeddedOfficeImages").GetArrayLength());
+        var structures = InventoryDocumentStructureReader.Read(sourceHash, result.ProviderJson);
+        Assert.Contains(structures.Structures.SelectMany(item => item.Cells), cell =>
+            cell.RawText == "Welcome to DStv on Digital" &&
+            cell.Locator.StartsWith("xlsx:sheet=Rates;image=1;cell=A1;", StringComparison.Ordinal));
         Assert.Equal(57_500, candidates[0].Values.RateAmountMinor);
         Assert.Null(candidates[1].Values.RateAmountMinor);
         Assert.Equal(
@@ -134,60 +126,41 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         Assert.Equal(20_000, candidates[3].Values.RateAmountMinor);
     }
 
-    [Fact]
-    public async Task RetainedWorkbookReprojectionUsesLocalOcr()
+    [Theory]
+    [InlineData(MasterDataCodes.DocumentClasses.Pdf)]
+    [InlineData(MasterDataCodes.DocumentClasses.Xlsx)]
+    public async Task RetainedReprojectionPreservesArtifactWithoutProviderCalls(string documentClass)
     {
-        var submissions = 0;
-        using var client = new HttpClient(new StubHandler(request =>
-        {
-            var path = request.RequestUri!.AbsolutePath;
-            if (request.Method == HttpMethod.Post &&
-                path == "/v1/convert/file")
-            {
-                submissions++;
-                return JsonResponse(DmsImageResult());
-            }
-            throw new InvalidOperationException(
-                "Unexpected retained local Docling request: " + path);
-        }))
+        using var client = new HttpClient(new StubHandler(_ =>
+            throw new InvalidOperationException("Retained reprojection must not submit or poll.")))
         {
             BaseAddress = new Uri("http://docling.test"),
         };
-        var adapter = new DoclingInventoryExtractionAdapter(
-            client,
+        var adapter = new DoclingInventoryExtractionAdapter(client,
             Options.Create(new InventoryExtractionOptions
             {
                 Mode = InventoryExtractionOptions.DoclingMode,
                 BaseUrl = "http://docling.test",
                 ApiKey = "local-contract-key",
             }));
-        var sourceHash = new string('d', 64);
+        var workbook = documentClass == MasterDataCodes.DocumentClasses.Xlsx;
         var request = new InventoryExtractionRequest(
-            "DMS Digital Rate Card.xlsx",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            MasterDataCodes.DocumentClasses.Xlsx,
-            sourceHash,
-            ImageOnlySpreadsheet(1));
-        var retainedProviderJson = JsonSerializer.Serialize(new
+            workbook ? "Supplier.xlsx" : "Supplier.pdf",
+            workbook ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/pdf",
+            documentClass, new string('d', 64),
+            workbook ? ImageOnlySpreadsheet(1) : [1, 2, 3]);
+        var retained = JsonSerializer.Serialize(new
         {
             texts = Array.Empty<object>(),
             tables = Array.Empty<object>(),
         });
 
-        var result = await adapter.ReprojectRetainedAsync(
-            request,
-            retainedProviderJson,
-            CancellationToken.None);
+        var result = await DoclingInventoryExtractionAdapter.ReprojectRetainedAsync(request, retained, CancellationToken.None);
 
-        Assert.Equal(1, submissions);
-        Assert.Equal(retainedProviderJson, result.ProviderJson);
-        Assert.Equal(4, result.Rows.Count);
-        Assert.Equal(
-            ["R575", "R1,10", "R500", "R200"],
-            result.Rows.Select(row => row.Values["rate"]));
-        Assert.DoesNotContain(
-            result.Rows,
-            row => NativeOfficeImageReader.IsRequired([row]));
+        Assert.Equal(retained, result.ProviderJson);
+        Assert.Equal(request.SourceHash, result.SourceHash);
+        if (workbook)
+            Assert.Contains(result.Rows, row => NativeOfficeImageReader.IsRequired([row]));
     }
 
     [Fact]

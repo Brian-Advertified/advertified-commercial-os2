@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+from urllib.parse import urlsplit
 from pathlib import Path
 from typing import Any, Callable
 
@@ -19,7 +20,10 @@ REVIEW_REQUIRED = "REVIEW_REQUIRED"
 class InventoryApi:
     def __init__(self, base_url: str, origin: str, tenant_id: str) -> None:
         self.base_url = base_url.rstrip("/")
-        if not self.base_url.startswith(("http://127.0.0.1", "http://localhost")):
+        parsed = urlsplit(self.base_url)
+        if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost"}
+                or parsed.username or parsed.password or parsed.query or parsed.fragment
+                or parsed.path not in {"", "/"}):
             raise ValueError("Corpus processing is restricted to the local API.")
         self.origin = origin
         self.tenant_id = tenant_id

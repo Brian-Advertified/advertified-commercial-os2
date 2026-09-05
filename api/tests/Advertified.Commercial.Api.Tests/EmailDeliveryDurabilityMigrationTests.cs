@@ -1,8 +1,5 @@
 using Advertified.Commercial.Infrastructure.MasterData;
-using Advertified.Commercial.Infrastructure.Migrations;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql;
 using Xunit;
 
@@ -13,7 +10,6 @@ public sealed class EmailDeliveryDurabilityMigrationTests
     private const string DatabaseName = "advertified_email_delivery_migration";
     private const string DatabaseUser = "advertified_email_delivery_migration";
     private const string DatabasePassword = "advertified-email-delivery-migration-local-only";
-    private const string PreviousMigration = nameof(SupplierDeliveryProofRequests);
     private static readonly Guid TenantId = Guid.Parse("ba1fed00-0000-4000-8000-000000000001");
     private static readonly Guid UserId = Guid.Parse("ba1fed00-0000-4000-8000-000000000002");
     private static readonly Guid MailboxId = Guid.Parse("ba1fed00-0000-4000-8000-000000000003");
@@ -24,9 +20,8 @@ public sealed class EmailDeliveryDurabilityMigrationTests
     [InlineData(InvalidDeliveryMutation.IncompleteIntent, "23514")]
     [InlineData(InvalidDeliveryMutation.AcceptanceWithoutRequest, "23514")]
     [InlineData(InvalidDeliveryMutation.RewriteIdempotencyKey, "P0001")]
-    [InlineData(InvalidDeliveryMutation.RollbackWithEvidence, "P0001")]
     [Trait("Category", "Migration")]
-    public async Task UpgradePreservesLegacyEvidenceAndRejectsUnsafeChanges(
+    public async Task FreshSchemaRejectsUnsafeDeliveryChanges(
         InvalidDeliveryMutation mutation,
         string expectedSqlState)
     {
@@ -36,27 +31,23 @@ public sealed class EmailDeliveryDurabilityMigrationTests
         var connectionString = postgres.GetConnectionString();
         await DisposablePostgres.EnableRequiredExtensionsAsync(connectionString);
         await PrepareMigrationRoleAsync(connectionString);
-        await MigrateAsync(connectionString, PreviousMigration, bootstrapRegistry: true);
+        await MigrateAsync(connectionString, bootstrapRegistry: true);
         await SeedLegacyRunAsync(connectionString);
 
-        await MigrateAsync(connectionString, targetMigration: null, bootstrapRegistry: false);
+        await MigrateAsync(connectionString, bootstrapRegistry: false);
         await AssertLegacyEvidencePreservedAsync(connectionString);
-        if (mutation is InvalidDeliveryMutation.RewriteIdempotencyKey or
-            InvalidDeliveryMutation.RollbackWithEvidence)
+        if (mutation is InvalidDeliveryMutation.RewriteIdempotencyKey)
         {
             await EstablishValidDeliveryEvidenceAsync(connectionString);
         }
 
-        Func<Task> rejectedOperation = mutation == InvalidDeliveryMutation.RollbackWithEvidence
-            ? () => MigrateAsync(connectionString, PreviousMigration, bootstrapRegistry: false)
-            : () => ExecuteInvalidMutationAsync(connectionString, mutation);
-        var exception = await Assert.ThrowsAsync<PostgresException>(rejectedOperation);
+        var exception = await Assert.ThrowsAsync<PostgresException>(
+            () => ExecuteInvalidMutationAsync(connectionString, mutation));
         Assert.Equal(expectedSqlState, exception.SqlState);
     }
 
     private static async Task MigrateAsync(
         string connectionString,
-        string? targetMigration,
         bool bootstrapRegistry)
     {
         await using var connection = new NpgsqlConnection(connectionString);
@@ -70,18 +61,7 @@ public sealed class EmailDeliveryDurabilityMigrationTests
             .UseNpgsql(connection)
             .Options;
         await using var dbContext = new GovernanceDbContext(options);
-        if (targetMigration is null)
-        {
-            await dbContext.Database.MigrateAsync();
-        }
-        else
-        {
-            var targetId = dbContext.Database.GetMigrations()
-                .Single(id => id.EndsWith($"_{targetMigration}", StringComparison.Ordinal));
-            var targetName = dbContext.GetService<IMigrationsIdGenerator>()
-                .GetName(targetId);
-            await dbContext.GetService<IMigrator>().MigrateAsync(targetName);
-        }
+        await dbContext.Database.MigrateAsync();
         if (bootstrapRegistry)
         {
             await new MasterDataBootstrapper(dbContext, new FixedTimeProvider())
@@ -229,7 +209,6 @@ public sealed class EmailDeliveryDurabilityMigrationTests
         IncompleteIntent,
         AcceptanceWithoutRequest,
         RewriteIdempotencyKey,
-        RollbackWithEvidence,
     }
 
     private sealed class FixedTimeProvider : TimeProvider

@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Opportunity;
@@ -6,6 +7,7 @@ using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Opportunity;
+using Advertified.Commercial.Infrastructure.Foundation;
 using Microsoft.EntityFrameworkCore;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
@@ -21,19 +23,21 @@ public sealed partial class InventoryCommands
             envelope.TenantId, importId, true, cancellationToken)
             ?? throw new UnauthorizedAccessException("Inventory import access denied.");
         EnsurePublicationAllowed(source, envelope);
+        var supplierId = source.SupplierId!.Value;
         var candidates = await store.ListCandidatesAsync(
             envelope.TenantId, importId, cancellationToken);
         var codes = await InventoryCodeSets.LoadAsync(store.DbContext, cancellationToken);
+        var acceptance = await VerifyRetainedAcceptanceAsync(source, candidates, codes, cancellationToken);
         var approved = PrepareApprovedCandidates(candidates, codes);
         await InventoryPublicationPersistence.LockSupplierAsync(
-            store.DbContext, envelope.TenantId, source.SupplierId, cancellationToken);
+            store.DbContext, envelope.TenantId, supplierId, cancellationToken);
         var supplier = InventorySupplierPublication.Prepare(approved);
         var productCodes = approved.Select(item => item.ProductCode)
             .Concat(approved.SelectMany(item =>
                 item.Values.Package?.ComponentProductCodes ?? []))
             .Distinct(StringComparer.Ordinal).ToArray();
         var products = await InventoryPublicationPersistence.LoadProductsAsync(
-            store.DbContext, envelope.TenantId, source.SupplierId,
+            store.DbContext, envelope.TenantId, supplierId,
             productCodes, cancellationToken);
         var nextVersions = await InventoryPublicationPersistence.LoadNextVersionsAsync(
             store.DbContext, envelope.TenantId,
@@ -41,23 +45,32 @@ public sealed partial class InventoryCommands
         var publications = PreparePublications(
             source, approved, products, nextVersions);
         var now = timeProvider.GetUtcNow();
+        var release = await InventorySupplierReleasePublication.BeginAsync(
+            store.DbContext, envelope.TenantId, supplierId, source.Id,
+            source.ReplacementMode, envelope.ActorId.Value, now, cancellationToken);
         await InventorySupplierPublication.PersistAsync(
-            store.DbContext, envelope.TenantId, source.SupplierId, source.Id,
+            store.DbContext, envelope.TenantId, supplierId, source.Id,
             envelope.ActorId.Value, now, supplier, cancellationToken);
         await InventoryPublicationPersistence.PersistAsync(
-            store.DbContext, envelope.TenantId, source.SupplierId, source.Id,
-            envelope.ActorId.Value, now, publications, cancellationToken);
+            store.DbContext, envelope.TenantId, supplierId, source.Id,
+            release.ReleaseId, envelope.ActorId.Value, now, publications,
+            cancellationToken);
+        var impactCount = await InventorySupplierReleasePublication.CompleteAsync(
+            store.DbContext, envelope.TenantId, supplierId, source.Id,
+            envelope.ActorId.Value, now, release, cancellationToken);
         await CompletePublicationAsync(
-            envelope, source, now, cancellationToken);
+            envelope, source, release.ReleaseId, now, cancellationToken);
         var updated = await store.FindImportAsync(
             envelope.TenantId, importId, false, cancellationToken)
             ?? throw new InvalidOperationException("The inventory import was not persisted.");
         var view = await store.BuildImportViewAsync(updated, cancellationToken);
-        return OpportunityCommandSupport.Outcome(
+        var outcome = OpportunityCommandSupport.Outcome(
             envelope, view, importId, updated.Version,
             MasterDataReferences.CommercialResourceTypes.InventoryImport,
             MasterDataReferences.CommercialActions.InventoryPublished,
             MasterDataReferences.CommercialEventTypes.InventoryPublished, now);
+        return AddInventoryReleaseConsequences(
+            outcome, envelope, release, impactCount, now, acceptance);
     }
 
     private static void EnsurePublicationAllowed(
@@ -68,9 +81,18 @@ public sealed partial class InventoryCommands
         {
             throw new ApprovalRequiredException();
         }
+        if (source.SupplierId is null ||
+            source.SupplierResolutionStatus !=
+                MasterDataCodes.InventorySupplierResolutionStatuses.Resolved)
+        {
+            throw new SupplierIdentityAmbiguousException();
+        }
         if (source.Status != MasterDataCodes.LifecycleStatuses.ReviewRequired ||
             source.ProtectedObjectKey is null ||
-            source.FailureCode is not null)
+            source.FailureCode is not null ||
+            source.PublishedReleaseId is not null ||
+            source.ReplacementMode !=
+                MasterDataCodes.InventoryReplacementModes.FullReplacement)
         {
             throw new InvalidLifecycleTransitionException();
         }
@@ -80,11 +102,61 @@ public sealed partial class InventoryCommands
         }
     }
 
+    private static CommandOutcome AddInventoryReleaseConsequences(
+        CommandOutcome outcome,
+        CommandEnvelope<PublishInventoryImportCommand> envelope,
+        InventoryReleaseCutover release,
+        int proposalImpactCount,
+        DateTimeOffset now,
+        IReadOnlyList<CandidateAcceptanceAudit> acceptance)
+    {
+        var publicationEvidence = JsonSerializer.SerializeToElement(new
+        {
+            releaseId = release.ReleaseId,
+            release.VersionNumber,
+            release.PreviousReleaseId,
+            proposalImpactCount,
+            acceptanceEvaluations = acceptance,
+        });
+        var published = CommandOutcomeFactory.Create(
+            envelope,
+            publicationEvidence,
+            release.ReleaseId,
+            1,
+            MasterDataReferences.CommercialResourceTypes.InventorySupplierRelease,
+            MasterDataReferences.CommercialActions.InventoryReleasePublished,
+            MasterDataReferences.CommercialEventTypes.InventorySupplierReleasePublished,
+            now,
+            auditMetadata: publicationEvidence);
+        var result = outcome.WithAdditional(published.Audit, published.Outbox);
+        if (!release.PreviousReleaseId.HasValue ||
+            !release.PreviousAggregateVersion.HasValue)
+        {
+            return result;
+        }
+        var superseded = CommandOutcomeFactory.Create(
+            envelope,
+            new
+            {
+                releaseId = release.PreviousReleaseId.Value,
+                supersededByReleaseId = release.ReleaseId,
+            },
+            release.PreviousReleaseId.Value,
+            release.PreviousAggregateVersion.Value,
+            MasterDataReferences.CommercialResourceTypes.InventorySupplierRelease,
+            MasterDataReferences.CommercialActions.InventoryReleaseSuperseded,
+            MasterDataReferences.CommercialEventTypes.InventorySupplierReleaseSuperseded,
+            now);
+        return result.WithAdditional(superseded.Audit, superseded.Outbox);
+    }
+
     private static ApprovedInventoryCandidate[] PrepareApprovedCandidates(
         List<InventoryCandidateRow> candidates,
         InventoryCodeSets codes)
     {
-        if (candidates.Count == 0)
+        if (candidates.Count == 0 || candidates.Any(item =>
+                item.Status is not (MasterDataCodes.LifecycleStatuses.Approved or
+                    MasterDataCodes.LifecycleStatuses.Rejected)))
         {
             throw new InventoryPublishBlockedException();
         }
@@ -228,22 +300,14 @@ public sealed partial class InventoryCommands
     private async Task CompletePublicationAsync(
         CommandEnvelope<PublishInventoryImportCommand> envelope,
         InventoryImportRow source,
+        Guid releaseId,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            UPDATE commercial.inventory_imports import
-            SET status_code = CASE
-                    WHEN EXISTS (
-                        SELECT 1
-                        FROM commercial.inventory_candidates candidate
-                        WHERE candidate.tenant_id = import.tenant_id
-                          AND candidate.import_id = import.id
-                          AND candidate.status_code =
-                              {MasterDataCodes.LifecycleStatuses.ReviewRequired})
-                    THEN {MasterDataCodes.LifecycleStatuses.ReviewRequired}
-                    ELSE {MasterDataCodes.LifecycleStatuses.Completed}
-                END,
+            UPDATE commercial.inventory_imports
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Completed},
+                published_release_id = {releaseId},
                 version = version + 1, updated_at_utc = {now}
             WHERE tenant_id = {envelope.TenantId.Value} AND id = {source.Id}
               AND status_code = {MasterDataCodes.LifecycleStatuses.ReviewRequired}

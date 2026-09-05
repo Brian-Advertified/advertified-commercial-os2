@@ -4,15 +4,15 @@ using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Worker;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
 public sealed partial class InventoryRetainedProjectionProcessor(
     InventoryExtractionAttemptStore store,
-    DoclingInventoryExtractionAdapter doclingExtraction,
-    InventorySemanticEnrichmentService semanticEnrichment,
     InventoryReprojectionCompletionService completion,
+    IOptions<InventorySemanticOptions> semanticOptions,
     ILogger<InventoryRetainedProjectionProcessor> logger)
 {
     internal async Task ProcessAsync(
@@ -146,7 +146,7 @@ public sealed partial class InventoryRetainedProjectionProcessor(
     {
         if (!string.Equals(
                 claim.ProviderVersion,
-                semanticEnrichment.CurrentProjectionVersion,
+                InventoryProjectionVersion.Current(semanticOptions.Value),
                 StringComparison.Ordinal))
         {
             throw new
@@ -154,13 +154,10 @@ public sealed partial class InventoryRetainedProjectionProcessor(
         }
         var source = await store.ReadProjectionSourceAsync(
             claim, cancellationToken);
-        var extraction = await doclingExtraction
-            .ReprojectRetainedAsync(
-                source.Request,
-                source.ProviderJson,
-                cancellationToken);
-        extraction = await semanticEnrichment.EnrichAsync(
-            claim, extraction, cancellationToken);
+        var retained = InventoryExtractionContract.Replay(source.CanonicalJson,
+            InventoryExtractionOptions.CurrentSchemaVersion);
+        var extraction = InventoryRetainedSchemaProjection.Replay(source.Request.SourceHash,
+            source.ProviderJson, retained, InventoryProjectionVersion.Current(semanticOptions.Value));
         await completion.ApplyAsync(
             claim, source.InputArtifactId,
             extraction, cancellationToken);

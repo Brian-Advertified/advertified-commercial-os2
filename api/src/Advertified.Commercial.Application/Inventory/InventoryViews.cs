@@ -50,10 +50,18 @@ public sealed record InventoryCandidateCountsView(
     int Rejected,
     int Blocking);
 
+public sealed record InventoryInterpretationView(
+    string MappingRevision, string? SchemaJson, string StructureJson, string? Failure);
+
 public sealed record InventoryImportView(
     Guid Id,
-    Guid SupplierId,
+    Guid? SupplierId,
     string SupplierName,
+    string? SupplierNameHint,
+    string SupplierResolutionStatus,
+    string SupplierIdentityEvidenceJson,
+    string ReplacementMode,
+    Guid? PublishedReleaseId,
     string FileName,
     string DeclaredMediaType,
     string? DocumentClass,
@@ -68,7 +76,8 @@ public sealed record InventoryImportView(
     string? NextCandidateCursor,
     IReadOnlyList<InventoryExtractionAttemptView> ExtractionAttempts,
     long Version,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    InventoryInterpretationView? Interpretation = null);
 
 public sealed record InventoryRateView(
     string RateType,
@@ -150,6 +159,8 @@ public sealed record InventoryAssetContent(
     byte[] Content,
     string MediaType,
     string ContentHash);
+
+public sealed record InventoryImportSourceContent(byte[] Content, string FileName);
 
 public sealed record InventoryEmbeddingView(
     Guid Id,
@@ -275,6 +286,9 @@ public sealed record InventorySearchQuery(
 
 public interface IInventoryReader
 {
+    Task<InventoryImportSourceContent> GetImportSourceAsync(ActorId actorId, TenantId tenantId,
+        Guid importId, CancellationToken cancellationToken);
+
     Task<InventoryImportView> GetImportAsync(
         ActorId actorId,
         TenantId tenantId,

@@ -113,35 +113,6 @@
 .checkbox-field { display: flex; align-items: center; gap: 0.65rem; color: var(--navy); font-weight: 750; }
 .checkbox-field input { width: 1.05rem; height: 1.05rem; }
 
-.opportunity-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(18rem, 0.7fr);
-  gap: 1rem;
-  align-items: start;
-}
-
-.record-stack { display: grid; gap: 0; border: 1px solid var(--line); }
-.record-card {
-  position: relative;
-  padding: 0.85rem 3rem 0.85rem 0.9rem;
-  color: var(--body);
-  background: var(--white);
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  box-shadow: none;
-  text-decoration: none;
-}
-.record-card:last-child { border-bottom: 0; }
-.record-card:hover { background: var(--surface-strong); }
-.record-card h2 { margin: 0.4rem 0 0; color: var(--navy); font-size: 0.92rem; }
-.record-card p { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.75rem; line-height: 1.45; }
-.record-arrow { position: absolute; top: 50%; right: 1.2rem; color: var(--electric-deep); font-size: 1.4rem; }
-.opportunity-form { position: sticky; top: 1rem; display: grid; gap: 1rem; }
-.opportunity-form h2,
-.action-panel h2,
-.qualification-card h2,
-.strategy-card h2 { margin: 0; color: var(--navy); }
 .field-group select,
 .field-group textarea {
   width: 100%;
@@ -153,82 +124,7 @@
 }
 .field-group textarea { min-height: 7rem; resize: vertical; }
 .back-link { margin-bottom: 1rem; }
-.opportunity-next { margin-bottom: 1rem; }
-.action-panel {
-  margin-bottom: 1rem;
-  padding: 0.9rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 0.8rem;
-  background: var(--surface-subtle);
-  border: 1px solid var(--line);
-  border-radius: 0.3rem;
-}
-.action-panel > .page-heading-split,
-.action-panel > .inline-alert,
-.action-panel > .action-form { flex-basis: 100%; }
-.action-form { display: grid; grid-template-columns: 1fr 1.3fr 1fr auto; gap: 0.8rem; align-items: end; }
-.identifier-field { min-width: 18rem; }
-.qualification-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
-.qualification-card { min-width: 0; }
-.lineage-item,
-.angle-card,
-.objection-card {
-  margin-top: 0;
-  padding: 0.7rem 0;
-  display: grid;
-  gap: 0.3rem;
-  border: 0;
-  border-top: 1px solid var(--line);
-  border-radius: 0;
-}
-.lineage-item span,
-.lineage-item small,
-.angle-card span,
-.objection-card small { color: var(--muted); }
-.evidence-claim { margin: 0.9rem 0 0; padding: 0.8rem 1rem; background: var(--canvas); border-left: 0.22rem solid var(--electric); }
-.evidence-claim p { margin: 0; line-height: 1.5; }
-.evidence-claim footer { margin-top: 0.5rem; color: var(--muted); font-size: 0.75rem; }
-.lineage-note { color: var(--electric-soft); font-weight: 750; }
-.angle-selected { padding-inline: 0.7rem; background: var(--electric-wash); border-left: 2px solid var(--electric); }
-.angle-card p,
-.objection-card p { margin: 0; line-height: 1.5; }
-.artifact-json { max-height: 18rem; overflow: auto; padding: 0.8rem; color: #dceaff; background: #050b16; border: 1px solid var(--line); border-radius: 0.25rem; white-space: pre-wrap; }
-.strategy-card,
-.run-card { margin-top: 1rem; }
-.strategy-card h3 { color: var(--navy); }
-.run-list { display: grid; gap: 0.75rem; }
-.run-list div { display: grid; grid-template-columns: minmax(12rem, 0.35fr) 1fr; gap: 0.3rem 1rem; padding-top: 0.75rem; border-top: 1px solid var(--line); }
-.run-list span,
-.run-list small { color: var(--muted); }
-.run-list small { grid-column: 2; }
-.brief-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-}
-.brief-form .field-wide,
-.brief-form .inline-alert { grid-column: 1 / -1; }
-.brief-form .primary-button { justify-self: start; }
-.brief-source-form { display: grid; gap: 1rem; max-width: 58rem; }
-.brief-source-form textarea { min-height: 18rem; resize: vertical; line-height: 1.6; }
-.brief-source-form .primary-button,
-.brief-clarification-form .primary-button { justify-self: start; }
-.brief-clarification-form { display: grid; gap: 1.2rem; }
-.brief-clarification-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-.brief-clarification-heading h2 { margin: 0.2rem 0 0.35rem; color: var(--navy); }
-.brief-clarification-heading p { margin: 0; color: var(--muted); }
-.brief-question-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem; }
 .button-link { display: inline-flex; align-items: center; text-decoration: none; }
-.brief-overview { margin-bottom: 1rem; }
-.brief-overview h3 { margin-bottom: 0.35rem; color: var(--navy); }
-.brief-overview ul { margin-top: 0.35rem; }
-.source-copy { white-space: pre-wrap; line-height: 1.6; }
-.version-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; }
-.version-grid section { padding: 0.8rem; border: 1px solid var(--line); border-radius: 0.25rem; }
-.version-grid h3 { color: var(--navy); }
-.version-grid small { color: var(--muted); }
 
 .inventory-layout {
   display: grid;
@@ -321,21 +217,12 @@
   .profile-layout .profile-summary { border-right: 0; border-bottom: 1px solid var(--line); }
   .commercial-policy-grid { grid-template-columns: 1fr; }
   .commercial-policy-grid .field-wide { grid-column: auto; }
-  .opportunity-layout,
-  .qualification-grid,
-  .action-form { grid-template-columns: 1fr; }
-  .brief-form,
-  .brief-question-grid,
-  .version-grid,
   .inventory-layout,
   .inventory-search,
   .import-summary,
   .candidate-facts,
   .correction-form,
   .product-detail-grid { grid-template-columns: 1fr; }
-  .brief-form .field-wide { grid-column: auto; }
-  .brief-clarification-heading { flex-direction: column; }
-  .opportunity-form { position: static; }
   .inventory-upload { position: static; }
   .evidence-table div { grid-template-columns: 1fr; }
   .reject-action { margin-left: 0; }

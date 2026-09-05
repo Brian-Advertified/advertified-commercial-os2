@@ -8,13 +8,10 @@ namespace Advertified.Commercial.Api.Tests;
 public sealed class InventorySourceContextProjectionTests
 {
     [Theory]
-    [InlineData("Y PACKAGES ONE PAGER.pdf", "YFM")]
-    [InlineData("Arena-Business-Day-Rate-Sheet-2026-Repro.pdf", "Arena Holdings")]
-    [InlineData("JAC Rate Card_2026.pdf", "Jacaranda FM")]
-    [InlineData("Reveel - ZA - Publisher Media Kit.pptx", "Reveel")]
-    public void SupplierIsDerivedFromTheRetainedPhysicalFileName(
-        string fileName,
-        string expectedSupplier)
+    [InlineData("Y PACKAGES ONE PAGER.pdf")]
+    [InlineData("Arena-Business-Day-Rate-Sheet-2026-Repro.pdf")]
+    [InlineData("Unfamiliar supplier.pdf")]
+    public void FileNameCannotSupplyMissingCommercialFacts(string fileName)
     {
         var request = new InventoryExtractionRequest(
             fileName,
@@ -36,17 +33,12 @@ public sealed class InventorySourceContextProjectionTests
                     ["name"] = "Source placement",
                 })]);
 
-        var projected = InventorySourceContextProjection.Apply(
-            request,
-            provider);
+        var projected = NativeOfficeInventoryProjection.Apply(request, provider);
         var row = Assert.Single(projected.Rows);
 
-        Assert.Equal(expectedSupplier, row.Values["supplier"]);
-        Assert.Equal(
-            "source:file-name",
-            row.FieldLocators!["supplier"]);
-        Assert.Equal(
-            MasterDataCodes.InventoryEvidenceBases.DerivedPolicy,
-            row.FieldEvidenceBases!["supplier"]);
+        Assert.False(row.Values.ContainsKey("supplier"));
+        Assert.False(row.Values.ContainsKey("channel"));
+        Assert.False(row.Values.ContainsKey("productcode"));
+        Assert.False(row.Values.ContainsKey("rateunknown"));
     }
 }

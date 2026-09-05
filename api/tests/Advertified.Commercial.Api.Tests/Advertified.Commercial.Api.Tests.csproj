@@ -32,5 +32,6 @@
       Include="../../../shared/contracts/openapi/advertified-commercial-api.v1.json"
       Link="Contracts/advertified-commercial-api.v1.json"
       CopyToOutputDirectory="PreserveNewest" />
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

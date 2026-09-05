@@ -41,8 +41,7 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         var provider = InventoryExtractionContract.Create(
             "docling", "test", InventoryExtractionOptions.CurrentSchemaVersion,
             request.SourceHash, json, rows);
-        var contextual = InventorySourceContextProjection.Apply(
-            request, provider);
+        var contextual = provider;
         var candidates = contextual.Rows.Select(row =>
             InventoryCandidateNormalizer.Normalize(
                 row,
@@ -56,12 +55,9 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         Assert.Equal(
             MasterDataCodes.Channels.Digital,
             candidates[0].Values.Channel);
-        Assert.Equal(
-            MasterDataCodes.InventoryProductTypes.DigitalPlacement,
-            candidates[0].Values.ProductType);
+        Assert.Null(candidates[0].Values.ProductType);
         Assert.Null(candidates[0].Values.RateType);
-        Assert.All(candidates, candidate => Assert.Equal(
-            "Volt.Africa", candidate.SupplierName));
+        Assert.All(candidates, candidate => Assert.Null(candidate.SupplierName));
     }
 
     [Fact]
@@ -95,9 +91,7 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         Assert.Equal(
             MasterDataCodes.Channels.Social,
             candidate.Values.Channel);
-        Assert.Equal(
-            MasterDataCodes.InventoryProductTypes.SocialPlacement,
-            candidate.Values.ProductType);
+        Assert.Null(candidate.Values.ProductType);
         Assert.Null(candidate.Values.RateType);
     }
 }

@@ -13,6 +13,12 @@ export const sessionSchema = z.object({
   signOutPath: localBrowserPath.nullable(),
 }).strict()
 
+export const oidcSignOutSchema = z.object({
+  redirectUrl: z.url(),
+}).strict()
+
+export type OidcSignOut = z.infer<typeof oidcSignOutSchema>
+
 export const currentUserSchema = z.object({
   id: z.guid(),
   email: requiredText,

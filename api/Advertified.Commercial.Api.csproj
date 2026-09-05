@@ -28,5 +28,6 @@
 
   <ItemGroup>
     <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+    <InternalsVisibleTo Include="Advertified.Commercial.Api.Tests" />
   </ItemGroup>
 </Project>

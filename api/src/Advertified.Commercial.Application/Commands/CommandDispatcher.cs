@@ -7,11 +7,19 @@ public sealed class CommandDispatcher(
     ITenantAuthorizer authorizer,
     IIdempotentCommandUnitOfWork unitOfWork)
 {
+    public Task<CommandReceipt> DispatchAsync<TCommand>(
+        CommandEnvelope<TCommand> envelope,
+        PermissionCode requiredPermission,
+        Func<CancellationToken, Task<CommandOutcome>> handler)
+        where TCommand : notnull =>
+        DispatchAsync(envelope, requiredPermission, handler, CancellationToken.None);
+
     public async Task<CommandReceipt> DispatchAsync<TCommand>(
         CommandEnvelope<TCommand> envelope,
         PermissionCode requiredPermission,
         Func<CancellationToken, Task<CommandOutcome>> handler,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken,
+        Func<CancellationToken, Task>? authorizeResource = null)
         where TCommand : notnull
     {
         var decision = await authorizer.AuthorizeAsync(
@@ -33,6 +41,7 @@ public sealed class CommandDispatcher(
                 CommandOutcomeValidator.Validate(envelope, outcome);
                 return outcome;
             },
-            cancellationToken);
+            cancellationToken,
+            authorizeResource);
     }
 }

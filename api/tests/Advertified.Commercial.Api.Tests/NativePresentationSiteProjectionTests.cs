@@ -55,7 +55,7 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
             candidate.Values.Name,
             StringComparison.Ordinal);
         Assert.Equal("5 x 12", candidate.Values.Deliverable!.Dimensions);
-        Assert.Equal("Bryanston | Johannesburg | Gauteng", candidate.Values.Geography);
+        Assert.Null(candidate.Values.Geography); // Unlabelled place names require schema interpretation.
         Assert.Equal(-26.034369m, candidate.Values.Latitude);
         Assert.Equal(28.037975m, candidate.Values.Longitude);
         Assert.Equal(

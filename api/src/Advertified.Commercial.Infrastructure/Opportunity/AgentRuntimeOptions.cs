@@ -13,7 +13,9 @@ public sealed class AgentRuntimeOptions
     public string Mode { get; init; } = DisabledMode;
     public string BaseUrl { get; init; } = "http://localhost:8000";
     public string? ServiceKey { get; init; }
-    public int PollMilliseconds { get; init; } = 100;
+    public int RecoverySweepSeconds { get; init; } = 300;
+    public int ReconnectMinSeconds { get; init; } = 5;
+    public int ReconnectMaxSeconds { get; init; } = 60;
     public string Provider { get; init; } = DeterministicProvider;
     public string DefaultModel { get; init; } = "fixture-v1";
     public long DefaultCostCapMinor { get; init; }
@@ -22,6 +24,13 @@ public sealed class AgentRuntimeOptions
     public bool AllowLive { get; init; }
     public Dictionary<string, string> Models { get; init; } = new(StringComparer.Ordinal);
     public Dictionary<string, long> CostCapsMinor { get; init; } = new(StringComparer.Ordinal);
+
+    public static bool HasSafeTiming(AgentRuntimeOptions options) =>
+        options.RecoverySweepSeconds is >= 30 and <= 3_600 &&
+        options.ReconnectMinSeconds is >= 5 and <= 60 &&
+        options.ReconnectMaxSeconds >= options.ReconnectMinSeconds &&
+        options.ReconnectMaxSeconds <= 300 &&
+        options.TimeoutSeconds is >= 1 and <= 120;
 
     public bool UsesHttp => Mode is HttpMode or HttpDeterministicMode;
 

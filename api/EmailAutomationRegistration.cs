@@ -22,6 +22,8 @@ internal static class EmailAutomationRegistration
             .ValidateOnStart();
         builder.Services.AddSingleton(EmailAutomationPolicy.Load());
         builder.Services.AddScoped<EmailAutomationRecordStore>();
+        builder.Services.AddScoped<ProposalEmailIntentStore>();
+        builder.Services.AddScoped<DurableProposalEmailDelivery>();
         builder.Services.AddScoped<IEmailAutomationReader, EmailAutomationReader>();
         builder.Services.AddScoped<IEmailAutomationCommands, EmailAutomationCommands>();
         builder.Services.AddScoped<IAutomationCommandEnvelopeFactory,

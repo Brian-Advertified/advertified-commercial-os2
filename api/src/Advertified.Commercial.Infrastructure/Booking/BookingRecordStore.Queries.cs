@@ -71,6 +71,8 @@ public sealed partial class BookingRecordStore
               AND option.id = {command.ProposalOptionId}
               AND line.id = {command.MediaPlanLineId}
               AND proposal.status_code = {MasterDataCodes.LifecycleStatuses.Selected}
+              AND proposal.inventory_review_status_code =
+                    {MasterDataCodes.ProposalInventoryReviewStatuses.Current}
               AND decision.decision_code = {MasterDataCodes.LifecycleStatuses.Selected}
               AND plan.status_code = {MasterDataCodes.LifecycleStatuses.Approved}
               AND plan.commercial_policy_version_id IS NOT NULL
@@ -155,6 +157,8 @@ public sealed partial class BookingRecordStore
              AND booking.media_plan_line_id = line.id
             WHERE proposal.tenant_id = {tenantId.Value}
               AND proposal.status_code = {MasterDataCodes.LifecycleStatuses.Selected}
+              AND proposal.inventory_review_status_code =
+                    {MasterDataCodes.ProposalInventoryReviewStatuses.Current}
               AND decision.decision_code = {MasterDataCodes.LifecycleStatuses.Selected}
               AND campaign.status_code = {MasterDataCodes.LifecycleStatuses.Planned}
               AND payment.status_code = {MasterDataCodes.LifecycleStatuses.Confirmed}

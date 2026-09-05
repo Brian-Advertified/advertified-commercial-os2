@@ -39,8 +39,7 @@ internal static partial class NativePresentationProjection
             var part = package.RelationshipTarget(
                 PresentationPart, relationshipId);
             AddSlideRows(
-                rows, package.ReadRequired(part), slideNumber,
-                request.FileName);
+                rows, package.ReadRequired(part), slideNumber);
         }
         if (rows.Count == 0 &&
             package.HasPartPrefix("ppt/media/"))
@@ -52,8 +51,7 @@ internal static partial class NativePresentationProjection
     private static void AddSlideRows(
         List<InventoryExtractedRow> result,
         XDocument slide,
-        int slideNumber,
-        string fileName)
+        int slideNumber)
     {
         var title = ReadTitle(slide);
         var slideText = SlideText(slide);

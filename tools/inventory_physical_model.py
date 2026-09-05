@@ -163,12 +163,17 @@ def deduplicate_units(units: list[PhysicalUnit]) -> list[PhysicalUnit]:
     for unit in units:
         normalized_identity = normalize(unit.identity)
         explicit_code = CODE.search(unit.identity)
+        is_workbook_row = unit.locator.lower().startswith("xlsx:")
         identity_key = (
-            normalize(explicit_code.group(0))
-            if explicit_code
-            else normalized_identity
+            normalized_identity
+            if is_workbook_row or explicit_code is None
+            else normalize(explicit_code.group(0))
         )
-        scope_key = "" if explicit_code else unit.scope
+        scope_key = (
+            unit.scope
+            if is_workbook_row or explicit_code is None
+            else ""
+        )
         signature = (
             scope_key,
             identity_key,

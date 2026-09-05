@@ -88,5 +88,12 @@ internal static class StartupConfigurationValidator
             throw new InvalidOperationException(
                 "Production must configure an explicit trusted reverse-proxy boundary.");
         }
+        if (!localEnvironment &&
+            configuration.GetValue<bool?>(
+                $"{BrowserSessionOptions.SectionName}:SecureCookie") is false)
+        {
+            throw new InvalidOperationException(
+                "Production browser sessions must use secure cookies.");
+        }
     }
 }

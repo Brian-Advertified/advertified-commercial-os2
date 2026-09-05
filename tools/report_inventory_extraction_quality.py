@@ -14,7 +14,6 @@ try:
 except ModuleNotFoundError:  # Direct execution from the tools directory.
     from evaluate_inventory_file_gold import evaluate as evaluate_file_gold
 
-GOVERNED_DOCUMENT_COUNT = 43
 CORE_FIELDS = (
     "productCode", "name", "channel", "productType", "geography",
     "rateType", "currency", "rateAmountMinor",
@@ -40,8 +39,8 @@ def main() -> int:
 def build_report(source_root: Path, manifest_path: Path) -> dict[str, Any]:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     documents = manifest.get("documents", [])
-    if len(documents) != GOVERNED_DOCUMENT_COUNT:
-        raise ValueError(f"Expected exactly {GOVERNED_DOCUMENT_COUNT} manifest documents.")
+    if not documents or manifest.get("documentCount") != len(documents):
+        raise ValueError("Document count must match the nonempty evaluation manifest.")
     observed_root = manifest_path.parent / "observed"
     totals: Counter[str] = Counter()
     reports = [inspect_document(source_root, observed_root, item, totals)

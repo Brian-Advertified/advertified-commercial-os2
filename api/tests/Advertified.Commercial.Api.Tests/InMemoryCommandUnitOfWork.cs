@@ -13,7 +13,8 @@ internal sealed class InMemoryCommandUnitOfWork : IIdempotentCommandUnitOfWork, 
     public async Task<CommandReceipt> ExecuteOnceAsync<TCommand>(
         CommandEnvelope<TCommand> envelope,
         Func<CancellationToken, Task<CommandOutcome>> handler,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<CancellationToken, Task>? authorizeResource = null)
         where TCommand : notnull
     {
         ExecutionAttempts++;
@@ -21,6 +22,8 @@ internal sealed class InMemoryCommandUnitOfWork : IIdempotentCommandUnitOfWork, 
 
         try
         {
+            if (authorizeResource is not null)
+                await authorizeResource(cancellationToken);
             var key = (envelope.TenantId, envelope.IdempotencyKey);
 
             if (_outcomes.TryGetValue(key, out var stored))
@@ -45,7 +48,10 @@ internal sealed class InMemoryCommandUnitOfWork : IIdempotentCommandUnitOfWork, 
             }
 
             var outcome = await handler(cancellationToken);
-            _outcomes.Add(key, new StoredOutcome(envelope.PayloadHash, outcome));
+            var durableOutcome = new CommandOutcome(outcome.PersistedData,
+                outcome.AggregateVersion, outcome.Audit, outcome.Outbox,
+                outcome.AdditionalAudits, outcome.AdditionalOutbox);
+            _outcomes.Add(key, new StoredOutcome(envelope.PayloadHash, durableOutcome));
 
             return new CommandReceipt(
                 CommandDisposition.Applied,

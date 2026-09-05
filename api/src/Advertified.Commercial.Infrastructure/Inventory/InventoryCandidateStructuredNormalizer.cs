@@ -108,8 +108,8 @@ internal static partial class InventoryCandidateNormalizer
     }
 
     private static DateOnly? Date(Dictionary<string, string> values, string field) =>
-        values.TryGetValue(field, out var raw) && DateOnly.TryParse(
-            raw, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var value)
+        values.TryGetValue(field, out var raw) && DateOnly.TryParseExact(
+            raw, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var value)
             ? value : null;
 
     private static int? Int(Dictionary<string, string> values, string field) =>

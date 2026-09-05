@@ -1,5 +1,6 @@
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Domain.MasterData;
 
 namespace Advertified.Commercial.Application.Inventory;
 
@@ -9,8 +10,10 @@ public sealed record InventorySourceFile(
     byte[] Content);
 
 public sealed record CreateInventoryImportCommand(
-    string SupplierName,
-    InventorySourceFile Source);
+    string? SupplierName,
+    InventorySourceFile Source,
+    Guid? ExistingSupplierId = null,
+    string ReplacementMode = MasterDataCodes.InventoryReplacementModes.FullReplacement);
 
 public sealed record ExecuteInventoryImportCommand;
 
@@ -23,13 +26,23 @@ public sealed record ReconcileInventoryExtractionCommand(
     string? ExternalTaskId);
 
 public sealed record ReprojectInventoryExtractionCommand(
+    string Reason,
+    bool ReevaluateAcceptance = false,
+    DiscoveredInventorySchema? CorrectedSchema = null,
+    string? ExpectedMappingRevision = null);
+
+public sealed record ResolveInventoryImportSupplierCommand(
+    Guid? ExistingSupplierId,
+    string? SupplierName,
     string Reason);
 
 public sealed record ReviewInventoryCandidateCommand(
     string Decision,
     string? RejectionReason,
     string? Notes,
-    InventoryCandidateValues? CorrectedValues);
+    InventoryCandidateValues? CorrectedValues,
+    DiscoveredInventorySchema? CorrectedSchema = null,
+    string? ExpectedMappingRevision = null);
 
 public sealed record PublishInventoryImportCommand;
 
@@ -153,6 +166,11 @@ public interface IInventoryCommands
     Task<CommandResult<InventoryImportView>> ReprojectExtractionAsync(
         Guid importId,
         CommandEnvelope<ReprojectInventoryExtractionCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<InventoryImportView>> ResolveSupplierAsync(
+        Guid importId,
+        CommandEnvelope<ResolveInventoryImportSupplierCommand> envelope,
         CancellationToken cancellationToken);
 
     Task<CommandResult<InventoryCandidateView>> ReviewAsync(

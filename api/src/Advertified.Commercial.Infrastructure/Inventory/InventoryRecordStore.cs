@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
@@ -35,7 +36,7 @@ public sealed partial class InventoryRecordStore(
         bool forUpdate,
         CancellationToken cancellationToken)
     {
-        var locking = forUpdate ? " FOR UPDATE" : string.Empty;
+        var locking = forUpdate ? " FOR UPDATE OF source" : string.Empty;
         var query = FormattableStringFactory.Create(
             ImportSelect + " WHERE source.tenant_id = {0} AND source.id = {1}" + locking,
             tenantId.Value, importId);
@@ -90,7 +91,7 @@ public sealed partial class InventoryRecordStore(
             FormattableStringFactory.Create(
                 CandidateSelect +
                 " WHERE tenant_id = {0} AND import_id = {1} " +
-                "AND superseded_at_utc IS NULL ORDER BY row_number, id",
+                "AND superseded_at_utc IS NULL AND soft_deleted_at_utc IS NULL ORDER BY row_number, id",
                 tenantId.Value, importId))
             .ToListAsync(cancellationToken);
 
@@ -103,10 +104,10 @@ public sealed partial class InventoryRecordStore(
     {
         var suffix = cursor is null
             ? " WHERE tenant_id = {0} AND import_id = {1} " +
-              "AND superseded_at_utc IS NULL " +
+              "AND superseded_at_utc IS NULL AND soft_deleted_at_utc IS NULL " +
               "ORDER BY row_number, id LIMIT {2}"
             : " WHERE tenant_id = {0} AND import_id = {1} " +
-              "AND superseded_at_utc IS NULL " +
+              "AND superseded_at_utc IS NULL AND soft_deleted_at_utc IS NULL " +
               "AND (row_number, id) > ({2}, {3}) " +
               "ORDER BY row_number, id LIMIT {4}";
         var arguments = cursor is null
@@ -126,7 +127,7 @@ public sealed partial class InventoryRecordStore(
         var locking = forUpdate ? " FOR UPDATE" : string.Empty;
         var query = FormattableStringFactory.Create(
             CandidateSelect + " WHERE tenant_id = {0} AND id = {1} " +
-            "AND superseded_at_utc IS NULL" + locking,
+            "AND superseded_at_utc IS NULL AND soft_deleted_at_utc IS NULL" + locking,
             tenantId.Value, candidateId);
         return dbContext.Database.SqlQuery<InventoryCandidateRow>(query)
             .SingleOrDefaultAsync(cancellationToken);
@@ -179,7 +180,7 @@ public sealed partial class InventoryRecordStore(
                     validation_json, '$[*] ? (@.isBlocking == true)'))::integer AS "Blocking"
             FROM commercial.inventory_candidates
             WHERE tenant_id = {tenantId.Value} AND import_id = {importId}
-              AND superseded_at_utc IS NULL
+              AND superseded_at_utc IS NULL AND soft_deleted_at_utc IS NULL
             """).SingleAsync(cancellationToken);
 
     internal Task<InventoryImportView> BuildImportViewAsync(
@@ -209,11 +210,15 @@ public sealed partial class InventoryRecordStore(
             tenantId, selected.Select(item => item.Id).ToArray(), cancellationToken);
         var byCandidate = evidence.ToLookup(item => item.CandidateId);
         var counts = await GetCandidateCountsAsync(tenantId, row.Id, cancellationToken);
+        var interpretation = await ReadInterpretationAsync(tenantId, row.Id, cancellationToken);
         var next = rows.Count > pageSize
             ? InventoryCandidateCursor.Encode(selected[^1].RowNumber, selected[^1].Id)
             : null;
         return new InventoryImportView(
-            row.Id, row.SupplierId, row.SupplierName, row.FileName, row.DeclaredMediaType,
+            row.Id, row.SupplierId, row.SupplierName, row.SupplierNameHint,
+            row.SupplierResolutionStatus, row.SupplierIdentityEvidenceJson,
+            row.ReplacementMode, row.PublishedReleaseId,
+            row.FileName, row.DeclaredMediaType,
             row.DocumentClass, row.Status, row.ScanStatus, row.SourceHash, row.SourceSize,
             row.FailureCode, steps.Select(item => new InventoryImportStepView(
                 item.StepType, item.Status, item.StartedAtUtc, item.CompletedAtUtc)).ToArray(),
@@ -222,12 +227,33 @@ public sealed partial class InventoryRecordStore(
                 counts.Total, counts.ReviewRequired, counts.Approved,
                 counts.Rejected, counts.Blocking),
             next, attempts.Select(item => item.ToView()).ToArray(),
-            row.Version, row.UpdatedAtUtc);
+            row.Version, row.UpdatedAtUtc, interpretation);
+    }
+
+    private async Task<InventoryInterpretationView?> ReadInterpretationAsync(TenantId tenantId,
+        Guid importId, CancellationToken cancellationToken)
+    {
+        var artifact = await InventoryRetainedAcceptance.LoadImportAsync(dbContext, tenantId, importId, cancellationToken);
+        if (artifact is null) return null;
+        var extraction = artifact.Extraction();
+        var schema = extraction.Document.DiscoveredSchema;
+        return new(InventoryInterpretationRevision.Revision(extraction),
+            schema is null ? null : System.Text.Json.JsonSerializer.Serialize(schema, InventoryRowMapper.StoredJson),
+            System.Text.Json.JsonSerializer.Serialize(
+                InventoryDocumentStructureReader.Read(extraction.SourceHash, extraction.ProviderJson), InventoryRowMapper.StoredJson),
+            extraction.Document.SchemaDiscoveryFailure);
     }
 
     private const string ImportSelect = """
         SELECT source.id AS "Id", source.tenant_id AS "TenantId",
-            source.supplier_id AS "SupplierId", supplier.name AS "SupplierName",
+            source.supplier_id AS "SupplierId",
+            COALESCE(supplier.name, NULLIF(source.supplier_name_hint, ''),
+                'Supplier to be identified') AS "SupplierName",
+            source.supplier_name_hint AS "SupplierNameHint",
+            source.supplier_resolution_status_code AS "SupplierResolutionStatus",
+            source.supplier_identity_evidence_json::text AS "SupplierIdentityEvidenceJson",
+            source.replacement_mode_code AS "ReplacementMode",
+            source.published_release_id AS "PublishedReleaseId",
             source.source_file_name AS "FileName",
             source.declared_media_type AS "DeclaredMediaType",
             source.document_class_code AS "DocumentClass", source.status_code AS "Status",
@@ -238,12 +264,12 @@ public sealed partial class InventoryRecordStore(
             source.failure_code AS "FailureCode", source.created_by AS "CreatedBy",
             source.version AS "Version", source.updated_at_utc AS "UpdatedAtUtc"
         FROM commercial.inventory_imports source
-        JOIN commercial.inventory_suppliers supplier
+        LEFT JOIN commercial.inventory_suppliers supplier
           ON supplier.tenant_id = source.tenant_id AND supplier.id = source.supplier_id
         """;
 
     private const string CandidateSelect = """
-        SELECT id AS "Id", import_id AS "ImportId", row_number AS "RowNumber",
+        SELECT id AS "Id", projection_id AS "ProjectionId", import_id AS "ImportId", row_number AS "RowNumber",
             status_code AS "Status", canonical_values_json::text AS "ValuesJson",
             validation_json::text AS "ValidationJson", source_locator AS "SourceLocator",
             reviewed_by AS "ReviewedBy", version AS "Version",

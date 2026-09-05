@@ -22,14 +22,23 @@ public sealed class AutomationCommandEnvelopeFactory(TimeProvider timeProvider)
     {
         var stageKey = OpportunityCommandSupport.Hash(
             string.Concat(runId.ToString("N"), ":", stage.Trim().ToLowerInvariant()));
-        var payload = JsonSerializer.Serialize(command, Json);
+        var payload = CommandPayloadDigest.Create(new
+        {
+            ProtocolVersion = 1,
+            Operation = stage.Trim().ToLowerInvariant(),
+            TenantId = tenantId.Value,
+            ActorId = actorId.Value,
+            RunId = runId,
+            ExpectedVersion = expectedVersion,
+            Command = command,
+        }, Json);
         return new CommandEnvelope<TCommand>(
             tenantId,
             actorId,
             new CommandId(Guid.NewGuid()),
             correlationId,
             new IdempotencyKey(string.Concat("email-auto-", stageKey)),
-            new Sha256Digest(OpportunityCommandSupport.Hash(payload)),
+            payload,
             expectedVersion,
             timeProvider.GetUtcNow(),
             command);

@@ -94,18 +94,18 @@ async function populateVisibleFields(page: Page) {
     if (value.trim()) continue
     const type = (await input.getAttribute('type')) ?? 'text'
     const name = `${await input.getAttribute('name') ?? ''} ${await input.getAttribute('placeholder') ?? ''} ${await input.getAttribute('aria-label') ?? ''}`.toLowerCase()
-    if (type === 'date') {
-      await input.fill(name.includes('end') ? '2026-11-28' : '2026-11-04')
-    } else if (type === 'number' || /budget|amount/.test(name)) {
-      await input.fill('320000')
-    } else if (/email/.test(name)) {
-      await input.fill('production-canary@advertified.com')
-    } else if (/client|company|advertiser|brand/.test(name)) {
-      await input.fill('Advertified Production Canary')
-    } else if (/name|title/.test(name)) {
-      await input.fill('Takealot Black Friday OOH Canary')
-    }
+    const content = visibleFieldValue(type, name)
+    if (content !== null) await input.fill(content)
   }
+}
+
+function visibleFieldValue(type: string, name: string): string | null {
+  if (type === 'date') return name.includes('end') ? '2026-11-28' : '2026-11-04'
+  if (type === 'number' || /budget|amount/.test(name)) return '320000'
+  if (/email/.test(name)) return 'production-canary@advertified.com'
+  if (/client|company|advertiser|brand/.test(name)) return 'Advertified Production Canary'
+  if (/name|title/.test(name)) return 'Takealot Black Friday OOH Canary'
+  return null
 }
 
 async function selectFirstInventory(page: Page) {

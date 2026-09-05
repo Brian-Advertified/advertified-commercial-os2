@@ -50,17 +50,21 @@ public sealed class InventoryReprojectionCompletionService(
             throw new InvalidLifecycleTransitionException();
         }
 
-        var reviewer = await FindReviewerAsync(
-            source, cancellationToken);
         var now = timeProvider.GetUtcNow();
+        var supplier = InventorySupplierIdentityService.ResolveExtraction(source, extraction);
         var codes = await InventoryCodeSets.LoadAsync(
             attemptStore.DbContext, cancellationToken);
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(
             extraction.Rows,
             source.SourceHash,
-            source.SupplierName,
+            supplier.SupplierName,
             codes,
             now);
+        candidates = InventoryAcceptancePolicy.Apply(extraction, source.SourceHash,
+            claim.SourceFileVersion, codes, candidates, now);
+        Guid? reviewer = extraction.Document.SchemaDiscoveryFailure is not null ||
+            candidates.Any(InventoryCandidateReviewPolicy.RequiresReview)
+            ? await InventoryReviewerAssignment.FindAsync(attemptStore.DbContext, source.TenantId, source.CreatedBy, cancellationToken) : null;
 
         var projectionId =
             await InventoryProjectionPersistence
@@ -81,8 +85,11 @@ public sealed class InventoryReprojectionCompletionService(
             cancellationToken);
 
         var importVersion = await CompleteImportAsync(
-            source, projectionId, now,
+            source, supplier, projectionId, now,
             cancellationToken);
+        if (extraction.Document.SchemaDiscoveryFailure is { } failure)
+            await InventoryDocumentReviewPersistence.InsertAsync(attemptStore.DbContext,
+                source, reviewer, importVersion, failure, now, cancellationToken);
         var completed = await CompleteAttemptAsync(
             claim, inputArtifactId, now,
             cancellationToken);
@@ -135,34 +142,9 @@ public sealed class InventoryReprojectionCompletionService(
         return matches.Count == 1;
     }
 
-    private async Task<Guid> FindReviewerAsync(
-        InventoryImportRow source,
-        CancellationToken cancellationToken)
-    {
-        var reviewers = await attemptStore.DbContext.Database
-            .SqlQuery<Guid>($"""
-                SELECT membership.user_id AS "Value"
-                FROM commercial.memberships membership
-                WHERE membership.tenant_id =
-                        {source.TenantId}
-                  AND membership.user_id <>
-                        {source.CreatedBy}
-                  AND membership.status_code =
-                        {MasterDataCodes.LifecycleStatuses.Active}
-                  AND membership.role_code =
-                        ANY({InventoryReviewerRoles.Inventory})
-                ORDER BY membership.role_code,
-                    membership.user_id
-                LIMIT 1
-                """)
-            .ToListAsync(cancellationToken);
-        return reviewers.Count == 1
-            ? reviewers[0]
-            : throw new ApprovalRequiredException();
-    }
-
     private async Task<long> CompleteImportAsync(
         InventoryImportRow source,
+        InventorySupplierResolution supplier,
         Guid projectionId,
         DateTimeOffset now,
         CancellationToken cancellationToken)
@@ -172,6 +154,10 @@ public sealed class InventoryReprojectionCompletionService(
                 UPDATE commercial.inventory_imports
                 SET status_code =
                         {MasterDataCodes.LifecycleStatuses.ReviewRequired},
+                    supplier_id = {supplier.SupplierId},
+                    supplier_name_hint = {supplier.SupplierName},
+                    supplier_resolution_status_code = {supplier.Status},
+                    supplier_identity_evidence_json = {supplier.EvidenceJson}::jsonb,
                     failure_code = NULL,
                     version = version + 1,
                     updated_at_utc = {now}

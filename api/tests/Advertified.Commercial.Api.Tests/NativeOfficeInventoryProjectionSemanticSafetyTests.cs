@@ -62,12 +62,8 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         Assert.Equal("ZAR", candidates[0].Values.Currency);
         Assert.Equal(57_500, candidates[0].Values.RateAmountMinor);
         Assert.Null(candidates[0].Values.RateType);
-        Assert.Equal(
-            MasterDataCodes.Channels.Digital,
-            candidates[0].Values.Channel);
-        Assert.Equal(
-            MasterDataCodes.InventoryProductTypes.DigitalPlacement,
-            candidates[0].Values.ProductType);
+        Assert.Null(candidates[0].Values.Channel);
+        Assert.Null(candidates[0].Values.ProductType);
 
         Assert.Equal("DStv Stream VOD", candidates[1].Values.Name);
         Assert.Equal("ZAR", candidates[1].Values.Currency);

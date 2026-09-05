@@ -28,6 +28,17 @@ RUN dotnet publish api/src/Advertified.Commercial.DatabaseMigrator/Advertified.C
     --output /out/migrator \
     -p:UseAppHost=false
 
+# Explicit offline/unit validation target. No Docker socket or live service credentials
+# are mounted; database/container integration fixtures require separate authorization.
+FROM build AS tests
+COPY shared/ shared/
+COPY ["AGENTS.md", "ADVERTIFIED.md", "./"]
+ARG TEST_FILTER
+RUN test -n "$TEST_FILTER"
+RUN dotnet restore api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --locked-mode
+RUN dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj \
+    --configuration Release --no-restore --filter "$TEST_FILTER" --verbosity normal
+
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.11-noble@sha256:a4556ed033fa96f984bb7a8d348851cb2d36b1281dd2420070045f664fbb5f94 AS api
 
 WORKDIR /app

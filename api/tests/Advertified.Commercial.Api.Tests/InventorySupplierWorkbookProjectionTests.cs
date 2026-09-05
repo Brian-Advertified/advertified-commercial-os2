@@ -8,7 +8,7 @@ namespace Advertified.Commercial.Api.Tests;
 public sealed partial class DoclingInventoryExtractionAdapterTests
 {
     [Fact]
-    public void SupplierSpecificWorkbookHeadersNormalizeDeterministically()
+    public void WorkbookHeadersNormalizeOnlySuppliedCommercialFields()
     {
         var request = new InventoryExtractionRequest(
             "eleven8_inventory.xlsx",
@@ -41,19 +41,16 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
             request.SourceHash,
             "{}",
             [row]);
-        var contextual = InventorySourceContextProjection.Apply(
-            request, provider);
+        var contextual = provider;
 
         var candidate = InventoryCandidateNormalizer.Normalize(
             Assert.Single(contextual.Rows),
             request.SourceHash,
             DateTimeOffset.UnixEpoch);
 
-        Assert.Equal("eleven8", candidate.SupplierName);
+        Assert.Null(candidate.SupplierName); // The filename is not supplier evidence.
         Assert.Equal(MasterDataCodes.Channels.Ooh, candidate.Values.Channel);
-        Assert.Equal(
-            MasterDataCodes.InventoryProductTypes.OohSite,
-            candidate.Values.ProductType);
+        Assert.Null(candidate.Values.ProductType); // Requires interpretation, not the filename.
         Assert.Equal("ZAR", candidate.Values.Currency);
         Assert.Equal(1_500_000, candidate.Values.RateAmountMinor);
         Assert.Equal(

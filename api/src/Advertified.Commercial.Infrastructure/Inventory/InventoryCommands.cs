@@ -18,7 +18,9 @@ public sealed partial class InventoryCommands(
     InventoryExtractionAttemptStore extractionAttemptStore,
     IInventoryEmbeddingGenerator embeddingGenerator,
     IOptions<InventoryEmbeddingOptions> embeddingOptionsAccessor,
-    InventoryDuplicatePolicy duplicatePolicy) : IInventoryCommands
+    InventoryDuplicatePolicy duplicatePolicy,
+    InventorySupplierIdentityService supplierIdentity,
+    InventorySupplierAccessPolicy supplierAccess) : IInventoryCommands
 {
     private readonly int maximumSourceBytes = protectionOptions.Value.MaximumSourceBytes;
     private readonly InventoryEmbeddingOptions embeddingOptions = embeddingOptionsAccessor.Value;
@@ -29,7 +31,9 @@ public sealed partial class InventoryCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope, MasterDataReferences.Permissions.InventoryImport,
-            token => CreateOutcomeAsync(envelope, token), cancellationToken);
+            token => CreateOutcomeAsync(envelope, token), cancellationToken,
+            async token => { await supplierAccess.ResolveUploadSupplierAsync(
+                envelope.ActorId, envelope.TenantId, envelope.Command.ExistingSupplierId, token); });
         return CommandOutcomeFactory.ToResult<InventoryImportView>(receipt);
     }
 
@@ -40,7 +44,9 @@ public sealed partial class InventoryCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope, MasterDataReferences.Permissions.InventoryImport,
-            token => ExecuteOutcomeAsync(importId, envelope, token), cancellationToken);
+            token => ExecuteOutcomeAsync(importId, envelope, token), cancellationToken,
+            token => supplierAccess.EnsureImportAccessAsync(
+                envelope.ActorId, envelope.TenantId, importId, token));
         return CommandOutcomeFactory.ToResult<InventoryImportView>(receipt);
     }
 
@@ -51,8 +57,9 @@ public sealed partial class InventoryCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope, MasterDataReferences.Permissions.InventoryImport,
-            token => RetryExtractionOutcomeAsync(importId, envelope, token),
-            cancellationToken);
+            token => RetryExtractionOutcomeAsync(importId, envelope, token), cancellationToken,
+            token => supplierAccess.EnsureImportAccessAsync(
+                envelope.ActorId, envelope.TenantId, importId, token));
         return CommandOutcomeFactory.ToResult<InventoryImportView>(receipt);
     }
 
@@ -63,8 +70,9 @@ public sealed partial class InventoryCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope, MasterDataReferences.Permissions.InventoryImport,
-            token => CancelExtractionOutcomeAsync(importId, envelope, token),
-            cancellationToken);
+            token => CancelExtractionOutcomeAsync(importId, envelope, token), cancellationToken,
+            token => supplierAccess.EnsureImportAccessAsync(
+                envelope.ActorId, envelope.TenantId, importId, token));
         return CommandOutcomeFactory.ToResult<InventoryImportView>(receipt);
     }
 
@@ -75,8 +83,9 @@ public sealed partial class InventoryCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope, MasterDataReferences.Permissions.InventoryImport,
-            token => ReconcileExtractionOutcomeAsync(importId, envelope, token),
-            cancellationToken);
+            token => ReconcileExtractionOutcomeAsync(importId, envelope, token), cancellationToken,
+            token => supplierAccess.EnsureImportAccessAsync(
+                envelope.ActorId, envelope.TenantId, importId, token));
         return CommandOutcomeFactory.ToResult<InventoryImportView>(receipt);
     }
 
@@ -88,12 +97,25 @@ public sealed partial class InventoryCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            MasterDataReferences.Permissions.InventoryImport,
-            token => ReprojectExtractionOutcomeAsync(
-                importId, envelope, token),
-            cancellationToken);
+            envelope.Command.ReevaluateAcceptance || envelope.Command.CorrectedSchema is not null
+                ? MasterDataReferences.Permissions.InventoryReview : MasterDataReferences.Permissions.InventoryImport,
+            token => ReprojectExtractionOutcomeAsync(importId, envelope, token), cancellationToken,
+            token => supplierAccess.EnsureImportAccessAsync(
+                envelope.ActorId, envelope.TenantId, importId, token));
         return CommandOutcomeFactory.ToResult<InventoryImportView>(
             receipt);
+    }
+
+    public async Task<CommandResult<InventoryImportView>> ResolveSupplierAsync(
+        Guid importId,
+        CommandEnvelope<ResolveInventoryImportSupplierCommand> envelope,
+        CancellationToken cancellationToken)
+    {
+        var receipt = await dispatcher.DispatchAsync(
+            envelope, MasterDataReferences.Permissions.InventoryReview,
+            token => ResolveSupplierOutcomeAsync(importId, envelope, token),
+            cancellationToken);
+        return CommandOutcomeFactory.ToResult<InventoryImportView>(receipt);
     }
 
     public async Task<CommandResult<InventoryCandidateView>> ReviewAsync(
@@ -125,8 +147,9 @@ public sealed partial class InventoryCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope, MasterDataReferences.Permissions.InventoryAssetRightsReview,
-            token => ReviewAssetRightsOutcomeAsync(assetId, envelope, token),
-            cancellationToken);
+            token => ReviewAssetRightsOutcomeAsync(assetId, envelope, token), cancellationToken,
+            token => supplierAccess.EnsureAssetAccessAsync(
+                envelope.ActorId, envelope.TenantId, assetId, token));
         return CommandOutcomeFactory.ToResult<InventoryAssetRightsReviewView>(receipt);
     }
 
@@ -162,8 +185,9 @@ public sealed partial class InventoryCommands(
     {
         var receipt = await dispatcher.DispatchAsync(
             envelope, MasterDataReferences.Permissions.InventoryImport,
-            token => UploadAssetOutcomeAsync(productId, envelope, token),
-            cancellationToken);
+            token => UploadAssetOutcomeAsync(productId, envelope, token), cancellationToken,
+            token => supplierAccess.EnsureProductAccessAsync(
+                envelope.ActorId, envelope.TenantId, productId, token));
         return CommandOutcomeFactory.ToResult<InventoryAssetView>(receipt);
     }
 

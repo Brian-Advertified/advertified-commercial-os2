@@ -34,11 +34,14 @@ public sealed record AuditRecord
         CorrelationId correlationId,
         ActionCode action,
         ResourceReference resource,
-        DateTimeOffset occurredAtUtc)
+        DateTimeOffset occurredAtUtc,
+        JsonElement? metadata = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action.Value);
         ArgumentNullException.ThrowIfNull(resource);
         UtcValue.Require(occurredAtUtc, nameof(occurredAtUtc));
+        if (metadata.HasValue && metadata.Value.ValueKind != JsonValueKind.Object)
+            throw new ArgumentException("Audit metadata must be an object.", nameof(metadata));
 
         AuditId = IdValue.Require(auditId, nameof(auditId));
         TenantId = tenantId;
@@ -48,6 +51,7 @@ public sealed record AuditRecord
         Action = action;
         Resource = resource;
         OccurredAtUtc = occurredAtUtc;
+        Metadata = metadata?.Clone();
     }
 
     public Guid AuditId { get; init; }
@@ -65,6 +69,8 @@ public sealed record AuditRecord
     public ResourceReference Resource { get; }
 
     public DateTimeOffset OccurredAtUtc { get; init; }
+
+    public JsonElement? Metadata { get; }
 }
 
 public sealed record OutboxMessage
@@ -123,11 +129,16 @@ public sealed record CommandOutcome
         AuditRecord audit,
         OutboxMessage outbox,
         IEnumerable<AuditRecord>? additionalAudits = null,
-        IEnumerable<OutboxMessage>? additionalOutbox = null)
+        IEnumerable<OutboxMessage>? additionalOutbox = null,
+        JsonElement? persistedData = null)
     {
         if (data.ValueKind == JsonValueKind.Undefined)
         {
             throw new ArgumentException("Canonical command data is required.", nameof(data));
+        }
+        if (persistedData?.ValueKind == JsonValueKind.Undefined)
+        {
+            throw new ArgumentException("Persisted command data is invalid.", nameof(persistedData));
         }
 
         ArgumentOutOfRangeException.ThrowIfLessThan(aggregateVersion, 1);
@@ -139,6 +150,7 @@ public sealed record CommandOutcome
         ValidateAdditionalConsequences(audit, outbox, audits, messages);
 
         Data = data.Clone();
+        PersistedData = (persistedData ?? data).Clone();
         AggregateVersion = aggregateVersion;
         Audit = audit;
         Outbox = outbox;
@@ -147,6 +159,8 @@ public sealed record CommandOutcome
     }
 
     public JsonElement Data { get; }
+
+    public JsonElement PersistedData { get; }
 
     public long AggregateVersion { get; }
 
@@ -164,7 +178,8 @@ public sealed record CommandOutcome
         Audit,
         Outbox,
         AdditionalAudits.Append(audit),
-        AdditionalOutbox.Append(outbox));
+        AdditionalOutbox.Append(outbox),
+        PersistedData);
 
     private static void ValidateAdditionalConsequences(
         AuditRecord primaryAudit,

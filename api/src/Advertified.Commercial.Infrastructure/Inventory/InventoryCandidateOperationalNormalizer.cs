@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.MasterData;
 
@@ -23,13 +24,6 @@ internal static class InventoryCandidateOperationalNormalizer
         }
 
         var geography = values.Geography;
-        if (string.IsNullOrWhiteSpace(geography) &&
-            IsNationalChannel(values.Channel))
-        {
-            geography = "South Africa";
-            extension["geographybasis"] =
-                "DERIVED_NATIONAL_MEDIA_SCOPE";
-        }
 
         var rateType = values.RateType;
         if (string.IsNullOrWhiteSpace(rateType) &&
@@ -79,17 +73,6 @@ internal static class InventoryCandidateOperationalNormalizer
         return "ADV-" + sourceHash[..Math.Min(8, sourceHash.Length)]
             .ToUpperInvariant() + "-" + digest[..12];
     }
-
-    private static bool IsNationalChannel(string? channel) =>
-        channel is
-            MasterDataCodes.Channels.Radio or
-            MasterDataCodes.Channels.Tv or
-            MasterDataCodes.Channels.Print or
-            MasterDataCodes.Channels.Digital or
-            MasterDataCodes.Channels.Social or
-            MasterDataCodes.Channels.Podcast or
-            MasterDataCodes.Channels.Email or
-            MasterDataCodes.Channels.Mobile;
 
     private static string? ExplicitRateType(
         ExtractedInventoryCandidate candidate)

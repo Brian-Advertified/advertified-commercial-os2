@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Advertified.Commercial.Application.Commands;
+using Advertified.Commercial.Application.Brief;
 using Advertified.Commercial.Application.Booking;
 using Advertified.Commercial.Application.Campaign;
 using Advertified.Commercial.Application.CommercialSettings;
@@ -59,6 +60,11 @@ public sealed class HumanSafeExceptionHandler(
     {
         return exception switch
         {
+            SuppliedBriefInterpretationUnavailableException => new(
+                StatusCodes.Status503ServiceUnavailable,
+                "Brief interpretation is unavailable",
+                "The brief interpretation service is not configured. No AI interpretation was performed.",
+                "BRIEF_INTERPRETATION_UNAVAILABLE"),
             BrowserAntiforgeryException => new(
                 StatusCodes.Status403Forbidden,
                 "Request could not be verified",
@@ -69,6 +75,11 @@ public sealed class HumanSafeExceptionHandler(
                 "Request origin not allowed",
                 "Open Advertified from its approved address and try again.",
                 "ORIGIN_NOT_ALLOWED"),
+            BadHttpRequestException badRequest => new(
+                badRequest.StatusCode,
+                "Upload or request could not be read",
+                "Check the request format and upload size, then try again.",
+                "VALIDATION_FAILED"),
             UnauthorizedAccessException => new(
                 StatusCodes.Status403Forbidden,
                 "Access denied",
@@ -194,6 +205,26 @@ public sealed class HumanSafeExceptionHandler(
                 "Inventory is not ready to publish",
                 "Resolve the blocking candidate fields and complete review before publishing.",
                 "INVENTORY_PUBLISH_BLOCKED"),
+            InventorySchemaRejectedException => new(
+                StatusCodes.Status400BadRequest,
+                "Source mappings require correction",
+                "The proposed interpretation does not match the retained source structure. Review its bindings and revision.",
+                "VALIDATION_FAILED"),
+            SupplierIdentityAmbiguousException => new(
+                StatusCodes.Status409Conflict,
+                "Supplier identity requires review",
+                "Select the existing supplier or confirm the new supplier before publishing.",
+                "SUPPLIER_IDENTITY_AMBIGUOUS"),
+            SupplierClaimInvitationInvalidException => new(
+                StatusCodes.Status409Conflict,
+                "Registration invitation is no longer valid",
+                "Ask an administrator to issue a new supplier registration invitation.",
+                "SUPPLIER_INVITATION_INVALID"),
+            ProposalInventoryReviewRequiredException => new(
+                StatusCodes.Status409Conflict,
+                "Proposal inventory has changed",
+                "Review the supplier's replacement inventory and create a current proposal version.",
+                "PROPOSAL_INVENTORY_REVIEW_REQUIRED"),
             InventoryProtectionUnavailableException or FileNotFoundException => new(
                 StatusCodes.Status503ServiceUnavailable,
                 "File protection is unavailable",

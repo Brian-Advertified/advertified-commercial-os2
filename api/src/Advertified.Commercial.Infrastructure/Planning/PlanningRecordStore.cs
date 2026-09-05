@@ -192,26 +192,6 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
             ORDER BY "Value"
             """).ToListAsync(cancellationToken);
 
-    internal Task<bool> HasApprovedOohOnlyMixAsync(
-        TenantId tenantId,
-        Guid briefVersionId,
-        CancellationToken cancellationToken) =>
-        dbContext.Database.SqlQuery<bool>($"""
-            SELECT EXISTS (
-                SELECT 1
-                FROM commercial.media_mix_versions mix
-                WHERE mix.tenant_id = {tenantId.Value}
-                  AND mix.brief_version_id = {briefVersionId}
-                  AND mix.status_code = {MasterDataCodes.LifecycleStatuses.Approved}
-                  AND jsonb_array_length(mix.allocations_json) > 0
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM jsonb_array_elements(mix.allocations_json) allocation
-                      WHERE allocation->>'channel' NOT IN (
-                          {MasterDataCodes.Channels.Ooh},
-                          {MasterDataCodes.Channels.Dooh}))) AS "Value"
-            """).SingleAsync(cancellationToken);
-
     internal async Task<AudienceSetRow?> FindLatestAudienceAsync(
         TenantId tenantId,
         Guid briefVersionId,
