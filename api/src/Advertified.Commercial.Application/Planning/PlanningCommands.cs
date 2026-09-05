@@ -16,7 +16,8 @@ public sealed record MediaAllocationInput(
     string Channel,
     long BudgetMinor,
     string Role,
-    IReadOnlyList<MediaRunningPeriodInput> RunningPeriods);
+    IReadOnlyList<MediaRunningPeriodInput> RunningPeriods,
+    IReadOnlyList<InventoryPurchaseQuantity>? Purchases = null);
 
 public sealed record UpdateMediaMixCommand(
     IReadOnlyList<MediaAllocationInput> Allocations,

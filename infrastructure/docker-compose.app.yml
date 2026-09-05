@@ -68,6 +68,7 @@ services:
     image: advertified/agent-runtime-dev:local
     environment:
       ADVERTIFIED_AGENT_RUNTIME_MODE: deterministic
+      ADVERTIFIED_INVENTORY_PROCESSING_PAUSED: "true"
       ADVERTIFIED_AGENT_RUNTIME_SERVICE_KEY: advertified-agent-runtime-local-only
     ports:
       - "127.0.0.1:5098:8080"
@@ -105,6 +106,7 @@ services:
       InventoryProtection__ClamAvHost: clamav
       InventoryProtection__ClamAvPort: "3310"
       InventoryExtraction__Mode: Docling
+      InventoryProcessing__Paused: "true"
       InventoryExtraction__BaseUrl: http://docling:5001
       InventoryExtraction__ApiKey: ${DOCLING_API_KEY:-advertified-docling-local-only}
       InventoryExtraction__TimeoutSeconds: "600"

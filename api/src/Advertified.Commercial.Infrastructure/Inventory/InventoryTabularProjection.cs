@@ -4,7 +4,9 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 
 internal sealed record InventoryTableRow(
     int SourceRow,
-    IReadOnlyDictionary<int, string> Cells);
+    IReadOnlyDictionary<int, string> Cells,
+    IReadOnlyDictionary<int, string>? SourceLocators = null,
+    IReadOnlyDictionary<int, string>? Transformations = null);
 
 internal static class InventoryTabularProjection
 {

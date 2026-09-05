@@ -19,6 +19,7 @@ from inventory_embedding_service import (
 )
 from runtime_execution import DETERMINISTIC_MODE, execute_agent, implemented_agents
 from runtime_admission import admitted_request
+from inventory_processing_control import ensure_inventory_processing
 
 RUNTIME_MODE_KEY = "ADVERTIFIED_AGENT_RUNTIME_MODE"
 SERVICE_KEY = "ADVERTIFIED_AGENT_RUNTIME_SERVICE_KEY"
@@ -122,6 +123,7 @@ async def create_inventory_embedding(
 def _execute_embedding(
     request: InventoryEmbeddingRequest, mode: str,
 ) -> InventoryEmbeddingResponse:
+    ensure_inventory_processing()
     if mode == DETERMINISTIC_MODE:
         return deterministic_embedding(request)
     try:

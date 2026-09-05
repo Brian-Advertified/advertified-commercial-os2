@@ -16,15 +16,20 @@ import { LoadingState, MessageState } from '../components/PageState'
 export function NewBriefPage() {
   const { selected, loading } = useWorkspace()
   const { session } = useSession()
-  const user = useCurrentUser(Boolean(selected))
   if (loading) return <LoadingState />
   if (!selected) return <Navigate to="/workspaces" replace />
+  if (!session) return <Navigate to="/sign-in" replace />
+  return <BriefSession key={`${selected.membershipId}:${selected.version}:${session.antiforgeryToken}`}
+    tenantId={selected.tenantId} token={session.antiforgeryToken} />
+}
+
+function BriefSession({ tenantId, token }: { tenantId: string; token: string }) {
+  const user = useCurrentUser(true)
   if (user.error && !user.value) {
     return <MessageState title="Brief setup could not be loaded" message={user.error} />
   }
-  if (!user.value || !session) return <LoadingState label="Preparing a new Brief" />
-  return <BriefCreator tenantId={selected.tenantId} userId={user.value.id}
-    token={session.antiforgeryToken} />
+  if (!user.value) return <LoadingState label="Preparing a new Brief" />
+  return <BriefCreator tenantId={tenantId} userId={user.value.id} token={token} />
 }
 
 function BriefCreator({ tenantId, userId, token }: {

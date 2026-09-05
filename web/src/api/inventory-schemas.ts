@@ -52,6 +52,7 @@ export const inventoryCommercialTermsSchema = z.object({
   productionCostMinor: z.number().int().nonnegative().nullable(),
   installationCostMinor: z.number().int().nonnegative().nullable(),
   minimumOrder: z.number().int().positive().nullable(),
+  billingDays: z.number().int().positive().nullish(),
   discountTerms: nullableText,
   inclusions: z.array(requiredText), exclusions: z.array(requiredText),
   conditions: z.array(requiredText),

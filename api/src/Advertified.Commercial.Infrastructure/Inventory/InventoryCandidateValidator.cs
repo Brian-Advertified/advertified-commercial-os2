@@ -75,7 +75,37 @@ internal static class InventoryCandidateValidator
         ValidateCoordinates(values, issues);
         ValidateAudience(values.AudienceProfile, codes, issues);
         ValidateStructured(values, codes, issues);
+        ValidateRateVariants(values.RateVariants, codes, issues);
         return issues;
+    }
+
+    private static void ValidateRateVariants(
+        IReadOnlyList<InventoryRateVariantValues>? rates,
+        InventoryCodeSets codes,
+        List<InventoryValidationIssueView> issues)
+    {
+        if (rates is null) return;
+        if (rates.Count == 0 || rates.Select(rate => rate.SourceLocator)
+                .Distinct(StringComparer.Ordinal).Count() != rates.Count)
+        {
+            issues.Add(Block("rateVariants",
+                MasterDataCodes.ValidationIssueTypes.CommercialTermsInvalid,
+                "Rate variants require distinct exact source cells."));
+            return;
+        }
+        if (rates.Any(rate => rate.AmountMinor is null or < 0 ||
+                string.IsNullOrWhiteSpace(rate.Currency) ||
+                !codes.Currencies.Contains(rate.Currency) ||
+                rate.RateType is not null && !codes.RateTypes.Contains(rate.RateType) ||
+                string.IsNullOrWhiteSpace(rate.RawValue) ||
+                string.IsNullOrWhiteSpace(rate.HeaderHierarchy) ||
+                rate.HeaderLocators.Count == 0 ||
+                rate.ValidTo < rate.ValidFrom))
+        {
+            issues.Add(Block("rateVariants",
+                MasterDataCodes.ValidationIssueTypes.RateRequired,
+                "Every rate variant requires a valid amount, currency, dimensions and exact source evidence."));
+        }
     }
 
     private static void ValidateStructured(

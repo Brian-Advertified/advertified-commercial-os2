@@ -1,10 +1,13 @@
 using System.Text.RegularExpressions;
 using Advertified.Commercial.Application.Brief;
+using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.MasterData;
 namespace Advertified.Commercial.Infrastructure.Brief;
 public sealed partial class DeterministicSuppliedBriefAgentClient(
     SuppliedBriefAgentPolicy policy) : ISuppliedBriefAgentClient
 {
+    public bool IsAvailable => true;
+
     private readonly SuppliedBriefBudgetParser budgetParser = new(policy);
 
     private const string ClientPath = "clientName";
@@ -85,8 +88,8 @@ public sealed partial class DeterministicSuppliedBriefAgentClient(
             questions,
             evidence,
             new SuppliedBriefAgentUsageView(
-                "deterministic",
-                policy.Version,
+                AgentProviderMetadata.DeterministicProvider,
+                AgentProviderMetadata.FixtureModel,
                 policy.Version,
                 "NOT_REQUESTED",
                 0,

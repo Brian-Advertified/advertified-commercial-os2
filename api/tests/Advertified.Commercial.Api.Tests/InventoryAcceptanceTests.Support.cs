@@ -48,6 +48,7 @@ public sealed partial class InventoryAcceptanceTests
         builder.UseSetting("InventoryProtection:ObjectStoreMode", "InMemory");
         builder.UseSetting("InventoryProtection:ScannerMode", "Deterministic");
         builder.UseSetting("InventoryExtraction:Mode", "Deterministic");
+        builder.UseSetting("InventoryProcessing:Paused", "false");
         builder.UseSetting("InventoryEmbedding:Mode", "Deterministic");
         builder.UseSetting("Logging:LogLevel:Default", "Warning");
         builder.UseSetting("Logging:LogLevel:Microsoft.EntityFrameworkCore", "Warning");

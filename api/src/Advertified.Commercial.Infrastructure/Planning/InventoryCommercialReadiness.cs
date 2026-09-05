@@ -48,7 +48,7 @@ internal static class InventoryCommercialReadiness
         {
             gaps.Add("inventory.rate.vatTreatmentConsistency");
         }
-        return new(value.SupplierVatStatus, value.VatTreatment, gaps, supplier?.VatNumber);
+        return new(value.SupplierVatStatus, value.VatTreatment, gaps, supplier?.VatNumber, value.RateType);
     }
 
     private static InventorySupplierCommercialValues? ReadSupplier(string? json) =>

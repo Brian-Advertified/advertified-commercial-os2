@@ -8,30 +8,32 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 // Well-formed retained JSON alone never proves faithful accounting.
 internal static class InventoryAcceptanceSourceAccounting
 {
-    internal static InventoryAcceptanceCheckEvidence Account(
-        InventoryDocumentStructure document, DiscoveredInventorySchema schema,
+    internal static InventoryAcceptanceCheckEvidence AccountSection(
+        InventoryDocumentStructure document,
+        InventoryRecordSchema record,
         IReadOnlyList<InventoryExtractedRow> projected)
     {
-        var referenced = ReferencedLocators(schema);
+        var referenced = ReferencedLocators(record);
+        foreach (var locator in projected.SelectMany(row =>
+                     row.RateVariants?.SelectMany(rate => rate.HeaderLocators) ?? []))
+            referenced.Add(locator);
         var retained = projected.SelectMany(row => row.DiscoveredFields ?? [])
             .Select(field => field.SourceLocator).ToHashSet(StringComparer.Ordinal);
+        foreach (var locator in projected.SelectMany(row =>
+                     row.RateVariants?.Select(rate => rate.SourceLocator) ?? []))
+            retained.Add(locator);
         var unaccounted = new List<string>(document.ExtractionGaps ?? []);
-        if (document.Structures.Count == 0 || schema.Records.Count != document.Structures.Count)
-            unaccounted.Add("The source has missing or unrepresented structures.");
         long inBoundary = 0, excluded = 0, context = 0;
-        foreach (var record in schema.Records)
-        {
-            var structure = document.Structures.Single(item => item.Id == record.SourceStructure);
-            var boundary = record.RecordBoundary;
-            var excludedRows = boundary.ExcludedRows.ToHashSet();
-            foreach (var cell in structure.Cells)
-                AccountCell(cell, boundary, excludedRows, referenced, retained,
-                    unaccounted, ref inBoundary, ref excluded, ref context);
-        }
+        var structure = document.Structures.Single(item => item.Id == record.SourceStructure);
+        var boundary = record.RecordBoundary;
+        var excludedRows = boundary.ExcludedRows.ToHashSet();
+        foreach (var cell in structure.Cells)
+            AccountCell(cell, boundary, excludedRows, referenced, retained,
+                unaccounted, ref inBoundary, ref excluded, ref context);
         var passed = unaccounted.Count == 0;
         return new(InventoryAcceptanceCheck.SourceContentAccounting,
             passed ? InventoryAcceptanceCheckResult.Passed : InventoryAcceptanceCheckResult.Failed,
-            "document", passed
+            record.SourceStructure, passed
                 ? $"{inBoundary} in-boundary source values are retained in projected records, {excluded} fall in explicitly excluded rows, and {context} boundary-context values are referenced by the interpretation or empty."
                 : string.Join(" ", unaccounted.Take(3)));
     }
@@ -65,19 +67,18 @@ internal static class InventoryAcceptanceSourceAccounting
         }
     }
 
-    private static HashSet<string> ReferencedLocators(DiscoveredInventorySchema schema)
+    private static HashSet<string> ReferencedLocators(InventoryRecordSchema record)
     {
         var referenced = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var record in schema.Records)
-            foreach (var mapping in record.FieldMappings.Concat(record.SupplierMetadataMappings)
-                .Concat(record.AssetMappings))
-            {
-                referenced.Add(mapping.SourceLocation);
-                if (mapping.ValueSourceLocation is not null)
-                    referenced.Add(mapping.ValueSourceLocation);
-                foreach (var citation in mapping.Evidence)
-                    referenced.Add(citation.SourceLocator);
-            }
+        foreach (var mapping in record.FieldMappings.Concat(record.SupplierMetadataMappings)
+            .Concat(record.AssetMappings))
+        {
+            referenced.Add(mapping.SourceLocation);
+            if (mapping.ValueSourceLocation is not null)
+                referenced.Add(mapping.ValueSourceLocation);
+            foreach (var citation in mapping.Evidence)
+                referenced.Add(citation.SourceLocator);
+        }
         return referenced;
     }
 }

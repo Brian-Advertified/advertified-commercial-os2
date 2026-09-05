@@ -32,7 +32,7 @@ public sealed partial class BookingRecordStore
                 management_fee_minor, client_price_minor, fees_minor, vat_minor,
                 booking_approval_threshold_minor, currency_code, terms,
                 supplier_commercial_json, vat_treatment_code, commercial_terms_json,
-                deliverable_json, spatial_json, logo_asset_id,
+                deliverable_json, spatial_json, logo_asset_id, purchase_json,
                 status_code, created_by, created_at_utc, version, updated_at_utc)
             VALUES (
                 {bookingId}, {envelope.TenantId.Value}, {source.SupplierTenantId},
@@ -49,7 +49,7 @@ public sealed partial class BookingRecordStore
                 {money.VatMinor}, {policy.BookingApprovalThresholdMinor}, {policy.Currency},
                 {terms}, {source.SupplierCommercialJson}::jsonb, {source.VatTreatment},
                 {source.CommercialTermsJson}::jsonb, {source.DeliverableJson}::jsonb,
-                {source.SpatialJson}::jsonb, {source.LogoAssetId},
+                {source.SpatialJson}::jsonb, {source.LogoAssetId}, {source.PurchaseJson}::jsonb,
                 {MasterDataCodes.LifecycleStatuses.Draft},
                 {envelope.ActorId.Value}, {now}, 1, {now})
             ON CONFLICT (buyer_tenant_id, proposal_decision_id, media_plan_line_id)

@@ -46,7 +46,7 @@ internal static class ProposalPlanProjection
         line.Availability, line.RateFreshness, line.SupplyConfidence,
         line.SupplySource, line.LastConfirmedAtUtc, Uncertainties(line),
         line.SupplierCommercial, line.CommercialTerms, line.Deliverable,
-        line.Spatial, line.LogoAssetId);
+        line.Spatial, line.LogoAssetId, line.Purchase);
 
     private static string[] Uncertainties(
         Advertified.Commercial.Application.Planning.MediaPlanLineView line)

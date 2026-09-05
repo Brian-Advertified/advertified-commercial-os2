@@ -26,6 +26,12 @@ export const suppliedBriefUsageSchema = z.object({
   researchStatus: requiredText,
   toolCalls: z.number().int().nonnegative(),
   incrementalCostMinor: z.number().int().nonnegative(),
+  units: z.number().int().nonnegative().optional(),
+  cacheStatus: z.string().nullable().optional(),
+  providerRequestId: z.string().nullable().optional(),
+  inputTokens: z.number().int().nonnegative().optional(),
+  outputTokens: z.number().int().nonnegative().optional(),
+  incrementalCostUsdMicros: z.number().int().nonnegative().optional(),
 }).strict()
 
 export const suppliedBriefDraftSchema = z.object({
@@ -59,6 +65,10 @@ export const suppliedBriefUnderstandingSchema = z.object({
   questions: z.array(suppliedBriefQuestionSchema),
   evidence: z.array(suppliedBriefEvidenceSchema),
   usage: suppliedBriefUsageSchema,
+  interpretation: z.object({
+    id: z.guid(), parentId: z.guid().nullable(), version: z.number().int().positive(),
+    sourceHash: z.string().regex(/^[0-9a-f]{64}$/),
+  }).nullable().optional(),
 }).strict()
 
 export type BriefClarification = { fieldPath: string; value: string }

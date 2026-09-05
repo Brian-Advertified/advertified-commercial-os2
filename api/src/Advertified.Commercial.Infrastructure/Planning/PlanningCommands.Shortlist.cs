@@ -223,6 +223,7 @@ public sealed partial class PlanningCommands
             candidate.Eligibility.RejectionDetail,
             candidate.Eligibility.Score,
             candidate.AudienceFit,
+            candidate.Suitability,
             benchmark is null
                 ? null
                 : new InventoryBenchmarkInput(

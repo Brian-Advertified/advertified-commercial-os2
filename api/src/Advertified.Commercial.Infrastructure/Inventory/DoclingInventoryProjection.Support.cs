@@ -90,8 +90,11 @@ internal static partial class DoclingInventoryProjection
     private sealed record DoclingCell(
         int Row,
         int Column,
+        int EndRow,
+        int EndColumn,
         string Text,
-        decimal? Confidence);
+        decimal? Confidence,
+        string? PositionJson);
 
     private sealed record TextItem(
         int Number,

@@ -23,6 +23,17 @@ test('accepted proposal reaches approved client measurement through one campaign
   await expect(page.getByText('The report retains all sourced facts and limitations.')).toBeVisible();
 });
 
+test('booked campaign with an empty API creative workspace can request its first requirements', async ({ page }) => {
+  const state = await installCampaignDeliveryApi(page);
+  state.campaignStatus = 'BOOKED';
+  await page.goto(`/campaigns/${deliveryIds.campaign}`);
+  await expect(page.getByRole('button', { name: 'Request production creative' })).toBeVisible();
+  await fillCreativeRequirement(page);
+  await page.getByRole('button', { name: 'Request production creative' }).click();
+  await expect(page.getByLabel('Exact approved copy')).toBeVisible();
+  expect(state.campaignStatus).toBe('CREATIVE_PENDING');
+});
+
 async function completeFunding(page: Page) {
   const query = new URLSearchParams({
     proposalVersionId: deliveryIds.proposal,

@@ -25,7 +25,17 @@ internal static partial class InventoryCandidateNormalizer
         DateTimeOffset capturedAtUtc)
     {
         if (row.DiscoveredFields is not null)
-            return InventoryDiscoveredCandidateNormalizer.Normalize(row, sourceHash, capturedAtUtc);
+        {
+            var discovered = InventoryDiscoveredCandidateNormalizer.Normalize(
+                row, sourceHash, capturedAtUtc);
+            var discoveredEvidence = discovered.Evidence.ToList();
+            return discovered with
+            {
+                Values = ApplyRateVariants(discovered.Values, row,
+                    discoveredEvidence, sourceHash, capturedAtUtc),
+                Evidence = discoveredEvidence,
+            };
+        }
         var canonical = new Dictionary<string, string>(
             StringComparer.Ordinal);
         var extension = new Dictionary<string, string>(
@@ -89,6 +99,8 @@ internal static partial class InventoryCandidateNormalizer
             row.Locator,
             sourceHash,
             capturedAtUtc);
+        values = ApplyRateVariants(
+            values, row, evidence, sourceHash, capturedAtUtc);
         return new ExtractedInventoryCandidate(
             values,
             evidence,
@@ -119,7 +131,7 @@ internal static partial class InventoryCandidateNormalizer
             extension["rateambiguity"] =
                 "AMBIGUOUS_TRUNCATED_RATE";
         }
-        return InventoryCandidateValueNormalization.Normalize(
+        var normalized = InventoryCandidateValueNormalization.Normalize(
             new InventoryCandidateValues(
                 Text(values, "product_code"),
                 Text(values, "name"),
@@ -147,6 +159,7 @@ internal static partial class InventoryCandidateNormalizer
                 Deliverable(values),
                 Spatial(values),
                 Package(values)));
+        return ApplyCommercialStructures(normalized, evidence);
     }
 
     internal static bool RecognizesHeader(

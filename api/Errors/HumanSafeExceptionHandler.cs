@@ -60,6 +60,21 @@ public sealed class HumanSafeExceptionHandler(
     {
         return exception switch
         {
+            UnpriceableRateException => new(
+                StatusCodes.Status422UnprocessableEntity,
+                "Buying quantities are required",
+                "Supply supported buying units and valid running periods before pricing this line.",
+                "RATE_QUANTITY_REQUIRED"),
+            AgentRuntimeUnavailableException => new(
+                StatusCodes.Status503ServiceUnavailable,
+                "AI assistance is unavailable",
+                "The agent runtime is disabled. No AI artefact was created.",
+                MasterDataCodes.AgentFailureReasons.AgentRuntimeUnavailable),
+            InventoryProcessingPausedException => new(
+                StatusCodes.Status503ServiceUnavailable,
+                "Inventory processing is paused",
+                "Pending work and existing inventory are retained. An authorised operator must resume processing.",
+                "INVENTORY_PROCESSING_PAUSED"),
             SuppliedBriefInterpretationUnavailableException => new(
                 StatusCodes.Status503ServiceUnavailable,
                 "Brief interpretation is unavailable",

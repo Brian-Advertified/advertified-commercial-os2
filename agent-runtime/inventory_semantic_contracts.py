@@ -66,6 +66,7 @@ InventoryFieldName = Literal[
     "production_cost_minor",
     "installation_cost_minor",
     "minimum_order",
+    "billing_days",
     "discount_terms",
     "inclusions",
     "exclusions",

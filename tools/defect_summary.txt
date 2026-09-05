@@ -1,0 +1,18 @@
+EXTRACTION DEFECT ANALYSIS SUMMARY
+============================================================
+
+Analysis Timestamp: 2026-09-05T11:30:06.356523
+Total Defects: 29
+
+DEFECT SEVERITY BREAKDOWN:
+----------------------------------------
+Critical: 0
+Major: 29
+Minor: 0
+
+DEFECT TYPE BREAKDOWN:
+----------------------------------------
+count_mismatch: 29
+
+CRITICAL DEFECTS:
+----------------------------------------

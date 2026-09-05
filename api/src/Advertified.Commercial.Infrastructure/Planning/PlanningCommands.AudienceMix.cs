@@ -153,6 +153,7 @@ public sealed partial class PlanningCommands
         var allocations = envelope.Command.Allocations.Select(ToAllocationView).ToArray();
         EnsureAllocations(allocations, brief.BudgetMinor!.Value);
         EnsureRunningPeriods(allocations);
+        await EnsurePurchasesAsync(envelope.TenantId, allocations, cancellationToken);
         var campaignMode = await RequireCampaignModeAsync(
             envelope.TenantId, mix.BriefVersionId, cancellationToken);
         campaignModePolicy.EnsureAllocations(campaignMode.Mode, allocations);
@@ -200,6 +201,7 @@ public sealed partial class PlanningCommands
         var allocations = Read<MediaAllocationView[]>(mix.AllocationsJson);
         EnsureAllocations(allocations, brief.BudgetMinor!.Value);
         EnsureRunningPeriods(allocations);
+        await EnsurePurchasesAsync(envelope.TenantId, allocations, cancellationToken);
         var campaignMode = await RequireCampaignModeAsync(
             envelope.TenantId, mix.BriefVersionId, cancellationToken);
         campaignModePolicy.EnsureAllocations(campaignMode.Mode, allocations);
@@ -305,7 +307,7 @@ public sealed partial class PlanningCommands
             allocation.BudgetMinor,
             role,
             allocation.RunningPeriods.Select(period =>
-                new MediaRunningPeriodView(period.Start, period.End)).ToArray());
+                new MediaRunningPeriodView(period.Start, period.End)).ToArray(), allocation.Purchases);
     }
 
     private static void EnsureAllocations(

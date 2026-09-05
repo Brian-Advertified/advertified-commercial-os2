@@ -13,6 +13,7 @@ def test_deterministic_inventory_embedding_is_normalized_and_repeatable(
     monkeypatch,
 ) -> None:
     monkeypatch.setenv(RUNTIME_MODE_KEY, DETERMINISTIC_MODE)
+    monkeypatch.setenv("ADVERTIFIED_INVENTORY_PROCESSING_PAUSED", "false")
     monkeypatch.setenv(SERVICE_KEY, SERVICE_SECRET)
     payload = {
         "canonical_text": "name:Bree Street Gantry\nchannel:OOH\ngeography:Johannesburg",

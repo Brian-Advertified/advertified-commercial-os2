@@ -20,7 +20,8 @@ public sealed partial class InventoryCommands(
     IOptions<InventoryEmbeddingOptions> embeddingOptionsAccessor,
     InventoryDuplicatePolicy duplicatePolicy,
     InventorySupplierIdentityService supplierIdentity,
-    InventorySupplierAccessPolicy supplierAccess) : IInventoryCommands
+    InventorySupplierAccessPolicy supplierAccess,
+    IOptions<InventoryProcessingOptions> processing) : IInventoryCommands
 {
     private readonly int maximumSourceBytes = protectionOptions.Value.MaximumSourceBytes;
     private readonly InventoryEmbeddingOptions embeddingOptions = embeddingOptionsAccessor.Value;
@@ -29,6 +30,7 @@ public sealed partial class InventoryCommands(
         CommandEnvelope<CreateInventoryImportCommand> envelope,
         CancellationToken cancellationToken)
     {
+        processing.Value.EnsureAdmission();
         var receipt = await dispatcher.DispatchAsync(
             envelope, MasterDataReferences.Permissions.InventoryImport,
             token => CreateOutcomeAsync(envelope, token), cancellationToken,
@@ -42,6 +44,7 @@ public sealed partial class InventoryCommands(
         CommandEnvelope<ExecuteInventoryImportCommand> envelope,
         CancellationToken cancellationToken)
     {
+        processing.Value.EnsureAdmission();
         var receipt = await dispatcher.DispatchAsync(
             envelope, MasterDataReferences.Permissions.InventoryImport,
             token => ExecuteOutcomeAsync(importId, envelope, token), cancellationToken,
@@ -55,6 +58,7 @@ public sealed partial class InventoryCommands(
         CommandEnvelope<RetryInventoryExtractionCommand> envelope,
         CancellationToken cancellationToken)
     {
+        processing.Value.EnsureAdmission();
         var receipt = await dispatcher.DispatchAsync(
             envelope, MasterDataReferences.Permissions.InventoryImport,
             token => RetryExtractionOutcomeAsync(importId, envelope, token), cancellationToken,
@@ -95,6 +99,7 @@ public sealed partial class InventoryCommands(
             CommandEnvelope<ReprojectInventoryExtractionCommand> envelope,
             CancellationToken cancellationToken)
     {
+        processing.Value.EnsureAdmission();
         var receipt = await dispatcher.DispatchAsync(
             envelope,
             envelope.Command.ReevaluateAcceptance || envelope.Command.CorrectedSchema is not null
@@ -134,6 +139,7 @@ public sealed partial class InventoryCommands(
         CommandEnvelope<PublishInventoryImportCommand> envelope,
         CancellationToken cancellationToken)
     {
+        processing.Value.EnsureAdmission();
         var receipt = await dispatcher.DispatchAsync(
             envelope, MasterDataReferences.Permissions.InventoryPublish,
             token => PublishOutcomeAsync(importId, envelope, token), cancellationToken);
@@ -171,6 +177,7 @@ public sealed partial class InventoryCommands(
         CommandEnvelope<SubmitInventoryEmbeddingCommand> envelope,
         CancellationToken cancellationToken)
     {
+        processing.Value.EnsureAdmission();
         var receipt = await dispatcher.DispatchAsync(
             envelope, MasterDataReferences.Permissions.InventoryReview,
             token => SubmitEmbeddingOutcomeAsync(productId, envelope, token),

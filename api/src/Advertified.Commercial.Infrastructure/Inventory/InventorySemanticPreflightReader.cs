@@ -126,7 +126,8 @@ public sealed partial class InventorySemanticPreflightReader(
             if (!canPlan)
             {
                 result.Add(new(
-                    source, [], "SEMANTIC_PLAN_CONFIGURATION_INVALID"));
+                    source, [], [],
+                    "SEMANTIC_PLAN_CONFIGURATION_INVALID"));
                 continue;
             }
             result.Add(await PlanSourceAsync(
@@ -146,7 +147,8 @@ public sealed partial class InventorySemanticPreflightReader(
                 source.ProtectedObjectKey) ||
             string.IsNullOrWhiteSpace(source.DocumentClass))
         {
-            return new(source, [], "SOURCE_METADATA_INCOMPLETE");
+            return new(source, [], [],
+                "SOURCE_METADATA_INCOMPLETE");
         }
         try
         {
@@ -170,38 +172,65 @@ public sealed partial class InventorySemanticPreflightReader(
             var extraction =
                 NativeOfficeInventoryProjection.Apply(
                     request, provider);
+            var candidates = InventoryCandidateAdmissionPolicy
+                .Prepare(
+                    extraction.Rows,
+                    source.SourceHash,
+                    string.Empty,
+                    codes,
+                    DateTimeOffset.UnixEpoch)
+                .Select(candidate => new
+                    InventoryProjectionCandidateView(
+                        candidate.RowNumber,
+                        candidate.SourceLocator,
+                        candidate.Values,
+                        candidate.Evidence))
+                .ToArray();
             if (NativeOfficeImageReader.IsRequired(extraction.Rows))
             {
                 return new(
                     source,
                     [],
+                    candidates,
                     "LOCAL_IMAGE_OCR_REQUIRED");
             }
-            var packets = InventorySemanticPacketBuilder
-                .BuildEnrichment(
-                    request, extraction, codes, settings)
-                .Where(packet =>
-                    packet.ExistingRows.Count > 0)
-                .ToArray();
-            return new(source, packets, null);
+            InventorySemanticPacket[] packets;
+            try
+            {
+                packets = InventorySemanticPacketBuilder
+                    .BuildEnrichment(
+                        request, extraction, codes, settings)
+                    .Where(packet =>
+                        packet.ExistingRows.Count > 0)
+                    .ToArray();
+            }
+            catch (InvalidOperationException)
+            {
+                return new(source, [], candidates,
+                    "SEMANTIC_PLAN_LIMIT_EXCEEDED");
+            }
+            return new(source, packets, candidates, null);
         }
         catch (InventoryProtectionUnavailableException)
         {
-            return new(source, [], "SOURCE_HASH_MISMATCH");
+            return new(source, [], [], "SOURCE_HASH_MISMATCH");
         }
         catch (InventorySemanticInputRejectedException)
         {
-            return new(source, [], "SEMANTIC_INPUT_NOT_SUPPORTED");
+            return new(source, [], [],
+                "SEMANTIC_INPUT_NOT_SUPPORTED");
         }
         catch (Exception error) when (
             error is InventoryExtractionUnavailableException or
                 JsonException)
         {
-            return new(source, [], "RETAINED_ARTIFACT_INVALID");
+            return new(source, [], [],
+                "RETAINED_ARTIFACT_INVALID");
         }
         catch (InvalidOperationException)
         {
-            return new(source, [], "SEMANTIC_PLAN_LIMIT_EXCEEDED");
+            return new(source, [], [],
+                "SEMANTIC_PLAN_LIMIT_EXCEEDED");
         }
     }
 

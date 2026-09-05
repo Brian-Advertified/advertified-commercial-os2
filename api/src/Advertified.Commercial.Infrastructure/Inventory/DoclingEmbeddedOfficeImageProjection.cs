@@ -7,7 +7,7 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 public sealed partial class DoclingInventoryExtractionAdapter
 {
     internal const string EmbeddedImageProjectionVersion =
-        "advertified-embedded-image-docling/1.4.0";
+        "advertified-embedded-image-docling/1.5.0";
 
     internal static Task<InventoryExtractionResult>
         ReprojectRetainedAsync(
@@ -16,7 +16,7 @@ public sealed partial class DoclingInventoryExtractionAdapter
             CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var rows = DoclingInventoryProjection.ReadRows(
+        var projection = DoclingInventoryProjection.ReadRowsWithAccounting(
             request, providerJson);
         var provider = InventoryExtractionContract.Create(
             "docling",
@@ -24,7 +24,8 @@ public sealed partial class DoclingInventoryExtractionAdapter
             InventoryExtractionOptions.CurrentSchemaVersion,
             request.SourceHash,
             providerJson,
-            rows);
+              projection.Rows,
+              deduplicationDecisions: projection.DeduplicationDecisions);
         var extraction = NativeOfficeInventoryProjection.Apply(
             request, provider);
         return Task.FromResult(extraction);
@@ -100,9 +101,11 @@ public sealed partial class DoclingInventoryExtractionAdapter
             extraction.AdapterCode,
             InventoryExtractionOptions.PinnedAdapterVersion,
             extraction.SchemaVersion,
-            extraction.SourceHash,
-            provider.ToJsonString(),
-            rows);
+              extraction.SourceHash,
+              provider.ToJsonString(),
+              rows,
+              deduplicationDecisions:
+                  extraction.Document.DeduplicationDecisions);
     }
 
     private static JsonObject MissingImageEvidence(InventoryOfficeImage image) => new()

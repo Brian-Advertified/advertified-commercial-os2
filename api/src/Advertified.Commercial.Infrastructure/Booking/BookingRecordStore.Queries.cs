@@ -36,7 +36,7 @@ public sealed partial class BookingRecordStore
                 line.commercial_terms_json::text AS "CommercialTermsJson",
                 line.deliverable_json::text AS "DeliverableJson",
                 line.spatial_json::text AS "SpatialJson",
-                line.logo_asset_id AS "LogoAssetId"
+                line.logo_asset_id AS "LogoAssetId", line.purchase_json::text AS "PurchaseJson"
             FROM commercial.proposal_versions proposal
             JOIN commercial.proposal_options option
               ON option.tenant_id = proposal.tenant_id

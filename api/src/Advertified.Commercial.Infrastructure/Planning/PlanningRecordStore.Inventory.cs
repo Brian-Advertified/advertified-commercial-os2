@@ -8,7 +8,8 @@ public sealed partial class PlanningRecordStore
 {
     internal Task<List<PlanningInventoryRow>> ListInventoryAsync(
         TenantId tenantId,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken,
+        Guid[]? productIds = null) =>
         DbContext.Database.SqlQuery<PlanningInventoryRow>($"""
             SELECT product.tenant_id AS "InventoryTenantId",
                 NULL::uuid AS "MarketplaceListingVersionId",
@@ -82,6 +83,7 @@ public sealed partial class PlanningRecordStore
                 ORDER BY asset.id
                 LIMIT 1) logo ON TRUE
             WHERE product.tenant_id = {tenantId.Value}
+              AND ({productIds}::uuid[] IS NULL OR product.id = ANY({productIds}))
               AND product.status_code = {MasterDataCodes.LifecycleStatuses.Active}
               AND NOT EXISTS (
                   SELECT 1 FROM commercial.inventory_product_identity_links identity_link
@@ -129,6 +131,7 @@ public sealed partial class PlanningRecordStore
               ON snapshot.supplier_tenant_id = listing.supplier_tenant_id
              AND snapshot.id = listing.current_version_id
             WHERE listing.supplier_tenant_id <> {tenantId.Value}
+              AND ({productIds}::uuid[] IS NULL OR listing.product_id = ANY({productIds}))
               AND listing.status_code = {MasterDataCodes.MarketplaceListingStatuses.Published}
             ORDER BY "InventoryTenantId", "ProductId"
             """).ToListAsync(cancellationToken);

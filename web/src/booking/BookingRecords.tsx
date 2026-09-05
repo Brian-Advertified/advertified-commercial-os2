@@ -132,12 +132,14 @@ function StatusHeader({ status, product }: { status: string; product: string }) 
 }
 
 function PlacementFacts({ item }: { item: Pick<Booking, 'supplierName' | 'channel' |
-  'geography' | 'flightStart' | 'flightEnd' | 'quantity'> }) {
+  'geography' | 'flightStart' | 'flightEnd' | 'quantity' | 'purchase'> }) {
   return <dl className="marketplace-facts"><div><dt>Supplier</dt><dd>{item.supplierName}</dd></div>
     <div><dt>Channel</dt><dd>{item.channel}</dd></div>
     <div><dt>Geography</dt><dd>{item.geography}</dd></div>
     <div><dt>Flight</dt><dd>{item.flightStart} – {item.flightEnd}</dd></div>
-    <div><dt>Quantity</dt><dd>{item.quantity}</dd></div></dl>
+    <div><dt>Quantity</dt><dd>{item.quantity}
+      {item.purchase && ` (${item.purchase.rateType}; rate per ${item.purchase.denominator ?? 'unspecified'})`}
+    </dd></div></dl>
 }
 
 function statusLabel(status: string) {

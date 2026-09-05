@@ -89,14 +89,19 @@ public sealed partial class CanonicalPlanningAcceptanceTests
 
     internal static async Task SeedAsync(
         string connectionString,
-        long briefBudgetMinor = 1_000_000)
+        long briefBudgetMinor = 1_000_000,
+        bool initializeSchema = true)
     {
-        await DisposablePostgres.EnableRequiredExtensionsAsync(connectionString);
         var options = new DbContextOptionsBuilder<GovernanceDbContext>()
             .UseNpgsql(connectionString).Options;
         await using var db = new GovernanceDbContext(options);
-        await db.Database.MigrateAsync();
-        await new MasterDataBootstrapper(db, TimeProvider.System).ApplyAsync();
+        if (initializeSchema)
+        {
+            await DisposablePostgres.EnableRequiredExtensionsAsync(connectionString);
+            await db.Database.MigrateAsync();
+            await new MasterDataBootstrapper(db, TimeProvider.System).ApplyAsync();
+        }
+        else Assert.StartsWith("advertified_brief_test_", new NpgsqlConnectionStringBuilder(connectionString).Database);
         db.Tenants.AddRange(
             CreateTenant(TenantId, "canonical-planning"),
             CreateTenant(OtherTenantId, "canonical-planning-other"));

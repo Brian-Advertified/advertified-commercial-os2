@@ -143,6 +143,23 @@ internal static class InventoryProjectionPersistence
               AND task.task_type_code =
                     {MasterDataCodes.HumanTaskTypes.InventoryCandidateReview}
               AND task.status_code = {MasterDataCodes.LifecycleStatuses.Pending}
+
+            ;
+
+            UPDATE commercial.human_tasks task
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Cancelled},
+                completed_by = {actorId},
+                completed_at_utc = {now},
+                completion_json =
+                    {"{\"reason\":\"SUPERSEDED_BY_REPROJECTION\"}"}::jsonb,
+                version = task.version + 1
+            WHERE task.tenant_id = {tenantId.Value}
+              AND task.resource_type_code =
+                    {MasterDataReferences.CommercialResourceTypes.InventoryImport.Value}
+              AND task.resource_id = {importId}
+              AND task.task_type_code =
+                    {MasterDataCodes.HumanTaskTypes.InventoryCandidateReview}
+              AND task.status_code = {MasterDataCodes.LifecycleStatuses.Pending}
             """, cancellationToken);
 
         await dbContext.Database.ExecuteSqlInterpolatedAsync($"""

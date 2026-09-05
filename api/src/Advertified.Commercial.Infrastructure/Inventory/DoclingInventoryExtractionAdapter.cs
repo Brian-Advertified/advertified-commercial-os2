@@ -15,6 +15,8 @@ public sealed partial class DoclingInventoryExtractionAdapter(
     private const string StartedStatus = "started";
     private const string TaskNotFoundStatus = "task_not_found";
     private const int PollWaitSeconds = 30;
+    private static readonly TimeSpan PollRetryDelay =
+        TimeSpan.FromMilliseconds(250);
     private readonly InventoryExtractionOptions settings = options.Value;
 
     public string ProviderName => "docling";
@@ -37,6 +39,7 @@ public sealed partial class DoclingInventoryExtractionAdapter(
                 if (poll.State == InventoryProviderTaskState.Completed) break;
                 if (poll.State == InventoryProviderTaskState.Failed)
                     throw new InventoryExtractionUnavailableException();
+                await Task.Delay(PollRetryDelay, cancellationToken);
             }
             return await ReadResultAsync(
                 request, submission.ExternalTaskId, cancellationToken);
@@ -193,14 +196,16 @@ public sealed partial class DoclingInventoryExtractionAdapter(
         var json = structured.ValueKind == JsonValueKind.String
             ? structured.GetString() ?? "{}"
             : structured.GetRawText();
-        var rows = DoclingInventoryProjection.ReadRows(request, json);
+        var projection = DoclingInventoryProjection.ReadRowsWithAccounting(
+            request, json);
         var provider = InventoryExtractionContract.Create(
             "docling",
             InventoryExtractionOptions.PinnedAdapterVersion,
             InventoryExtractionOptions.CurrentSchemaVersion,
             request.SourceHash,
             json,
-            rows);
+            projection.Rows,
+            deduplicationDecisions: projection.DeduplicationDecisions);
         var projected = NativeOfficeInventoryProjection.Apply(
             request, provider);
         return projected;

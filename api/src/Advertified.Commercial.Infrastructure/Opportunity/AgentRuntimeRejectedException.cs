@@ -65,7 +65,7 @@ internal sealed class AgentRuntimeRejectedException : Exception
                 ReadLong(usage, "incremental_cost_usd_micros"));
         }
         catch (Exception error) when (
-            error is JsonException or InvalidOperationException)
+            error is JsonException or InvalidOperationException or KeyNotFoundException)
         {
             return new(
                 statusCode, responseJson, string.Empty, "HTTP_RESPONSE",

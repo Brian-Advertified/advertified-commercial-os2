@@ -25,7 +25,14 @@ public sealed record InventorySemanticSourcePreflightView(
     long MaximumCostUsdMicros,
     long NewMaximumCostUsdMicros,
     long LargestPacketCostUsdMicros,
-    string? Blocker);
+    string? Blocker,
+    IReadOnlyList<InventoryProjectionCandidateView> ProjectedCandidates);
+
+public sealed record InventoryProjectionCandidateView(
+    int RowNumber,
+    string SourceLocator,
+    InventoryCandidateValues Values,
+    IReadOnlyList<InventoryFieldEvidenceView> Evidence);
 
 public sealed record InventorySemanticPreflightView(
     string ProjectionVersion,

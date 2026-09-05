@@ -1,4 +1,5 @@
 using Advertified.Commercial.Application.Planning;
+using Advertified.Commercial.Domain.MasterData;
 
 namespace Advertified.Commercial.Infrastructure.Planning;
 
@@ -15,12 +16,27 @@ internal static class MediaRatePricing
         IReadOnlyList<MediaRunningPeriodView> periods,
         IReadOnlyDictionary<string, int> billingDays)
     {
+        ValidatePeriods(periods);
+        if (rateType == MasterDataCodes.RateTypes.FlatRate) return 1;
         if (rateType is null || !billingDays.TryGetValue(rateType, out var daysPerUnit))
         {
-            return 1;
+            throw new UnpriceableRateException();
         }
+        if (daysPerUnit <= 0) throw new UnpriceableRateException();
         var units = periods.Sum(period => Units(period.Start, period.End, daysPerUnit));
-        return Math.Max(1, units);
+        return units;
+    }
+
+    internal static void ValidatePeriods(IReadOnlyList<MediaRunningPeriodView> periods)
+    {
+        if (periods.Count == 0) throw new UnpriceableRateException();
+        DateOnly? previousEnd = null;
+        foreach (var period in periods.OrderBy(item => item.Start))
+        {
+            if (period.End < period.Start || previousEnd >= period.Start)
+                throw new UnpriceableRateException();
+            previousEnd = period.End;
+        }
     }
 
     internal static bool Covers(

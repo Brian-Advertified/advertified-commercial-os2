@@ -135,7 +135,22 @@ public sealed record InventoryCandidateValues(
     InventoryCommercialTermsValues? CommercialTerms = null,
     InventoryDeliverableValues? Deliverable = null,
     InventorySpatialValues? Spatial = null,
-    InventoryPackageValues? Package = null);
+    InventoryPackageValues? Package = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(
+        Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<InventoryRateVariantValues>? RateVariants = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(
+        Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<InventoryProductVariantValues>? ProductVariants = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(
+        Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<InventoryPackageComponentValues>? PackageComponents = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(
+        Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<InventoryDiscountValues>? Discounts = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(
+        Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    InventorySharedTermsValues? SharedTerms = null);
 
 public interface IInventoryCommands
 {

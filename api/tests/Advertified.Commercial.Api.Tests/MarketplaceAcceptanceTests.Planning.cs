@@ -106,6 +106,18 @@ public sealed partial class MarketplaceAcceptanceTests
                         {
                             new { start = "2026-09-01", end = "2026-09-30" },
                         },
+                        purchases = new[]
+                        {
+                            new
+                            {
+                                inventoryTenantId = SupplierTenantId,
+                                inventoryProductId = ProductId,
+                                productVersionId = ProductVersionId,
+                                rateId = RateId,
+                                rateType = "CPM",
+                                quantity = 1000,
+                            },
+                        },
                     },
                 },
                 reason = "Use the supplied OOH timing.",

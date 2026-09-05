@@ -213,7 +213,9 @@ public sealed record ProposalInventoryLineView(
     InventoryCommercialTermsValues? CommercialTerms = null,
     InventoryDeliverableValues? Deliverable = null,
     InventorySpatialValues? Spatial = null,
-    Guid? LogoAssetId = null);
+    Guid? LogoAssetId = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    Advertified.Commercial.Application.Planning.InventoryPurchaseQuantity? Purchase = null);
 
 public sealed record ProposalOptionView(
     Guid Id,

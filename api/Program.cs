@@ -149,6 +149,7 @@ builder.Services.AddScoped<InventorySemanticEnrichmentService>();
 builder.Services.AddScoped<
     IInventorySemanticPreflightReader,
     InventorySemanticPreflightReader>();
+builder.Services.AddScoped<InventoryProjectionVerificationService>();
 builder.Services.AddScoped<InventoryExtractionCompletionService>();
 builder.Services.AddScoped<InventoryReprojectionCompletionService>();
 builder.Services.AddScoped<InventoryRetainedProjectionProcessor>();
@@ -235,22 +236,7 @@ builder.Services.AddHttpClient<HttpProposalNarrativeClient>(AgentRuntimeClientCo
 builder.Services.AddHttpClient<HttpMeasurementAgentClient>(AgentRuntimeClientConfiguration.Configure);
 builder.Services.AddHttpClient<InventorySemanticAgentClient>(
     AgentRuntimeClientConfiguration.Configure);
-builder.Services.AddScoped<IOpportunityAgentClient>(serviceProvider =>
-    agentRuntime.UsesHttp
-        ? serviceProvider.GetRequiredService<HttpOpportunityAgentClient>()
-        : ActivatorUtilities.CreateInstance<InProcessOpportunityAgentClient>(serviceProvider));
-builder.Services.AddScoped<IPlanningAgentClient>(serviceProvider =>
-    agentRuntime.UsesHttp
-        ? serviceProvider.GetRequiredService<HttpPlanningAgentClient>()
-        : serviceProvider.GetRequiredService<DeterministicPlanningAgentClient>());
-builder.Services.AddScoped<IProposalNarrativeClient>(serviceProvider =>
-    agentRuntime.UsesHttp
-        ? serviceProvider.GetRequiredService<HttpProposalNarrativeClient>()
-        : serviceProvider.GetRequiredService<DeterministicProposalNarrativeClient>());
-builder.Services.AddScoped<IMeasurementAgentClient>(serviceProvider =>
-    agentRuntime.UsesHttp
-        ? serviceProvider.GetRequiredService<HttpMeasurementAgentClient>()
-        : serviceProvider.GetRequiredService<DeterministicMeasurementAgentClient>());
+builder.AddAgentRuntimeClients(agentRuntime);
 if (agentRuntime.Mode != AgentRuntimeOptions.DisabledMode && processRole.RunsWorkers)
 {
     builder.Services.AddHostedService<OpportunityRunDispatcher>();
@@ -375,6 +361,8 @@ if (processRole.RunsApi)
     app.MapMeasurementEndpoints();
     app.MapFundingEndpoints();
     app.MapInventoryEndpoints();
+    if (app.Environment.IsDevelopment())
+        app.MapInventoryProjectionVerificationEndpoints();
     app.MapMarketplaceEndpoints();
     app.MapPlanningEndpoints();
     app.MapProposalEndpoints();

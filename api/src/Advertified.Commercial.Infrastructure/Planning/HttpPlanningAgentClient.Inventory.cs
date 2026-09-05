@@ -82,11 +82,14 @@ public sealed partial class HttpPlanningAgentClient
                 ? candidate.RateAmountMinor.HasValue &&
                   !string.IsNullOrWhiteSpace(candidate.Currency) &&
                   candidate.Score.HasValue &&
+                  candidate.Suitability is not null &&
+                  candidate.Score == candidate.Suitability.Total &&
                   candidate.RejectionReason is null &&
                   candidate.RejectionDetail is null
                 : !string.IsNullOrWhiteSpace(candidate.RejectionReason) &&
                   !string.IsNullOrWhiteSpace(candidate.RejectionDetail) &&
-                  !candidate.Score.HasValue;
+                  !candidate.Score.HasValue &&
+                  candidate.Suitability is not null && candidate.Suitability.Total == 0;
             if (!valid)
             {
                 throw new ArgumentException("The inventory eligibility facts are invalid.");
@@ -159,6 +162,7 @@ public sealed partial class HttpPlanningAgentClient
                         item.MeasurementSource, item.MeasurementPeriod,
                         item.Methodology, item.Limitations)).ToArray(),
                 candidate.AudienceFit.DeliveryEvidenceGaps ?? []),
+            candidate.Suitability,
             candidate.Benchmark is null
                 ? null
                 : new InventoryBenchmarkContext(
@@ -193,6 +197,7 @@ public sealed partial class HttpPlanningAgentClient
         string? RejectionDetail,
         decimal? Score,
         InventoryAudienceFitContext AudienceFit,
+        InventorySuitabilityView Suitability,
         InventoryBenchmarkContext? Benchmark);
 
     private sealed record InventoryAudienceFitContext(

@@ -9,7 +9,8 @@ namespace Advertified.Commercial.Infrastructure.Brief;
 public sealed class SuppliedBriefUnderstandingService(
     ISuppliedBriefAgentClient agentClient,
     SuppliedBriefAgentPolicy policy,
-    ITenantAuthorizer authorizer) : ISuppliedBriefUnderstandingService
+    ITenantAuthorizer authorizer,
+    ISuppliedBriefInterpretationStore interpretations) : ISuppliedBriefUnderstandingService
 {
     public async Task<SuppliedBriefUnderstandingView> UnderstandAsync(
         ActorId actorId,
@@ -26,18 +27,54 @@ public sealed class SuppliedBriefUnderstandingService(
         {
             throw new UnauthorizedAccessException("Brief access denied.");
         }
+        if (!agentClient.IsAvailable) throw new SuppliedBriefInterpretationUnavailableException();
         var title = Required(request.SourceTitle, 300, nameof(request.SourceTitle));
-        var content = Required(request.SourceContent, 262_144, nameof(request.SourceContent));
+        _ = Required(request.SourceContent, 262_144, nameof(request.SourceContent));
+        var content = request.SourceContent;
+        if (content.Length > 262_144) throw new ArgumentException("The supplied Brief is too large.");
         var clarifications = (request.Clarifications ?? Array.Empty<BriefClarificationInput>())
             .Select(ValidateClarification)
             .ToArray();
-        var result = await agentClient.UnderstandAsync(new SuppliedBriefAgentInput(
-            tenantId.Value,
-            actorId.Value,
-            title,
-            content,
-            clarifications), cancellationToken);
-        ValidateResult(result);
+        if (clarifications.Length > 100 || clarifications.Select(item => item.FieldPath)
+            .Distinct(StringComparer.OrdinalIgnoreCase).Count() != clarifications.Length)
+            throw new ArgumentException("Brief corrections must use distinct bounded fields.");
+        var input = new SuppliedBriefAgentInput(tenantId.Value, actorId.Value, title, content, clarifications);
+        var reservation = await interpretations.ReserveAsync(input,
+            request.InterpretationId ?? Guid.NewGuid(), request.ParentInterpretationId, cancellationToken);
+        if (reservation.Retained is not null) return reservation.Retained;
+        return await InterpretRetainedAsync(input with { Interpretation = reservation.Reference }, cancellationToken);
+    }
+
+    private async Task<SuppliedBriefUnderstandingView> InterpretRetainedAsync(
+        SuppliedBriefAgentInput input, CancellationToken cancellationToken)
+    {
+        SuppliedBriefUnderstandingView result;
+        try
+        {
+            result = await agentClient.UnderstandAsync(input, cancellationToken);
+            try { ValidateResult(result); }
+            catch (InvalidOperationException failure)
+            {
+                throw new SuppliedBriefValidationException(result.Usage,
+                    System.Text.Json.JsonSerializer.Serialize(result), failure);
+            }
+        }
+        catch (SuppliedBriefValidationException failure)
+        {
+            using var retention = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            await interpretations.RejectAsync(input, failure, retention.Token);
+            throw;
+        }
+        catch
+        {
+            using var retention = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            await interpretations.FailAsync(input, retention.Token);
+            throw;
+        }
+        // Retain accepted usage even when the caller disconnected after receiving provider output.
+        using var completion = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        result = result with { Interpretation = input.Interpretation };
+        await interpretations.CompleteAsync(input, result, completion.Token);
         return result;
     }
 

@@ -81,6 +81,8 @@ export function campaignFlowProposalFixture() {
     approvalRejectedBy: null,
     approvalRejectionReason: null,
     approvalRejectedAtUtc: null,
+    inventoryReviewStatus: 'CURRENT',
+    inventoryImpacts: [],
     version: 4,
     createdAtUtc: deliveryNow,
   };
@@ -224,7 +226,8 @@ export function campaignFixture(state: DeliveryFixtureState) {
     ...bookingAudit(state),
     ...creativeAudit(state),
     ...deliveryAudit(state),
-    creative: state.creativeRequested ? creativeWorkspaceFixture(state) : null,
+    creative: state.creativeRequested ? creativeWorkspaceFixture(state)
+      : { requirements: [], readyForApproval: false },
     deliveryProofs: state.proofSubmitted ? [deliveryProofFixture(state)] : [],
     performanceEvidence: state.evidenceSubmitted
       ? [performanceEvidenceFixture(state)]

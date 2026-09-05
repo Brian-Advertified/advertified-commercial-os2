@@ -145,6 +145,7 @@ function MixStage(props: PlanningContext & {
       props.tenantId, props.briefVersionId, props.token))} />
   const mix = props.mix
   return <><MediaMixEditor key={`${mix.id}-${mix.version}`} mix={mix}
+    purchaseCandidates={props.workspace.shortlist?.candidates ?? []}
     allowedChannels={props.workspace.campaignMode?.allowedChannels ?? []} busy={props.busy}
     onSave={(allocations: MediaAllocation[]) => props.act(() => planningApi.updateMix(
       props.tenantId, mix, allocations, props.token))}

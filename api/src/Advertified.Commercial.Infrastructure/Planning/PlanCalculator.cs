@@ -33,10 +33,12 @@ internal static class PlanAmounts
     {
         var inventory = scheduled.Inventory;
         var supplier = SupplierRateCalculator.Calculate(
-            inventory, scheduled.RunningPeriods, policy);
+            inventory, scheduled.RunningPeriods, policy, scheduled.Purchase);
         return new CalculatedLineAmounts(
             inventory, scheduled.RunningPeriods, supplier.Quantity,
-            supplier.PayableMinor, 0, 0, supplier.PayableMinor);
+            supplier.PayableMinor, 0, 0, supplier.PayableMinor,
+            scheduled.Purchase is null ? null : scheduled.Purchase with {
+                Quantity = supplier.Quantity, Denominator = policy.RateQuantityDenominators[scheduled.Purchase.RateType] });
     }
 
     private static CalculatedLineAmounts ApplyClientPolicy(

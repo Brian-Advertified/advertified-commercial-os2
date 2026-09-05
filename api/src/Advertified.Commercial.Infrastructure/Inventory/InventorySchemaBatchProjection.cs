@@ -3,7 +3,7 @@ using Advertified.Commercial.Domain.MasterData;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
-internal static class InventorySchemaBatchProjection
+internal static partial class InventorySchemaBatchProjection
 {
     internal static InventoryExtractedRow[] Project(InventoryDocumentStructure document,
         DiscoveredInventorySchema schema, IReadOnlySet<string> meanings,
@@ -20,6 +20,8 @@ internal static class InventorySchemaBatchProjection
     private static void ProjectStructure(InventorySourceStructure structure, InventoryRecordSchema schema,
         IReadOnlyList<string> schemaWarnings, List<InventoryExtractedRow> output)
     {
+        if (ProjectMatrixStructure(structure, schema, schemaWarnings, output))
+            return;
         var byPosition = structure.Cells.ToDictionary(cell => (cell.Row, cell.Column));
         var byLocator = structure.Cells.ToDictionary(cell => cell.Locator, StringComparer.Ordinal);
         var byRow = structure.Cells.GroupBy(cell => cell.Row).ToDictionary(group => group.Key, group => group.ToArray());

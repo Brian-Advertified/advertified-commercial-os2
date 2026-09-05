@@ -14,7 +14,9 @@ public sealed class ProposalInventoryReadiness(ProposalRecordStore store, Planni
         IReadOnlyList<ProposalPlanSnapshot> plans,
         CancellationToken cancellationToken)
     {
-        var current = await planningStore.ListInventoryAsync(tenantId, cancellationToken);
+        var productIds = plans.SelectMany(item => item.Lines)
+            .Select(item => item.InventoryProductId).Distinct().ToArray();
+        var current = await planningStore.ListInventoryAsync(tenantId, cancellationToken, productIds);
         var byProduct = current.ToDictionary(InventoryKey.For);
         if (plans.SelectMany(item => item.Lines).Any(line =>
                 !byProduct.TryGetValue(new InventoryKey(

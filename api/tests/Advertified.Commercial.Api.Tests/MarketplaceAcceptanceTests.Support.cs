@@ -62,6 +62,9 @@ public sealed partial class MarketplaceAcceptanceTests
             builder.UseSetting("Authentication:DevelopmentIdentity:UserId", userId.ToString());
             builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", userId.ToString());
             builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
+            builder.UseSetting("AgentRuntime:Mode", "InProcessDeterministic");
+            builder.UseSetting("EmailAutomation:Mode", "Deterministic");
+            builder.UseSetting("EmailAutomation:SenderAddress", "proposals@advertified.test");
             builder.UseDeterministicInventoryProtection();
             builder.UseSetting("Logging:LogLevel:Default", "Warning");
             builder.ConfigureLogging(logging => logging.AddConsole());
@@ -91,9 +94,9 @@ public sealed partial class MarketplaceAcceptanceTests
             CreateUser(ClientUserId, "client@marketplace.example", "Client Approver"),
             CreateUser(ReviewerUserId, "reviewer@marketplace.example", "Finance Reviewer"));
         db.Memberships.AddRange(
-            CreateMembership(SupplierTenantId, SupplierUserId, "supplier_admin", 1),
+            CreateMembership(SupplierTenantId, SupplierUserId, "supplier_user", 1),
             CreateMembership(BuyerTenantId, BuyerUserId, "agency_admin", 2),
-            CreateMembership(OtherTenantId, OtherUserId, "supplier_admin", 3),
+            CreateMembership(OtherTenantId, OtherUserId, "supplier_user", 3),
             CreateMembership(BuyerTenantId, ClientUserId, "advertiser_approver", 4),
             CreateMembership(BuyerTenantId, ReviewerUserId, "platform_admin", 5));
         db.ClientAccounts.Add(new ClientAccount(

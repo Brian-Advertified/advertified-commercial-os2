@@ -8,7 +8,9 @@ public sealed class SuppliedBriefInterpretationUnavailableException()
 public sealed record UnderstandSuppliedBriefRequest(
     string SourceTitle,
     string SourceContent,
-    IReadOnlyList<BriefClarificationInput>? Clarifications = null);
+    IReadOnlyList<BriefClarificationInput>? Clarifications = null,
+    Guid? InterpretationId = null,
+    Guid? ParentInterpretationId = null);
 
 public sealed record BriefClarificationInput(
     string FieldPath,
@@ -33,7 +35,13 @@ public sealed record SuppliedBriefAgentUsageView(
     string PromptVersion,
     string ResearchStatus,
     int ToolCalls,
-    long IncrementalCostMinor);
+    long IncrementalCostMinor,
+    int Units = 0,
+    string? CacheStatus = null,
+    string? ProviderRequestId = null,
+    int InputTokens = 0,
+    int OutputTokens = 0,
+    long IncrementalCostUsdMicros = 0);
 
 public sealed record SuppliedBriefDraftView(
     string BusinessProblem,
@@ -64,17 +72,24 @@ public sealed record SuppliedBriefUnderstandingView(
     SuppliedBriefDraftView Draft,
     IReadOnlyList<SuppliedBriefQuestionView> Questions,
     IReadOnlyList<SuppliedBriefEvidenceView> Evidence,
-    SuppliedBriefAgentUsageView Usage);
+    SuppliedBriefAgentUsageView Usage,
+    SuppliedBriefInterpretationReference? Interpretation = null);
+
+public sealed record SuppliedBriefInterpretationReference(
+    Guid Id, Guid? ParentId, int Version, string SourceHash);
 
 public sealed record SuppliedBriefAgentInput(
     Guid TenantId,
     Guid ActorId,
     string SourceTitle,
     string SourceContent,
-    IReadOnlyList<BriefClarificationInput> Clarifications);
+    IReadOnlyList<BriefClarificationInput> Clarifications,
+    SuppliedBriefInterpretationReference? Interpretation = null);
 
 public interface ISuppliedBriefAgentClient
 {
+    bool IsAvailable { get; }
+
     Task<SuppliedBriefUnderstandingView> UnderstandAsync(
         SuppliedBriefAgentInput input,
         CancellationToken cancellationToken);

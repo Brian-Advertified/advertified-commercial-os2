@@ -16,6 +16,7 @@ from bedrock_provider import (
 )
 from creative_contracts import CreativeAgentRequest, CreativeConceptSetArtifact
 from creative_service import generate_creative_concepts
+from inventory_processing_control import ensure_inventory_processing
 from inventory_semantic_contracts import (
     InventorySemanticAgentRequest,
     InventorySemanticExtractionArtifact,
@@ -64,6 +65,11 @@ from proposal_contracts import (
     ProposalNarrativeDraftArtifact,
 )
 from proposal_service import propose_narrative
+from supplied_brief_contracts import OPERATION as SUPPLIED_BRIEF, SuppliedBriefRequest, SuppliedBriefArtifact
+from supplied_brief_service import (
+    INSTRUCTION as SUPPLIED_BRIEF_INSTRUCTION, unavailable_fixture,
+    validate_source as validate_brief_source, validate_grounding as validate_brief_grounding,
+)
 
 DETERMINISTIC_MODE = "deterministic"
 
@@ -147,6 +153,13 @@ def execute_agent(
     runtime_mode: str,
 ) -> dict[str, object]:
     request, artifact_type, deterministic = _contract(agent_code, body)
+    if isinstance(request, SuppliedBriefRequest):
+        try:
+            validate_brief_source(request)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+    if isinstance(request, (SchemaDiscoveryRequest, InventorySemanticAgentRequest)):
+        ensure_inventory_processing()
     policy = request.invocation.provider_policy  # type: ignore[attr-defined]
     if runtime_mode == DETERMINISTIC_MODE:
         if policy.provider != "deterministic":
@@ -175,6 +188,7 @@ def execute_agent(
                 ),
             )
         instruction = (
+            SUPPLIED_BRIEF_INSTRUCTION if isinstance(request, SuppliedBriefRequest) else
             SCHEMA_INSTRUCTION if isinstance(request, SchemaDiscoveryRequest) else ENRICHMENT_INSTRUCTION
             if isinstance(request, InventorySemanticAgentRequest)
             else INSTRUCTIONS[agent_code]
@@ -232,7 +246,9 @@ def _contract(
     agent_code: AgentCode,
     body: bytes,
 ) -> tuple[BaseModel, ArtifactType, Handler]:
-    if agent_code in OPPORTUNITY_ARTIFACTS:
+    if agent_code == AgentCode.BRIEF_DRAFTING and _operation(body) == SUPPLIED_BRIEF:
+        types = (SuppliedBriefRequest, SuppliedBriefArtifact, unavailable_fixture)
+    elif agent_code in OPPORTUNITY_ARTIFACTS:
         types = (OpportunityAgentRequest, OPPORTUNITY_ARTIFACTS[agent_code], HANDLERS[agent_code])
     elif agent_code == AgentCode.INVENTORY_INTELLIGENCE:
         types = _inventory_contract_types(body)
@@ -272,6 +288,8 @@ def _validate_operation_output(
         )
     elif isinstance(request, SchemaDiscoveryRequest):
         validate_schema_grounding(request, output)
+    elif isinstance(request, SuppliedBriefRequest):
+        validate_brief_grounding(request, output)
 
 
 def _operation(body: bytes) -> str | None:

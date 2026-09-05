@@ -1,4 +1,5 @@
 import { expect, test, type Route } from '@playwright/test'
+import { planningWorkspaceSchema } from '../src/api/planning-schemas'
 
 const tenantId = 'c1000000-0000-0000-0000-000000000001'
 const userId = 'c2000000-0000-0000-0000-000000000001'
@@ -22,9 +23,12 @@ type Allocation = {
   budgetMinor: number
   role: string
   runningPeriods: { start: string; end: string }[]
+  purchases?: { inventoryTenantId: string; inventoryProductId: string; productVersionId: string;
+    rateId: string; rateType: string; quantity: number }[]
 }
 
 type State = {
+  buyingRateType?: string
   fullCampaign: boolean
   audience: boolean
   audienceApproved: boolean
@@ -72,6 +76,29 @@ test('planner edits allocation and timing before approving the plan', async ({ p
   await page.getByRole('button', { name: 'Review and accept' }).click()
   await page.getByRole('button', { name: 'Approve media plan' }).click()
   await expect(page.getByText('Media plan approved and ready for proposal preparation.')).toBeVisible()
+})
+
+test('buying quantity is bound to placement and saved before mix confirmation', async ({ page }) => {
+  const state: State = {
+    fullCampaign: false, audience: true, audienceApproved: true, buyingRateType: 'CPM',
+    mix: { status: 'DRAFT', version: 1, allocations: [{ channel: 'OOH', budgetMinor: 1_000_000,
+      role: 'Synthetic placement', runningPeriods: [{ start: '2026-09-01', end: '2026-09-30' }] }] },
+    shortlist: { status: 'DRAFT', version: 1, selected: false }, plan: null,
+  }
+  planningWorkspaceSchema.parse(planning(state))
+  await page.addInitScript(id => sessionStorage.setItem('advertified.workspace', JSON.stringify({ tenantId: id })), tenantId)
+  await page.route('**/api/v1/**', route => handleApi(route, state))
+  await page.goto(`/planning/${briefVersionId}`)
+  await page.getByRole('combobox', { name: 'Placement', exact: true }).selectOption(candidateId)
+  await page.getByLabel('Committed quantity').fill('100000')
+  await page.getByRole('button', { name: 'Add buying quantity' }).click()
+  await expect(page.getByRole('button', { name: 'Confirm media mix' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Save changes' }).click()
+  await expect(page.getByRole('button', { name: 'Confirm media mix' })).toBeEnabled()
+  expect(state.mix!.allocations[0].purchases).toEqual([{ inventoryTenantId: tenantId,
+    inventoryProductId: productId, productVersionId, rateId, rateType: 'CPM', quantity: 100000 }])
+  await page.getByRole('button', { name: 'Confirm media mix' }).click()
+  await expect(page.getByText('Media mix confirmed.', { exact: true })).toBeVisible()
 })
 
 test('full campaign planner can add, rebalance and remove permitted channels', async ({ page }) => {
@@ -223,7 +250,7 @@ function audience(state: State) {
     definitions: [{ id: 'cf000000-0000-0000-0000-000000000001', name: 'Local business decision makers',
       description: 'Businesses seeking local customer demand.', needState: 'Growth', buyingContext: 'Local purchase',
       geographies: ['Johannesburg'], language: null, lifeStage: null, lsmSem: null,
-      lsmSemTaxonomy: null, lsmSemTaxonomyVersion: null,
+      lsmSemTaxonomy: null, lsmSemTaxonomyVersion: null, lsmSemMandatory: false,
       classification: 'INFERENCE', exclusions: [], evidenceItemIds: [], confidence: 0.7, status: 'APPROVED' }],
     createdAtUtc: now }
 }
@@ -245,6 +272,8 @@ function shortlist(state: State) {
       rateId, availabilityId, name: 'Johannesburg OOH Site', channel: 'OOH', geography: 'Johannesburg',
       rateAmountMinor: 100_000, currency: 'ZAR', isEligible: true, rejectionReason: null, rejectionDetail: null,
       score: 88, rationale: 'Eligible after governed hard constraints and local peer review.',
+      commercialReadiness: { supplierVatStatus: 'REGISTERED', vatTreatment: 'INCLUSIVE',
+        supplierVatNumber: '4000000000', evidenceGaps: [], rateType: state.buyingRateType },
       audienceFit: {
         languageScore: null, lifeStageScore: null, lsmSemScore: null, evidenceGaps: [],
         measurementSource: null, measurementPeriod: null, methodology: null,

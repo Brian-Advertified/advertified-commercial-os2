@@ -45,7 +45,7 @@ def main() -> int:
     manifest = json.loads(
         manifest_path.read_text(encoding="utf-8")
     )
-    recorded_source = manifest.get("sourceRoot")
+    recorded_source = manifest.get("sourceRoot") or manifest.get("source_directory")
     if args.source is None and not recorded_source:
         raise ValueError(
             "The corpus source path is not configured."
@@ -54,8 +54,9 @@ def main() -> int:
         args.source or Path(recorded_source)
     ).resolve(strict=True)
     requested = set(args.document)
+    documents = normalize_documents(manifest)
     selected = [
-        item for item in manifest["documents"]
+        item for item in documents
         if not requested or item["relativePath"] in requested
     ]
     missing = requested.difference(
@@ -106,6 +107,21 @@ def main() -> int:
             **extracted["counts"],
         }), flush=True)
     return 0
+
+
+def normalize_documents(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    if isinstance(manifest.get("documents"), list):
+        return manifest["documents"]
+    files = manifest.get("files")
+    if not isinstance(files, list):
+        raise ValueError("The source manifest does not contain documents.")
+    return [
+        {
+            "relativePath": item["relative_path"],
+            "sha256": item["content_hash"],
+        }
+        for item in files
+    ]
 
 
 def cached_result(path: Path, source_hash: str) -> bool:

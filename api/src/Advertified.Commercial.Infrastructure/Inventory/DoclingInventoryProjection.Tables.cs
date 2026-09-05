@@ -15,14 +15,19 @@ internal static partial class DoclingInventoryProjection
         var cells = ReadCells(table);
         if (cells.Length == 0) return [];
         var page = ReadPage(table);
-        var sourceRows = cells
+        var sourceRows = cells.SelectMany(ExpandCell)
             .GroupBy(cell => cell.Row)
             .Select(group => new InventoryTableRow(
                 group.Key,
                 group.GroupBy(cell => cell.Column)
                     .ToDictionary(
                         item => item.Key,
-                        item => item.First().Text)))
+                        item => item.First().Text),
+                group.GroupBy(cell => cell.Column)
+                    .ToDictionary(
+                        item => item.Key,
+                        item => CellLocator(page, tableNumber,
+                            item.First().Row, item.First().Column))))
             .ToArray();
         var keyValue = InventoryKeyValueTableProjection.Project(
             sourceRows,
@@ -61,6 +66,16 @@ internal static partial class DoclingInventoryProjection
         var projectedDataRows = FillDownContextColumns(
             headers,
             dataRows);
+        var matrix = InventoryHierarchicalMatrixProjection.Project(
+            sourceRows,
+            headerRow.Value,
+            rowOffset,
+            row => TableLocator(page, tableNumber, row),
+            (row, column) => CellLocator(page, tableNumber, row, column),
+            (row, column) => CellConfidence(cells, row, column),
+            (row, column) => CellPosition(cells, row, column));
+        if (matrix.Length > 0)
+            return ApplyTableContext(headers, matrix);
         var schedule = ReadSchedule(
             cells,
             headers,
@@ -199,12 +214,33 @@ internal static partial class DoclingInventoryProjection
         {
             return null;
         }
+        var startRow = row.GetInt32();
+        var startColumn = column.GetInt32();
+        var endRow = cell.TryGetProperty("end_row_offset_idx", out var rowEnd)
+            ? Math.Max(startRow + 1, rowEnd.GetInt32()) : startRow + 1;
+        var endColumn = cell.TryGetProperty("end_col_offset_idx", out var columnEnd)
+            ? Math.Max(startColumn + 1, columnEnd.GetInt32()) : startColumn + 1;
         return new DoclingCell(
-            row.GetInt32(),
-            column.GetInt32(),
+            startRow, startColumn, endRow, endColumn,
             text.GetString()?.Trim() ?? string.Empty,
-            ReadConfidence(cell));
+            ReadConfidence(cell), CellPosition(cell));
     }
+
+    private static IEnumerable<DoclingCell> ExpandCell(DoclingCell cell)
+    {
+        for (var row = cell.Row; row < cell.EndRow; row++)
+        for (var column = cell.Column; column < cell.EndColumn; column++)
+            yield return cell with { Row = row, Column = column };
+    }
+
+    private static string CellPosition(JsonElement cell) => JsonSerializer.Serialize(new
+    {
+        startRow = cell.GetProperty("start_row_offset_idx").GetInt32(),
+        startColumn = cell.GetProperty("start_col_offset_idx").GetInt32(),
+        endRow = cell.TryGetProperty("end_row_offset_idx", out var row) ? row.GetInt32() : (int?)null,
+        endColumn = cell.TryGetProperty("end_col_offset_idx", out var column) ? column.GetInt32() : (int?)null,
+        provenance = cell.TryGetProperty("prov", out var provenance) ? provenance.Clone() : (JsonElement?)null,
+    });
 
     private static int? SelectHeaderRow(
         IReadOnlyList<DoclingCell> cells)
@@ -271,5 +307,13 @@ internal static partial class DoclingInventoryProjection
         int column) =>
         cells.FirstOrDefault(cell =>
             cell.Row == row &&
-            cell.Column == column)?.Confidence;
+            cell.Column <= column &&
+            cell.EndColumn > column)?.Confidence;
+
+    private static string? CellPosition(
+        IEnumerable<DoclingCell> cells,
+        int row,
+        int column) => cells.FirstOrDefault(cell =>
+            cell.Row <= row && cell.EndRow > row &&
+            cell.Column <= column && cell.EndColumn > column)?.PositionJson;
 }

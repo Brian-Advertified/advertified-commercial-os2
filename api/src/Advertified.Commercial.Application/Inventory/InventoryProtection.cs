@@ -44,7 +44,9 @@ public sealed record InventoryExtractedRow(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     IReadOnlyList<InventoryDiscoveredField>? DiscoveredFields = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    IReadOnlyList<string>? SchemaWarnings = null);
+    IReadOnlyList<string>? SchemaWarnings = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<InventoryExtractedRateVariant>? RateVariants = null);
 
 public sealed record InventoryExtractionDocument(
     string SchemaVersion,
@@ -52,7 +54,11 @@ public sealed record InventoryExtractionDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     DiscoveredInventorySchema? DiscoveredSchema = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string? SchemaDiscoveryFailure = null);
+    string? SchemaDiscoveryFailure = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    InventorySourceAccountingReport? SourceAccounting = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<InventoryDeduplicationDecision>? DeduplicationDecisions = null);
 
 public sealed record InventoryExtractionResult(
     string AdapterCode,

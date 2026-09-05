@@ -2,6 +2,7 @@ using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Worker;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
@@ -10,6 +11,7 @@ public sealed partial class InventoryExtractionAttemptProcessor(
     InventoryExtractionCompletionService completion,
     InventoryRetainedProjectionProcessor retainedProjection,
     IInventoryDocumentExtractionAdapter extractionAdapter,
+    IOptions<InventoryProcessingOptions> processing,
     TimeProvider timeProvider,
     ILogger<InventoryExtractionAttemptProcessor> logger)
 {
@@ -17,6 +19,7 @@ public sealed partial class InventoryExtractionAttemptProcessor(
         InventoryExtractionWorkerClaim claim,
         CancellationToken cancellationToken)
     {
+        if (processing.Value.Paused) return;
         if (claim.ProviderName ==
             InventoryReprojectionPolicy.ProviderName)
         {

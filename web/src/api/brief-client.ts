@@ -1,6 +1,7 @@
 import type { ZodType } from 'zod'
 import { suppliedBriefUnderstandingSchema, type BriefClarification, type SuppliedBriefUnderstanding } from './brief-understanding-schemas'
 import { request } from './client'
+import { completeCommand, reserveCommandKey } from './pending-command-keys'
 import {
   briefVersionSchema,
   campaignBriefSchema,
@@ -20,12 +21,15 @@ export type CreateBrief = {
   clientId?: string | null
   clientName?: string | null
   sourceType?: string | null
+  interpretationId?: string | null
 }
 
 export type UnderstandBrief = {
   sourceTitle: string
   sourceContent: string
   clarifications: BriefClarification[]
+  interpretationId?: string
+  parentInterpretationId?: string
 }
 
 export type CreateBriefVersion = {
@@ -102,12 +106,18 @@ export const briefApi = {
     body: UnderstandBrief,
     token: string,
   ): Promise<SuppliedBriefUnderstanding> {
-    return (await request(
-      `/api/v1/tenants/${tenantId}/briefs:understand`,
+    const path = `/api/v1/tenants/${tenantId}/briefs:understand`
+    const reservation = await reserveCommandKey(path,
+      { method: 'POST', body: JSON.stringify(body) }, body.interpretationId ?? crypto.randomUUID())
+    if (!reservation) throw new Error('Brief interpretation identity is required.')
+    const result = (await request(
+      path,
       suppliedBriefUnderstandingSchema,
-      { method: 'POST', body: JSON.stringify(body) },
+      { method: 'POST', body: JSON.stringify({ ...body, interpretationId: reservation.key }) },
       { antiforgeryToken: token },
     )).data
+    completeCommand(reservation.fingerprint)
+    return result
   },
 
   async get(tenantId: string, briefId: string): Promise<CampaignBrief> {

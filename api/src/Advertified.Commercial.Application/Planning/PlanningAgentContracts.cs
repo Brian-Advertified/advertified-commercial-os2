@@ -41,6 +41,7 @@ public sealed record InventoryIntelligenceCandidateInput(
     string? RejectionDetail,
     decimal? Score,
     InventoryAudienceFitView AudienceFit,
+    InventorySuitabilityView Suitability,
     InventoryBenchmarkInput? Benchmark);
 
 public sealed record InventoryIntelligenceInput(

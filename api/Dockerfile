@@ -39,6 +39,10 @@ RUN dotnet restore api/tests/Advertified.Commercial.Api.Tests/Advertified.Commer
 RUN dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj \
     --configuration Release --no-restore --filter "$TEST_FILTER" --verbosity normal
 
+# Export actual adapter payloads for offline validation by the Python contracts.
+FROM scratch AS contract-evidence
+COPY --from=tests /tmp/advertified-contracts/ /
+
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.11-noble@sha256:a4556ed033fa96f984bb7a8d348851cb2d36b1281dd2420070045f664fbb5f94 AS api
 
 WORKDIR /app

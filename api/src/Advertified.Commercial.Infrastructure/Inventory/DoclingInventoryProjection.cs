@@ -41,6 +41,10 @@ internal static partial class DoclingInventoryProjection
 
     internal static List<InventoryExtractedRow> ReadRows(
         InventoryExtractionRequest request,
+        string json) => ReadRowsWithAccounting(request, json).Rows;
+
+    internal static InventoryProjectedRows ReadRowsWithAccounting(
+        InventoryExtractionRequest request,
         string json)
     {
         using var document = JsonDocument.Parse(json);
@@ -67,11 +71,12 @@ internal static partial class DoclingInventoryProjection
         rows.AddRange(ReadExplicitOffers(root, rows.Count));
         if (!HasSellableRows(request, rows))
             rows.AddRange(ReadCatalogueText(root));
-        return DeduplicateRows(rows)
+        var deduplicated = DeduplicateRows(rows, out var decisions)
             .Select((row, index) =>
                 MergeContext(
                     row with { Number = index + 1 }, context))
             .ToList();
+        return new InventoryProjectedRows(deduplicated, decisions);
     }
 
     private static InventoryExtractedRow[] ReadExplicitOffers(
@@ -345,3 +350,7 @@ internal static partial class DoclingInventoryProjection
     private static string Limit(string value, int maximum) =>
         value.Length <= maximum ? value : value[..maximum];
 }
+
+internal sealed record InventoryProjectedRows(
+    List<InventoryExtractedRow> Rows,
+    IReadOnlyList<InventoryDeduplicationDecision> DeduplicationDecisions);

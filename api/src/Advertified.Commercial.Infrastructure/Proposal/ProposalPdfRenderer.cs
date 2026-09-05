@@ -64,7 +64,8 @@ internal static class ProposalPdfRenderer
                 lines.Add(new PdfLine(
                     $"{inventory.Name} | {inventory.Geography} | " +
                     $"{FormatMoney(inventory.ClientPriceMinor, option.Currency)} | " +
-                    $"{inventory.Availability}", 8, false));
+                    $"{inventory.Availability}" + (inventory.Purchase is { } purchase
+                        ? $" | {inventory.Quantity} {purchase.RateType}, rate per {purchase.Denominator}" : ""), 8, false));
                 if (inventory.Deliverable is not null)
                 {
                     lines.Add(new PdfLine("Deliverable: " + string.Join(" | ", new[]

@@ -7,6 +7,7 @@ from uuid import UUID
 
 import pytest
 from pydantic import ValidationError
+from fastapi import HTTPException
 
 from agent_registry import AgentCode
 from bedrock_multimodal import request_content
@@ -358,7 +359,8 @@ def test_image_source_is_hash_bound_and_explicitly_accounted() -> None:
         validate_semantic_grounding(value, semantic_output())
 
 
-def test_inventory_route_accepts_both_source_operations() -> None:
+def test_inventory_route_accepts_both_source_operations(monkeypatch) -> None:
+    monkeypatch.setenv("ADVERTIFIED_INVENTORY_PROCESSING_PAUSED", "false")
     for operation in (SOURCE_TRANSCRIPTION, SEMANTIC_ENRICHMENT):
         result = execute_agent(
             AgentCode.INVENTORY_INTELLIGENCE,
@@ -371,3 +373,13 @@ def test_inventory_route_accepts_both_source_operations() -> None:
             "omitted_source_locators": [],
         }
         assert result["usage"]["incremental_cost_minor"] == 0
+
+
+@pytest.mark.parametrize("operation", [SOURCE_TRANSCRIPTION, SEMANTIC_ENRICHMENT])
+def test_inventory_route_cannot_bypass_default_pause(operation, monkeypatch):
+    monkeypatch.delenv("ADVERTIFIED_INVENTORY_PROCESSING_PAUSED", raising=False)
+    monkeypatch.setattr("runtime_execution.generate_with_bedrock",
+                        lambda *args: pytest.fail("Pause must precede provider execution"))
+    with pytest.raises(HTTPException, match="paused"):
+        execute_agent(AgentCode.INVENTORY_INTELLIGENCE,
+                      request(operation).model_dump_json().encode(), DETERMINISTIC_MODE)

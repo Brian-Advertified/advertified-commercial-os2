@@ -40,7 +40,6 @@ internal static class InventoryAcceptanceSourceChecks
             var document = InventoryDocumentStructureReader.Read(extraction.SourceHash, extraction.ProviderJson);
             var projected = InventorySchemaBatchProjection.Project(document, schema,
                 InventoryCandidateNormalizer.CanonicalMeanings, InventorySchemaExtractionStep.GovernedCodes(codes));
-            var accounting = InventoryAcceptanceSourceAccounting.Account(document, schema, projected);
             var binding = !string.IsNullOrWhiteSpace(schema.Provenance.Interpreter) &&
                 !string.IsNullOrWhiteSpace(schema.Provenance.ConfigurationVersion) &&
                 (schema.Provenance.AiCalls == 0 || (!string.IsNullOrWhiteSpace(schema.Provenance.Model) &&
@@ -48,12 +47,21 @@ internal static class InventoryAcceptanceSourceChecks
             checks.Add(Check(InventoryAcceptanceCheck.InterpretationBinding, binding,
                 binding ? "Retained mappings and citations validate against the exact extracted structures."
                     : "Interpreter or prompt/configuration provenance is missing."));
-            var actual = JsonSerializer.Serialize(extraction.Rows, InventoryRowMapper.StoredJson);
-            var replay = JsonSerializer.Serialize(projected, InventoryRowMapper.StoredJson);
-            checks.Add(Check(InventoryAcceptanceCheck.StructuralApplication, actual == replay,
-                actual == replay ? "Mappings were reapplied and compared across every record, including unsampled records."
-                    : "Retained records differ from deterministic application of the retained mappings."));
-            checks.Add(accounting);
+            foreach (var record in schema.Records)
+            {
+                var actual = RowsForStructure(extraction.Rows, record.SourceStructure);
+                var replay = RowsForStructure(projected, record.SourceStructure);
+                var equal = JsonSerializer.Serialize(actual, InventoryRowMapper.StoredJson) ==
+                    JsonSerializer.Serialize(replay, InventoryRowMapper.StoredJson);
+                checks.Add(new(InventoryAcceptanceCheck.StructuralApplication,
+                    equal ? InventoryAcceptanceCheckResult.Passed :
+                        InventoryAcceptanceCheckResult.Failed,
+                    record.SourceStructure, equal
+                        ? "Mappings were reapplied to every record in this section, including unsampled records."
+                        : "Retained records differ from deterministic mapping replay in this section."));
+                checks.Add(InventoryAcceptanceSourceAccounting.AccountSection(
+                    document, record, replay));
+            }
         }
         catch (Exception exception) when (exception is InventorySchemaRejectedException or JsonException or InvalidOperationException)
         {
@@ -69,4 +77,9 @@ internal static class InventoryAcceptanceSourceChecks
     private static InventoryAcceptanceCheckEvidence Check(InventoryAcceptanceCheck check, bool passed, string reason) =>
         new(check, passed ? InventoryAcceptanceCheckResult.Passed : InventoryAcceptanceCheckResult.Failed,
             "document", reason);
+
+    private static InventoryExtractedRow[] RowsForStructure(
+        IReadOnlyList<InventoryExtractedRow> rows,
+        string structure) => rows.Where(row => (row.DiscoveredFields ?? [])
+            .Any(field => field.SourceStructure == structure)).ToArray();
 }

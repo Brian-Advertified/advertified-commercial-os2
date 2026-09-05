@@ -119,16 +119,21 @@ internal static class InventoryPublicationPersistence
                 INSERT INTO commercial.inventory_rates (
                     id, tenant_id, product_version_id, rate_type_code,
                     currency_code, amount_minor, effective_from, effective_to,
-                    vat_treatment_code, commercial_terms_json, source_locator)
-                SELECT value."rateId", {tenantId.Value}, value."versionId",
-                    value."rateType", value."currency", value."rateAmountMinor",
-                    value."rateValidFrom", value."rateValidTo", value."vatTreatment",
-                    value."commercialTermsJson"::jsonb, value."sourceLocator"
+                    vat_treatment_code, commercial_terms_json, source_locator,
+                    variant_json)
+                SELECT rate."id", {tenantId.Value}, value."versionId",
+                    rate."rateType", rate."currency", rate."amountMinor",
+                    rate."effectiveFrom", rate."effectiveTo", rate."vatTreatment",
+                    rate."commercialTermsJson"::jsonb, rate."sourceLocator",
+                    rate."variantJson"::jsonb
                 FROM jsonb_to_recordset({payload}::jsonb) AS value(
-                    "rateId" uuid, "versionId" uuid, "rateType" text,
-                    "currency" text, "rateAmountMinor" bigint,
-                    "rateValidFrom" date, "rateValidTo" date, "vatTreatment" text,
-                    "commercialTermsJson" text, "sourceLocator" text);
+                    "versionId" uuid, "ratesJson" text)
+                CROSS JOIN LATERAL jsonb_to_recordset(value."ratesJson"::jsonb) AS rate(
+                    "id" uuid, "rateType" text, "currency" text,
+                    "amountMinor" bigint, "effectiveFrom" date,
+                    "effectiveTo" date, "vatTreatment" text,
+                    "commercialTermsJson" text, "sourceLocator" text,
+                    "variantJson" text);
 
                 INSERT INTO commercial.inventory_product_points_of_interest (
                     id, tenant_id, product_version_id, name, category, location,
@@ -305,6 +310,7 @@ internal sealed record PreparedInventoryPublication(
     string? RouteGeoJson,
     string? DirectionGeoJson,
     Guid RateId,
+    string RatesJson,
     string? RateType,
     string? Currency,
     long? RateAmountMinor,
@@ -326,3 +332,15 @@ internal sealed record PreparedInventoryPublication(
     string? PackageComponentCodesJson,
     string? PackageDiscountRule,
     string? PackageConditionsJson);
+
+internal sealed record PreparedInventoryRate(
+    Guid Id,
+    string RateType,
+    string Currency,
+    long AmountMinor,
+    DateOnly? EffectiveFrom,
+    DateOnly? EffectiveTo,
+    string? VatTreatment,
+    string? CommercialTermsJson,
+    string SourceLocator,
+    string? VariantJson);

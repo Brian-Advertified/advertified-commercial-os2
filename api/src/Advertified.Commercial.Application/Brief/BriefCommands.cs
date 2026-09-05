@@ -12,7 +12,8 @@ public sealed record CreateBriefCommand(
     string SourceContent,
     Guid? ClientId = null,
     string? ClientName = null,
-    string? SourceType = null);
+    string? SourceType = null,
+    Guid? InterpretationId = null);
 
 public sealed record BriefUnknownInput(
     string FieldPath,

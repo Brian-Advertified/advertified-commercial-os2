@@ -59,7 +59,8 @@ public sealed class InventoryReprojectionCompletionService(
             source.SourceHash,
             supplier.SupplierName,
             codes,
-            now);
+            now,
+            source.FileName);
         candidates = InventoryAcceptancePolicy.Apply(extraction, source.SourceHash,
             claim.SourceFileVersion, codes, candidates, now);
         Guid? reviewer = extraction.Document.SchemaDiscoveryFailure is not null ||

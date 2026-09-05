@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { inventoryPurchaseQuantitySchema } from './planning-schemas'
 import {
   inventoryCommercialTermsSchema,
   inventoryDeliverableSchema,
@@ -72,6 +73,7 @@ export const bookingSchema = z.object({
   spatial: inventorySpatialSchema.nullish().transform(value => value ?? null),
   vatTreatment: z.string().nullish().transform(value => value ?? null),
   logoAssetId: z.guid().nullish().transform(value => value ?? null),
+  purchase: inventoryPurchaseQuantitySchema.nullish(),
 }).strict()
 
 export const bookablePlanLinesSchema = z.array(bookablePlanLineSchema)

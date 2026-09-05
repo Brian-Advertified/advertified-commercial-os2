@@ -25,11 +25,11 @@ internal static class BriefPersistence
                 {aggregate.CreatedAtUtc}, {aggregate.CreatedAtUtc});
             INSERT INTO commercial.brief_sources (
                 id, tenant_id, brief_id, source_type_code, locator, title,
-                content, content_hash, created_by, created_at_utc)
+                content, content_hash, created_by, created_at_utc, interpretation_id)
             VALUES (
                 {source.Id}, {aggregate.TenantId.Value}, {aggregate.Id},
                 {source.SourceType}, {source.Locator}, {source.Title}, {source.Content},
-                {source.ContentHash}, {source.CreatedBy}, {source.CreatedAtUtc});
+                {source.ContentHash}, {source.CreatedBy}, {source.CreatedAtUtc}, {source.InterpretationId});
             """, cancellationToken);
 
     internal static Task<int> InsertVersionAsync(
@@ -129,7 +129,8 @@ internal sealed record BriefSourceWrite(
     string Content,
     string ContentHash,
     Guid CreatedBy,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    Guid? InterpretationId = null);
 
 internal sealed record BriefVersionWrite(
     Guid Id,

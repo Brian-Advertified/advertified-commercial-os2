@@ -12,11 +12,18 @@ export const runningPeriodSchema = z.object({
   end: z.iso.date(),
 })
 
+export const inventoryPurchaseQuantitySchema = z.object({
+  inventoryTenantId: z.guid(), inventoryProductId: z.guid(), productVersionId: z.guid(),
+  rateId: z.guid(), rateType: z.string().min(1), quantity: z.number().int().positive(),
+  denominator: z.number().int().positive().nullish(),
+})
+
 export const mediaAllocationSchema = z.object({
   channel: z.string().min(1),
   budgetMinor: z.number().int().nonnegative(),
   role: z.string().min(1),
   runningPeriods: z.array(runningPeriodSchema),
+  purchases: z.array(inventoryPurchaseQuantitySchema).nullish(),
 })
 
 export const audienceDefinitionSchema = z.object({
@@ -158,6 +165,7 @@ export const shortlistCandidateSchema = z.object({
     vatTreatment: z.string().nullable(),
     evidenceGaps: z.array(z.string()),
     supplierVatNumber: z.string().nullish().transform(value => value ?? null),
+    rateType: z.string().nullish(),
   }).nullish().transform(value => value ?? {
     supplierVatStatus: null,
     vatTreatment: null,
@@ -198,6 +206,7 @@ export const planLineSchema = z.object({
   geography: z.string(),
   runningPeriods: z.array(runningPeriodSchema).min(1),
   quantity: z.number().int().positive(),
+  purchase: inventoryPurchaseQuantitySchema.nullish(),
   clientPriceMinor: z.number().int().nonnegative(),
   feesMinor: z.number().int().nonnegative(),
   vatMinor: z.number().int().nonnegative(),

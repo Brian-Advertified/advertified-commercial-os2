@@ -8,11 +8,13 @@ public sealed partial class InventoryExtractionDispatcher(
     IServiceScopeFactory scopeFactory,
     WorkerSchedulerStore scheduler,
     IOptions<WorkerDispatchOptions> options,
+    IOptions<InventoryProcessingOptions> processing,
     TimeProvider timeProvider,
     ILogger<InventoryExtractionDispatcher> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (processing.Value.Paused) return;
         var workerIds = Enumerable
             .Range(0, options.Value.InventoryExtractionMaxConcurrency)
             .Select(_ => Guid.NewGuid())
@@ -83,6 +85,7 @@ public sealed partial class InventoryExtractionDispatcher(
         Guid workerId,
         CancellationToken cancellationToken)
     {
+        if (processing.Value.Paused) return false;
         var leaseSeconds = options.Value.InventoryExtractionLeaseSeconds;
         var claim = await scheduler.ClaimInventoryExtractionAsync(
             workerId, leaseSeconds, options.Value.InventoryExtractionMaxConcurrency,

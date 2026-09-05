@@ -222,6 +222,7 @@ public sealed partial class InventoryCommands
         var asset = PrepareAsset(source, values);
         var package = PreparePackage(values.Package);
         var spatial = values.Spatial;
+        var rates = PrepareRates(values, item.Candidate.SourceLocator);
         return new PreparedInventoryPublication(
             productId, item.ProductCode, !exists, Guid.NewGuid(), versionNumber,
             item.Candidate.Id, Required(values.Name), Required(values.Channel),
@@ -232,14 +233,42 @@ public sealed partial class InventoryCommands
             WriteOptional(spatial),
             spatial?.CoverageGeoJson, spatial?.CatchmentGeoJson,
             spatial?.RouteGeoJson, spatial?.DirectionGeoJson,
-            Guid.NewGuid(), Required(values.RateType), Required(values.Currency),
-            values.RateAmountMinor ?? throw new InventoryPublishBlockedException(),
+            rates[0].Id, WriteRequired(rates),
+            rates[0].RateType, rates[0].Currency, rates[0].AmountMinor,
             values.CommercialTerms?.RateValidFrom, values.CommercialTerms?.RateValidTo,
             values.CommercialTerms?.VatTreatment, WriteOptional(values.CommercialTerms),
             Guid.NewGuid(), Required(values.Availability), asset.Id, asset.Type,
             asset.ObjectKey, asset.Hash, asset.MediaType, item.Candidate.SourceLocator,
             package.Id, package.Code, package.Name, package.ComponentsJson,
             package.DiscountRule, package.ConditionsJson);
+    }
+
+    private static PreparedInventoryRate[] PrepareRates(
+        InventoryCandidateValues values,
+        string sourceLocator)
+    {
+        if (values.RateVariants is not { Count: > 0 })
+            return
+            [
+                new PreparedInventoryRate(Guid.NewGuid(),
+                    Required(values.RateType), Required(values.Currency),
+                    values.RateAmountMinor ?? throw new InventoryPublishBlockedException(),
+                    values.CommercialTerms?.RateValidFrom,
+                    values.CommercialTerms?.RateValidTo,
+                    values.CommercialTerms?.VatTreatment,
+                    WriteOptional(values.CommercialTerms), sourceLocator, null),
+            ];
+        return values.RateVariants.Select(rate =>
+        {
+            if (!rate.AmountMinor.HasValue)
+                throw new InventoryPublishBlockedException();
+            return new PreparedInventoryRate(Guid.NewGuid(),
+                Required(rate.RateType), Required(rate.Currency),
+                rate.AmountMinor.Value, rate.ValidFrom, rate.ValidTo,
+                values.CommercialTerms?.VatTreatment,
+                WriteOptional(values.CommercialTerms), rate.SourceLocator,
+                WriteRequired(rate));
+        }).ToArray();
     }
 
     private static PreparedAsset PrepareAsset(

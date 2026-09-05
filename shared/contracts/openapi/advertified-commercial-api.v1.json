@@ -18154,6 +18154,125 @@
         ]
       }
     },
+    "/internal/tenants/{tenantId}/inventory-projection-verification": {
+      "post": {
+        "tags": [
+          "Local verification"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "description": "Optional UUID request correlation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "description": "Required for unsafe cookie-authenticated browser requests.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryProjectionVerificationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tenants/{tenantId}/opportunities": {
       "get": {
         "tags": [
@@ -27840,6 +27959,9 @@
             "type": "string",
             "format": "uuid",
             "nullable": true
+          },
+          "purchase": {
+            "$ref": "#/components/schemas/InventoryPurchaseQuantity"
           }
         },
         "additionalProperties": false
@@ -29096,6 +29218,11 @@
           },
           "sourceType": {
             "type": "string",
+            "nullable": true
+          },
+          "interpretationId": {
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           }
         },
@@ -31440,6 +31567,10 @@
           "supplierVatNumber": {
             "type": "string",
             "nullable": true
+          },
+          "rateType": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -31518,6 +31649,11 @@
           },
           "cancellationTerms": {
             "type": "string",
+            "nullable": true
+          },
+          "billingDays": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           }
         },
@@ -32513,6 +32649,118 @@
         },
         "additionalProperties": false
       },
+      "InventoryProjectionCandidateView": {
+        "type": "object",
+        "properties": {
+          "rowNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sourceLocator": {
+            "type": "string",
+            "nullable": true
+          },
+          "values": {
+            "$ref": "#/components/schemas/InventoryCandidateValues"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryFieldEvidenceView"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryProjectionVerificationView": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "documentClass": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectionVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "adapterCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "adapterVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "schemaVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerOutputHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "canonicalOutputHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "extractedRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "projectedCandidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryProjectionCandidateView"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryPurchaseQuantity": {
+        "type": "object",
+        "properties": {
+          "inventoryTenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "inventoryProductId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rateType": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "denominator": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "InventoryRateView": {
         "type": "object",
         "properties": {
@@ -32876,6 +33124,13 @@
           },
           "blocker": {
             "type": "string",
+            "nullable": true
+          },
+          "projectedCandidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryProjectionCandidateView"
+            },
             "nullable": true
           }
         },
@@ -34165,6 +34420,13 @@
               "$ref": "#/components/schemas/MediaRunningPeriodInput"
             },
             "nullable": true
+          },
+          "purchases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryPurchaseQuantity"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -34188,6 +34450,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MediaRunningPeriodView"
+            },
+            "nullable": true
+          },
+          "purchases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryPurchaseQuantity"
             },
             "nullable": true
           }
@@ -34368,6 +34637,9 @@
             "type": "string",
             "format": "uuid",
             "nullable": true
+          },
+          "purchase": {
+            "$ref": "#/components/schemas/InventoryPurchaseQuantity"
           }
         },
         "additionalProperties": false
@@ -35450,6 +35722,9 @@
             "type": "string",
             "format": "uuid",
             "nullable": true
+          },
+          "purchase": {
+            "$ref": "#/components/schemas/InventoryPurchaseQuantity"
           }
         },
         "additionalProperties": false
@@ -36818,6 +37093,30 @@
           "incrementalCostMinor": {
             "type": "integer",
             "format": "int64"
+          },
+          "units": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cacheStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerRequestId": {
+            "type": "string",
+            "nullable": true
+          },
+          "inputTokens": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "outputTokens": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "incrementalCostUsdMicros": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "additionalProperties": false
@@ -36950,6 +37249,29 @@
         },
         "additionalProperties": false
       },
+      "SuppliedBriefInterpretationReference": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sourceHash": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "SuppliedBriefQuestionView": {
         "type": "object",
         "properties": {
@@ -37019,6 +37341,9 @@
           },
           "usage": {
             "$ref": "#/components/schemas/SuppliedBriefAgentUsageView"
+          },
+          "interpretation": {
+            "$ref": "#/components/schemas/SuppliedBriefInterpretationReference"
           }
         },
         "additionalProperties": false
@@ -37235,6 +37560,16 @@
             "items": {
               "$ref": "#/components/schemas/BriefClarificationInput"
             },
+            "nullable": true
+          },
+          "interpretationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "parentInterpretationId": {
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           }
         },
@@ -37454,6 +37789,9 @@
     },
     {
       "name": "Inventory truth"
+    },
+    {
+      "name": "Local verification"
     },
     {
       "name": "Opportunity qualification"

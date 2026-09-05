@@ -221,7 +221,7 @@ export function AppShell() {
       <Navigation roleCode={selected?.roleCode} pathname={location.pathname} taskCount={taskCount} />
       <div className="approved-sidebar-spacer" />
       <article className="approved-assistant-card">
-        <span>✦</span><div><strong>Adverti Assistant</strong><small>Your AI co-pilot</small><em>● Online</em></div><b>›</b>
+        <span>✦</span><div><strong>Adverti Assistant</strong><small>Your AI co-pilot</small></div>
       </article>
     </aside>
     <div className="approved-application-column">

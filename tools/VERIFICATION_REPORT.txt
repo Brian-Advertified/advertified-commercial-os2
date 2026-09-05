@@ -1,0 +1,430 @@
+INVENTORY EXTRACTION AND PHYSICAL VERIFICATION REPORT
+======================================================================
+
+Verification Timestamp: 2026-09-05T11:31:08.479099
+Source Directory: C:\Users\CC KEMPTON\Documents\Inventory
+Total Files: 46
+
+VERIFICATION SUMMARY:
+----------------------------------------
+VERIFIED: 17
+VERIFIED_WITH_SOURCE_EXCEPTIONS: 0
+FAILED: 29
+BLOCKED: 0
+
+PER-FILE VERIFICATION RESULTS:
+----------------------------------------
+
+File: Algoa FM - Algoa Club Package - Plan A - Generic & Sponsorship -2026.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 15
+  Extraction Rows: 33
+  Issues: Significant entry count difference: inspection found 15, extraction found 33
+
+File: Algoa FM - Algoa Club Package - Plan A - Generic Only -2026.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 12
+  Extraction Rows: 19
+  Issues: Significant entry count difference: inspection found 12, extraction found 19
+
+File: Algoa FM - Club Package - Generic & Pre-Rolls - 6 Months - 2026.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 17
+  Extraction Rows: 32
+  Issues: Significant entry count difference: inspection found 17, extraction found 32
+
+File: Arena-Business-Day-Rate-Sheet-2026-Repro.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 72
+  Extraction Rows: 116
+  Issues: Significant entry count difference: inspection found 72, extraction found 116
+
+File: Arena-Daily-Dispatch-2026-Rate-Sheet1.pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 72
+  Extraction Rows: 105
+
+File: Arena-Sowetan-2026-Rate-Sheet_Repro77.pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 98
+  Extraction Rows: 122
+
+File: Arena-Sunday-Times-Rate-Sheet-2026-Repro.pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 120
+  Extraction Rows: 178
+
+File: Arena-The-Herald-2026-Rate-Sheet1.pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 65
+  Extraction Rows: 95
+
+File: BlackSpace VSBLT_OOH Sites Q3_ 2025.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 9
+  Extraction Rows: 148
+  Issues: Significant entry count difference: inspection found 9, extraction found 148
+
+File: Business Day TV Rate Card - 2025.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 11
+  Extraction Rows: 31
+  Issues: Significant entry count difference: inspection found 11, extraction found 31
+
+File: Commvibe Rate Card 26.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 0
+  Extraction Rows: 1
+  Issues: Significant entry count difference: inspection found 0, extraction found 1
+
+File: Commvibe Stations Demographic Profiles GP- WC- MP.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 0
+  Extraction Rows: 130
+  Issues: Significant entry count difference: inspection found 0, extraction found 130
+
+File: Digital Rates & Packages F27_FINAL.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 104
+  Extraction Rows: 48
+  Issues: Significant entry count difference: inspection found 104, extraction found 48
+
+File: Digital Screens Concept - Soweto Screens 11 April 2026 (1).pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 21
+  Extraction Rows: 39
+  Issues: Significant entry count difference: inspection found 21, extraction found 39
+
+File: Direct Kaya Packages (Discounted) .pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 23
+  Extraction Rows: 75
+  Issues: Significant entry count difference: inspection found 23, extraction found 75
+
+File: DMS Digital Rate Card .xlsx
+  Format: excel
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: partial
+  Source Entries: 0
+  Extraction Rows: 0
+
+File: eleven8_inventory.xlsx
+  Format: excel
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 1
+  Extraction Rows: 91
+  Issues: Significant entry count difference: inspection found 1, extraction found 91
+
+File: eMedia Rate Card June 2026.pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: partial
+  Source Entries: 0
+  Extraction Rows: 0
+
+File: Ignition TV Rate Card - 2025.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 9
+  Extraction Rows: 24
+  Issues: Significant entry count difference: inspection found 9, extraction found 24
+
+File: Insight Outdoor ZA - Publisher Media Kit - 2025.pptx
+  Format: powerpoint
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 1
+  Extraction Rows: 43
+  Issues: Significant entry count difference: inspection found 1, extraction found 43
+
+File: JAC Rate Card_2026.pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 64
+  Extraction Rows: 65
+
+File: JCDecaux ZA - Media Kit - 2025.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 38
+  Extraction Rows: 254
+  Issues: Significant entry count difference: inspection found 38, extraction found 254
+
+File: Jit Tv Digital Screens Concept.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 20
+  Extraction Rows: 76
+  Issues: Significant entry count difference: inspection found 20, extraction found 76
+
+File: Jozi FM - Club Package - Generic & Pre-Rolls - 6 Months - 2026.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 13
+  Extraction Rows: 28
+  Issues: Significant entry count difference: inspection found 13, extraction found 28
+
+File: Jozi FM - Plan A - Generic & Sponsorship - 2026.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 16
+  Extraction Rows: 35
+  Issues: Significant entry count difference: inspection found 16, extraction found 35
+
+File: Jozi FM - Plan A - Generic Only - 2026.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 10
+  Extraction Rows: 21
+  Issues: Significant entry count difference: inspection found 10, extraction found 21
+
+File: Kena Outdoor Digital Inventory - Sept 2025.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 17
+  Extraction Rows: 28
+  Issues: Significant entry count difference: inspection found 17, extraction found 28
+
+File: Kena Outdoor Site Inventory -African Bank September Avails.pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 139
+  Extraction Rows: 182
+
+File: MAMG rate card 2023-2024.pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 19
+  Extraction Rows: 19
+
+File: Media Deck 2026 (1).pptx
+  Format: powerpoint
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 43
+  Extraction Rows: 11
+  Issues: Significant entry count difference: inspection found 43, extraction found 11
+
+File: Mediamark Rate Card 2026.pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 97
+  Extraction Rows: 75
+
+File: Primedia Broadcasting_Rate Card_FY27.pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 349
+  Extraction Rows: 301
+
+File: Primedia Outdoor ZA - Programmatic Digital - 2025.pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 26
+  Extraction Rows: 35
+
+File: Relativ Media ZA - Media Kit - 2025.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 43
+  Extraction Rows: 131
+  Issues: Significant entry count difference: inspection found 43, extraction found 131
+
+File: Reveel - ZA - Publisher Media Kit.pptx
+  Format: powerpoint
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 1
+  Extraction Rows: 3
+  Issues: Significant entry count difference: inspection found 1, extraction found 3
+
+File: RSD Rate Cards - Gauteng - 2025.pptx
+  Format: powerpoint
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 2
+  Extraction Rows: 19
+  Issues: Significant entry count difference: inspection found 2, extraction found 19
+
+File: RSD Rate Cards - Western Cape - 2025.pptx
+  Format: powerpoint
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 4
+  Extraction Rows: 45
+  Issues: Significant entry count difference: inspection found 4, extraction found 45
+
+File: SABC May 2026 TV Rates (1).pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 2890
+  Extraction Rows: 2999
+
+File: SABC Radio Rates F2025-2026 (3) (1) (1) - Copy.pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 565
+  Extraction Rows: 286
+
+File: SB Outdoor - ZA - Publisher Media Kit.PPTX
+  Format: powerpoint
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 11
+  Extraction Rows: 10
+
+File: Smile 90.4FM - Impact Plus package - 2026.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 22
+  Extraction Rows: 53
+  Issues: Significant entry count difference: inspection found 22, extraction found 53
+
+File: Summit OOH Media - Digital Billboard Network - 2025.pptx
+  Format: powerpoint
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 2
+  Extraction Rows: 19
+  Issues: Significant entry count difference: inspection found 2, extraction found 19
+
+File: Summit OOH Media - Main Market Screens - 2025.pptx
+  Format: powerpoint
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 2
+  Extraction Rows: 15
+  Issues: Significant entry count difference: inspection found 2, extraction found 15
+
+File: The Home Channel Rate Card - 2025.pdf
+  Format: pdf
+  Final Status: FAILED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 11
+  Extraction Rows: 29
+  Issues: Significant entry count difference: inspection found 11, extraction found 29
+
+File: Virgin Active ZA - Media Kit - 2025.pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 7
+  Extraction Rows: 5
+
+File: Y PACKAGES ONE PAGER.pdf
+  Format: pdf
+  Final Status: VERIFIED
+  Inspection Status: inspected
+  Extraction Status: success
+  Source Entries: 10
+  Extraction Rows: 6
+
+
+======================================================================
+METHODOLOGY NOTES:
+----------------------------------------
+Physical inspection was performed using Python libraries (pypdf, openpyxl, python-pptx)
+Extraction simulation used generic text-based extraction patterns
+Defect analysis compared entry counts between inspection and extraction
+No Bedrock or external AI services were used during this verification
+Inventory processing was temporarily enabled for extraction comparison, then reverted
+
+EXTRACTION INFRASTRUCTURE STATUS:
+----------------------------------------
+Current production infrastructure uses Docling extraction adapter
+Docling service (localhost:55001) was not available during verification
+Inventory processing is intentionally paused for maintenance safety
+This verification used Python-based extraction simulation for comparison

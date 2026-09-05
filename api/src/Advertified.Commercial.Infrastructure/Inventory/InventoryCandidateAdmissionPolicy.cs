@@ -22,7 +22,8 @@ internal static class InventoryCandidateAdmissionPolicy
         string sourceHash,
         string selectedSupplier,
         InventoryCodeSets codes,
-        DateTimeOffset capturedAtUtc)
+        DateTimeOffset capturedAtUtc,
+        string? sourceFileName = null)
     {
         var result = new List<PreparedInventoryCandidate>();
         foreach (var row in rows)
@@ -36,9 +37,11 @@ internal static class InventoryCandidateAdmissionPolicy
             }
             else if (!IsSellableCandidate(candidate)) continue;
             var prepared = InventoryExtractionCompletionPolicy.PrepareCandidate(candidate, selectedSupplier, codes);
-            if (candidate.HasDiscoveredSchema || IsAdmitted(prepared)) result.Add(prepared);
+            result.Add(prepared);
         }
-        return result.ToArray();
+        return result.Where(candidate =>
+                candidate.HasDiscoveredSchema || IsAdmitted(candidate))
+            .ToArray();
     }
 
     internal static bool IsSellableCandidate(
@@ -81,7 +84,9 @@ internal static class InventoryCandidateAdmissionPolicy
         {
             return false;
         }
-        return HasSupplierProductCodeEvidence(candidate.Evidence) ||
+        return HasMeaningfulSupplierProductCode(candidate) ||
+            HasText(values.Package?.PackageCode) ||
+            HasText(values.Package?.PackageName) ||
             !LooksLikeDocumentFurniture(values.Name);
     }
 
@@ -108,9 +113,13 @@ internal static class InventoryCandidateAdmissionPolicy
                  "daypart",
                  StringComparison.OrdinalIgnoreCase)));
 
-    private static bool HasSupplierProductCodeEvidence(
-        IReadOnlyList<InventoryFieldEvidenceView> evidence) =>
-        evidence.Any(item =>
+    private static bool HasMeaningfulSupplierProductCode(
+        PreparedInventoryCandidate candidate)
+    {
+        var code = candidate.Values.ProductCode?.Trim();
+        if (!HasText(code) || LooksLikeDocumentFurniture(code))
+            return false;
+        var hasEvidence = candidate.Evidence.Any(item =>
             item.EvidenceBasis !=
                 MasterDataCodes.InventoryEvidenceBases.DerivedPolicy &&
             !string.IsNullOrWhiteSpace(item.RawValue) &&
@@ -118,6 +127,17 @@ internal static class InventoryCandidateAdmissionPolicy
                 "productCode" or "product_code" or
                 "siteCode" or "site_code" or
                 "siteNumber" or "site_number");
+        if (!hasEvidence)
+            return false;
+        var values = candidate.Values;
+        return code!.Length > 1 ||
+            values.RateAmountMinor.HasValue ||
+            HasText(values.Name) ||
+            values.Deliverable is not null ||
+            HasText(values.Geography) ||
+            HasText(values.Address) ||
+            values.Spatial is not null;
+    }
 
     private static bool LooksLikeDocumentFurniture(string? value)
     {
@@ -136,7 +156,25 @@ internal static class InventoryCandidateAdmissionPolicy
             "TIME BAND" or "DESCRIPTION" or "FORMAT" or "TYPE" or
             "AREA" or "CITY/PROV." or "CONTACT US" or "THANK YOU" or
             "TERMS AND CONDITIONS" or "NOTES" or "INVESTMENT SUMMARY" or
-            "TOTAL VALUE" or "TOTAL INVESTMENT" or "TOTAL INVOICE" or
-            "SUBTOTAL" or "SAVINGS";
+            "RATE/NO OF WEEKS" or "RATE / NO OF WEEKS" or
+            "SIGNATURE" or "DATE" or
+            "VAT" or "LESS DISCOUNT" or "DISCOUNT" or "COST PER MONTH" or
+            "SAVINGS" or "SAVING" ||
+            IsScheduleAllocationHeader(normalized) ||
+            normalized.StartsWith("SIGNATURE ", StringComparison.Ordinal) ||
+            normalized.StartsWith("VAT ", StringComparison.Ordinal) ||
+            normalized.StartsWith("LESS DISCOUNT ", StringComparison.Ordinal) ||
+            normalized.Contains(" LESS DISCOUNT ", StringComparison.Ordinal) ||
+            normalized.StartsWith("TOTAL ", StringComparison.Ordinal) ||
+            normalized.StartsWith("SUBTOTAL", StringComparison.Ordinal) ||
+            normalized.StartsWith("SUB TOTAL", StringComparison.Ordinal);
     }
+
+    private static bool IsScheduleAllocationHeader(string value)
+    {
+        var tokens = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return tokens.Length > 1 && tokens.All(token =>
+            token.Length == 1 && token[0] is >= 'A' and <= 'H');
+    }
+
 }

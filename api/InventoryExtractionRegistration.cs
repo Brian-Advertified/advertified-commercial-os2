@@ -13,6 +13,8 @@ internal static class InventoryExtractionRegistration
         InventoryExtractionOptions settings)
     {
         EnsureEnvironmentIsSafe(builder, settings);
+        builder.Services.AddOptions<InventoryProcessingOptions>()
+            .Bind(builder.Configuration.GetSection(InventoryProcessingOptions.SectionName));
         builder.Services.AddOptions<InventoryExtractionOptions>()
             .Bind(builder.Configuration.GetSection(InventoryExtractionOptions.SectionName))
             .Validate(InventoryExtractionOptions.HasSupportedMode,

@@ -20,8 +20,21 @@ internal static class InventoryAcceptancePolicy
         var rows = extraction.Rows.ToDictionary(row => row.Number);
         return candidates.Select(candidate => candidate.HasDiscoveredSchema
             ? Evaluate(candidate, rows.GetValueOrDefault(candidate.RowNumber), extraction,
-                sourceFileVersion, codes, documentChecks, now)
+                sourceFileVersion, codes,
+                ApplicableDocumentChecks(documentChecks,
+                    rows.GetValueOrDefault(candidate.RowNumber)), now)
             : candidate).ToArray();
+    }
+
+    internal static InventoryAcceptanceCheckEvidence[] ApplicableDocumentChecks(
+        IReadOnlyList<InventoryAcceptanceCheckEvidence> checks,
+        InventoryExtractedRow? row)
+    {
+        var structures = (row?.DiscoveredFields ?? [])
+            .Select(field => field.SourceStructure)
+            .ToHashSet(StringComparer.Ordinal);
+        return checks.Where(check => check.Scope == "document" ||
+            structures.Contains(check.Scope)).ToArray();
     }
 
     private static PreparedInventoryCandidate Evaluate(PreparedInventoryCandidate candidate,

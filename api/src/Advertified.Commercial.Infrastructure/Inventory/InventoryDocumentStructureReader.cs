@@ -27,7 +27,8 @@ internal static class InventoryDocumentStructureReader
         var index = 0;
         foreach (var table in tables.EnumerateArray())
         {
-            var id = $"docling:table={++index}";
+            var page = Page(table);
+            var id = $"docling:page={page};table={++index}";
             if (!table.TryGetProperty("data", out var data) || !data.TryGetProperty("table_cells", out var sourceCells))
             {
                 gaps.Add($"Table has no retained cell extraction: {id}.");
@@ -39,7 +40,7 @@ internal static class InventoryDocumentStructureReader
                 var row = source.GetProperty("start_row_offset_idx").GetInt32();
                 var column = source.GetProperty("start_col_offset_idx").GetInt32();
                 var text = source.TryGetProperty("text", out var value) ? value.GetString() ?? string.Empty : string.Empty;
-                cells.Add(new InventorySourceCell($"{id};row={row};column={column}", row, column,
+                cells.Add(new InventorySourceCell($"{id};row={row + 1};cell={column + 1}", row, column,
                     text, SourcePosition(source, table)));
                 if (cells.Count > InventorySchemaValidation.MaximumCells)
                     throw new InventorySchemaRejectedException("Document cell budget exceeded.");
@@ -61,7 +62,8 @@ internal static class InventoryDocumentStructureReader
             var page = Page(block);
             if (!byPage.TryGetValue(page, out var cells)) byPage[page] = cells = [];
             var text = block.TryGetProperty("text", out var value) ? value.GetString() ?? string.Empty : string.Empty;
-            var locator = $"docling:page={page};{collection}={index}";
+            var itemKind = collection == "texts" ? "text" : "picture";
+            var locator = $"docling:page={page};{itemKind}={index}";
             cells.Add(new InventorySourceCell(locator, cells.Count, 0, text, SourcePosition(block, block)));
             if (index > InventorySchemaValidation.MaximumCells)
                 throw new InventorySchemaRejectedException("Document block budget exceeded.");
@@ -78,7 +80,7 @@ internal static class InventoryDocumentStructureReader
         if (item.TryGetProperty("prov", out var provenance) && provenance.ValueKind == JsonValueKind.Array &&
             provenance.GetArrayLength() > 0 && provenance[0].TryGetProperty("page_no", out var page))
             return page.GetInt32();
-        return 0; // Protocol sentinel: page not supplied, never an invented page reference.
+        return 1;
     }
 
     private static void ReadEmbedded(JsonElement root, List<InventorySourceStructure> structures, List<string> gaps)

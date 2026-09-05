@@ -74,6 +74,10 @@ public sealed partial class MarketplaceAcceptanceTests
             createBody);
         var bookingId = draft.RootElement.GetProperty("id").GetGuid();
         Assert.Equal("DRAFT", draft.RootElement.GetProperty("status").GetString());
+        var purchase = draft.RootElement.GetProperty("purchase");
+        Assert.Equal("CPM", purchase.GetProperty("rateType").GetString());
+        Assert.Equal(1000, purchase.GetProperty("quantity").GetInt32());
+        Assert.Equal(1000, purchase.GetProperty("denominator").GetInt32());
 
         using var unrelated = await other.GetAsync(
             $"/api/v1/tenants/{OtherTenantId}/bookings/{bookingId}");
@@ -286,11 +290,25 @@ public sealed partial class MarketplaceAcceptanceTests
             SELECT count(*)::integer FROM commercial.outbox_messages
             WHERE event_type_code IN ('CampaignPlanned', 'CampaignBookingsConfirmed')
             """));
+        await using var proposalPurchase = new NpgsqlCommand(
+            """
+            SELECT option.inventory_json #>> '{0,purchase,quantity}'
+            FROM commercial.proposal_options option
+            JOIN commercial.bookings booking ON booking.proposal_option_id = option.id
+            WHERE booking.id = $1
+            """, connection);
+        proposalPurchase.Parameters.AddWithValue(bookingId);
+        Assert.Equal("1000", await proposalPurchase.ExecuteScalarAsync());
         await using var mutate = new NpgsqlCommand(
             "UPDATE commercial.bookings SET client_price_minor = 1 WHERE id = $1", connection);
         mutate.Parameters.AddWithValue(bookingId);
         var exception = await Assert.ThrowsAsync<PostgresException>(mutate.ExecuteNonQueryAsync);
         Assert.Equal(PostgresErrorCodes.RaiseException, exception.SqlState);
+        await using var mutatePurchase = new NpgsqlCommand(
+            "UPDATE commercial.bookings SET purchase_json = '{\"quantity\":1}' WHERE id = $1", connection);
+        mutatePurchase.Parameters.AddWithValue(bookingId);
+        var purchaseException = await Assert.ThrowsAsync<PostgresException>(mutatePurchase.ExecuteNonQueryAsync);
+        Assert.Equal(PostgresErrorCodes.RaiseException, purchaseException.SqlState);
         await using var mutateCampaign = new NpgsqlCommand(
             "UPDATE commercial.campaigns SET status_code = 'LIVE' WHERE id = $1", connection);
         mutateCampaign.Parameters.AddWithValue(campaignId);

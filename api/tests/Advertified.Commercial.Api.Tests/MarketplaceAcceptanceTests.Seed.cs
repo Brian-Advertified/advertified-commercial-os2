@@ -24,6 +24,8 @@ public sealed partial class MarketplaceAcceptanceTests
         Guid.Parse("95000000-0000-0000-0000-000000000009");
     private static readonly Guid FutureAvailabilityId =
         Guid.Parse("95000000-0000-0000-0000-000000000010");
+    private static readonly Guid SupplierMembershipId =
+        Guid.Parse("95000000-0000-0000-0000-000000000012");
 
     private static async Task SeedInventoryAsync(string connectionString)
     {
@@ -35,6 +37,13 @@ public sealed partial class MarketplaceAcceptanceTests
                 id, tenant_id, name, version, created_at_utc, updated_at_utc)
             VALUES ($1, $2, 'Verified Outdoor Media', 1, $3, $3)
             """, InventorySupplierId, SupplierTenantId, InitialTime);
+        Add(batch, """
+            INSERT INTO commercial.inventory_supplier_memberships (
+                id, tenant_id, supplier_id, user_id, role_code, status_code,
+                created_by, accepted_at_utc, version, created_at_utc, updated_at_utc)
+            VALUES ($1, $2, $3, $4, 'supplier_user', 'ACTIVE', $4, $5, 1, $5, $5)
+            """, SupplierMembershipId, SupplierTenantId, InventorySupplierId,
+            SupplierUserId, InitialTime);
         Add(batch, """
             INSERT INTO commercial.inventory_imports (
                 id, tenant_id, supplier_id, source_file_name, declared_media_type,
@@ -110,7 +119,7 @@ public sealed partial class MarketplaceAcceptanceTests
                 id, tenant_id, product_version_id, rate_type_code, currency_code,
                 amount_minor, effective_from, effective_to, source_locator,
                 vat_treatment_code, commercial_terms_json)
-            VALUES ($1, $2, $3, 'MONTH_RATE', 'ZAR', 1250000,
+            VALUES ($1, $2, $3, 'CPM', 'ZAR', 1250000,
                 '2026-01-01', '2027-12-31', 'private-rate-card.csv#row=2',
                 'INCLUSIVE',
                 '{"vatTreatment":"INCLUSIVE","minimumOrder":1,"inclusions":["Media placement"],"exclusions":["Creative production"],"conditions":["Subject to supplier confirmation"],"bookingLeadTimeDays":5}'::jsonb)

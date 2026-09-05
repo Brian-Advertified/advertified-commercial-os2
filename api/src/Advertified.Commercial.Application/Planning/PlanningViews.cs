@@ -41,7 +41,9 @@ public sealed record MediaAllocationView(
     string Channel,
     long BudgetMinor,
     string Role,
-    IReadOnlyList<MediaRunningPeriodView> RunningPeriods);
+    IReadOnlyList<MediaRunningPeriodView> RunningPeriods,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<InventoryPurchaseQuantity>? Purchases = null);
 
 public sealed record MediaMixVersionView(
     Guid Id,
@@ -100,7 +102,9 @@ public sealed record InventoryCommercialReadinessView(
     string? SupplierVatStatus,
     string? VatTreatment,
     IReadOnlyList<string> EvidenceGaps,
-    string? SupplierVatNumber = null);
+    string? SupplierVatNumber = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    string? RateType = null);
 
 public sealed record InventorySpatialMatchView(
     bool HasRequirements,
@@ -201,7 +205,9 @@ public sealed record MediaPlanLineView(
     InventoryCommercialTermsValues? CommercialTerms = null,
     InventoryDeliverableValues? Deliverable = null,
     InventorySpatialValues? Spatial = null,
-    Guid? LogoAssetId = null);
+    Guid? LogoAssetId = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    InventoryPurchaseQuantity? Purchase = null);
 
 public sealed record MediaPlanVersionView(
     Guid Id,

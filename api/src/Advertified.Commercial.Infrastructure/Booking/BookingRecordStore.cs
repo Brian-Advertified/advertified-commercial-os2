@@ -45,7 +45,7 @@ public sealed partial class BookingRecordStore(GovernanceDbContext dbContext)
             booking.commercial_terms_json::text AS "CommercialTermsJson",
             booking.deliverable_json::text AS "DeliverableJson",
             booking.spatial_json::text AS "SpatialJson",
-            booking.logo_asset_id AS "LogoAssetId",
+            booking.logo_asset_id AS "LogoAssetId", booking.purchase_json::text AS "PurchaseJson",
             booking.supplier_name AS "SupplierName",
             booking.product_name AS "ProductName", booking.channel_code AS "Channel",
             booking.geography AS "Geography", booking.flight_start AS "FlightStart",

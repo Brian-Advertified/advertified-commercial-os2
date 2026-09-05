@@ -33,7 +33,9 @@ public sealed record InventoryCommercialTermsValues(
     int? BookingLeadTimeDays,
     DateOnly? BookingDeadline,
     DateOnly? MaterialDeadline,
-    string? CancellationTerms);
+    string? CancellationTerms,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    int? BillingDays = null);
 
 public sealed record InventoryDeliverableValues(
     string? Format,
@@ -83,3 +85,51 @@ public sealed record InventoryPackageValues(
     IReadOnlyList<string> ComponentProductCodes,
     string? DiscountRule,
     IReadOnlyList<string> Conditions);
+
+public sealed record InventoryRateVariantValues(
+    string? RateType,
+    long? AmountMinor,
+    string? Currency,
+    string? BuyingUnit,
+    DateOnly? ValidFrom,
+    DateOnly? ValidTo,
+    string? Geography,
+    string? Daypart,
+    string? Days,
+    int? DurationSeconds,
+    string SourceLocator,
+    string RawValue,
+    string HeaderHierarchy,
+    IReadOnlyList<string> HeaderLocators,
+    IReadOnlyDictionary<string, string>? Dimensions);
+
+public sealed record InventoryProductVariantValues(
+    string VariantKey,
+    string? Name,
+    string? Geography,
+    IReadOnlyDictionary<string, string> Dimensions,
+    IReadOnlyList<string> RateSourceLocators);
+
+public sealed record InventoryPackageComponentValues(
+    string? ProductCode,
+    string Name,
+    decimal? Quantity,
+    string? Inclusion,
+    string SourceLocator);
+
+public sealed record InventoryDiscountValues(
+    string? Kind,
+    decimal? Percentage,
+    long? AmountMinor,
+    string? Currency,
+    string? Conditions,
+    string SourceLocator);
+
+public sealed record InventorySharedTermsValues(
+    string? BuyingUnit,
+    string? Currency,
+    string? VatTreatment,
+    DateOnly? ValidFrom,
+    DateOnly? ValidTo,
+    IReadOnlyList<string> Conditions,
+    string SourceLocator);

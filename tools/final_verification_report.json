@@ -1,0 +1,718 @@
+{
+  "verification_timestamp": "2026-09-05T11:31:08.477526",
+  "source_manifest": "C:\\Users\\CC KEMPTON\\source\\advertified-commercial-os2\\tools\\inventory_source_manifest.json",
+  "physical_inspection_results": "C:\\Users\\CC KEMPTON\\source\\advertified-commercial-os2\\tools\\physical_inspection_results.json",
+  "extraction_results": "C:\\Users\\CC KEMPTON\\source\\advertified-commercial-os2\\tools\\extraction_results.json",
+  "defect_analysis": "C:\\Users\\CC KEMPTON\\source\\advertified-commercial-os2\\tools\\extraction_defects.json",
+  "total_files_verified": 46,
+  "summary": {
+    "verified": 17,
+    "verified_with_exceptions": 0,
+    "failed": 29,
+    "blocked": 0
+  },
+  "per_file_results": [
+    {
+      "source_id": "pdf_332d2f11ccb1d95e",
+      "filename": "Algoa FM - Algoa Club Package - Plan A - Generic & Sponsorship -2026.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 15,
+      "extraction_row_count": 33,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 15, extraction found 33"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_8331bddefe98103e",
+      "filename": "Algoa FM - Algoa Club Package - Plan A - Generic Only -2026.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 12,
+      "extraction_row_count": 19,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 12, extraction found 19"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_a505e8e95caa0b5b",
+      "filename": "Algoa FM - Club Package - Generic & Pre-Rolls - 6 Months - 2026.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 17,
+      "extraction_row_count": 32,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 17, extraction found 32"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_b5780f91ecee7d4a",
+      "filename": "Arena-Business-Day-Rate-Sheet-2026-Repro.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 72,
+      "extraction_row_count": 116,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 72, extraction found 116"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_0cf364b89b508bfa",
+      "filename": "Arena-Daily-Dispatch-2026-Rate-Sheet1.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 72,
+      "extraction_row_count": 105,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_37da01f085bae3f9",
+      "filename": "Arena-Sowetan-2026-Rate-Sheet_Repro77.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 98,
+      "extraction_row_count": 122,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_f5e663f95ed56919",
+      "filename": "Arena-Sunday-Times-Rate-Sheet-2026-Repro.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 120,
+      "extraction_row_count": 178,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_9f25d44359b0ffd0",
+      "filename": "Arena-The-Herald-2026-Rate-Sheet1.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 65,
+      "extraction_row_count": 95,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_0a0abca0e2c94999",
+      "filename": "BlackSpace VSBLT_OOH Sites Q3_ 2025.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 9,
+      "extraction_row_count": 148,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 9, extraction found 148"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_8ce9e4d448121377",
+      "filename": "Business Day TV Rate Card - 2025.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 11,
+      "extraction_row_count": 31,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 11, extraction found 31"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_ed68a16013d01c83",
+      "filename": "Commvibe Rate Card 26.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 0,
+      "extraction_row_count": 1,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 0, extraction found 1"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_0d4d0a38cf28ec7d",
+      "filename": "Commvibe Stations Demographic Profiles GP- WC- MP.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 0,
+      "extraction_row_count": 130,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 0, extraction found 130"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_749374a62ab97cb9",
+      "filename": "Digital Rates & Packages F27_FINAL.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 104,
+      "extraction_row_count": 48,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 104, extraction found 48"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_bc3015af60c24492",
+      "filename": "Digital Screens Concept - Soweto Screens 11 April 2026 (1).pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 21,
+      "extraction_row_count": 39,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 21, extraction found 39"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_f9a8fdef3602f926",
+      "filename": "Direct Kaya Packages (Discounted) .pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 23,
+      "extraction_row_count": 75,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 23, extraction found 75"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "excel_2e2bb6e6a70bbd8c",
+      "filename": "DMS Digital Rate Card .xlsx",
+      "format": "excel",
+      "inspection_status": "inspected",
+      "extraction_status": "partial",
+      "reconciliation_status": "verified",
+      "source_entry_count": 0,
+      "extraction_row_count": 0,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "excel_133a50e6907e936e",
+      "filename": "eleven8_inventory.xlsx",
+      "format": "excel",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 1,
+      "extraction_row_count": 91,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 1, extraction found 91"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_217bebb97b2d136c",
+      "filename": "eMedia Rate Card June 2026.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "partial",
+      "reconciliation_status": "verified",
+      "source_entry_count": 0,
+      "extraction_row_count": 0,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_1cdca7e2c3a4873a",
+      "filename": "Ignition TV Rate Card - 2025.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 9,
+      "extraction_row_count": 24,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 9, extraction found 24"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "powerpoint_a8bcdb4b9268aac2",
+      "filename": "Insight Outdoor ZA - Publisher Media Kit - 2025.pptx",
+      "format": "powerpoint",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 1,
+      "extraction_row_count": 43,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 1, extraction found 43"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_4da5d3e9b7286b7b",
+      "filename": "JAC Rate Card_2026.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 64,
+      "extraction_row_count": 65,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_74bfa893f0b0989c",
+      "filename": "JCDecaux ZA - Media Kit - 2025.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 38,
+      "extraction_row_count": 254,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 38, extraction found 254"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_cd533cfebd184fd6",
+      "filename": "Jit Tv Digital Screens Concept.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 20,
+      "extraction_row_count": 76,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 20, extraction found 76"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_41b83d0d780dad7c",
+      "filename": "Jozi FM - Club Package - Generic & Pre-Rolls - 6 Months - 2026.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 13,
+      "extraction_row_count": 28,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 13, extraction found 28"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477021"
+    },
+    {
+      "source_id": "pdf_67ac61bf7dc0af5e",
+      "filename": "Jozi FM - Plan A - Generic & Sponsorship - 2026.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 16,
+      "extraction_row_count": 35,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 16, extraction found 35"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "pdf_7f26bb48a0c3a6cd",
+      "filename": "Jozi FM - Plan A - Generic Only - 2026.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 10,
+      "extraction_row_count": 21,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 10, extraction found 21"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "pdf_9dcebc87869fff58",
+      "filename": "Kena Outdoor Digital Inventory - Sept 2025.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 17,
+      "extraction_row_count": 28,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 17, extraction found 28"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "pdf_386261b0f707065d",
+      "filename": "Kena Outdoor Site Inventory -African Bank September Avails.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 139,
+      "extraction_row_count": 182,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "pdf_431507e0ee69f124",
+      "filename": "MAMG rate card 2023-2024.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 19,
+      "extraction_row_count": 19,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "powerpoint_8932a7849710407e",
+      "filename": "Media Deck 2026 (1).pptx",
+      "format": "powerpoint",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 43,
+      "extraction_row_count": 11,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 43, extraction found 11"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "pdf_30f98d7fdd70c073",
+      "filename": "Mediamark Rate Card 2026.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 97,
+      "extraction_row_count": 75,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "pdf_9bab2c24402cf8cb",
+      "filename": "Primedia Broadcasting_Rate Card_FY27.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 349,
+      "extraction_row_count": 301,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "pdf_db805a6e6cf600e6",
+      "filename": "Primedia Outdoor ZA - Programmatic Digital - 2025.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 26,
+      "extraction_row_count": 35,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "pdf_85a86afebbde33d4",
+      "filename": "Relativ Media ZA - Media Kit - 2025.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 43,
+      "extraction_row_count": 131,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 43, extraction found 131"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "powerpoint_9f2f89edee393df1",
+      "filename": "Reveel - ZA - Publisher Media Kit.pptx",
+      "format": "powerpoint",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 1,
+      "extraction_row_count": 3,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 1, extraction found 3"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "powerpoint_ea1cc4fd04e56a8f",
+      "filename": "RSD Rate Cards - Gauteng - 2025.pptx",
+      "format": "powerpoint",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 2,
+      "extraction_row_count": 19,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 2, extraction found 19"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "powerpoint_e073c802152cf95f",
+      "filename": "RSD Rate Cards - Western Cape - 2025.pptx",
+      "format": "powerpoint",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 4,
+      "extraction_row_count": 45,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 4, extraction found 45"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "pdf_ee4d6bec165d4cd4",
+      "filename": "SABC May 2026 TV Rates (1).pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 2890,
+      "extraction_row_count": 2999,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "pdf_beff939cae1ab50a",
+      "filename": "SABC Radio Rates F2025-2026 (3) (1) (1) - Copy.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 565,
+      "extraction_row_count": 286,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "powerpoint_a576685e402f2b7b",
+      "filename": "SB Outdoor - ZA - Publisher Media Kit.PPTX",
+      "format": "powerpoint",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 11,
+      "extraction_row_count": 10,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "pdf_4284b7c25e4b6797",
+      "filename": "Smile 90.4FM - Impact Plus package - 2026.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 22,
+      "extraction_row_count": 53,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 22, extraction found 53"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "powerpoint_acc990785d05dd17",
+      "filename": "Summit OOH Media - Digital Billboard Network - 2025.pptx",
+      "format": "powerpoint",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 2,
+      "extraction_row_count": 19,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 2, extraction found 19"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "powerpoint_63f197392e11ca89",
+      "filename": "Summit OOH Media - Main Market Screens - 2025.pptx",
+      "format": "powerpoint",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 2,
+      "extraction_row_count": 15,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 2, extraction found 15"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "pdf_d735f3ebf1853ae8",
+      "filename": "The Home Channel Rate Card - 2025.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "defects_found",
+      "source_entry_count": 11,
+      "extraction_row_count": 29,
+      "final_status": "FAILED",
+      "issues": [
+        "Significant entry count difference: inspection found 11, extraction found 29"
+      ],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "pdf_8adeb8c5aade108a",
+      "filename": "Virgin Active ZA - Media Kit - 2025.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 7,
+      "extraction_row_count": 5,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    },
+    {
+      "source_id": "pdf_993575fcaf9af64b",
+      "filename": "Y PACKAGES ONE PAGER.pdf",
+      "format": "pdf",
+      "inspection_status": "inspected",
+      "extraction_status": "success",
+      "reconciliation_status": "verified",
+      "source_entry_count": 10,
+      "extraction_row_count": 6,
+      "final_status": "VERIFIED",
+      "issues": [],
+      "evidence_references": [],
+      "verification_timestamp": "2026-09-05T11:31:08.477526"
+    }
+  ]
+}

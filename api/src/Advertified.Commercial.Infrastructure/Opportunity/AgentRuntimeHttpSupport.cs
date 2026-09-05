@@ -114,6 +114,7 @@ internal static class AgentRuntimeHttpSupport
         IReadOnlyList<Guid> approvedEvidenceItemIds,
         CancellationToken cancellationToken)
     {
+        if (!settings.UsesHttp) throw new AgentRuntimeUnavailableException();
         if (string.IsNullOrWhiteSpace(settings.ServiceKey))
         {
             throw new InvalidOperationException("The agent runtime service key is unavailable.");

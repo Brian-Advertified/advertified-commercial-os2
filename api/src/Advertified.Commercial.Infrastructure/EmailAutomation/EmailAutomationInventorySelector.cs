@@ -28,7 +28,9 @@ public sealed class EmailAutomationInventorySelector(
         await using var transaction = await planningStore.BeginSessionAsync(
             actorId, tenantId, cancellationToken);
         var currentInventory = await planningStore.ListInventoryAsync(
-            tenantId, cancellationToken);
+            tenantId, cancellationToken,
+            shortlist.Candidates.Where(item => item.IsEligible)
+                .Select(item => item.InventoryProductId).Distinct().ToArray());
         var inventoryByVersion = currentInventory.ToDictionary(InventoryKey.For);
         var allocations = mix.Allocations.ToDictionary(
             item => item.Channel, StringComparer.Ordinal);

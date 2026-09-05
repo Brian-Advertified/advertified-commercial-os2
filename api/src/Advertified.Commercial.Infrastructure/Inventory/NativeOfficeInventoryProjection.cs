@@ -8,7 +8,7 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 internal static class NativeOfficeInventoryProjection
 {
     internal const string AdapterVersion =
-        "advertified-openxml/1.1.0";
+        "advertified-openxml/1.2.0";
 
     internal static InventoryExtractionResult Apply(
         InventoryExtractionRequest request,
@@ -37,7 +37,8 @@ internal static class NativeOfficeInventoryProjection
             provider.SchemaVersion,
             provider.SourceHash,
             provider.ProviderJson,
-            rows);
+            rows,
+            deduplicationDecisions: provider.Document.DeduplicationDecisions);
     }
 
     internal static InventoryExtractedRow[] Merge(

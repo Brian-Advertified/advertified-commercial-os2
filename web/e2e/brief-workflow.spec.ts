@@ -13,6 +13,7 @@ type State = {
   version: number
   source: string
   campaignMode: 'OOH_ONLY' | 'FULL_CAMPAIGN'
+  interpretationId?: string
 }
 
 test('a reviewed supplied Brief proceeds to Strategy and STP', async ({ page }) => {
@@ -96,6 +97,43 @@ test('Brief sections show progress and provide a governed continuation', async (
   await expect(page).toHaveURL(new RegExp(`/stp/${versionId}$`))
 })
 
+test('leaving intake while creation is pending prevents later planning commands', async ({ page }) => {
+  const state: State = { status: 'DRAFT', version: 1, source: 'Original supplied request', campaignMode: 'OOH_ONLY' }
+  await page.addInitScript(id => sessionStorage.setItem('advertified.workspace', JSON.stringify({ tenantId: id })), tenantId)
+  let versionCommands = 0
+  let release = () => {}
+  const pending = new Promise<void>(resolve => { release = resolve })
+  await page.route('**/api/v1/**', async route => {
+    if (route.request().method() === 'POST' && new URL(route.request().url()).pathname.endsWith('/versions')) versionCommands++
+    return handleApi(route, state)
+  })
+  await page.route('**/briefs:understand', route => json(route, understandingFixture('OOH_ONLY')))
+  await page.route('**/briefs', async route => {
+    await pending
+    return json(route, briefSummary('CREATED', 1), 201)
+  })
+  try {
+    await page.goto('/briefs/new')
+    await page.getByLabel('Campaign or Brief name').fill('December enquiry Brief')
+    await page.getByLabel('Original Brief').fill('Original supplied request')
+    await page.getByRole('button', { name: 'Understand this Brief' }).click()
+    const submitted = page.waitForRequest('**/briefs')
+    await page.getByRole('button', { name: 'Approve Brief and start planning' }).click()
+    await submitted
+    await page.evaluate(id => {
+      window.history.pushState({}, '', `/briefs/${id}`)
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    }, briefId)
+    await expect(page.getByRole('heading', { name: 'Review Campaign Brief' })).toBeVisible()
+    const completed = page.waitForResponse('**/briefs')
+    release()
+    await (await completed).finished()
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
+    await expect(page).toHaveURL(new RegExp(`/briefs/${briefId}$`))
+    expect(versionCommands).toBe(0)
+  } finally { release() }
+})
+
 test('a Full Campaign Brief keeps its persisted mode on the same lifecycle rail', async ({ page }) => {
   const state: State = {
     status: 'READY', version: 2, source: 'Integrated media request.',
@@ -139,22 +177,14 @@ async function handleReadApi(route: Route, state: State, path: string) {
 async function handleWriteApi(route: Route, state: State, path: string) {
   const request = route.request()
   if (path.endsWith('/briefs:understand')) {
-    expect(request.headers()['x-csrf-token']).toBe('csrf-brief')
-    const body = request.postDataJSON() as {
-      sourceTitle: string
-      sourceContent: string
-      clarifications: Array<{ fieldPath: string; value: string }>
-    }
-    expect(body.sourceTitle).toBe('December enquiry Brief')
-    state.source = body.sourceContent
-    const mode = body.clarifications.find(item => item.fieldPath === 'campaignMode')?.value
-    return json(route, understandingFixture(mode ?? null))
+    return handleUnderstanding(route, state)
   }
   if (path.endsWith('/briefs')) {
     assertMutation(route, false)
-    const body = request.postDataJSON() as { clientId: string | null; clientName: string }
+    const body = request.postDataJSON() as { clientId: string | null; clientName: string; interpretationId: string }
     expect(body.clientId).toBeNull()
     expect(body.clientName).toBe('Client One')
+    expect(body.interpretationId).toBe(state.interpretationId)
     return json(route, briefSummary('CREATED', 1), 201)
   }
   if (path.endsWith(`/briefs/${briefId}/versions`)) {
@@ -183,6 +213,26 @@ async function handleWriteApi(route: Route, state: State, path: string) {
     return json(route, campaignModeFixture(mode))
   }
   return json(route, { code: 'NOT_FOUND', status: 404 }, 404)
+}
+
+async function handleUnderstanding(route: Route, state: State) {
+  const request = route.request()
+  expect(request.headers()['x-csrf-token']).toBe('csrf-brief')
+  const body = request.postDataJSON() as {
+    sourceTitle: string; sourceContent: string
+    clarifications: Array<{ fieldPath: string; value: string }>
+    interpretationId: string; parentInterpretationId?: string
+  }
+  expect(body.sourceTitle).toBe('December enquiry Brief')
+  expect(body.interpretationId).toMatch(/^[0-9a-f-]{36}$/)
+  expect(body.parentInterpretationId).toBe(state.interpretationId)
+  const parentId = state.interpretationId ?? null
+  state.interpretationId = body.interpretationId
+  state.source = body.sourceContent
+  const mode = body.clarifications.find(item => item.fieldPath === 'campaignMode')?.value
+  return json(route, { ...understandingFixture(mode ?? null), interpretation: {
+    id: body.interpretationId, parentId, version: parentId ? 2 : 1, sourceHash: 'a'.repeat(64),
+  } })
 }
 
 function understandingFixture(mode: string | null) {
@@ -275,7 +325,7 @@ function versionFixture(state: State) {
     budgetMinor: 10000000, budgetUnknown: false, currency: 'ZAR',
     vatStatus: null, feesMinor: null,
     constraints: [], measurement: [], facts: [], unknowns: [], assumptions: [], conflicts: [],
-    evidenceItemIds: [], status: state.status, createdBy: userId,
+    evidenceItemIds: [], spatialRequirements: [], status: state.status, createdBy: userId,
     submittedBy: state.status === 'IN_REVIEW' || state.status === 'APPROVED' ? userId : null,
     approvedBy: state.status === 'APPROVED' ? userId : null,
     approvalMode: state.status === 'APPROVED' ? 'SELF' : null,

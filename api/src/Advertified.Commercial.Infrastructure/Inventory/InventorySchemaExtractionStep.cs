@@ -38,16 +38,19 @@ public sealed class InventorySchemaExtractionStep(
                 extraction.AdapterVersion,
                 extraction.SchemaVersion,
                 extraction.SourceHash,
-                extraction.ProviderJson,
-                rows,
-                schema);
+                  extraction.ProviderJson,
+                  rows,
+                  schema,
+                  deduplicationDecisions:
+                      extraction.Document.DeduplicationDecisions);
         }
         catch (Exception exception) when (exception is InventorySchemaRejectedException ||
             IsProviderInterruption(exception, cancellationToken))
         {
             return InventoryExtractionContract.Create(extraction.AdapterCode, extraction.AdapterVersion,
                 extraction.SchemaVersion, extraction.SourceHash, extraction.ProviderJson, [],
-                schemaDiscoveryFailure: "The document could not be interpreted safely. Review the retained source before retrying.");
+                schemaDiscoveryFailure: "The document could not be interpreted safely. Review the retained source before retrying.",
+                deduplicationDecisions: extraction.Document.DeduplicationDecisions);
         }
     }
 

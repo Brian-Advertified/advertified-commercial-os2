@@ -92,6 +92,7 @@ public sealed partial class BriefCommands(
             throw new UnauthorizedAccessException("Brief assignment denied.");
         }
         var now = timeProvider.GetUtcNow();
+        await BriefInterpretationBinding.ValidateAsync(store.DbContext, envelope, cancellationToken);
         var client = await clientResolver.ResolveAsync(
             envelope.TenantId,
             envelope.ActorId,
@@ -112,8 +113,9 @@ public sealed partial class BriefCommands(
             command.SourceTitle, 300, nameof(command.SourceTitle));
         var locator = OpportunityCommandSupport.Required(
             command.SourceLocator, 2048, nameof(command.SourceLocator));
-        var content = OpportunityCommandSupport.Required(
-            command.SourceContent, 262_144, nameof(command.SourceContent));
+        _ = OpportunityCommandSupport.Required(command.SourceContent, 262_144, nameof(command.SourceContent));
+        if (command.SourceContent.Length > 262_144) throw new ArgumentException("The supplied Brief is too large.");
+        var content = command.SourceContent;
         var id = Guid.NewGuid();
         var sourceId = Guid.NewGuid();
         await BriefPersistence.InsertAggregateAndSourceAsync(
@@ -123,7 +125,7 @@ public sealed partial class BriefCommands(
                 MasterDataCodes.LifecycleStatuses.Created, 1, now),
             new BriefSourceWrite(
                 sourceId, sourceType, locator, sourceTitle, content,
-                OpportunityCommandSupport.Hash(content), envelope.ActorId.Value, now),
+                OpportunityCommandSupport.Hash(content), envelope.ActorId.Value, now, command.InterpretationId),
             cancellationToken);
         var view = new CampaignBriefSummaryView(
             id, envelope.TenantId.Value, client.Id, client.Name, null, title, command.OwnerUserId,

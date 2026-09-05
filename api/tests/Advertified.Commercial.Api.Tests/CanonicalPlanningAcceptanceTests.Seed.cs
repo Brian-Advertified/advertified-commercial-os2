@@ -179,7 +179,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
                 vat_treatment_code, commercial_terms_json)
             VALUES ($1, $2, $3, 'MONTH_RATE', 'ZAR', $4, '2026-01-01', $5,
                 'csv#row=2', 'INCLUSIVE',
-                '{"vatTreatment":"INCLUSIVE","minimumOrder":1,"inclusions":["Media placement"],"exclusions":["Creative production"],"conditions":["Subject to written supplier confirmation"],"bookingLeadTimeDays":5}'::jsonb)
+                '{"vatTreatment":"INCLUSIVE","minimumOrder":1,"billingDays":30,"inclusions":["Media placement"],"exclusions":["Creative production"],"conditions":["Subject to written supplier confirmation"],"bookingLeadTimeDays":5}'::jsonb)
             """, rateId, TenantId, versionId, rate, effectiveTo);
         var availability = index is 0 or 1 ? "AVAILABLE" : "UNKNOWN";
         var validUntil = index == 0

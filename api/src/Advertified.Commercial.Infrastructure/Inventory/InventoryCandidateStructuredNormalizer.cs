@@ -39,7 +39,7 @@ internal static partial class InventoryCandidateNormalizer
             Text(values, "discount_terms"), List(values, "inclusions"),
             List(values, "exclusions"), List(values, "conditions"),
             Int(values, "booking_lead_time_days"), Date(values, "booking_deadline"),
-            Date(values, "material_deadline"), Text(values, "cancellation_terms"));
+            Date(values, "material_deadline"), Text(values, "cancellation_terms"), Int(values, "billing_days"));
         return HasCommercialValue(result) ? result : null;
     }
 
@@ -50,7 +50,7 @@ internal static partial class InventoryCandidateNormalizer
         value.DiscountTerms is not null || value.Inclusions.Count > 0 ||
         value.Exclusions.Count > 0 || value.Conditions.Count > 0 ||
         value.BookingLeadTimeDays.HasValue || value.BookingDeadline.HasValue ||
-        value.MaterialDeadline.HasValue || value.CancellationTerms is not null;
+        value.MaterialDeadline.HasValue || value.CancellationTerms is not null || value.BillingDays.HasValue;
 
     private static InventoryDeliverableValues? Deliverable(
         Dictionary<string, string> values)
@@ -167,6 +167,7 @@ internal static partial class InventoryCandidateNormalizer
         Add(result, "production_cost_minor", "productioncostminor");
         Add(result, "installation_cost_minor", "installationcostminor", "installcostminor");
         Add(result, "minimum_order", "minimumorder", "minimumquantity");
+        Add(result, "billing_days", "billingdays");
         Add(result, "discount_terms", "discountterms", "discount");
         Add(result, "inclusions", "inclusions", "included");
         Add(result, "exclusions", "exclusions", "excluded");

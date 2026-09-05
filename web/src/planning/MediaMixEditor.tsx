@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { z } from 'zod'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
-import type { MediaAllocation, MediaMix, RunningPeriod } from '../api/planning-schemas'
+import type { MediaAllocation, MediaMix, RunningPeriod, ShortlistCandidate } from '../api/planning-schemas'
+import { PurchaseQuantityEditor } from './PurchaseQuantityEditor'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { formatMoney, majorAmountToMinor, minorAmountToInput } from '../presentation/format'
 import { mediaVisual } from './media-visuals'
@@ -12,6 +13,7 @@ const periodSchema = z.object({ start: z.iso.date(), end: z.iso.date() })
 type MediaMixEditorProps = {
   mix: MediaMix
   allowedChannels: string[]
+  purchaseCandidates?: ShortlistCandidate[]
   busy: boolean
   onSave: (allocations: MediaAllocation[]) => Promise<void>
   onApprove: () => Promise<void>
@@ -40,18 +42,20 @@ export function MediaMixEditor(props: MediaMixEditorProps) {
         onClick={draft.addChannel}>Add media type</button>
     </div>}
     <div className="media-allocation-grid">{draft.allocations.map((allocation, index) =>
-      <AllocationCard key={allocation.channel} allocation={allocation}
+      <div key={allocation.channel}><AllocationCard allocation={allocation}
         currency={props.mix.currency} editable={editable}
         canRemove={draft.allocations.length > 1}
         onRemove={() => draft.removeChannel(index)}
-        onChange={(patch) => draft.update(index, patch)} />)}</div>
+        onChange={(patch) => draft.update(index, patch)} />
+      <PurchaseQuantityEditor allocation={allocation} candidates={props.purchaseCandidates ?? []}
+        editable={editable} onChange={patch => draft.update(index, patch)} /></div>)}</div>
     {draft.error && <p className="inline-alert" role="alert">{draft.error}</p>}
     {editable ? <div className="planning-actions">
       <button className="secondary-button" type="button" disabled={props.busy}
         onClick={() => void draft.save()}>
         {props.busy ? 'Saving…' : 'Save changes'}</button>
       <button className="primary-button" type="button"
-        disabled={props.busy || !draft.balanced || !draft.scheduled}
+        disabled={props.busy || !draft.balanced || !draft.scheduled || draft.dirty}
         onClick={() => void props.onApprove()}>Confirm media mix</button>
     </div> : <div className="planning-confirmed"><span>Media mix confirmed.</span>
       <button className="secondary-button" type="button" disabled={props.busy}
@@ -95,7 +99,8 @@ function useMediaMixDraft({ mix, allowedChannels, onSave }: MediaMixEditorProps)
       setError(failure instanceof Error ? failure.message : 'The media mix could not be saved.')
     }
   }
-  return { allocations, channelToAdd, setChannelToAdd, error, allocated, balanced,
+  const dirty = JSON.stringify(allocations) !== JSON.stringify(mix.allocations)
+  return { allocations, channelToAdd, setChannelToAdd, error, allocated, balanced, dirty,
     scheduled, unusedChannels, update, addChannel, removeChannel, save }
 }
 

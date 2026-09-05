@@ -137,10 +137,15 @@ public sealed class InventoryAcceptancePolicyRegressionTests
         var hash = sourceHash ?? Hash;
         var document = InventoryDocumentStructureReader.Read(hash, provider);
         var structure = document.Structures[0];
-        var mappings = Meanings.Select((meaning, column) => new InventorySchemaFieldMapping(meaning,
-            $"Unfamiliar heading {column}", $"{structure.Id};row=0;column={column}", structure.Id,
-            column, 0, false, "Evidence-backed fixture binding", confidence,
-            [new($"{structure.Id};row=0;column={column}", $"Unfamiliar heading {column}")])).ToArray();
+        var mappings = Meanings.Select((meaning, column) =>
+        {
+            var locator = structure.Cells.Single(cell =>
+                cell.Row == 0 && cell.Column == column).Locator;
+            return new InventorySchemaFieldMapping(meaning,
+                $"Unfamiliar heading {column}", locator, structure.Id,
+                column, 0, false, "Evidence-backed fixture binding", confidence,
+                [new(locator, $"Unfamiliar heading {column}")]);
+        }).ToArray();
         var schema = new DiscoveredInventorySchema(InventorySchemaValidation.ProtocolVersion, hash,
             document.StructureHash, [new(structure.Id, new(1, 1, 1, []), mappings, [], [])],
             confidence, [], new("deterministic-fixture", "fixture-prompt/1", null, null, 0, 0));

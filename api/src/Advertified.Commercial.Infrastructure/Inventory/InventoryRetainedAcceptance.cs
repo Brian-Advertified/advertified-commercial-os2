@@ -51,7 +51,7 @@ internal static class InventoryRetainedAcceptance
     {
         var extraction = artifact.Extraction();
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(extraction.Rows, artifact.SourceHash,
-            source.SupplierName, codes, now);
+            source.SupplierName, codes, now, source.FileName);
         return InventoryAcceptancePolicy.Apply(extraction, source.SourceHash,
             artifact.SourceFileVersion, codes, candidates, now);
     }
@@ -85,7 +85,9 @@ internal sealed class InventoryAcceptanceArtifact
     {
         var document = InventoryExtractionContract.Replay(CanonicalJson, SchemaVersion);
         var extraction = InventoryExtractionContract.Create(AdapterCode, AdapterVersion, SchemaVersion,
-            SourceHash, ProviderJson, document.Rows, document.DiscoveredSchema, document.SchemaDiscoveryFailure);
+            SourceHash, ProviderJson, document.Rows, document.DiscoveredSchema,
+            document.SchemaDiscoveryFailure, document.SourceAccounting,
+            document.DeduplicationDecisions);
         if (extraction.CanonicalOutputHash != CanonicalHash) throw new InventoryExtractionUnavailableException();
         return extraction;
     }

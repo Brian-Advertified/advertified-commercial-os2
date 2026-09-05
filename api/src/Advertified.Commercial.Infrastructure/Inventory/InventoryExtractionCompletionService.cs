@@ -57,7 +57,10 @@ public sealed class InventoryExtractionCompletionService(
             source.SourceHash,
             supplier.SupplierName,
             codes,
-            now);
+            now,
+            source.FileName);
+        extraction = InventoryExtractionSourceAccounting.Attach(
+            extraction, candidates);
         candidates = InventoryAcceptancePolicy.Apply(extraction, source.SourceHash,
             claim.SourceFileVersion, codes, candidates, now);
         Guid? reviewer = extraction.Document.SchemaDiscoveryFailure is not null ||

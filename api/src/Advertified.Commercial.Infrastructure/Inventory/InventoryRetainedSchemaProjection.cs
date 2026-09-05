@@ -16,6 +16,8 @@ internal static class InventoryRetainedSchemaProjection
                  retained.Rows.Any(row => row.DiscoveredFields is null))
             throw new InventoryExtractionUnavailableException();
         return InventoryExtractionContract.Create("docling", adapterVersion, retained.SchemaVersion,
-            sourceHash, providerJson, failure is null ? retained.Rows : [], retained.DiscoveredSchema, failure);
+            sourceHash, providerJson, failure is null ? retained.Rows : [],
+            retained.DiscoveredSchema, failure, retained.SourceAccounting,
+            retained.DeduplicationDecisions);
     }
 }

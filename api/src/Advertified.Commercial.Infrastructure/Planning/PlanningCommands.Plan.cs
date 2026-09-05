@@ -49,7 +49,8 @@ public sealed partial class PlanningCommands
         {
             throw new PlanningApprovalBlockedException();
         }
-        var inventory = await store.ListInventoryAsync(envelope.TenantId, cancellationToken);
+        var inventory = await store.ListInventoryAsync(envelope.TenantId, cancellationToken,
+            selected.Select(item => item.InventoryProductId).Distinct().ToArray());
         var byVersion = inventory.ToDictionary(InventoryKey.For);
         var inputs = selected.Select(item => byVersion.TryGetValue(
                 InventoryKey.For(item), out var value)
@@ -62,7 +63,8 @@ public sealed partial class PlanningCommands
             item,
             allocations.TryGetValue(item.Channel, out var allocation)
                 ? allocation.RunningPeriods
-                : throw new InvalidLifecycleTransitionException())).ToArray();
+                : throw new InvalidLifecycleTransitionException(),
+            InventoryPurchaseQuantities.Find(item, allocations[item.Channel]))).ToArray();
         var amounts = PlanAmounts.Calculate(scheduled, commercialPolicy, planningPolicy);
         EnsureChannelBudgetsReconcile(amounts, allocations);
         if (amounts.TotalMinor > brief.BudgetMinor)
@@ -220,7 +222,8 @@ public sealed partial class PlanningCommands
         MediaPlanVersionView plan,
         CancellationToken cancellationToken)
     {
-        var current = await store.ListInventoryAsync(tenantId, cancellationToken);
+        var current = await store.ListInventoryAsync(tenantId, cancellationToken,
+            plan.Lines.Select(item => item.InventoryProductId).Distinct().ToArray());
         var byProduct = current.ToDictionary(InventoryKey.For);
         return plan.Lines.All(line => byProduct.TryGetValue(InventoryKey.For(line), out var item) &&
             item.ProductVersionId == line.ProductVersionId && item.RateId == line.RateId &&

@@ -28,12 +28,13 @@ type Props = {
 export function CreativeSection(props: Props) {
   const status = props.campaign.status
   const unlocked = status !== masterDataCodes.lifecycleStatuses.planned
+  const hasRequirements = Boolean(props.campaign.creative?.requirements.length)
   return <section id="creative-stage" className="campaign-workspace-section">
     <CreativeHeading campaign={props.campaign} />
     {!unlocked && <LockedCreative />}
-    {status === masterDataCodes.lifecycleStatuses.booked && !props.campaign.creative &&
+    {status === masterDataCodes.lifecycleStatuses.booked && !hasRequirements &&
       <CreativeRequestBoundary {...props} />}
-    {props.campaign.creative && <CreativeRequirements {...props} />}
+    {hasRequirements && <CreativeRequirements {...props} />}
     {status === masterDataCodes.lifecycleStatuses.creativePending &&
       props.campaign.creative?.readyForApproval && props.canApprove &&
       <CreativeApprovalForm {...props} />}

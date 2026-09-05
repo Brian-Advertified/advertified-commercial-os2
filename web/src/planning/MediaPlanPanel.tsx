@@ -28,7 +28,8 @@ export function MediaPlanPanel({ plan, busy, onResolve, onApprove }: {
           <div><span>{visual.label}</span><h3>{line.name}</h3><small>{line.geography}</small></div></div>
         <div className="plan-line-periods">{line.runningPeriods.map(period =>
           <span key={`${period.start}-${period.end}`}>{formatDate(period.start)} – {formatDate(period.end)}</span>)}</div>
-        <div className="plan-line-commercial"><span>Qty <strong>{line.quantity}</strong></span>
+        <div className="plan-line-commercial"><span>Qty <strong>{line.quantity}</strong>
+          {line.purchase && ` (${line.purchase.rateType}; rate per ${line.purchase.denominator ?? 'unspecified'})`}</span>
           <span>Client price <strong>{formatMoney(line.clientPriceMinor, plan.currency)}</strong></span>
           <span>Supply <strong>{line.supplyConfidence.replaceAll('_', ' ')}</strong></span></div>
       </article>

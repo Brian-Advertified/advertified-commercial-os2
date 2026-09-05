@@ -241,7 +241,7 @@ public sealed partial class AgentRuntimeHttpAdapterTests
 
     private static HttpResponseMessage Response(
         object artifact,
-        IReadOnlyList<Guid> evidenceIds,
+        Guid[] evidenceIds,
         long incrementalCostMinor = 0,
         string fieldPath = "artifact")
     {
@@ -250,7 +250,7 @@ public sealed partial class AgentRuntimeHttpAdapterTests
             schema_version = "1.0.0",
             status = "COMPLETED",
             artifact,
-            evidence_bindings = new[]
+            evidence_bindings = evidenceIds.Length == 0 ? [] : new[]
             {
                 new { field_path = fieldPath, evidence_item_ids = evidenceIds },
             },

@@ -20,11 +20,15 @@ internal static class InventoryAcceptanceCandidateChecks
     {
         var scope = candidate.SourceLocator;
         var fields = row?.DiscoveredFields ?? [];
-        var required = RequiredMeanings.All(meaning => Bound(meaning, fields, candidate));
+        var required = RequiredMeanings.All(meaning =>
+            Bound(meaning, fields, candidate, row));
         if (!InventoryPendingSupplierValidationPolicy.IsPendingSupplier(candidate.Values))
-            required &= PricingMeanings.All(meaning => Bound(meaning, fields, candidate)) &&
-                (Bound("rate", fields, candidate) || Bound("rate_minor", fields, candidate));
-        required &= Bound("availability", fields, candidate) || PolicyAvailability(candidate);
+            required &= PricingMeanings.All(meaning =>
+                    Bound(meaning, fields, candidate, row)) &&
+                (Bound("rate", fields, candidate, row) ||
+                 Bound("rate_minor", fields, candidate, row));
+        required &= Bound("availability", fields, candidate, row) ||
+            PolicyAvailability(candidate);
         var ambiguous = candidate.Values.Extension?.ContainsKey(
             InventoryDiscoveredCandidateNormalizer.UnresolvedMarker) == true ||
             candidate.Values.Extension?.ContainsKey("rateambiguity") == true;
@@ -45,13 +49,39 @@ internal static class InventoryAcceptanceCandidateChecks
         ];
     }
 
-    private static bool Bound(string meaning, IReadOnlyList<InventoryDiscoveredField> fields,
-        PreparedInventoryCandidate candidate) => fields.Any(field =>
+    private static bool Bound(
+        string meaning,
+        IReadOnlyList<InventoryDiscoveredField> fields,
+        PreparedInventoryCandidate candidate,
+        InventoryExtractedRow? row) =>
+        VariantBound(meaning, candidate, row) || fields.Any(field =>
             field.CanonicalMeaning == meaning && !string.IsNullOrWhiteSpace(field.RawValue) &&
             !string.IsNullOrWhiteSpace(field.Interpretation) && field.Warnings.Count == 0 &&
             candidate.Evidence.Any(evidence => evidence.FieldName == meaning &&
                 evidence.SourceLocator == field.SourceLocator && evidence.RawValue == field.RawValue &&
                 !string.IsNullOrWhiteSpace(evidence.NormalizedValue)));
+
+    private static bool VariantBound(
+        string meaning,
+        PreparedInventoryCandidate candidate,
+        InventoryExtractedRow? row)
+    {
+        var rates = candidate.Values.RateVariants;
+        if (rates is not { Count: > 0 } || row?.RateVariants is not { Count: > 0 } raw ||
+            rates.Count != raw.Count)
+            return false;
+        return meaning switch
+        {
+            "rate" or "rate_minor" => rates.All(rate =>
+                rate.AmountMinor.HasValue && candidate.Evidence.Any(evidence =>
+                    evidence.SourceLocator == rate.SourceLocator &&
+                    evidence.FieldName.EndsWith(".amount", StringComparison.Ordinal) &&
+                    evidence.NormalizedValue is not null)),
+            "currency" => rates.All(rate => !string.IsNullOrWhiteSpace(rate.Currency)),
+            "rate_type" => rates.All(rate => !string.IsNullOrWhiteSpace(rate.RateType)),
+            _ => false,
+        };
+    }
 
     private static bool PolicyAvailability(PreparedInventoryCandidate candidate) =>
         candidate.Values.Availability == MasterDataCodes.AvailabilityStatuses.PlanningAvailable &&
@@ -65,7 +95,11 @@ internal static class InventoryAcceptanceCandidateChecks
     {
         if (row?.DiscoveredFields is not { Count: > 0 } fields || row.Locator != candidate.SourceLocator)
             return false;
-        return candidate.Evidence.All(item => item.SourceHash == hash &&
+        var rateEvidence = row.RateVariants?.All(rate =>
+            candidate.Evidence.Any(item => item.SourceHash == hash &&
+                item.SourceLocator == rate.SourceLocator &&
+                item.RawValue == rate.RawValue)) ?? true;
+        return rateEvidence && candidate.Evidence.All(item => item.SourceHash == hash &&
                 !string.IsNullOrWhiteSpace(item.SourceLocator)) &&
             fields.All(field => candidate.Evidence.Any(item => item.SourceLocator == field.SourceLocator &&
                 item.RawValue == field.RawValue));

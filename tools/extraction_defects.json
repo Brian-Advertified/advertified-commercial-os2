@@ -1,0 +1,335 @@
+{
+  "analysis_timestamp": "2026-09-05T11:30:06.356523",
+  "inspection_path": "C:\\Users\\CC KEMPTON\\source\\advertified-commercial-os2\\tools\\physical_inspection_results.json",
+  "extraction_path": "C:\\Users\\CC KEMPTON\\source\\advertified-commercial-os2\\tools\\extraction_results.json",
+  "total_defects": 29,
+  "defect_summary": {
+    "critical": 0,
+    "major": 29,
+    "minor": 0
+  },
+  "defect_types": {
+    "count_mismatch": 29
+  },
+  "defects": [
+    {
+      "source_id": "powerpoint_8932a7849710407e",
+      "filename": "Media Deck 2026 (1).pptx",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 43, extraction found 11",
+      "expected_value": "43",
+      "actual_value": "11",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_749374a62ab97cb9",
+      "filename": "Digital Rates & Packages F27_FINAL.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 104, extraction found 48",
+      "expected_value": "104",
+      "actual_value": "48",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_a505e8e95caa0b5b",
+      "filename": "Algoa FM - Club Package - Generic & Pre-Rolls - 6 Months - 2026.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 17, extraction found 32",
+      "expected_value": "17",
+      "actual_value": "32",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_9dcebc87869fff58",
+      "filename": "Kena Outdoor Digital Inventory - Sept 2025.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 17, extraction found 28",
+      "expected_value": "17",
+      "actual_value": "28",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_0d4d0a38cf28ec7d",
+      "filename": "Commvibe Stations Demographic Profiles GP- WC- MP.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 0, extraction found 130",
+      "expected_value": "0",
+      "actual_value": "130",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "excel_133a50e6907e936e",
+      "filename": "eleven8_inventory.xlsx",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 1, extraction found 91",
+      "expected_value": "1",
+      "actual_value": "91",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "powerpoint_a8bcdb4b9268aac2",
+      "filename": "Insight Outdoor ZA - Publisher Media Kit - 2025.pptx",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 1, extraction found 43",
+      "expected_value": "1",
+      "actual_value": "43",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "powerpoint_acc990785d05dd17",
+      "filename": "Summit OOH Media - Digital Billboard Network - 2025.pptx",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 2, extraction found 19",
+      "expected_value": "2",
+      "actual_value": "19",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "powerpoint_ea1cc4fd04e56a8f",
+      "filename": "RSD Rate Cards - Gauteng - 2025.pptx",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 2, extraction found 19",
+      "expected_value": "2",
+      "actual_value": "19",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_85a86afebbde33d4",
+      "filename": "Relativ Media ZA - Media Kit - 2025.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 43, extraction found 131",
+      "expected_value": "43",
+      "actual_value": "131",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_67ac61bf7dc0af5e",
+      "filename": "Jozi FM - Plan A - Generic & Sponsorship - 2026.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 16, extraction found 35",
+      "expected_value": "16",
+      "actual_value": "35",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_b5780f91ecee7d4a",
+      "filename": "Arena-Business-Day-Rate-Sheet-2026-Repro.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 72, extraction found 116",
+      "expected_value": "72",
+      "actual_value": "116",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_4284b7c25e4b6797",
+      "filename": "Smile 90.4FM - Impact Plus package - 2026.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 22, extraction found 53",
+      "expected_value": "22",
+      "actual_value": "53",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_cd533cfebd184fd6",
+      "filename": "Jit Tv Digital Screens Concept.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 20, extraction found 76",
+      "expected_value": "20",
+      "actual_value": "76",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "powerpoint_e073c802152cf95f",
+      "filename": "RSD Rate Cards - Western Cape - 2025.pptx",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 4, extraction found 45",
+      "expected_value": "4",
+      "actual_value": "45",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_332d2f11ccb1d95e",
+      "filename": "Algoa FM - Algoa Club Package - Plan A - Generic & Sponsorship -2026.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 15, extraction found 33",
+      "expected_value": "15",
+      "actual_value": "33",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_41b83d0d780dad7c",
+      "filename": "Jozi FM - Club Package - Generic & Pre-Rolls - 6 Months - 2026.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 13, extraction found 28",
+      "expected_value": "13",
+      "actual_value": "28",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_d735f3ebf1853ae8",
+      "filename": "The Home Channel Rate Card - 2025.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 11, extraction found 29",
+      "expected_value": "11",
+      "actual_value": "29",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_8331bddefe98103e",
+      "filename": "Algoa FM - Algoa Club Package - Plan A - Generic Only -2026.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 12, extraction found 19",
+      "expected_value": "12",
+      "actual_value": "19",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_f9a8fdef3602f926",
+      "filename": "Direct Kaya Packages (Discounted) .pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 23, extraction found 75",
+      "expected_value": "23",
+      "actual_value": "75",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_1cdca7e2c3a4873a",
+      "filename": "Ignition TV Rate Card - 2025.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 9, extraction found 24",
+      "expected_value": "9",
+      "actual_value": "24",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_8ce9e4d448121377",
+      "filename": "Business Day TV Rate Card - 2025.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 11, extraction found 31",
+      "expected_value": "11",
+      "actual_value": "31",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_74bfa893f0b0989c",
+      "filename": "JCDecaux ZA - Media Kit - 2025.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 38, extraction found 254",
+      "expected_value": "38",
+      "actual_value": "254",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_0a0abca0e2c94999",
+      "filename": "BlackSpace VSBLT_OOH Sites Q3_ 2025.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 9, extraction found 148",
+      "expected_value": "9",
+      "actual_value": "148",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "powerpoint_9f2f89edee393df1",
+      "filename": "Reveel - ZA - Publisher Media Kit.pptx",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 1, extraction found 3",
+      "expected_value": "1",
+      "actual_value": "3",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "powerpoint_63f197392e11ca89",
+      "filename": "Summit OOH Media - Main Market Screens - 2025.pptx",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 2, extraction found 15",
+      "expected_value": "2",
+      "actual_value": "15",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_7f26bb48a0c3a6cd",
+      "filename": "Jozi FM - Plan A - Generic Only - 2026.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 10, extraction found 21",
+      "expected_value": "10",
+      "actual_value": "21",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_bc3015af60c24492",
+      "filename": "Digital Screens Concept - Soweto Screens 11 April 2026 (1).pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 21, extraction found 39",
+      "expected_value": "21",
+      "actual_value": "39",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    },
+    {
+      "source_id": "pdf_ed68a16013d01c83",
+      "filename": "Commvibe Rate Card 26.pdf",
+      "defect_type": "count_mismatch",
+      "severity": "major",
+      "description": "Significant entry count difference: inspection found 0, extraction found 1",
+      "expected_value": "0",
+      "actual_value": "1",
+      "location_context": "document_level",
+      "remediation": "Review extraction logic for document type"
+    }
+  ]
+}

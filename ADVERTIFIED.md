@@ -5159,6 +5159,433 @@ Run `python -m pytest tests/architecture -q` from the repository root. The web j
 historical product-wide audit finding. No supplier corpus was processed, no paid provider called,
 and no existing application stack redeployed.
 
+### 49.2.15 Full-product completion implementation packet — 2026-09-05
+
+The owner's implementation request adopts the external completion prompt and revised audit as
+the remediation scope R01–R30, subject to this canonical specification. The preceding local
+inventory/baseline checkpoint is the repeatable evidence in Section 49.2.14; it is not full-product
+closure. Work starts with R01 admission/worker pause, then the central R02–R06 defects and the
+remaining ordered packets. Existing fixes are credited only against current source/evidence.
+
+Real inventory processing remains paused: no new ingestion, extraction, schema/enrichment,
+embedding, retained reprojection, retry or publication. Preserve all pending attempts, external
+receipts and readable inventory/history. A server-side maintenance setting defaults to paused
+and requires an explicit owner-authorised configuration change to resume; restarting must not
+resume work. This is distinct from provider unavailability and unrelated application health.
+Running-service activation is separately reported and must not be claimed from source alone.
+
+Initial bounded acceptance: paused commands and workers initiate no side effects; Disabled AI
+mode resolves unavailable clients; actual shortlist HTTP serialization retains deterministic
+suitability components and validates against Python; an empty booked creative workspace offers
+the authorised first request. Verification uses fakes and the pinned socket-free Docker build,
+targeted browser/contract checks and architecture checks. No live providers, private source files,
+shared migrations, deployment, commits, pushes or external communications are authorised.
+The existing `artifacts/audit-remediation/2026-09-05-disposition.json` retains R-ID dispositions,
+commands/results, current runtime observation and the unfinished implementation checkpoint.
+
+The first central-defect implementation also adds source-hash-grounded supplied-brief HTTP
+understanding through the existing brief-drafting runtime operation. The transient understanding
+response does not establish durable source/usage persistence or an approved BriefVersion; those
+acceptance obligations remain open. Unsupported quantity-dependent rates no longer become one
+unit by default. Explicit CPM/count/package purchase inputs and source-defined calendar billing
+remain required follow-up work; rejecting an unpriceable candidate is a safety correction, not
+completion of those buying capabilities. The sidebar's unmeasured AI Online claim is removed.
+
+The same packet consolidates campaign/proof/evidence/report loading through the existing shared
+resource hook. Display and asynchronous mutation completion are fenced by session, membership
+and resource context; a late response cannot restore the previous resource or display its success
+notification in the next context. Other role and browser-state obligations remain open under R12.
+
+Retained offline checkpoint: pinned API/migrator build and 47 selected tests pass, including
+OpenAPI parity; 50 architecture checks, 59 Python runtime checks, 11 web checks and two focused
+browser regressions pass. Actual exported C# shortlist and three supplied-brief request/response
+pairs validate against Python contracts. The supplied-brief runtime route is exercised with a
+fake provider and its fixture fallback is rejected. Web build/lint and Compose validation pass.
+The older full-delivery browser scenario still fails on the absent expected OOH-only Campaign
+Flow region before creative; that failure is retained, not replaced by the two focused passes.
+The full product is incomplete and no release approval is asserted. Pause code is not yet
+activated in the existing services, which were not redeployed. Exact commands, source hashes,
+historical failures, activation requirements and unfinished R-ID work remain in the disposition
+register referenced above. Source changes are unstaged. This packet made no live provider or
+production calls, processed no real inventory, and mutated no database records.
+
+Continuation work packet (owner request, 2026-09-05): preserve the central checkpoint and
+continue remaining R01–R30 in dependency order using current source. First retain supplied-Brief
+source/interpretation lineage and governance metadata through the existing understanding path,
+and repair the full campaign-delivery journey without removing its campaign-mode assertion.
+Preceding evidence is the offline checkpoint above; its failed full journey remains failed until
+a recorded passing rerun. Acceptance requires exact immutable source bindings, scoped access,
+correction lineage, no fixture fallback, canonical BriefVersion handoff and focused contract/
+database/browser evidence. Inventory pause stays enabled; no real supplier processing or live
+provider calls. Local source work is authorised; external activation is separately reported.
+
+The continuation also narrows referenced-inventory freshness reads used by plan/proposal
+validation and automated selection (R16). The acceptance rule is one scoped database query for
+the referenced product IDs, retaining current version/rate/availability checks and marketplace
+access guards. This supports subsequent product-bound pricing work; it does not certify bounded
+initial catalogue search or benchmark retrieval.
+
+Continuation checkpoint: supplied-Brief input now has an immutable actor/tenant-scoped
+interpretation reference, exact content hash and correction parent before provider invocation.
+The existing AI run/step/usage records retain successful interpretation metadata; canonical
+Brief creation binds the exact retained source. Disabled interpretation fails before reservation.
+Source preservation no longer trims original content. The browser carries correction lineage,
+reuses interpretation identity after ambiguous transport failure, and stops later planning
+commands when the intake context is retired. The full campaign-delivery assertion now passes
+after its proposal fixture was corrected to include required inventory-review fields. The Brief
+journey fixture likewise includes the required spatial-requirements collection.
+
+The new forward migration `202609050002_SuppliedBriefInterpretation` is not applied. Its isolated
+verifier (`tools/verify_supplied_brief_schema.py`) failed before database creation because the
+existing PostgreSQL container is stopped. Starting that service is awaiting owner direction;
+no alternate database container or application-data mutation was attempted. Offline evidence
+includes the pinned 52-test central/regression batch plus seven subsequent focused retention/
+OpenAPI checks, 50 architecture checks, the six combined browser journeys and the additional
+intake-interruption regression. This remains partial R02/R12/R16 work, not full-product closure:
+attachment transport, invalid-provider-response reconciliation, connected persistence evidence,
+unit-aware purchase quantities and the remaining product findings are still outstanding.
+
+The owner subsequently authorised starting the existing PostgreSQL service for isolated
+verification. Only `advertified-os2-dev-postgres-1` was started. The prepared verifier applied
+the baseline and exported new migration to a disposable logical database and passed exact-source
+hash enforcement, immutable-source protection, actor/tenant isolation and correction-parent
+isolation. Its initial registry-fixture failure on omitted optional metadata was corrected using
+an empty metadata object; the failed run remains retained. The disposable database was removed
+and a read-only catalogue check found no remaining test databases with the verifier's prefix.
+All 50 architecture checks passed after that correction. This supersedes only the stopped-service
+schema-verification blocker above. The application database has not received the migration;
+connected C# persistence/usage and end-to-end service acceptance remain separate obligations.
+
+Next continuation packet: exercise the existing C# interpretation store against the same
+authorised PostgreSQL service in a disposable logical database. The preceding isolated schema
+checks passed. Acceptance requires actual EF/Npgsql reservation, completion, single retained
+usage entry, replay, changed-input rejection and actor/tenant denial. The pinned test runner
+may join the existing development network; it must not launch database services, run provider
+calls or migrate the application database.
+
+Connected-store evidence now passes: the pinned C# test runner joined the existing development
+network and exercised actual EF/Npgsql reservation, completion, replay, correction lineage and
+actor/tenant denial in the disposable database. The run exposed and corrected deterministic
+Brief usage metadata to use the canonical fixture model identity, with the policy version retained
+as prompt version. Completion and failure now independently verify ownership of the retained
+interpretation. One usage entry remained after replay; changed input and foreign completion/
+failure were rejected. The temporary database was removed. Six offline retention checks and all
+50 architecture checks also passed. Canonical Brief creation through the complete API journey,
+attachment transport and invalid-provider receipt recovery remain unverified/incomplete.
+
+The next authorised continuation verifies the retained supplied Brief through the real API:
+understanding and replay, exact source binding, immutable version creation, human approval and
+campaign-mode selection, with foreign-tenant and changed-source rejection. The preceding store,
+schema and architecture evidence passed. Tests use the existing PostgreSQL server with disposable
+logical databases and deterministic interpretation; inventory processing remains paused.
+The same retention boundary must account for runtime-reported usage when a typed response fails
+Brief grounding or service validation: retain the rejected receipt in the existing failed agent
+step and canonical usage ledger, reject automatic replay, and never admit it as a canonical
+Brief source. Malformed transport responses without validated usage remain unresolved receipts;
+no cost may be invented from missing metadata.
+
+Pricing continuation packet: extend the existing versioned media allocation with exact-product/
+rate-bound buying quantities, use them in the shared supplier calculator for affordability and
+plan amounts, and retain the approved mix reference in downstream snapshots. Count-based rates
+must reject absent or mismatched quantities. Monthly costing requires a supplied billing
+convention; package costing preserves explicit supplier package terms. Acceptance uses synthetic
+CPM/count/package/calendar examples and connected versioned planning evidence. The preceding
+quantity-one safety correction is verified. Related edits are batched before pinned builds;
+unrelated suites and application-service restarts are not part of small-change verification.
+
+The connected Brief continuation passed four cases in the existing-server disposable database:
+both campaign modes reached approved versions and locked mode selections; completed replay
+retained one usage entry; rejected interpretation receipts remained failed and non-replayable.
+The missing-policy fixture failure was corrected by explicitly supplying the tenant's human
+self-approval policy and retaining the prior denial assertion. No application database migration
+was applied. Pricing validation is a separate in-progress batch; the new nullable plan/booking
+purchase snapshots include immutable booking-update protection and a downgrade guard.
+
+Inventory physical-verification continuation (owner request, 2026-09-05): preserve the wider
+unfinished product work and complete source-hash-bound extraction evaluation for the current
+private inventory collection without publication, replacement, expiry, supplier commitment or
+other downstream commercial action. The collection currently contains 46 files: 36 PDFs, eight
+PPTX files and two XLSX files. Its 679 PDF pages, 228 slides and relevant workbook regions require
+independent visual inspection and a source-led commercial-entry ledger. Historical 43-file
+application results and the later Python digit/row-count reports remain dated diagnostic evidence;
+neither is current application certification. Acceptance requires projection 3.9 output through
+the canonical extractor/orchestration path, field-level bidirectional reconciliation, generic
+source fixes with focused regressions, affected-document re-extraction, explicit ambiguity and
+blocked-material accounting, and measured coverage/recall/precision/completeness denominators.
+The fail-closed operational pause remains enabled. Local Docling is permitted; paid/live AI,
+application-service restart, new containers, infrastructure changes and source-folder mutation are
+not. Current database inspection found no inventory imports, candidates, products, rates, releases,
+outbox messages or inventory audit events after the earlier temporary activity.
+
+Physical-inspection checkpoint: all 46 current source hashes match the retained manifest and all
+909 physical units are accounted for (679 PDF pages, 228 presentation slides and two worksheets).
+The hash-bound visual evidence contains 907 rendered PDF/slide images and 242 contact sheets; both
+workbooks have separate structural and embedded-media evidence. The independent commercial
+reference currently enumerates 641 entries across 31 fully enumerated files. The other 15 files
+are visually inspected but retain explicit row/field-enumeration work, so source-entry recall,
+candidate precision and field completeness are not measured or inferred. Projection 3.9 has not
+run through the canonical application path: the stopped local API image predates fail-closed pause
+activation, and the owner prohibited rebuilding/recreating a container or restarting application
+services for this task. Historical 3.6/3.8 outputs remain diagnostic only. A final read-only
+database check again found zero inventory imports, extractions, attempts, candidates, products,
+product versions, rates and supplier releases, and zero outbox or audit records. No source file,
+database row, object-storage object, provider, supplier or downstream workflow was mutated by this
+checkpoint.
+
+Inventory candidate admission must not discard a priced commercial total solely because its label
+is `TOTAL VALUE`, `TOTAL INVESTMENT`, `TOTAL INVOICE`, `SUBTOTAL` or `SAVINGS`. A total label with
+no product code, package identity, rate, deliverable, geography, spatial or source-availability
+evidence remains non-sellable document furniture. The generic admission change and focused
+regression are implemented locally but have not passed the pinned .NET test path because the same
+safe-runner blocker prevents compilation and execution under the repository SDK.
+
+Superseding inventory-certification evidence (owner-authorised API-only runtime exception,
+2026-09-05): the owner subsequently authorised rebuilding and replacing only the existing local API
+container in the existing Compose project. Before each API start, effective configuration was
+verified as `Process__Role=Api`, `InventoryProcessing__Paused=true`, semantic and live agent runtime
+disabled, deterministic provider, zero inventory cost caps and no AWS, Bedrock, OpenAI or Anthropic
+variables. The authenticated internal verification route checks the pause before authorisation or
+extraction and has no acceptance, command, publication, release, replacement, expiry, notification,
+outbox or downstream-workflow dependency. Only the API container was replaced; the existing
+Docling, PostgreSQL and MinIO container identities were retained.
+
+The independent source-led ledger now accounts for 909/909 physical units and fully enumerates
+46/46 documents, with 7,968 entries. All 46 working sources match manifest SHA-256 values; retained
+visual evidence remains 907 rendered page/slide images, 242 contact sheets and separate evidence for
+both workbooks. Existing renders, source maps and pre-filter diagnostics were preserved and reused
+as independent evidence, while final canonical application outputs were regenerated because the
+implementation binding changed. The final application run covers 46/46 documents and 2,749
+candidates through Docling Serve 1.30.0, Docling 2.118.0, Advertified projection 3.9.0, OpenXML
+1.1.0, embedded-image Docling 1.4.0 and extraction schema v3. Its one implementation binding is
+`205ff02fd70ac9d1562467baab76da67ab9bec5b400e4282036bca9220737a05`, Git parent is
+`a10679f5776eebc20d9c9756777408b25df4407a`, and the executing API image is
+`sha256:9fea5dfa79978cd8656c279176eced30719b110a1963dac30e2f65e281c54498`.
+
+Bidirectional reconciliation records 2,189 one-to-one matched entries, 5,779 false negatives and
+560 false positives. Measured recall is 2,189/7,968 (27.47%); measured candidate precision is
+2,189/2,749 (79.63%); known material-field correctness on matched entries is 7,512/13,298
+(56.49%). The result is tied to ledger SHA-256
+`cab1bf249551fe1c5b05476f516e333472a201df8bf66ae13f8046d62a45aff6` and reconciliation SHA-256
+`99de4e7892751b9e6566ba40e3c996d2e33867989120c5cd3bef696dac44ae2a`; the latter binds matcher
+revision `8e8455b0d418467879f0bcb8483d9e152cdaf68a0c57d1c354552116d66cd84e`.
+Source ambiguities remain explicit, including truncated image-edge rates, logo-only station
+identity, merged schedule cells, conflicting summary/detail amounts and campaign-year conflicts.
+
+The corrected admission rule does not treat a priced total, subtotal, invoice total, VAT, discount
+or savings row as a product merely because it contains money. It preserves an explicit package
+investment and its component/discount relationship only when source package context and the
+same-table component/total evidence support that relationship. Schedule-allocation headers and
+signature/accounting fragments are also rejected generically. The pinned Docker test path passed
+23/23 focused admission regressions and 2/2 verification-boundary tests with zero warnings/errors;
+all 50 architecture guardrails and three reconciliation-matcher regressions passed. Post-run checks
+found zero rows in every `inventory_*` table, `audit_events` and `outbox_messages`; the protected
+MinIO listing remained the checkpointed 622 logical lines with SHA-256
+`269943e66ef844e815524771d354d9d8455951ece609a1e472e07149d33de44c`.
+
+This completes the requested certification evidence, not production acceptance or gate approval.
+The measured recall, precision and field correctness expose material extraction-quality deficits,
+especially in dense broadcast matrices and image-led rate cards, and therefore do not establish
+unattended inventory-admission or production readiness.
+
+### 49.2.16 Generic inventory loss-funnel and extraction remediation — 2026-09-05
+
+The owner directed an evidence-first repair of the generic inventory extractor after the current
+46-document diagnostic evaluation measured 2,189 one-to-one matches from 7,968 independently
+enumerated commercial entries, 560 unmatched candidates and 56.49% known material-field
+correctness. Those files, names, suppliers, hashes, counts, layouts and expected values remain
+replaceable evaluation data and must not become runtime or CI dependencies.
+
+The bounded local work packet first establishes source accounting and commercial-unit granularity
+through the canonical path: original page/slide/sheet/cell, retained Docling/OpenXML structure,
+commercial block, section-level discovered schema, projected product/rate/package/component,
+normalization, admission, deduplication, persistable representation and evaluation reconciliation.
+Every commercial-looking element must have a terminal disposition and first failure stage. Metrics
+must distinguish products, rate variants, packages, components, material fields and evidence
+locators; reconciliation may not require one product candidate per physical price cell when one
+product legitimately contains several independently evidenced rates.
+
+Only after the loss funnel ranks structural causes may implementation add reusable fixes. The
+authorised generic architecture permits multiple schemas within one document, deterministic
+hierarchical-header resolution, matrix unpivoting, inherited context with exact lineage, separate
+product/variant/rate/buying-unit/validity/geography/package/component/discount/shared-term/
+availability/evidence concepts, positive completeness invariants and exception groups scoped to a
+document, section/table, repeated mapping, package relationship, unsupported structure or isolated
+value. A section whose completeness cannot be established is quarantined as a section. Clean
+records outside that scope may proceed under the existing approved acceptance policy; no row-wise
+AI call or row-wise human task is permitted.
+
+Acceptance evidence is dataset-independent: deterministic supported fixtures, renamed/reordered
+variants, unseen holdouts, malformed/ambiguous cases and at least 5,000 synthetic rate variants must
+prove complete source accounting, exact supported-fixture matching, bounded batches/memory,
+duplicate-safe replay and grouped review cardinality. Targeted current-corpus examples may locate
+defects and affected documents may be reprojected after related fixes stabilise; one final full
+corpus regression is optional and remains a diagnostic data exercise. Processing stays paused;
+paid/live providers, publication, supplier-state mutation, replacement/expiry and downstream
+commercial workflows remain forbidden. The prior diagnostic checkpoint is adequate evidence to
+start this remediation gate but is neither a delivered release gate nor owner approval.
+
+Remediation checkpoint (implemented and locally verified, not release approval): the legacy 3.9
+projection was re-reconciled without reprocessing any supplier source. Its totals remain 7,968
+independent entries, 2,749 projected candidates, 2,189 matches, 5,779 false negatives, 560 false
+positives and 5,786 incorrect or missing known material fields. Recall remains 27.47%, candidate
+precision 79.63% and known-field correctness 56.49%. The retained legacy outputs do not contain
+per-entry stage traces, so their exact ten-stage loss funnel is
+`NOT_OBSERVABLE_IN_PROJECTION_ARTIFACT`; assigning historical misses to exact stages would invent
+evidence. This instrumentation absence is itself a root finding and the baseline remains failed.
+
+The baseline can now be viewed at compatible commercial-unit granularity. The structural unit
+classification is diagnostic because the independent ledger predates explicit unit typing:
+
+| Unit | Reference | Candidate | Match | False negative | False positive | Recall | Precision |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Product | 112 | 2,749 | 64 | 48 | 2,685 | 57.14% | 2.33% |
+| Rate variant | 7,750 | 2,491 | 2,092 | 5,658 | 399 | 26.99% | 83.98% |
+| Package | 96 | 2 | 2 | 94 | 0 | 2.08% | 100.00% |
+| Component | 10 | 0 | 0 | 10 | 0 | 0.00% | not applicable |
+
+The product candidate column treats every legacy product-shaped candidate as a product unit, so
+its 2.33% cross-unit precision is diagnostic rather than an operational product-precision claim.
+Critical financial fields are correct in 3,555/4,660 comparisons (76.29%); other material fields
+are correct in 3,957/8,638 (45.81%). Exact evidence-locator correctness is 0/1,569 in the legacy
+contract. By source format, the independent ledger records PDF 1,826/7,507 matches, presentation
+268/366 and spreadsheet 95/95. These format results identify where to investigate; they are not
+format-specific runtime rules.
+
+The following is the honest before/after comparison. `NOT_MEASURED` means that projection 4.0 has
+not been run against and reconciled to the full independent corpus; supported deterministic fixtures
+have a different denominator and must not be presented as corpus improvement:
+
+| Metric | Legacy projection 3.9 corpus | Projection 4.0 full corpus | Supported projection 4.0 fixture evidence |
+|---|---:|---:|---|
+| Product recall | 64/112 (57.14%) | `NOT_MEASURED` | Row-oriented 2/2; transposed headings 2/2 |
+| Rate-variant recall | 2,092/7,750 (26.99%) | `NOT_MEASURED` | Row-oriented 8/8; transposed 4/4; reordered geography 2/2 |
+| Rate-variant precision | 2,092/2,491 (83.98%) | `NOT_MEASURED` | 14 expected and 14 projected; no extra fixture rate variants |
+| Candidate precision | 2,189/2,749 (79.63%) | `NOT_MEASURED` | Not corpus-comparable or separately scored |
+| Critical financial-field correctness | 3,555/4,660 (76.29%) | `NOT_MEASURED` | Not separately scored |
+| Other material-field correctness | 3,957/8,638 (45.81%) | `NOT_MEASURED` | Not separately scored |
+| Exact evidence-locator correctness | 0/1,569 (0.00%) | `NOT_MEASURED` | Exact cell/header lineage retained for all 14 fixture rate variants |
+| Commercial-looking source accounting | Unavailable | `NOT_MEASURED` | 11/11 accounted; zero silent omissions |
+
+Ranked, overlapping signals among the 5,779 false negatives are inherited-context dependence
+(5,596), matrix/rate-variant structure (4,256), absent exact raw/cell evidence (2,439), page-card or
+identity structure (237), and package/component relationships (83). Expected-field concentration
+also shows why the former row/product metric was misleading: currency occurs on 7,645 entries,
+rate on 7,356, exact source-cell context on 3,029, date/time-slot/programme on 2,838 each,
+ambiguity on 2,521, day-scope/time-band on 2,347, region/station context on 1,648 and raw rate on
+1,341. Signal counts overlap and therefore must not be added as if they were exclusive stages.
+
+Root cause is architectural, not one parser typo. The legacy comparator compared mostly physical
+rate cells with product candidates; a candidate stored only one scalar price even when its product
+row contained several rates. Deterministic and discovered-schema paths flattened tables to one
+record per row, losing hierarchical headers, transposed matrices and inherited identity. Durable
+projection and the verification route did not share complete stage accounting. Evidence locators
+were inconsistent, deduplication lacked an explainable retained/consolidated decision, and review
+and persistence could fan out by candidate. Admission also inferred package meaning from a source
+file name. These defects explain the dominant losses without introducing source-specific branches.
+
+The generic repair introduces `inventory-source-accounting/1.0` in every canonical extraction
+artifact. Each identified commercial source element now records original source, raw structure,
+commercial block, schema discovery, record projection, normalization, admission, deduplication,
+persistence and reconciliation; it also records its first failure, terminal disposition and linked
+candidate rows. Terminal dispositions explicitly include product field, rate, package/component,
+shared condition, ambiguous, unsupported and failed. Deduplication records the retained locator,
+all consolidated locators and the exact-evidence reason. Exception review is grouped by repeated
+cause and section/table scope with one correction action rather than one human task per row.
+
+Projection 4.0 resolves merged multi-row headers, row-oriented and transposed matrices and
+inherited context for Docling and native Office tables. One product may retain many independently
+evidenced rate variants with rate type, currency, buying unit, validity, geography, daypart, days,
+duration and other source dimensions. Every rate retains raw value, exact cell locator, header
+hierarchy, header locators and available position data. Explicit source package components,
+discounts and shared terms remain separate structures; a file name cannot create them. The same
+matrix materialisation is used after section-level schema discovery, which invokes the interpreter
+once per structure/section rather than once per record. No supplier, corpus, expected-value or
+file-name branch exists in runtime source.
+
+Candidate and publication writes are set-based in bounded batches of 250 using PostgreSQL JSON
+recordsets. Publication writes every retained rate variant and preserves its variant JSON through
+forward migration `202609050004_InventoryRateVariants`; the guarded down migration refuses to
+discard populated variant data. Candidate retrieval uses bounded keyset pages and the paging index
+does not include unbounded evidence/values payloads. Existing leased-attempt, explicit-retry and
+immutable terminal-history rules remain the restart and idempotency owner.
+
+Deterministic after-fix fixtures provide the presently valid improvement evidence. A row-oriented
+hierarchical fixture produced both product rows and 8/8 rate cells with exact cell/header lineage;
+a transposed fixture produced 2/2 product headings and 4/4 rates; a reordered-geography fixture
+preserved 2/2 semantic variants. Its source-accounting fixture found 20 non-empty source elements,
+11 commercial-looking elements, 11 explicitly accounted elements and zero omissions, with terminal
+dispositions product field 1, rate 8 and unsupported context 2. Its first-failure counts are
+persistence 9 and record projection 2 because that isolated mapping test deliberately supplies
+empty governed code registries; unsupported/persistability remains explicit rather than being
+silently accepted. Fifty related exceptions create one review group. Renaming PDF input to XLSX
+does not change candidate semantics, and two independent sections produce exactly two interpreter
+calls regardless of their record count.
+
+The accounting fixture's two unsupported header-context elements form one table-scoped source
+exception group, while the 50-candidate repeated-cause fixture forms one review group. This proves
+bounded grouping for those supported causes; the count and grouping quality for arbitrary image-led
+or irregular non-tabular holdouts remain unmeasured.
+
+Scale evidence uses no provider. Projection of 1,000 product rows and 5,000 rate variants completed
+in 397.6 ms with 23.06 MiB allocated; deterministic replay produced byte-equivalent serialized
+rows. Indexed reconciliation of 5,000 reference/candidate units produced 5,000 matches in 540.9 ms
+with 13.52 MiB peak memory. A disposable PostgreSQL test inserted and traversed 5,001 candidates
+in 100-record keyset pages without a duplicate, with query traversal guarded below ten seconds; its
+complete migrate/seed/container test took 29 seconds in the recorded run.
+
+Repeatable evidence: the Docker-pinned SDK 10.0.400 path published the API and migrator with zero
+warnings/errors and passed 10/10 new generic extraction tests. The broader affected slice passed
+40/40; three disposable-PostgreSQL durability/paging tests passed in 1.3293 minutes; the forward
+migration repeat/idempotency check passed 1/1; seven Python matcher/accounting tests passed; and all
+50 architecture checks passed. Current failing implementation checks: none. The failed legacy
+quality baseline remains an unresolved corpus acceptance result, not converted into a pass by the
+new fixtures.
+
+No full 46-document projection-4.0 corpus rerun was performed, so no improved corpus recall,
+precision or field-correctness number is claimed. Unseen image-led and irregular non-tabular
+holdouts still require measured evidence, and runtime reconciliation remains `NOT_EVALUATED` until
+the offline evaluator binds a typed reference. Inventory processing remains fail-closed by default
+and Compose retains `InventoryProcessing__Paused=true`, deterministic embedding/runtime modes and
+provider concurrency one. This work used only fixtures and disposable local PostgreSQL containers;
+it made no paid/live AI call, supplier commitment, publication, application-database mutation,
+deployment, commit or push. It does not approve a gate, production readiness or unattended
+inventory admission.
+
+### 49.2.17 Complete real-inventory corpus certification — 2026-09-05
+
+The owner directed the projection-4.0 remediation to continue through every immutable real source,
+one document at a time. For each document, the local Docling and deterministic canonical projection
+must be compared with the physical source and independent reference ledger before the next document
+is certified. Every commercial-looking page, slide, sheet, section, table, header, product, rate,
+rate variant, package, component, discount, term, availability statement and commercial image must
+have an explicit disposition: correctly extracted, correctly excluded with reason, quarantined with
+a precise structural or semantic reason, or confirmed missing/incorrect extraction.
+
+A defect may be repaired only as a reusable document-structure or semantic capability. Runtime and
+test code must not branch on supplier, filename, workbook, product, sheet name, corpus membership,
+source hash or expected corpus value. Each repair requires a synthetic dataset-independent
+regression that states the structural rule, preserves the finest source lineage available and
+proves the failure before the repair would have been possible. After a repair, the affected source
+and relevant previously certified sources must be reprocessed; broader affected and architecture
+suites may be batched at coherent checkpoints.
+
+The retained document ledger must bind source version/hash, inspected physical units and sections,
+all commercial-looking elements and their dispositions, missing or incorrect fields, duplicate
+candidates, lineage accuracy, first-failure stage, terminal disposition, unresolved ambiguity and
+certification status. Corpus recall, candidate precision, field correctness and evidence-locator
+correctness remain `NOT_MEASURED` until all current source hashes have current projection output and
+complete bidirectional comparison. Certification permits an explicit blocked result where the
+source itself is ambiguous, but it does not convert unresolved extraction defects into ambiguity.
+
+Inventory processing and publication remain paused throughout this work. Local Docling and the
+read-only, pause-fenced projection verification route are authorised. Paid/live AI, supplier-state
+mutation, canonical inventory writes, publication, replacement/expiry, notifications and downstream
+commercial workflows remain forbidden. Bedrock may be evaluated file-by-file only after every
+deterministic extraction defect is repaired or explicitly blocked and the remaining issue is proven
+to be genuine semantic ambiguity. Completion is 46/46 real documents physically compared and either
+certified or explicitly blocked with reproducible evidence; fixture and unit-test results alone do
+not complete this work packet.
+
 ## 49.3 Release evidence
 
 A production release records:

@@ -82,7 +82,9 @@ public sealed record BookingView(
     InventoryDeliverableValues? Deliverable = null,
     InventorySpatialValues? Spatial = null,
     string? VatTreatment = null,
-    Guid? LogoAssetId = null);
+    Guid? LogoAssetId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    Advertified.Commercial.Application.Planning.InventoryPurchaseQuantity? Purchase = null);
 
 public interface IBookingCommands
 {

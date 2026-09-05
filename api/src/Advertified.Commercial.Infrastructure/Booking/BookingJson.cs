@@ -5,6 +5,9 @@ namespace Advertified.Commercial.Infrastructure.Booking;
 
 internal static class BookingJson
 {
+    internal static Advertified.Commercial.Application.Planning.InventoryPurchaseQuantity? ReadPurchase(string? json) =>
+        Read<Advertified.Commercial.Application.Planning.InventoryPurchaseQuantity>(json);
+
     private static readonly JsonSerializerOptions StoredJson = new(JsonSerializerDefaults.Web);
 
     internal static InventorySupplierCommercialValues? ReadSupplier(string? json) =>

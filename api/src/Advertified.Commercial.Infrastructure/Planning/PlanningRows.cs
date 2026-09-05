@@ -186,7 +186,8 @@ internal sealed record MediaPlanLineRow(
     string? CommercialTermsJson,
     string? DeliverableJson,
     string? SpatialJson,
-    Guid? LogoAssetId);
+    Guid? LogoAssetId,
+    string? PurchaseJson);
 
 internal sealed record ObjectionResolutionRow(
     Guid PlanVersionId,
@@ -285,7 +286,8 @@ internal sealed record BenchmarkResult(
 
 internal sealed record ScheduledInventory(
     PlanningInventoryRow Inventory,
-    IReadOnlyList<MediaRunningPeriodView> RunningPeriods);
+    IReadOnlyList<MediaRunningPeriodView> RunningPeriods,
+    InventoryPurchaseQuantity? Purchase = null);
 
 internal sealed record CalculatedLineAmounts(
     PlanningInventoryRow Inventory,
@@ -294,7 +296,8 @@ internal sealed record CalculatedLineAmounts(
     long SupplierCostMinor,
     long FeesMinor,
     long VatMinor,
-    long ClientPriceMinor);
+    long ClientPriceMinor,
+    InventoryPurchaseQuantity? Purchase = null);
 
 internal sealed record CalculatedPlanAmounts(
     long SubtotalMinor,

@@ -61,7 +61,8 @@ internal sealed record BookingSourceRow(
     string? CommercialTermsJson,
     string? DeliverableJson,
     string? SpatialJson,
-    Guid? LogoAssetId);
+    Guid? LogoAssetId,
+    string? PurchaseJson);
 
 internal sealed record BookingRow(
     Guid Id,
@@ -108,7 +109,8 @@ internal sealed record BookingRow(
     string? SupplierNote,
     bool TermsAccepted,
     long Version,
-    DateTimeOffset UpdatedAtUtc)
+    DateTimeOffset UpdatedAtUtc,
+    string? PurchaseJson)
 {
     internal BookingView ToView() => new(
         Id, BuyerTenantId, SupplierTenantId, ProposalVersionId, ProposalOptionId,
@@ -122,5 +124,5 @@ internal sealed record BookingRow(
         BookingJson.ReadSupplier(SupplierCommercialJson),
         BookingJson.ReadTerms(CommercialTermsJson),
         BookingJson.ReadDeliverable(DeliverableJson),
-        BookingJson.ReadSpatial(SpatialJson), VatTreatment, LogoAssetId);
+        BookingJson.ReadSpatial(SpatialJson), VatTreatment, LogoAssetId, BookingJson.ReadPurchase(PurchaseJson));
 }

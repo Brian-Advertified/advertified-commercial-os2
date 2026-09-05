@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
 
-public sealed class InventoryExtractionDurabilityTests
+public sealed partial class InventoryExtractionDurabilityTests
 {
     private static readonly Guid TenantId = Guid.Parse("de100000-0000-0000-0000-000000000001");
     private static readonly Guid UserId = Guid.Parse("de200000-0000-0000-0000-000000000001");
@@ -99,7 +99,7 @@ public sealed class InventoryExtractionDurabilityTests
 
     [Fact]
     [Trait("Category", "Migration")]
-    public async Task CandidatePagingIndexExcludesUnboundedEvidencePayloads()
+    public async Task CandidatePagingIndexAndCursorRemainBoundedBeyondFiveThousand()
     {
         await using var postgres = DisposablePostgres.Create(
             "advertified_candidate_index", "advertified_candidate_index",
@@ -108,10 +108,7 @@ public sealed class InventoryExtractionDurabilityTests
         var connectionString = postgres.GetConnectionString();
         await DisposablePostgres.EnableRequiredExtensionsAsync(connectionString);
         await DisposableDatabaseRoles.ProvisionAsync(connectionString);
-        var options = new DbContextOptionsBuilder<GovernanceDbContext>()
-            .UseNpgsql(connectionString).Options;
-        await using var db = new GovernanceDbContext(options);
-        await db.Database.MigrateAsync();
+        await SeedAsync(connectionString);
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync();
         await using var command = new NpgsqlCommand("""
@@ -127,6 +124,8 @@ public sealed class InventoryExtractionDurabilityTests
         Assert.DoesNotContain("canonical_values_json", definition, StringComparison.Ordinal);
         Assert.DoesNotContain("validation_json", definition, StringComparison.Ordinal);
         Assert.DoesNotContain("source_locator", definition, StringComparison.Ordinal);
+        await SeedPagingCandidatesAsync(connectionString);
+        await AssertCandidatePaginationAsync(connectionString);
     }
 
     private static async Task SeedAsync(string connectionString)

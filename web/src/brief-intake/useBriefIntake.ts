@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { briefApi, type CreateBriefVersion } from '../api/brief-client'
 import type { BriefClarification, SuppliedBriefUnderstanding } from '../api/brief-understanding-schemas'
@@ -13,6 +13,7 @@ export type BriefIntakeContext = {
   tenantId: string
   userId: string
   token: string
+  isCurrent: () => boolean
 }
 
 type SourceDraft = { title: string; content: string }
@@ -36,7 +37,7 @@ type IntakeModel = {
 
 type UpdateModel = React.Dispatch<React.SetStateAction<IntakeModel>>
 type Navigate = ReturnType<typeof useNavigate>
-type Understand = (source: SourceDraft, clarifications: BriefClarification[]) => Promise<void>
+type Understand = (source: SourceDraft, clarifications: BriefClarification[], parentId?: string) => Promise<void>
 
 const initialModel: IntakeModel = {
   source: { title: '', content: '' },
@@ -48,7 +49,13 @@ const initialModel: IntakeModel = {
   error: null,
 }
 
-export function useBriefIntake(context: BriefIntakeContext) {
+export function useBriefIntake(identity: Omit<BriefIntakeContext, 'isCurrent'>) {
+  const active = useRef(true)
+  useLayoutEffect(() => {
+    active.current = true
+    return () => { active.current = false }
+  }, [])
+  const context = { ...identity, isCurrent: () => active.current }
   const [model, setModel] = useState<IntakeModel>(initialModel)
   const navigate = useNavigate()
   const understand = useUnderstandBrief(context, setModel)
@@ -56,8 +63,8 @@ export function useBriefIntake(context: BriefIntakeContext) {
     ...model,
     submitSource: submitSource(understand, setModel),
     submitClarifications: submitClarifications(understand, model),
-    approveReview: approveReview(context, model, setModel, navigate),
-    retryPlanning: retryPlanning(context, model, setModel, navigate),
+    approveReview: () => approveReview(context, model, setModel, navigate)(),
+    retryPlanning: () => retryPlanning(context, model, setModel, navigate)(),
     editSource: editSource(setModel),
     correctMode: correctMode(setModel),
     setSpatialRequirements: (values: BriefSpatialDraft[]) =>
@@ -69,13 +76,14 @@ function useUnderstandBrief(
   context: BriefIntakeContext,
   setModel: UpdateModel,
 ): Understand {
-  return async (source, clarifications) => {
+  return async (source, clarifications, parentId) => {
     setModel(current => ({ ...current, busy: true, error: null }))
     try {
       const result = await briefApi.understand(context.tenantId, {
         sourceTitle: source.title,
         sourceContent: source.content,
         clarifications,
+        parentInterpretationId: parentId,
       }, context.token)
       if (result.requiresHumanClarification && result.questions.length === 0) {
         throw new Error('The Brief needs clarification, but no question was provided.')
@@ -135,6 +143,7 @@ async function preparePlanning(
   try {
     const id = await createCampaign(
       context, source, understanding, clarifications, keys, spatialRequirements)
+    assertCurrent(context)
     navigate(`/stp/${id}`)
   } catch (failure) {
     setModel(current => ({ ...current, error: humanMessage(failure), busy: false }))
@@ -170,7 +179,7 @@ function submitSource(understand: Understand, setModel: UpdateModel) {
     const values = new FormData(event.currentTarget)
     const source = {
       title: requiredField(values, 'sourceTitle'),
-      content: requiredField(values, 'sourceContent'),
+      content: String(values.get('sourceContent') ?? ''),
     }
     setModel(current => ({
       ...current,
@@ -193,7 +202,7 @@ function submitClarifications(understand: Understand, model: IntakeModel) {
     }))
     const merged = new Map(model.clarifications.map(item => [item.fieldPath, item]))
     answers.forEach(answer => merged.set(answer.fieldPath, answer))
-    void understand(model.source, [...merged.values()])
+    void understand(model.source, [...merged.values()], model.understanding.interpretation?.id)
   }
 }
 
@@ -248,7 +257,9 @@ async function createCampaign(
     sourceTitle: source.title,
     sourceContent: source.content,
     sourceType: masterDataCodes.briefSourceTypes.suppliedText,
+    interpretationId: understanding.interpretation?.id,
   }, context.token, keys.brief)
+  assertCurrent(context)
   const draft = await briefApi.createVersion(
     context.tenantId,
     brief.id,
@@ -256,10 +267,13 @@ async function createCampaign(
     context.token,
     keys.version,
   )
+  assertCurrent(context)
   const submitted = await briefApi.submit(
     context.tenantId, draft, context.token, null, keys.submit)
+  assertCurrent(context)
   const approved = await briefApi.approve(
     context.tenantId, submitted, context.token, keys.approve)
+  assertCurrent(context)
   const modeClarified = clarifications.some(item => item.fieldPath === CampaignModeField)
   const modeEvidence = understanding.evidence.find(item => item.fieldPath === CampaignModeField)
   const suppliedModeFact = modeEvidence?.kind === masterDataCodes.evidenceClassifications.fact &&
@@ -275,6 +289,10 @@ async function createCampaign(
       reason: understanding.campaignModeRationale,
     }, keys.campaignMode)
   return approved.id
+}
+
+function assertCurrent(context: BriefIntakeContext) {
+  if (!context.isCurrent()) throw new Error('The active Brief workspace changed.')
 }
 
 function createPreparationKeys(): BriefPreparationKeys {

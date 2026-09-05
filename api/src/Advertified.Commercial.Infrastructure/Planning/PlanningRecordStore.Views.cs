@@ -172,7 +172,8 @@ public sealed partial class PlanningRecordStore
                 line.commercial_terms_json::text AS "CommercialTermsJson",
                 line.deliverable_json::text AS "DeliverableJson",
                 line.spatial_json::text AS "SpatialJson",
-                line.logo_asset_id AS "LogoAssetId"
+                line.logo_asset_id AS "LogoAssetId",
+                line.purchase_json::text AS "PurchaseJson"
             FROM commercial.media_plan_lines line
             JOIN commercial.media_plan_versions plan
               ON plan.tenant_id = line.tenant_id AND plan.id = line.plan_version_id
@@ -275,7 +276,7 @@ public sealed partial class PlanningRecordStore
             row.DeliverableJson),
         ReadOptional<Advertified.Commercial.Application.Inventory.InventorySpatialValues>(
             row.SpatialJson),
-        row.LogoAssetId);
+        row.LogoAssetId, ReadOptional<InventoryPurchaseQuantity>(row.PurchaseJson));
 
     private static T Read<T>(string json) =>
         JsonSerializer.Deserialize<T>(json, StoredJson)

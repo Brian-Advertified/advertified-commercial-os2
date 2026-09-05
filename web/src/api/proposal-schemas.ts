@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { proposalPolicy } from '../proposal/proposal-policy'
+import { inventoryPurchaseQuantitySchema } from './planning-schemas'
 import {
   inventoryCommercialTermsSchema,
   inventoryDeliverableSchema,
@@ -47,6 +48,7 @@ const proposalInventoryLineSchema = z.object({
   geography: requiredText,
   runningPeriods: z.array(proposalRunningPeriodSchema),
   quantity: z.number().int().positive(),
+  purchase: inventoryPurchaseQuantitySchema.nullish(),
   clientPriceMinor: z.number().int().nonnegative(),
   feesMinor: z.number().int().nonnegative(),
   vatMinor: z.number().int().nonnegative(),

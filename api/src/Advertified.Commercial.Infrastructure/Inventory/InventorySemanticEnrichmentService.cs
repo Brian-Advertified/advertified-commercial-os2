@@ -127,9 +127,13 @@ public sealed class InventorySemanticEnrichmentService(
             extraction.AdapterCode,
             CurrentProjectionVersion,
             extraction.SchemaVersion,
-            extraction.SourceHash,
-            extraction.ProviderJson,
-            rows);
+              extraction.SourceHash,
+              extraction.ProviderJson,
+              rows,
+              extraction.Document.DiscoveredSchema,
+              extraction.Document.SchemaDiscoveryFailure,
+              deduplicationDecisions:
+                  extraction.Document.DeduplicationDecisions);
 
     private static InventorySemanticContext CreateContext(
         InventoryExtractionWorkerClaim claim,

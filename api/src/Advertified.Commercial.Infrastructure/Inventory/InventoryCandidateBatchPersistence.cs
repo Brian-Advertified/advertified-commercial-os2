@@ -37,16 +37,20 @@ internal static class InventoryCandidateBatchPersistence
             .Select(InventoryCandidateReviewPolicy.MarkAutoCertified)
             .ToArray();
         await PersistAsync(dbContext, tenantId, importId, projectionId,
-            reviewer, now, review,
+            now, review,
             MasterDataCodes.LifecycleStatuses.ReviewRequired,
-            withTasks: reviewer.HasValue, cancellationToken);
+            cancellationToken);
         await PersistAsync(dbContext, tenantId, importId, projectionId,
-            reviewer, now, autoCertified,
+            now, autoCertified,
             MasterDataCodes.LifecycleStatuses.Approved,
-            withTasks: false, cancellationToken);
+            cancellationToken);
         await PersistAsync(dbContext, tenantId, importId, projectionId,
-            reviewer, now, retainedRejections, MasterDataCodes.LifecycleStatuses.Rejected,
-            withTasks: false, cancellationToken);
+            now, retainedRejections, MasterDataCodes.LifecycleStatuses.Rejected,
+            cancellationToken);
+        if (reviewer.HasValue && review.Length > 0)
+            await InsertReviewTasksAsync(dbContext, tenantId, importId,
+                reviewer.Value, InventoryReviewGrouping.Group(review), now,
+                cancellationToken);
     }
 
     private static async Task PersistAsync(
@@ -54,11 +58,9 @@ internal static class InventoryCandidateBatchPersistence
         TenantId tenantId,
         Guid importId,
         Guid projectionId,
-        Guid? reviewer,
         DateTimeOffset now,
         PreparedInventoryCandidate[] candidates,
         string statusCode,
-        bool withTasks,
         CancellationToken cancellationToken)
     {
         for (var offset = 0; offset < candidates.Length; offset += BatchSize)
@@ -105,38 +107,39 @@ internal static class InventoryCandidateBatchPersistence
                     "effectiveOn" date, "freshUntil" date,
                     "extractionMethod" text, "extractionConfidence" numeric);
                 """, cancellationToken);
-            if (withTasks)
-            {
-                await InsertReviewTasksAsync(dbContext, tenantId,
-                    reviewer!.Value, candidateJson, now, cancellationToken);
-            }
         }
     }
 
     private static Task<int> InsertReviewTasksAsync(
         GovernanceDbContext dbContext,
         TenantId tenantId,
+        Guid importId,
         Guid reviewer,
-        string candidateJson,
+        IReadOnlyList<InventoryReviewTaskGroup> groups,
         DateTimeOffset now,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken)
+    {
+        var groupJson = JsonSerializer.Serialize(groups,
+            InventoryRowMapper.StoredJson);
+        return
         dbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.human_tasks (
                 id, tenant_id, opportunity_id, task_type_code, status_code, title,
                 why_it_matters, resource_type_code, resource_id, resource_version,
                 assignee_user_id, action_schema_json, version, created_at_utc)
-            SELECT value."taskId", {tenantId.Value}, NULL,
+            SELECT value."id", {tenantId.Value}, NULL,
                 {MasterDataCodes.HumanTaskTypes.InventoryCandidateReview},
                 {MasterDataCodes.LifecycleStatuses.Pending},
-                {"Review inventory candidate"},
-                {"Verify source-linked fields before inventory publication."},
-                {MasterDataReferences.CommercialResourceTypes.InventoryCandidate.Value},
-                value."id", 1, {reviewer}, {"{}"}::jsonb, 1, {now}
-            FROM jsonb_to_recordset({candidateJson}::jsonb) AS value(
-                "id" uuid, "rowNumber" integer, "valuesJson" text,
-                "validationJson" text, "sourceLocator" text,
-                "taskId" uuid);
+                CONCAT('Review inventory exception group: ', value."cause"),
+                CONCAT(value."affectedCandidateCount", ' candidates in ', value."scope",
+                    ' share one correctable extraction exception.'),
+                {MasterDataReferences.CommercialResourceTypes.InventoryImport.Value},
+                {importId}, 1, {reviewer}, value."actionSchemaJson"::jsonb, 1, {now}
+            FROM jsonb_to_recordset({groupJson}::jsonb) AS value(
+                "id" uuid, "cause" text, "scope" text,
+                "affectedCandidateCount" integer, "actionSchemaJson" text);
             """, cancellationToken);
+    }
 
     private static CandidatePayload ToCandidatePayload(PreparedInventoryCandidate candidate) =>
         new(

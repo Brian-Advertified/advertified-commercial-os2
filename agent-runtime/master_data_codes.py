@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: 227b1bd4ffc8725159adad40fb18573de8158cdff80e3afdab2d6c9d3bd0bb0a
+# source-sha256: 26cbe17817eef0e8239658cf405eed2e92901d25d2dc96873c27ea681fa04775
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.30.0"
+REGISTRY_VERSION = "2.32.0"
 
 class Channels(StrEnum):
     OOH = "OOH"

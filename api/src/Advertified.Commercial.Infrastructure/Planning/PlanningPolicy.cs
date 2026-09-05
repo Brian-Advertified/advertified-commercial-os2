@@ -20,7 +20,8 @@ public sealed record PlanningPolicy(
     decimal DefaultRouteBufferMetres,
     decimal DefaultCoverageThreshold,
     decimal RegisteredVatRate,
-    IReadOnlyDictionary<string, int> RateBillingDays)
+    IReadOnlyDictionary<string, int> RateBillingDays,
+    IReadOnlyDictionary<string, int> RateQuantityDenominators)
 {
     public static PlanningPolicy Load()
     {
@@ -80,24 +81,24 @@ public sealed record PlanningPolicy(
             lowConfidence, mediumConfidence, highConfidence,
             automatedSelectionEnabled, selection.Code, maximumAutomatedValue,
             weights, routeBuffer, coverageThreshold,
-            vatRate, LoadRateBillingDays(registry));
+            vatRate, LoadRateMetadata(registry, "billingDays"), LoadRateMetadata(registry, "quantityDenominator"));
     }
 
-    private static Dictionary<string, int> LoadRateBillingDays(
-        MasterDataRegistry registry)
+    private static Dictionary<string, int> LoadRateMetadata(
+        MasterDataRegistry registry, string property)
     {
         var collection = registry.Collections.Single(item =>
             item.Code == MasterDataCodes.RateTypes.Collection);
         return collection.Items
-            .Select(item => (item.Code, Days: ReadBillingDays(item.MetadataJson)))
+            .Select(item => (item.Code, Days: ReadRateMetadata(item.MetadataJson, property)))
             .Where(item => item.Days.HasValue)
             .ToDictionary(item => item.Code, item => item.Days!.Value, StringComparer.Ordinal);
     }
 
-    private static int? ReadBillingDays(string metadataJson)
+    private static int? ReadRateMetadata(string metadataJson, string property)
     {
         using var metadata = JsonDocument.Parse(metadataJson);
-        return metadata.RootElement.TryGetProperty("billingDays", out var value)
+        return metadata.RootElement.TryGetProperty(property, out var value)
             ? value.GetInt32()
             : null;
     }

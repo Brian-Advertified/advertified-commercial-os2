@@ -82,7 +82,7 @@ public sealed partial class PlanningCommands
             reach = (long?)null,
             impressions = (long?)null,
         });
-        var lineHash = PlanningHash.ForPlanLine(candidate, periods);
+        var lineHash = PlanningHash.ForPlanLine(candidate, periods, amounts.Purchase);
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.media_plan_lines (
                 id, tenant_id, plan_version_id, shortlist_candidate_id,
@@ -93,7 +93,7 @@ public sealed partial class PlanningCommands
                 supplier_cost_minor, client_price_minor, fees_minor, vat_minor,
                 supplier_commercial_json, vat_treatment_code,
                 commercial_terms_json, deliverable_json, spatial_json, logo_asset_id,
-                forecast_json, input_hash)
+                forecast_json, input_hash, purchase_json)
             VALUES ({lineId}, {tenantId.Value}, {planId}, {candidate.Id},
                 {candidate.InventoryTenantId}, {candidate.MarketplaceListingVersionId},
                 {candidate.InventoryProductId}, {candidate.ProductVersionId}, {candidate.RateId!.Value},
@@ -104,7 +104,7 @@ public sealed partial class PlanningCommands
                 {inventory.SupplierCommercialJson}::jsonb, {inventory.VatTreatment},
                 {inventory.CommercialTermsJson}::jsonb, {inventory.DeliverableJson}::jsonb,
                 {inventory.SpatialJson}::jsonb, {inventory.LogoAssetId},
-                {forecast}::jsonb, {lineHash})
+                {forecast}::jsonb, {lineHash}, {(amounts.Purchase is null ? null : Write(amounts.Purchase))}::jsonb)
             """, cancellationToken);
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.supply_coordination (
@@ -139,10 +139,12 @@ internal static partial class PlanningHash
 
     internal static string ForPlanLine(
         InventoryShortlistCandidateView candidate,
-        IReadOnlyList<MediaRunningPeriodView> periods) => OpportunityCommandSupport.Hash(
+        IReadOnlyList<MediaRunningPeriodView> periods,
+        InventoryPurchaseQuantity? purchase = null) => OpportunityCommandSupport.Hash(
             $"{candidate.Id:N}|{candidate.InventoryTenantId:N}|" +
             $"{candidate.MarketplaceListingVersionId:N}|" +
             $"{candidate.ProductVersionId:N}|{candidate.RateId:N}|" +
             $"{candidate.AvailabilityId:N}|" + string.Join(',', periods.Select(period =>
-                $"{period.Start:O}-{period.End:O}")));
+                $"{period.Start:O}-{period.End:O}")) +
+            (purchase is null ? "" : "|" + System.Text.Json.JsonSerializer.Serialize(purchase)));
 }

@@ -56,7 +56,8 @@ public sealed partial class InventoryCommands
             source.SourceHash,
             supplier.SupplierName,
             codes,
-            now);
+            now,
+            source.FileName);
         candidates = InventoryAcceptancePolicy.Apply(extraction, source.SourceHash,
             source.Version, codes, candidates, now);
         var documentReview = extraction.Document.DiscoveredSchema is null || candidates.Length == 0;

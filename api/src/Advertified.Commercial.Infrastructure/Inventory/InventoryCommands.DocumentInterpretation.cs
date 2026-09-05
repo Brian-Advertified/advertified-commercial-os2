@@ -49,7 +49,7 @@ public sealed partial class InventoryCommands
     {
         var tenant = new TenantId(source.TenantId);
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(corrected.Rows, source.SourceHash,
-            source.SupplierName, codes, now);
+            source.SupplierName, codes, now, source.FileName);
         candidates = InventoryAcceptancePolicy.Apply(corrected, source.SourceHash,
             artifact.SourceFileVersion, codes, candidates, now);
         var rejected = await InventoryRejectionCarryForward.FromHistoryAsync(store.DbContext,

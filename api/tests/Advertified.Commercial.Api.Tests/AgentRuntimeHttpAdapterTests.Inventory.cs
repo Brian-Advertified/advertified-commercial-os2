@@ -9,6 +9,47 @@ namespace Advertified.Commercial.Api.Tests;
 public sealed partial class AgentRuntimeHttpAdapterTests
 {
     [Fact]
+    public async Task InventoryWireEvidenceContainsEligibleAndRejectedSuitability()
+    {
+        var input = InventoryInput(Guid.NewGuid(), Guid.NewGuid());
+        var accepted = input.Candidates[0];
+        var rejected = accepted with
+        {
+            CandidateId = Guid.NewGuid(), IsEligible = false, Score = null,
+            RejectionReason = "CHANNEL_NOT_ALLOWED", RejectionDetail = "Channel is outside this brief.",
+            Suitability = new InventorySuitabilityView("INVENTORY_SUITABILITY_OOH_V1",
+                0, 0, 0, 0, 0, 0, 0, ["Channel is outside this brief."]),
+        };
+        input = input with { Candidates = [accepted, rejected] };
+        var client = CreateClient(async request =>
+        {
+            var json = await request.Content!.ReadAsStringAsync();
+            using var body = JsonDocument.Parse(json);
+            var candidates = body.RootElement.GetProperty("inventory").GetProperty("candidates");
+            Assert.Equal(0.82m, candidates[0].GetProperty("suitability").GetProperty("total").GetDecimal());
+            Assert.Equal(0, candidates[1].GetProperty("suitability").GetProperty("total").GetDecimal());
+            var directory = Path.Combine(Path.GetTempPath(), "advertified-contracts");
+            Directory.CreateDirectory(directory);
+            await File.WriteAllTextAsync(Path.Combine(directory, "inventory-shortlist.json"), json);
+            return Response(new { interpretations = input.Candidates.Select(candidate => new
+            {
+                candidate_id = candidate.CandidateId, rationale = "Explanation preserves canonical eligibility.",
+            }).ToArray() }, [EvidenceId]);
+        });
+        await new HttpPlanningAgentClient(client, Settings()).InterpretInventoryAsync(input, default);
+    }
+
+    [Fact]
+    public async Task InventoryAdapterRejectsMismatchedScoreBeforeHttp()
+    {
+        var input = InventoryInput(Guid.NewGuid(), Guid.NewGuid());
+        input = input with { Candidates = [input.Candidates[0] with { Score = 0.1m }] };
+        var client = CreateClient(_ => throw new InvalidOperationException("HTTP must not be used."));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            new HttpPlanningAgentClient(client, Settings()).InterpretInventoryAsync(input, default));
+    }
+
+    [Fact]
     public async Task InventoryAdapterUsesExactShortlistAndPreservesCandidateSet()
     {
         var candidateId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
@@ -104,6 +145,8 @@ public sealed partial class AgentRuntimeHttpAdapterTests
                     null,
                     0.82m,
                     new InventoryAudienceFitView(0.8m, null, null, []),
+                    new InventorySuitabilityView("INVENTORY_SUITABILITY_OOH_V1",
+                        1m, 0.8m, 0.8m, 0.8m, 0.5m, 0.6m, 0.82m, []),
                     new InventoryBenchmarkInput(
                         "OOH_LOCAL_PEER_V1",
                         "RADIUS_5_KM",

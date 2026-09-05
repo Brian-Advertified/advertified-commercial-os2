@@ -43,8 +43,9 @@ internal static class InventoryEligibilityEvaluator
             return Rejected(MasterDataCodes.RejectionReasons.StaleRate,
                 "The published rate does not cover the planned running periods.");
         }
-        var scheduledCost = SupplierRateCalculator.Calculate(
-            inventory, allocation.RunningPeriods, policy).PayableMinor;
+        if (!TryPrice(inventory, allocation, policy, out var scheduledCost))
+            return Rejected(MasterDataCodes.RejectionReasons.MissingInfo,
+                "The buying basis requires explicit supported quantities and valid running periods.");
         if (scheduledCost > allocation.BudgetMinor)
         {
             return Rejected(MasterDataCodes.RejectionReasons.BudgetMismatch,
@@ -61,6 +62,22 @@ internal static class InventoryEligibilityEvaluator
     private static bool Matches(string requested, string available) =>
         available.Contains(requested, StringComparison.OrdinalIgnoreCase) ||
         requested.Contains(available, StringComparison.OrdinalIgnoreCase);
+
+    private static bool TryPrice(PlanningInventoryRow inventory, MediaAllocationView allocation,
+        PlanningPolicy policy, out long cost)
+    {
+        try
+        {
+            cost = SupplierRateCalculator.Calculate(inventory, allocation.RunningPeriods, policy,
+                InventoryPurchaseQuantities.Find(inventory, allocation)).PayableMinor;
+            return true;
+        }
+        catch (Exception error) when (error is UnpriceableRateException or OverflowException)
+        {
+            cost = 0;
+            return false;
+        }
+    }
 
     private static EligibilityResult Rejected(string reason, string detail) =>
         new(false, reason, detail, null);

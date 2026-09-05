@@ -36,7 +36,8 @@ public sealed partial class InventorySemanticPreflightReader
                 .Select(packet => packet.MaximumCostUsdMicros)
                 .DefaultIfEmpty(0)
                 .Max(),
-            blocker);
+            blocker,
+            plan.Candidates);
     }
 
     private static string? SourceBlocker(
@@ -142,6 +143,7 @@ public sealed partial class InventorySemanticPreflightReader
 internal sealed record PlannedSemanticSource(
     SemanticPreflightSourceRow Source,
     IReadOnlyList<InventorySemanticPacket> Packets,
+    IReadOnlyList<InventoryProjectionCandidateView> Candidates,
     string? Blocker);
 
 internal sealed record SemanticBudgetPreflight(

@@ -36,6 +36,9 @@ FORBIDDEN_AGENT_PACKAGES = {
 }
 APPROVED_AGENT_PROVIDER_PACKAGES = {"botocore"}
 GOVERNED_LITERAL_OVERLAP_ALLOWLIST = {
+    "api/src/Advertified.Commercial.Application/Inventory/InventoryExtractionAccounting.cs": {
+        "AMBIGUOUS", "FAILED", "NORMALIZATION", "REJECTED",
+    },
     "api/src/Advertified.Commercial.Application/Opportunity/AgentProviderMetadata.cs": {"LIVE"},
     "api/src/Advertified.Commercial.Infrastructure/Inventory/InventoryCandidateNormalizer.cs": {
         "BLACKOUT", "NOT_AVAILABLE", "impressions", "listeners", "reach",

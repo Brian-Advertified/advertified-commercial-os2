@@ -43,12 +43,16 @@ internal static partial class NativeOfficeTableProjection
         }
         var headers = Headers(rows, headerRow.Value);
         var data = rows.Where(row => row.SourceRow > headerRow.Value).ToArray();
+        var matrix = InventoryHierarchicalMatrixProjection.Project(
+            rows, headerRow.Value, rowOffset, rowLocator, cellLocator);
         var scheduled = ProjectSchedule(
             headers, data, rowOffset, cellLocator,
             column => cellLocator(rows.Where(row => row.SourceRow <= headerRow.Value &&
                 row.Cells.TryGetValue(column, out var value) && !string.IsNullOrWhiteSpace(value))
                 .Max(row => row.SourceRow), column));
-        var projected = scheduled.Length > 0
+        var projected = matrix.Length > 0
+            ? matrix
+            : scheduled.Length > 0
             ? scheduled
             : InventoryTabularProjection.Project(
                 headers, data, rowOffset, rowLocator, cellLocator);

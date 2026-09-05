@@ -12,6 +12,7 @@ from test_inventory_semantic_agent import request
 
 
 def test_live_source_transcription_never_calls_bedrock(monkeypatch) -> None:
+    monkeypatch.setenv("ADVERTIFIED_INVENTORY_PROCESSING_PAUSED", "false")
     called = False
 
     def fail_provider(*_args, **_kwargs):
