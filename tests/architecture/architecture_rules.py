@@ -35,6 +35,7 @@ PROJECT_POLICIES = {
         frozenset(
             {
                 "AWSSDK.EventBridge",
+                "AWSSDK.S3",
                 "Microsoft.EntityFrameworkCore",
                 "Microsoft.EntityFrameworkCore.Relational",
                 "Minio",

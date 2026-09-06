@@ -9,6 +9,10 @@ from inventory_extraction_contracts import ExtractedRow
 
 
 _CODE = re.compile(r"^(?=.{4,20}$)(?=.*\d)[A-Z]{2,8}[A-Z0-9-]*$")
+_IMAGE_CONTEXT = re.compile(
+    r"\b(?:inventory|site|location|format|rate|price|media|billboard|screen|panel|placement)\b",
+    re.I,
+)
 
 
 def project_text_products(
@@ -33,6 +37,9 @@ def project_text_products(
 def _page_product(
     texts: tuple[SourceElement, ...],
 ) -> ExtractedRow | None:
+    image_page = any("picture=" in item.locator for item in texts)
+    if image_page and not any(_IMAGE_CONTEXT.search(item.text) for item in texts):
+        return None
     for index, item in enumerate(texts):
         combined = _combined_product(item)
         if combined is not None:
@@ -56,9 +63,11 @@ def _combined_product(item: SourceElement) -> tuple[str, str] | None:
 
 def _is_code(value: str) -> bool:
     raw = value.strip()
-    compact = re.sub(r"\s+", "", raw)
+    parts = raw.split()
+    compact = "".join(parts)
     return (
-        raw == raw.upper() and bool(_CODE.fullmatch(compact))
+        bool(parts) and len(parts) <= 2 and (len(parts) == 1 or len(parts[0]) <= 5 and any(character.isdigit() for character in parts[1]))
+        and raw == raw.upper() and bool(_CODE.fullmatch(compact))
         and not re.fullmatch(r"(?:19|20)\d{2}", compact)
         and not re.fullmatch(r"(?:SEM|LSM)\d.*", compact)
     )

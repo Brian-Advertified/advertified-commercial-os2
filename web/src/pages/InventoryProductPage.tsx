@@ -12,6 +12,7 @@ import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { InventoryAudienceProfile } from '../inventory/InventoryAudienceProfile'
 import { SemanticDuplicateRecall } from '../inventory/SemanticDuplicateRecall'
+import { SupplierClaimPanel } from '../inventory/SupplierClaimPanel'
 import { formatDateTime, formatMoney, humanizeCode } from '../presentation/format'
 
 export function InventoryProductPage() {
@@ -32,12 +33,16 @@ export function InventoryProductPage() {
     roleCode={selected.roleCode} />
 }
 
+const supplierScopedRoles = [
+  inventoryCodes.role.supplierUser,
+  inventoryCodes.role.influencerRep,
+] as const
 const uploadRoles = new Set<string>([inventoryCodes.role.platformAdmin,
-  inventoryCodes.role.inventoryOperations, inventoryCodes.role.supplierAdmin])
+  inventoryCodes.role.inventoryOperations, ...supplierScopedRoles])
 const reviewRoles = new Set<string>([inventoryCodes.role.platformAdmin,
   inventoryCodes.role.inventoryOperations])
 const rightsReviewRoles = new Set<string>([inventoryCodes.role.platformAdmin,
-  inventoryCodes.role.supplierAdmin])
+  ...supplierScopedRoles])
 
 function ProductRecord({ tenantId, productId, token, canUpload, canReview,
   canReviewRights, canBackfill, roleCode }: {
@@ -109,6 +114,8 @@ function ProductRecordView({ tenantId, productId, record, token, canUpload, canR
       </aside>
     </div>
     <StructuredInventory record={record} />
+    {canReview && <SupplierClaimPanel tenantId={tenantId}
+      supplierId={record.product.supplierId} token={token} />}
     <AvailabilityExceptions tenantId={tenantId} token={token} record={record}
       canManage={canReview} onUpdated={onUpdated} />
     <InventoryAudienceProfile profile={record.audienceProfile} />

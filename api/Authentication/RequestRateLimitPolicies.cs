@@ -11,6 +11,7 @@ public static class RequestRateLimitPolicies
 {
     public const string BrowserSession = "browser-session";
     public const string BrowserSessionStatus = "browser-session-status";
+    public const string PublicIntake = "public-intake";
     public const string ProviderCallback = "provider-callback";
     public const string InventoryUpload = "inventory-upload";
     public const string AgentWork = "agent-work";
@@ -55,6 +56,8 @@ public static class RequestRateLimitPolicies
                 "session:" + RemoteAddress(context), 20, OneMinute));
             options.AddPolicy(BrowserSessionStatus, context => FixedWindow(
                 "session-status:" + RemoteAddress(context), 60, OneMinute));
+            options.AddPolicy(PublicIntake, context => FixedWindow(
+                "public-intake:" + RemoteAddress(context), 10, TenMinutes));
             options.AddPolicy(ProviderCallback, context => FixedWindow(
                 "provider:" + RemoteAddress(context), 120, OneMinute));
             options.AddPolicy(InventoryUpload, context => FixedWindow(

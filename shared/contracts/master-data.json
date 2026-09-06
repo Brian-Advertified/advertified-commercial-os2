@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.32.0",
+  "registryVersion": "2.33.0",
   "effectiveFrom": "2026-09-05",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
@@ -38,7 +38,7 @@
     "permissions": [
       {"code":"workspace_read","displayLabel":"View own workspaces","isActive":true,"sortOrder":10,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_user","influencer_rep"]}},
       {"code":"tenant_read","displayLabel":"View tenant profile","isActive":true,"sortOrder":20,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_user","influencer_rep"]}},
-      {"code":"tenant_manage","displayLabel":"Manage tenant profile","isActive":true,"sortOrder":30,"metadata":{"roles":["platform_admin","agency_admin","advertiser_admin"]}},
+      {"code":"tenant_manage","displayLabel":"Manage tenant profile","isActive":true,"sortOrder":30,"metadata":{"roles":["platform_admin","agency_admin","advertiser_admin","supplier_user","influencer_rep"]}},
       {"code":"user_read_self","displayLabel":"View own user profile","isActive":true,"sortOrder":40,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_user","influencer_rep"]}},
       {"code":"user_manage_self","displayLabel":"Manage own user profile","isActive":true,"sortOrder":50,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_user","influencer_rep"]}},
       {"code":"membership_read","displayLabel":"View tenant memberships","isActive":true,"sortOrder":60,"metadata":{"roles":["platform_admin","agency_admin","advertiser_admin"]}},
@@ -62,15 +62,17 @@
       {"code":"run_manage","displayLabel":"Resume or cancel assigned workflow runs","isActive":true,"sortOrder":240,"metadata":{"roles":["platform_admin","internal_planner"]}},
       {"code":"task_view","displayLabel":"View assigned human tasks","isActive":true,"sortOrder":250,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_user","influencer_rep"]}},
       {"code":"task_act","displayLabel":"Complete assigned human tasks","isActive":true,"sortOrder":260,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_user","influencer_rep"]}},
+      {"code":"public_intake_view","displayLabel":"View public enquiries and onboarding requests","isActive":true,"sortOrder":265,"metadata":{"roles":["platform_admin","internal_planner"]}},
+      {"code":"public_intake_manage","displayLabel":"Review and provision public onboarding requests","isActive":true,"sortOrder":266,"metadata":{"roles":["platform_admin"]}},
       {"code":"brief_view","displayLabel":"View assigned briefs","isActive":true,"sortOrder":270,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
       {"code":"brief_create","displayLabel":"Create assigned briefs","isActive":true,"sortOrder":280,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"brief_edit","displayLabel":"Edit assigned brief drafts","isActive":true,"sortOrder":290,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"brief_submit","displayLabel":"Submit assigned brief drafts","isActive":true,"sortOrder":300,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"brief_approve","displayLabel":"Confirm assigned brief versions","isActive":true,"sortOrder":310,"metadata":{"roles":["internal_planner","agency_admin","agency_campaign_user"]}},
-      {"code":"inventory_view","displayLabel":"View published inventory","isActive":true,"sortOrder":320,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_user"]}},
-      {"code":"inventory_import","displayLabel":"Import inventory sources","isActive":true,"sortOrder":330,"metadata":{"roles":["platform_admin","inventory_ops","supplier_user"]}},
+      {"code":"inventory_view","displayLabel":"View published inventory","isActive":true,"sortOrder":320,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_user","influencer_rep"]}},
+      {"code":"inventory_import","displayLabel":"Import inventory sources","isActive":true,"sortOrder":330,"metadata":{"roles":["platform_admin","inventory_ops","supplier_user","influencer_rep"]}},
       {"code":"inventory_review","displayLabel":"Review inventory candidates","isActive":true,"sortOrder":340,"metadata":{"roles":["platform_admin","inventory_ops"]}},
-      {"code":"inventory_asset_rights_review","displayLabel":"Approve supplier asset rights","isActive":true,"sortOrder":345,"metadata":{"roles":["platform_admin","supplier_user"]}},
+      {"code":"inventory_asset_rights_review","displayLabel":"Approve supplier asset rights","isActive":true,"sortOrder":345,"metadata":{"roles":["platform_admin","supplier_user","influencer_rep"]}},
       {"code":"inventory_publish","displayLabel":"Publish reviewed inventory","isActive":true,"sortOrder":350,"metadata":{"roles":["platform_admin","inventory_ops"]}},
       {"code":"supplier_claim_manage","displayLabel":"Manage supplier registration invitations","isActive":true,"sortOrder":355,"metadata":{"roles":["platform_admin","inventory_ops"]}},
       {"code":"plan_view","displayLabel":"View assigned planning","isActive":true,"sortOrder":360,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","worker_service"]}},
@@ -86,18 +88,18 @@
       {"code":"email_automation_view","displayLabel":"View inbound OOH proposal automation","isActive":true,"sortOrder":460,"metadata":{"roles":["platform_admin","internal_planner","agency_admin"]}},
       {"code":"email_automation_manage","displayLabel":"Configure and retry inbound OOH proposal automation","isActive":true,"sortOrder":470,"metadata":{"roles":["platform_admin","agency_admin"]}},
       {"code":"email_automation_execute","displayLabel":"Execute inbound OOH proposal automation","isActive":true,"sortOrder":480,"metadata":{"roles":["platform_admin","agency_admin","worker_service"]}},
-      {"code":"marketplace_view","displayLabel":"View published marketplace inventory","isActive":true,"sortOrder":490,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_user"]}},
-      {"code":"supplier_inventory_manage","displayLabel":"Manage own marketplace listings","isActive":true,"sortOrder":500,"metadata":{"roles":["platform_admin","supplier_user"]}},
+      {"code":"marketplace_view","displayLabel":"View published marketplace inventory","isActive":true,"sortOrder":490,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_user","influencer_rep"]}},
+      {"code":"supplier_inventory_manage","displayLabel":"Manage own marketplace listings","isActive":true,"sortOrder":500,"metadata":{"roles":["platform_admin","supplier_user","influencer_rep"]}},
       {"code":"rfq_create","displayLabel":"Create marketplace requests","isActive":true,"sortOrder":510,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"rfq_send","displayLabel":"Send marketplace requests","isActive":true,"sortOrder":520,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
-      {"code":"rfq_respond","displayLabel":"Respond to own marketplace requests","isActive":true,"sortOrder":530,"metadata":{"roles":["platform_admin","supplier_user"]}},
+      {"code":"rfq_respond","displayLabel":"Respond to own marketplace requests","isActive":true,"sortOrder":530,"metadata":{"roles":["platform_admin","supplier_user","influencer_rep"]}},
       {"code":"rfq_review","displayLabel":"Review marketplace responses","isActive":true,"sortOrder":540,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"commercial_settings_view","displayLabel":"View commercial policy","isActive":true,"sortOrder":550,"metadata":{"roles":["platform_admin","agency_admin"]}},
       {"code":"commercial_settings_manage","displayLabel":"Manage commercial policy","isActive":true,"sortOrder":560,"metadata":{"roles":["platform_admin","agency_admin"]}},
-      {"code":"booking_view","displayLabel":"View assigned bookings","isActive":true,"sortOrder":570,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_user"]}},
+      {"code":"booking_view","displayLabel":"View assigned bookings","isActive":true,"sortOrder":570,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_user","influencer_rep"]}},
       {"code":"booking_create","displayLabel":"Create bookings from client-selected options","isActive":true,"sortOrder":580,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"booking_request","displayLabel":"Request supplier booking confirmation","isActive":true,"sortOrder":590,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
-      {"code":"booking_confirm","displayLabel":"Confirm own supplier bookings","isActive":true,"sortOrder":600,"metadata":{"roles":["platform_admin","inventory_ops","supplier_user"]}},
+      {"code":"booking_confirm","displayLabel":"Confirm own supplier bookings","isActive":true,"sortOrder":600,"metadata":{"roles":["platform_admin","inventory_ops","supplier_user","influencer_rep"]}},
       {"code":"funding_view","displayLabel":"View assigned funding records","isActive":true,"sortOrder":610,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
       {"code":"purchase_order_submit","displayLabel":"Submit signed purchase orders","isActive":true,"sortOrder":620,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"purchase_order_approve","displayLabel":"Approve reconciled purchase orders","isActive":true,"sortOrder":630,"metadata":{"roles":["platform_admin"]}},
@@ -107,15 +109,15 @@
       {"code":"campaign_view","displayLabel":"View assigned campaign delivery","isActive":true,"sortOrder":670,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
       {"code":"campaign_confirm_bookings","displayLabel":"Confirm campaign booking readiness","isActive":true,"sortOrder":680,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"campaign_request_creative","displayLabel":"Request booked-format creative","isActive":true,"sortOrder":690,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
-      {"code":"creative_view","displayLabel":"View assigned creative delivery","isActive":true,"sortOrder":700,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","inventory_ops","supplier_user"]}},
+      {"code":"creative_view","displayLabel":"View assigned creative delivery","isActive":true,"sortOrder":700,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","inventory_ops","supplier_user","influencer_rep"]}},
       {"code":"creative_upload","displayLabel":"Upload booked-format creative versions","isActive":true,"sortOrder":710,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"creative_brand_review","displayLabel":"Review creative brand legal and rights state","isActive":true,"sortOrder":720,"metadata":{"roles":["platform_admin","advertiser_admin","advertiser_approver"]}},
-      {"code":"creative_supplier_review","displayLabel":"Review assigned creative technical delivery","isActive":true,"sortOrder":730,"metadata":{"roles":["platform_admin","inventory_ops","supplier_user"]}},
+      {"code":"creative_supplier_review","displayLabel":"Review assigned creative technical delivery","isActive":true,"sortOrder":730,"metadata":{"roles":["platform_admin","inventory_ops","supplier_user","influencer_rep"]}},
       {"code":"campaign_approve_creative","displayLabel":"Approve complete campaign creative readiness","isActive":true,"sortOrder":740,"metadata":{"roles":["platform_admin","advertiser_admin","advertiser_approver"]}},
       {"code":"campaign_start","displayLabel":"Start a delivery-ready campaign","isActive":true,"sortOrder":750,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"campaign_complete","displayLabel":"Complete a closed campaign delivery window","isActive":true,"sortOrder":760,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
-      {"code":"delivery_proof_view","displayLabel":"View assigned campaign delivery proof","isActive":true,"sortOrder":770,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_user"]}},
-      {"code":"delivery_proof_submit","displayLabel":"Submit proof for an assigned supplier booking","isActive":true,"sortOrder":780,"metadata":{"roles":["platform_admin","inventory_ops","supplier_user"]}},
+      {"code":"delivery_proof_view","displayLabel":"View assigned campaign delivery proof","isActive":true,"sortOrder":770,"metadata":{"roles":["platform_admin","internal_planner","inventory_ops","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver","supplier_user","influencer_rep"]}},
+      {"code":"delivery_proof_submit","displayLabel":"Submit proof for an assigned supplier booking","isActive":true,"sortOrder":780,"metadata":{"roles":["platform_admin","inventory_ops","supplier_user","influencer_rep"]}},
       {"code":"delivery_proof_review","displayLabel":"Review assigned campaign delivery proof","isActive":true,"sortOrder":790,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
       {"code":"performance_fact_view","displayLabel":"View reviewed campaign performance facts","isActive":true,"sortOrder":800,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user","advertiser_admin","advertiser_approver"]}},
       {"code":"performance_fact_submit","displayLabel":"Submit sourced campaign performance facts","isActive":true,"sortOrder":810,"metadata":{"roles":["platform_admin","internal_planner","agency_admin","agency_campaign_user"]}},
@@ -599,7 +601,8 @@
       {"code":"inventory_supplier","displayLabel":"Inventory Supplier","isActive":true,"sortOrder":490},
       {"code":"supplier_claim_invitation","displayLabel":"Supplier Registration Invitation","isActive":true,"sortOrder":500},
       {"code":"inventory_supplier_release","displayLabel":"Supplier Inventory Release","isActive":true,"sortOrder":510},
-      {"code":"proposal_inventory_impact","displayLabel":"Proposal Inventory Impact","isActive":true,"sortOrder":520}
+      {"code":"proposal_inventory_impact","displayLabel":"Proposal Inventory Impact","isActive":true,"sortOrder":520},
+      {"code":"public_intake_request","displayLabel":"Public Enquiry or Onboarding Request","isActive":true,"sortOrder":530}
     ],
     "commercialActions": [
       {"code":"tenant.updated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -710,7 +713,10 @@
       {"code":"inventory_release.published","displayLabel":"Supplier Inventory Release Published","isActive":true,"sortOrder":970},
       {"code":"inventory_release.superseded","displayLabel":"Supplier Inventory Release Superseded","isActive":true,"sortOrder":980},
       {"code":"proposal.inventory_review_required","displayLabel":"Proposal Inventory Review Required","isActive":true,"sortOrder":990},
-      {"code":"proposal.inventory_review_resolved","displayLabel":"Proposal Inventory Review Resolved","isActive":true,"sortOrder":1000}
+      {"code":"proposal.inventory_review_resolved","displayLabel":"Proposal Inventory Review Resolved","isActive":true,"sortOrder":1000},
+      {"code":"public_intake.provisioned","displayLabel":"Public Onboarding Provisioned","isActive":true,"sortOrder":1010},
+      {"code":"public_intake.rejected","displayLabel":"Public Intake Rejected","isActive":true,"sortOrder":1020},
+      {"code":"public_intake.resolved","displayLabel":"Public Enquiry Resolved","isActive":true,"sortOrder":1030}
     ],
     "commercialEventTypes": [
       {"code":"TenantUpdated","displayLabel":"Tenant Updated","isActive":true,"sortOrder":10},
@@ -821,7 +827,10 @@
       {"code":"InventorySupplierReleasePublished","displayLabel":"Supplier Inventory Release Published","isActive":true,"sortOrder":950},
       {"code":"InventorySupplierReleaseSuperseded","displayLabel":"Supplier Inventory Release Superseded","isActive":true,"sortOrder":960},
       {"code":"ProposalInventoryReviewRequired","displayLabel":"Proposal Inventory Review Required","isActive":true,"sortOrder":970},
-      {"code":"ProposalInventoryReviewResolved","displayLabel":"Proposal Inventory Review Resolved","isActive":true,"sortOrder":980}
+      {"code":"ProposalInventoryReviewResolved","displayLabel":"Proposal Inventory Review Resolved","isActive":true,"sortOrder":980},
+      {"code":"PublicIntakeProvisioned","displayLabel":"Public Onboarding Provisioned","isActive":true,"sortOrder":990},
+      {"code":"PublicIntakeRejected","displayLabel":"Public Intake Rejected","isActive":true,"sortOrder":1000},
+      {"code":"PublicIntakeResolved","displayLabel":"Public Enquiry Resolved","isActive":true,"sortOrder":1010}
     ],
     "creativeTextRoles": [
       {"code":"HEADLINE","displayLabel":"Headline","isActive":true,"sortOrder":10},
@@ -895,7 +904,16 @@
       {"code":"PLATFORM","displayLabel":"Advertified Platform","isActive":true,"sortOrder":10},
       {"code":"AGENCY","displayLabel":"Agency","isActive":true,"sortOrder":20},
       {"code":"ADVERTISER","displayLabel":"Advertiser","isActive":true,"sortOrder":30},
-      {"code":"SUPPLIER","displayLabel":"Media Supplier","isActive":true,"sortOrder":40}
+      {"code":"SUPPLIER","displayLabel":"Media Supplier","isActive":true,"sortOrder":40},
+      {"code":"CREATOR","displayLabel":"Creator or Influencer","isActive":true,"sortOrder":50}
+    ],
+    "publicIntakeTypes": [
+      {"code":"GENERAL_ENQUIRY","displayLabel":"General Enquiry","isActive":true,"sortOrder":10},
+      {"code":"CAMPAIGN_ENQUIRY","displayLabel":"Campaign Enquiry","isActive":true,"sortOrder":20},
+      {"code":"ADVERTISER","displayLabel":"Advertiser Registration","isActive":true,"sortOrder":30},
+      {"code":"AGENCY","displayLabel":"Agency Registration","isActive":true,"sortOrder":40},
+      {"code":"MEDIA_OWNER","displayLabel":"Media Owner Registration","isActive":true,"sortOrder":50},
+      {"code":"CREATOR","displayLabel":"Creator Registration","isActive":true,"sortOrder":60}
     ],
     "contactPurposes": [
       {"code":"BILLING","displayLabel":"Billing","isActive":true,"sortOrder":10},
@@ -984,9 +1002,9 @@
       {"code":"DOMINANCE","displayLabel":"Dominance","isActive":true,"sortOrder":40,"metadata":{"currency":"ZAR","minBudgetMinor":100000000,"maxBudgetMinor":null}}
     ],
     "paymentMethods": [
-      {"code":"VODAPAY","displayLabel":"VodaPay","isActive":true,"sortOrder":10},
+      {"code":"VODAPAY","displayLabel":"VodaPay","isActive":false,"sortOrder":10,"metadata":{"activationRequiresProviderIntegration":true}},
       {"code":"MANUAL_EFT","displayLabel":"Manual EFT","isActive":true,"sortOrder":20},
-      {"code":"ADVERTISE_NOW_PAY_LATER","displayLabel":"Advertise Now, Pay Later","isActive":true,"sortOrder":30}
+      {"code":"ADVERTISE_NOW_PAY_LATER","displayLabel":"Advertise Now, Pay Later","isActive":false,"sortOrder":30,"metadata":{"activationRequiresProviderIntegration":true,"mode":"REFERRAL"}}
     ],
     "rejectionReasons": [
       {"code":"INELIGIBLE_GEOGRAPHY","displayLabel":"Ineligible Geography","isActive":true,"sortOrder":10},

@@ -3,6 +3,7 @@ using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Infrastructure.Identity;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
@@ -28,6 +29,9 @@ public sealed partial class InventorySupplierLifecycleCommands
         }
 
         var now = timeProvider.GetUtcNow();
+        await UserLoginDirectory.EnsureInvitedUserAsync(
+            store.InventoryStore.DbContext, envelope.ActorId, envelope.TenantId,
+            email, now, cancellationToken);
         await ExpireInvitationsAsync(envelope.TenantId, now, cancellationToken);
         await RevokeExistingInvitationAsync(
             envelope, supplierId, email, now, cancellationToken);

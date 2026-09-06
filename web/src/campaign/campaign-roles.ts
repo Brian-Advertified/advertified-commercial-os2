@@ -15,8 +15,8 @@ const advertiserReviewers = [
 const supplierOperators = [
   roles.platformAdmin,
   roles.inventoryOps,
-  roles.supplierAdmin,
   roles.supplierUser,
+  roles.influencerRep,
 ]
 
 export const campaignViewerRoles = new Set<string>([

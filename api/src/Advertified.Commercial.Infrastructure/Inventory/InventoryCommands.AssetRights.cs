@@ -153,7 +153,7 @@ public sealed partial class InventoryCommands
             (!command.LicensedUntil.HasValue ||
                 command.LicensedUntil.Value >= command.EffectiveOn.Value);
         if (territory.Length != 2 || role is not (MasterDataCodes.Roles.PlatformAdmin or
-                MasterDataCodes.Roles.SupplierUser) ||
+                MasterDataCodes.Roles.SupplierUser or MasterDataCodes.Roles.InfluencerRep) ||
             material && (basis is null || reference is null || !ValidHash(hash)) ||
             status == MasterDataCodes.AssetRightsStatuses.Approved &&
                 (scopes.Length == 0 || !approvedDates))

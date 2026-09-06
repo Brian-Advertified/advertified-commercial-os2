@@ -2,9 +2,11 @@ using System.Data;
 using System.Data.Common;
 using System.Security.Cryptography;
 using System.Text;
+using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.MasterData;
+using Advertified.Commercial.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -28,19 +30,19 @@ public sealed class OidcIdentityResolver(
     {
         var provider = Required(providerCode, 50);
         var subjectHash = Hash(Required(subject, 2_000));
-        var normalizedEmail = Required(email, 320);
+        var normalizedEmail = new EmailAddress(Required(email, 320)).Value;
         await using var transaction =
             await database.Database.BeginTransactionAsync(cancellationToken);
+        await ApplicationDatabaseSession.SetAsync(
+            database, null, null, cancellationToken);
         var connection = await OpenConnectionAsync(cancellationToken);
 
-        var existing = await FindBindingAsync(
+        var boundUserId = await FindBoundUserIdAsync(
             connection, provider, subjectHash, cancellationToken);
-        if (existing is not null)
+        if (boundUserId.HasValue)
         {
-            if (!existing.IsActive)
-            {
-                throw new UnauthorizedAccessException("Identity access denied.");
-            }
+            var existing = await RequireActiveUserAsync(
+                boundUserId.Value, cancellationToken);
             await RecordLoginAsync(connection, provider, subjectHash, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return ToResolution(existing);
@@ -48,22 +50,42 @@ public sealed class OidcIdentityResolver(
 
         if (!emailVerified)
         {
-            throw new UnauthorizedAccessException("Verified email is required for first sign in.");
+            throw new UnauthorizedAccessException(
+                "Verified email is required for first sign in.");
         }
-        var user = await FindUniqueUserAsync(connection, normalizedEmail, cancellationToken)
+        var userId = await UserLoginDirectory.FindUserIdAsync(
+            database, normalizedEmail, cancellationToken)
             ?? throw new UnauthorizedAccessException("Identity access denied.");
+        var user = await RequireActiveUserAsync(userId, cancellationToken);
         await BindAsync(connection, provider, subjectHash, user.UserId, cancellationToken);
-        existing = await FindBindingAsync(connection, provider, subjectHash, cancellationToken);
-        if (existing is null || existing.UserId != user.UserId || !existing.IsActive)
+        var established = await FindBoundUserIdAsync(
+            connection, provider, subjectHash, cancellationToken);
+        if (established != user.UserId)
         {
-            throw new UnauthorizedAccessException("Identity binding could not be established safely.");
+            throw new UnauthorizedAccessException(
+                "Identity binding could not be established safely.");
         }
         await RecordLoginAsync(connection, provider, subjectHash, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return ToResolution(existing);
+        return ToResolution(user);
     }
 
-    private static async Task<BindingRow?> FindBindingAsync(
+    private async Task<BindingRow> RequireActiveUserAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        await ApplicationDatabaseSession.SetAsync(
+            database, new UserId(userId), null, cancellationToken);
+        var connection = await OpenConnectionAsync(cancellationToken);
+        var user = await FindUserAsync(connection, userId, cancellationToken);
+        if (user is null || !user.IsActive)
+        {
+            throw new UnauthorizedAccessException("Identity access denied.");
+        }
+        return user;
+    }
+
+    private static async Task<Guid?> FindBoundUserIdAsync(
         DbConnection connection,
         string provider,
         string subjectHash,
@@ -72,46 +94,34 @@ public sealed class OidcIdentityResolver(
         await using var command = connection.CreateCommand();
         command.CommandText =
             """
-            SELECT identity.user_id, user_record.mfa_enabled,
-                user_record.status_code = @active_status AS is_active
-            FROM commercial.external_identities identity
-            JOIN commercial.users user_record ON user_record.id = identity.user_id
-            WHERE identity.provider_code = @provider
-              AND identity.subject_hash = @subject_hash;
+            SELECT user_id
+            FROM commercial.external_identities
+            WHERE provider_code = @provider AND subject_hash = @subject_hash;
             """;
         Add(command, "provider", provider);
         Add(command, "subject_hash", subjectHash);
-        Add(command, "active_status", MasterDataCodes.LifecycleStatuses.Active);
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        return await reader.ReadAsync(cancellationToken)
-            ? new BindingRow(reader.GetGuid(0), reader.GetBoolean(1), reader.GetBoolean(2))
-            : null;
+        var value = await command.ExecuteScalarAsync(cancellationToken);
+        return value is Guid userId ? userId : null;
     }
 
-    private static async Task<BindingRow?> FindUniqueUserAsync(
+    private static async Task<BindingRow?> FindUserAsync(
         DbConnection connection,
-        string email,
+        Guid userId,
         CancellationToken cancellationToken)
     {
         await using var command = connection.CreateCommand();
         command.CommandText =
             """
-            SELECT id, mfa_enabled, TRUE AS is_active
+            SELECT id, mfa_enabled, status_code = @active_status AS is_active
             FROM commercial.users
-            WHERE status_code = @active_status
-              AND lower(email) = lower(@email)
-            ORDER BY id
-            LIMIT 2;
+            WHERE id = @user_id;
             """;
         Add(command, "active_status", MasterDataCodes.LifecycleStatuses.Active);
-        Add(command, "email", email);
+        Add(command, "user_id", userId);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        if (!await reader.ReadAsync(cancellationToken))
-        {
-            return null;
-        }
-        var result = new BindingRow(reader.GetGuid(0), reader.GetBoolean(1), true);
-        return await reader.ReadAsync(cancellationToken) ? null : result;
+        return await reader.ReadAsync(cancellationToken)
+            ? new BindingRow(reader.GetGuid(0), reader.GetBoolean(1), reader.GetBoolean(2))
+            : null;
     }
 
     private async Task BindAsync(
@@ -137,7 +147,8 @@ public sealed class OidcIdentityResolver(
         {
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
-        catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.UniqueViolation)
+        catch (PostgresException exception) when (
+            exception.SqlState == PostgresErrorCodes.UniqueViolation)
         {
             throw new UnauthorizedAccessException("Identity access denied.", exception);
         }

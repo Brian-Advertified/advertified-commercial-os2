@@ -7,6 +7,7 @@ import re
 from inventory_docling_rates import (
     MONEY_PATTERN,
     NON_PRODUCT_RATE_LABELS,
+    is_table_rate,
 )
 from inventory_docling_structure import TableCell
 from inventory_extraction_contracts import ExtractedRateVariant, ExtractedRow
@@ -23,7 +24,7 @@ def project_mixed_rate_row(
     if not any(_is_dense_rate_cell(cell) for cell in row.values()):
         return []
     output = []
-    for column, cell in sorted(row.items()):
+    for column, cell in dict((item[1].locator, item) for item in sorted(row.items())).values():
         header, header_locators = headers.get(
             column, (f"column_{column + 1}", ())
         )
@@ -36,6 +37,47 @@ def project_mixed_rate_row(
             cell, header, header_locators, matches, section
         ))
     return output
+
+
+def project_unrepresented_rate_cells(
+    cells: tuple[TableCell, ...],
+    headers: dict[int, tuple[str, tuple[str, ...]]],
+    section: tuple[str, str] | None,
+    used: set[str],
+    represented: set[int],
+) -> list[ExtractedRow]:
+    """Recover physical schedule/rate cells without an emitted relationship."""
+    output = []
+    schedule_matrix = _is_schedule_matrix(headers)
+    for cell in cells:
+        if cell.locator in used:
+            continue
+        header, header_locators = headers.get(
+            cell.column, (f"column_{cell.column + 1}", ())
+        )
+        matches = list(MONEY_PATTERN.finditer(cell.text))
+        eligible = (
+            schedule_matrix if id(cell) in represented
+            else is_table_rate(header, cell.text)
+        )
+        if _non_product(header) or not matches or not eligible:
+            continue
+        output.extend(_cell_rows(
+            cell, header, header_locators, matches, section
+        ))
+        used.add(cell.locator)
+    return output
+
+
+def _is_schedule_matrix(
+    headers: dict[int, tuple[str, tuple[str, ...]]],
+) -> bool:
+    values = [header for header, _ in headers.values()]
+    dated = sum(bool(re.search(
+        r"\b(?:20\d{2}[/-]\d{2}[/-]\d{2}|mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b",
+        header, re.I,
+    )) for header in values)
+    return dated >= 2 and any("time slot" in header.casefold() for header in values)
 
 
 def _is_dense_rate_cell(cell: TableCell) -> bool:

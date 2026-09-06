@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import re
 
+from inventory_docling_context_rates import project_remaining_context_money
 from inventory_docling_structure import SourceElement, TableCell
 from inventory_extraction_contracts import ExtractedRateVariant, ExtractedRow
-
 
 RATE_LABELS = frozenset({
     "rate", "rates", "ratecard", "mediarate", "monthlyrate",
@@ -21,7 +21,7 @@ NON_RATE_SECTION_LABELS = frozenset({
     "invoice", "vat", "tax", "total", "subtotal",
 })
 INLINE_COMMERCIAL_LABELS = frozenset({
-    "rate", "price", "cost", "fee", "budget", "spend", "package",
+    "rate", "price", "cost", "fee", "budget", "spend", "package", "packages",
     "post", "platform", "site", "sponsorship", "takeover", "advertising",
 })
 ROUTE_LABELS = frozenset({
@@ -49,11 +49,8 @@ BUYING_UNITS = frozenset({
     "per post", "per post per platform", "per platform",
 })
 
-
 def is_rate_header(header: str) -> bool:
     return _is_rate_label(header)
-
-
 def is_product_rate(header: str, value: str) -> bool:
     return bool(MONEY_PATTERN.search(value)) and is_rate_header(header)
 
@@ -66,7 +63,7 @@ def is_table_rate(header: str, value: str) -> bool:
     if money:
         return bool(
             is_rate_header(header) or len(money) > 1 or _is_money_value(value)
-            or _is_inline_commercial_rate(value) or (money[0].start() == 0 and re.search(r"\b(?:mon|tue|wed|thu|fri|sat|sun)(?:day)?\b", header, re.I))
+            or _is_inline_commercial_rate(value) or (money[0].start() == 0 and re.search(r"\b(?:mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b", header, re.I))
         )
     leaf_header = header.rsplit("/", 1)[-1]
     return bool(
@@ -187,11 +184,13 @@ def project_text_rates(
     for page_number in sorted(pages):
         texts = pages[page_number]
         heading = _page_heading(texts)
+        context = next((item for item in texts if _is_page_rate_label(item.text) and not MONEY_PATTERN.search(item.text)), heading)
         has_page_rate = (
             any(_is_page_rate_label(item.text) for item in texts)
             or any(f"page={page_number};" in locator for locator in used)
         )
-        for variant in page_rates(texts, has_page_rate):
+        page_variants = page_rates(texts, has_page_rate)
+        for variant in page_variants:
             if variant.source_locator in used:
                 continue
             unit_heading = _normal(variant.header_hierarchy).startswith(
@@ -212,6 +211,8 @@ def project_text_rates(
                 extraction_method="TEXT_RATE", field_locators=locators,
                 rate_variants=(variant,),
             ))
+        used.update(variant.source_locator for variant in page_variants)
+        output.extend(project_remaining_context_money(texts, used, context, _is_money_value, MONEY_PATTERN))
     return output
 
 
@@ -231,7 +232,7 @@ def _is_money_value(value: str) -> bool:
     match = MONEY_PATTERN.search(value)
     if not match or value[:match.start()].strip():
         return False
-    return _normal(value[match.end():]) in BUYING_UNITS
+    suffix = _normal(value[match.end():]); return suffix in BUYING_UNITS or bool(set(suffix.split()) & INLINE_COMMERCIAL_LABELS)
 
 
 def _buying_unit(value: str, match: re.Match[str]) -> str | None:
@@ -356,13 +357,12 @@ def _is_inline_commercial_rate(value: str) -> bool:
     if tokens & NON_PRODUCT_RATE_LABELS:
         return False
     if not prefix:
-        return len(matches) > 1
+        return len(matches) > 1 or bool(set(_normal(value[first.end():]).split()) & INLINE_COMMERCIAL_LABELS)
     structured = ":" in prefix or bool(re.search(r"\s{2,}$", value[:first.start()]))
     return (
         len(tokens) <= 4 or structured
         or bool(tokens & INLINE_COMMERCIAL_LABELS)
     )
-
 
 def _is_section_rate_label(item: SourceElement) -> bool:
     normalized = _normal(item.text)
@@ -375,20 +375,20 @@ def _is_section_rate_label(item: SourceElement) -> bool:
         and not MONEY_PATTERN.search(item.text)
     )
 
-
 def _is_page_rate_label(value: str) -> bool:
     normalized = _normal(value)
     maximum_words = 20 if MONEY_PATTERN.search(value) else 6
     return (
         len(normalized.split()) <= maximum_words
         and re.search(r"\b(?:19|20)\d{2}\b", normalized) is None
-        and _is_rate_label(value)
+        and (_is_rate_label(value) or "packages" in normalized.split())
     )
 
 
 def _is_rate_label(value: str) -> bool:
-    tokens = set(_normal(value).split())
-    return bool(tokens & RATE_LABELS) and not bool(
+    normalized = _normal(value); tokens = set(normalized.split())
+    count_label = re.search(r"\b(?:no|number) of (?:spots?|units?|insertions?)\b|\b(?:spot|unit|insertion) count\b|\bquantity\b", normalized)
+    return count_label is None and bool(tokens & RATE_LABELS) and not bool(
         tokens & NON_PRODUCT_RATE_LABELS
     )
 

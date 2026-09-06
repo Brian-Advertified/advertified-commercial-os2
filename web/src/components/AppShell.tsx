@@ -31,6 +31,10 @@ const adminRoles = new Set<string>([
   masterDataCodes.roles.agencyAdmin,
 ])
 
+const platformAdminRoles = new Set<string>([
+  masterDataCodes.roles.platformAdmin,
+])
+
 const oohInboxRoles = new Set<string>([
   masterDataCodes.roles.platformAdmin,
   masterDataCodes.roles.internalPlanner,
@@ -48,6 +52,7 @@ const destinations: readonly Destination[] = [
   { to: '/campaigns', label: 'Campaigns', icon: 'plan' },
   { to: '/tasks', label: 'Tasks', icon: 'tasks' },
   { to: '/funding', label: 'Finance', icon: 'money' },
+  { to: '/admin/onboarding', label: 'Onboarding', icon: 'tasks', roles: platformAdminRoles },
   { to: '/admin/commercial', label: 'Settings', icon: 'commercial', roles: adminRoles },
 ]
 
@@ -68,6 +73,7 @@ const prefixNavigation: Readonly<Record<string, readonly string[]>> = {
     '/performance-evidence/', '/measurement-reports/',
   ],
   Finance: ['/funding'],
+  Onboarding: ['/admin/onboarding'],
   Settings: ['/admin/commercial', '/admin/agents'],
 }
 
@@ -157,7 +163,7 @@ function GlobalTopbar({ workspace, user, notificationCount, onSignOut }: {
     <GlobalSearch />
     <div className="approved-home-actions">
       <NavLink className="approved-new-button" to="/briefs/new"><Icon name="plus" /> New <span>⌄</span></NavLink>
-      <NavLink className="approved-icon-button" to="/tasks" aria-label="Notifications"><Icon name="bell" />{notificationCount > 0 && <i>{notificationCount}</i>}</NavLink>
+      <NavLink className="approved-icon-button" to="/notifications" aria-label="Notifications"><Icon name="bell" />{notificationCount > 0 && <i>{notificationCount}</i>}</NavLink>
       {workspace && oohInboxRoles.has(workspace.roleCode) && <NavLink
         className="approved-icon-button" to="/ooh-inbox" aria-label="Messages"
         title="Open OOH proposal inbox"><Icon name="inbox" /></NavLink>}

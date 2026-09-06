@@ -23,6 +23,12 @@ def is_numeric_rate_matrix(
 ) -> bool:
     if not rate_document:
         return False
+    text = " ".join(cell.text for row in grid.values() for cell in row.values())
+    if re.search(
+        r"\b(?:no\.?|number)\s+of\s+(?:spots?|units?|insertions?)\b|\b(?:spot|unit|insertion)\s+count\b|\bquantity\b",
+        text, re.I,
+    ):
+        return False
     for row in grid.values():
         cells = tuple({cell.locator: cell for cell in row.values()}.values())
         if (

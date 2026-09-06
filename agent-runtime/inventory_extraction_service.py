@@ -10,7 +10,7 @@ from inventory_docling_embedded_images import (
     ImageConverter,
     expand_embedded_images,
 )
-from inventory_docling_mixed_cells import project_mixed_rate_row
+from inventory_docling_mixed_cells import project_mixed_rate_row, project_unrepresented_rate_cells
 from inventory_docling_numeric_matrix import is_numeric_rate_matrix
 from inventory_docling_products import project_text_products
 from inventory_docling_rates import (
@@ -240,6 +240,8 @@ def _project_grid(
         )
         if projected is not None:
             output.append(projected)
+    used = {variant.source_locator for item in output for variant in (item.rate_variants or ())}
+    output.extend(project_unrepresented_rate_cells(cells, headers, section, used, {id(cell) for row in grid.values() for cell in row.values()}))
     return output
 
 def _project_grid_row(
@@ -259,7 +261,7 @@ def _project_grid_row(
         if _normal(headers.get(column, ("", ()))[0]) == "currency"
         and re.fullmatch(r"[A-Za-z]{3}", cell.text.strip())
     ), None)
-    for column, cell in sorted(row.items()):
+    for column, cell in dict((item[1].locator, item) for item in sorted(row.items())).values():
         if not cell.text:
             continue
         header, header_locators = headers.get(

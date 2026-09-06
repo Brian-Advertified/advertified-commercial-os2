@@ -5,8 +5,8 @@ import { opportunityApi } from '../api/opportunity-client'
 import type { HumanTask } from '../api/schemas'
 import { useWorkspace } from '../auth/workspace-state'
 import { LoadingState, MessageState } from '../components/PageState'
-import { masterDataCodes } from '../generated/master-data-codes'
 import { formatDateTime, humanizeCode } from '../presentation/format'
+import { taskTarget } from '../tasks/task-target'
 
 export function TasksPage() {
   const { selected, loading } = useWorkspace()
@@ -66,24 +66,3 @@ function TaskWorkspace({ tasks }: { tasks: HumanTask[] }) {
   </section>
 }
 
-function taskTarget(task: HumanTask) {
-  const resources = masterDataCodes.commercialResourceTypes
-  if (task.resourceType === resources.creativeAsset) {
-    return `/creative-assets/${task.resourceId}`
-  }
-  if (task.resourceType === resources.deliveryProof) {
-    return `/delivery-proofs/${task.resourceId}`
-  }
-  if (task.resourceType === resources.performanceEvidence) {
-    return `/performance-evidence/${task.resourceId}`
-  }
-  if (task.resourceType === resources.measurementReport) {
-    return `/measurement-reports/${task.resourceId}`
-  }
-  if (task.resourceType === resources.campaign) {
-    return `/campaigns/${task.resourceId}`
-  }
-  if (task.briefId) return `/briefs/${task.briefId}`
-  if (task.opportunityId) return `/opportunities/${task.opportunityId}`
-  return '/tasks'
-}

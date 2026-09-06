@@ -160,6 +160,7 @@ public sealed class BrowserSessionSecurityTests
                 "ConnectionStrings:CommercialDatabase",
                 "Host=localhost;Database=closed;Username=closed");
             builder.UseSetting("Authentication:Mode", "Disabled");
+            builder.UseSetting("ReleaseSmoke:Enabled", "true");
             builder.UseSetting("AgentRuntime:Mode", "Disabled");
             builder.UseSetting("InventoryProtection:ObjectStoreMode", "Minio");
             builder.UseSetting("InventoryProtection:ScannerMode", "ClamAv");
@@ -211,6 +212,7 @@ public sealed class BrowserSessionSecurityTests
             "ConnectionStrings:CommercialDatabase",
             "Host=localhost;Database=closed;Username=closed");
         builder.UseSetting("Authentication:Mode", "Disabled");
+        builder.UseSetting("ReleaseSmoke:Enabled", "true");
         builder.UseSetting("AgentRuntime:Mode", "Disabled");
         builder.UseSetting("InventoryProtection:ObjectStoreMode", "Minio");
         builder.UseSetting("InventoryProtection:ScannerMode", "ClamAv");

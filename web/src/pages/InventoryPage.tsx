@@ -23,7 +23,8 @@ import { formatMiB } from '../presentation/format'
 const importRoles = new Set<string>([
   inventoryCodes.role.platformAdmin,
   inventoryCodes.role.inventoryOperations,
-  inventoryCodes.role.supplierAdmin,
+  inventoryCodes.role.supplierUser,
+  inventoryCodes.role.influencerRep,
 ])
 
 const reviewRoles = new Set<string>([

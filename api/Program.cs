@@ -19,6 +19,7 @@ using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Funding;
 using Advertified.Commercial.Application.Opportunity;
+using Advertified.Commercial.Application.Onboarding;
 using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Marketplace;
@@ -39,6 +40,7 @@ using Advertified.Commercial.Infrastructure.EmailAutomation;
 using Advertified.Commercial.Infrastructure.Identity;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Opportunity;
+using Advertified.Commercial.Infrastructure.Onboarding;
 using Advertified.Commercial.Infrastructure.Persistence;
 using Advertified.Commercial.Infrastructure.Inventory;
 using Advertified.Commercial.Infrastructure.Marketplace;
@@ -49,6 +51,8 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using Amazon;
+using Amazon.S3;
 using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -77,7 +81,9 @@ var connectionString = StartupConfigurationValidator.ValidateAndGetConnectionStr
     builder,
     authenticationMode,
     agentRuntime,
-    inventoryProtection);
+    inventoryProtection,
+    inventoryExtraction,
+    emailAutomation);
 
 builder.Services.AddDbContext<GovernanceDbContext>(
     options => options.UseNpgsql(connectionString));
@@ -90,6 +96,10 @@ builder.Services.AddScoped<OidcIdentityResolver>();
 builder.Services.AddScoped<IIdentityWorkspaceReader, IdentityWorkspaceReader>();
 builder.Services.AddScoped<ITenantMembershipSource, DatabaseTenantMembershipSource>();
 builder.Services.AddScoped<ITenantAuthorizer, TenantAuthorizer>();
+builder.Services.AddScoped<PublicIntakeStore>();
+builder.Services.AddScoped<PublicIntakeProvisioner>();
+builder.Services.AddScoped<IPublicIntakeReader, PublicIntakeReader>();
+builder.Services.AddScoped<IPublicIntakeCommands, PublicIntakeCommands>();
 builder.Services.AddScoped<CommandDispatcher>();
 builder.Services.AddScoped<IIdempotentCommandUnitOfWork, PersistedCommandUnitOfWork>();
 builder.Services.AddScoped<ICommercialFoundationReader, CommercialFoundationReader>();
@@ -185,6 +195,8 @@ builder.Services.AddOptions<InventoryProtectionOptions>()
         "The inventory source limit must be between 1 byte and 100 MiB.")
     .Validate(InventoryProtectionOptions.HasCompleteMinioConfiguration,
         "MinIO inventory protection requires an endpoint and credentials.")
+    .Validate(InventoryProtectionOptions.HasCompleteAwsS3Configuration,
+        "AWS S3 inventory protection requires a bucket and AWS region.")
     .Validate(InventoryProtectionOptions.HasCompleteClamAvConfiguration,
         "ClamAV inventory protection requires a valid host and port.")
     .ValidateOnStart();
@@ -196,10 +208,21 @@ builder.Services.AddSingleton<IMinioClient>(serviceProvider =>
         .WithCredentials(options.AccessKey, options.SecretKey);
     return (options.UseTls ? client.WithSSL() : client).Build();
 });
+builder.Services.AddSingleton<IAmazonS3>(serviceProvider =>
+{
+    var options = serviceProvider.GetRequiredService<
+        Microsoft.Extensions.Options.IOptions<InventoryProtectionOptions>>().Value;
+    return new AmazonS3Client(RegionEndpoint.GetBySystemName(options.AwsRegion));
+});
 builder.Services.AddSingleton<IInventoryObjectStore>(serviceProvider =>
-    inventoryProtection.ObjectStoreMode == InventoryProtectionOptions.MinioMode
-        ? ActivatorUtilities.CreateInstance<MinioInventoryObjectStore>(serviceProvider)
-        : new InMemoryInventoryObjectStore());
+    inventoryProtection.ObjectStoreMode switch
+    {
+        InventoryProtectionOptions.MinioMode =>
+            ActivatorUtilities.CreateInstance<MinioInventoryObjectStore>(serviceProvider),
+        InventoryProtectionOptions.AwsS3Mode =>
+            ActivatorUtilities.CreateInstance<AwsS3InventoryObjectStore>(serviceProvider),
+        _ => new InMemoryInventoryObjectStore(),
+    });
 builder.Services.AddSingleton<IInventoryMalwareScanner>(serviceProvider =>
     inventoryProtection.ScannerMode == InventoryProtectionOptions.ClamAvScanner
         ? ActivatorUtilities.CreateInstance<ClamAvInventoryMalwareScanner>(serviceProvider)
@@ -346,6 +369,7 @@ if (processRole.RunsApi)
     app.MapBrowserSessionEndpoints();
     app.MapAgentOperationsEndpoints();
     app.MapIdentityEndpoints();
+    app.MapPublicIntakeEndpoints();
     app.MapFoundationEndpoints();
     app.MapOpportunityEndpoints();
     app.MapBriefEndpoints();

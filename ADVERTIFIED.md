@@ -1479,8 +1479,14 @@ require a bounded second Docling pass because retained structured evidence is sp
 adjacent label/value pairs may be treated as one fact card when the current table shape and sparse
 rate distribution distinguish that structure from a row-oriented rate table. Composite buying units
 such as per-slot monthly pricing are interpreted from the current page rather than prior layouts.
+Overlapping or spanned table cells are evaluated once by physical source identity, while commercial
+money cells hidden by a dense-grid span remain eligible for generic recovery with exact lineage.
+Plural package headings may establish current-page commercial context, but package wording alone
+does not convert arbitrary money into a rate. Text recovered from an embedded image may produce a
+product only when that same current-image evidence contains generic inventory or media context.
 
-Road identifiers, exposure counts, demographic values and production-only costs do not become
+Road identifiers, exposure counts, spot or insertion counts, quantities, demographic values and
+production-only costs do not become
 product rates merely because they contain digits or a currency-like token. Exact source elements
 remain retained when their commercial role cannot be assigned automatically.
 

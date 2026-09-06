@@ -9,8 +9,8 @@ export const marketplaceBuyerRoles = new Set<string>([
 
 export const marketplaceSupplierRoles = new Set<string>([
   masterDataCodes.roles.platformAdmin,
-  masterDataCodes.roles.supplierAdmin,
   masterDataCodes.roles.supplierUser,
+  masterDataCodes.roles.influencerRep,
 ])
 
 export const marketplaceViewerRoles = new Set<string>([

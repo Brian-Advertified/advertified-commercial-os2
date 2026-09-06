@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: 26cbe17817eef0e8239658cf405eed2e92901d25d2dc96873c27ea681fa04775
+# source-sha256: 6a92d5312e635b4aa75b2e070cb35e8590b904f8ae70b66cd3355755c1c7dfd7
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.32.0"
+REGISTRY_VERSION = "2.33.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -62,6 +62,8 @@ class Permissions(StrEnum):
     RUN_MANAGE = "run_manage"
     TASK_VIEW = "task_view"
     TASK_ACT = "task_act"
+    PUBLIC_INTAKE_VIEW = "public_intake_view"
+    PUBLIC_INTAKE_MANAGE = "public_intake_manage"
     BRIEF_VIEW = "brief_view"
     BRIEF_CREATE = "brief_create"
     BRIEF_EDIT = "brief_edit"
@@ -600,6 +602,7 @@ class CommercialResourceTypes(StrEnum):
     SUPPLIER_CLAIM_INVITATION = "supplier_claim_invitation"
     INVENTORY_SUPPLIER_RELEASE = "inventory_supplier_release"
     PROPOSAL_INVENTORY_IMPACT = "proposal_inventory_impact"
+    PUBLIC_INTAKE_REQUEST = "public_intake_request"
 
 class CommercialActions(StrEnum):
     TENANT_UPDATED = "tenant.updated"
@@ -711,6 +714,9 @@ class CommercialActions(StrEnum):
     INVENTORY_RELEASE_SUPERSEDED = "inventory_release.superseded"
     PROPOSAL_INVENTORY_REVIEW_REQUIRED = "proposal.inventory_review_required"
     PROPOSAL_INVENTORY_REVIEW_RESOLVED = "proposal.inventory_review_resolved"
+    PUBLIC_INTAKE_PROVISIONED = "public_intake.provisioned"
+    PUBLIC_INTAKE_REJECTED = "public_intake.rejected"
+    PUBLIC_INTAKE_RESOLVED = "public_intake.resolved"
 
 class CommercialEventTypes(StrEnum):
     TENANT_UPDATED = "TenantUpdated"
@@ -822,6 +828,9 @@ class CommercialEventTypes(StrEnum):
     INVENTORY_SUPPLIER_RELEASE_SUPERSEDED = "InventorySupplierReleaseSuperseded"
     PROPOSAL_INVENTORY_REVIEW_REQUIRED = "ProposalInventoryReviewRequired"
     PROPOSAL_INVENTORY_REVIEW_RESOLVED = "ProposalInventoryReviewResolved"
+    PUBLIC_INTAKE_PROVISIONED = "PublicIntakeProvisioned"
+    PUBLIC_INTAKE_REJECTED = "PublicIntakeRejected"
+    PUBLIC_INTAKE_RESOLVED = "PublicIntakeResolved"
 
 class CreativeTextRoles(StrEnum):
     HEADLINE = "HEADLINE"
@@ -896,6 +905,15 @@ class TenantTypes(StrEnum):
     AGENCY = "AGENCY"
     ADVERTISER = "ADVERTISER"
     SUPPLIER = "SUPPLIER"
+    CREATOR = "CREATOR"
+
+class PublicIntakeTypes(StrEnum):
+    GENERAL_ENQUIRY = "GENERAL_ENQUIRY"
+    CAMPAIGN_ENQUIRY = "CAMPAIGN_ENQUIRY"
+    ADVERTISER = "ADVERTISER"
+    AGENCY = "AGENCY"
+    MEDIA_OWNER = "MEDIA_OWNER"
+    CREATOR = "CREATOR"
 
 class ContactPurposes(StrEnum):
     BILLING = "BILLING"

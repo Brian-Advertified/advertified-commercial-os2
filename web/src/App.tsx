@@ -36,8 +36,8 @@ const AuthenticatedApplication = lazy(() => import('./routing/AuthenticatedAppli
   .then(module => ({ default: module.AuthenticatedApplication })))
 const PublicSiteRoute = lazy(() => import('./public/PublicSiteRoute')
   .then(module => ({ default: module.PublicSiteRoute })))
-const DeferredPage = lazy(() => import('./pages/DeferredPage')
-  .then(module => ({ default: module.DeferredPage })))
+const SupplierClaimPage = lazy(() => import('./pages/SupplierClaimPage')
+  .then(module => ({ default: module.SupplierClaimPage })))
 const NotFoundPage = lazy(() => import('./pages/DeferredPage')
   .then(module => ({ default: module.NotFoundPage })))
 const WorkspacesPage = lazy(() => import('./pages/WorkspacesPage')
@@ -82,6 +82,8 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage')
   .then(module => ({ default: module.ProfilePage })))
 const TasksPage = lazy(() => import('./pages/TasksPage')
   .then(module => ({ default: module.TasksPage })))
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage')
+  .then(module => ({ default: module.NotificationsPage })))
 const SearchPage = lazy(() => import('./pages/SearchPage')
   .then(module => ({ default: module.SearchPage })))
 
@@ -99,6 +101,8 @@ const CommercialPolicyPage = lazy(() => import('./pages/CommercialPolicyPage')
   .then(module => ({ default: module.CommercialPolicyPage })))
 const AgentOperationsPage = lazy(() => import('./pages/AgentOperationsPage')
   .then(module => ({ default: module.AgentOperationsPage })))
+const OnboardingPage = lazy(() => import('./pages/OnboardingPage')
+  .then(module => ({ default: module.OnboardingPage })))
 const BookingsPage = lazy(() => import('./pages/BookingsPage')
   .then(module => ({ default: module.BookingsPage })))
 const FundingPage = lazy(() => import('./pages/FundingPage')
@@ -137,6 +141,7 @@ function App() {
         <Route path="/solutions/:channel" element={deferredRoute(<PublicSiteRoute />)} />
         <Route path="/register/:registrationType" element={deferredRoute(<PublicSiteRoute />)} />
         <Route path="/sign-in" element={<SignInPage />} />
+        <Route path="/supplier-claim/:tenantId/:invitationId" element={deferredRoute(<SupplierClaimPage />)} />
         <Route element={deferredRoute(<AuthenticatedApplication />)}>
           <Route path="/workspaces" element={deferredRoute(<WorkspacesPage />)} />
           <Route path="/home" element={deferredRoute(<HomePage />)} />
@@ -173,11 +178,12 @@ function App() {
           <Route path="/measurement-reports/:reportId" element={deferredRoute(<MeasurementReportPage />)} />
           <Route path="/admin/commercial" element={deferredRoute(<CommercialPolicyPage />)} />
           <Route path="/admin/agents" element={deferredRoute(<AgentOperationsPage />)} />
+          <Route path="/admin/onboarding" element={deferredRoute(<OnboardingPage />)} />
           <Route path="/profile" element={deferredRoute(<ProfilePage />)} />
           <Route path="/tasks" element={deferredRoute(<TasksPage />)} />
           <Route path="/search" element={deferredRoute(<SearchPage />)} />
           <Route path="/approvals" element={deferredRoute(<ApprovalsIndexPage />)} />
-          <Route path="/notifications" element={deferredRoute(<DeferredPage destination="Notifications" />)} />
+          <Route path="/notifications" element={deferredRoute(<NotificationsPage />)} />
           <Route path="*" element={deferredRoute(<NotFoundPage />)} />
         </Route>
       </Routes>

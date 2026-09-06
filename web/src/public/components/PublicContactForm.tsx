@@ -61,7 +61,7 @@ export function PublicContactForm({ kind }: { kind: PublicEnquiryKind }) {
         </label>
         {statusMessage && <div className="public-form-status public-form-wide" role="status" aria-live="polite">{statusMessage}</div>}
         <button className="btn primary large full public-form-wide" type="submit" disabled={disabled}>
-          {state === 'pending' ? 'Preparing email…' : publicEnquiryGateway.available ? 'Email Advertified' : 'Online enquiries unavailable'}
+          {state === 'pending' ? 'Submitting enquiry…' : publicEnquiryGateway.available ? 'Send enquiry' : 'Online enquiries unavailable'}
         </button>
       </form>
     </section>

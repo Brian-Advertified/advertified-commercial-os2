@@ -4,7 +4,8 @@ export const inventoryCodes = {
   role: {
     platformAdmin: masterDataCodes.roles.platformAdmin,
     inventoryOperations: masterDataCodes.roles.inventoryOps,
-    supplierAdmin: masterDataCodes.roles.supplierAdmin,
+    supplierUser: masterDataCodes.roles.supplierUser,
+    influencerRep: masterDataCodes.roles.influencerRep,
   },
   decision: {
     approve: masterDataCodes.inventoryReviewDecisions.approve,

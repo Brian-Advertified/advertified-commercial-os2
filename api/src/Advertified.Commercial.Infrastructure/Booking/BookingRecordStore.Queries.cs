@@ -111,8 +111,8 @@ public sealed partial class BookingRecordStore
 
     private static object[] BookingProjectionArguments(params object[] suffix) =>
     [
-        MasterDataCodes.Roles.SupplierAdmin,
         MasterDataCodes.Roles.SupplierUser,
+        MasterDataCodes.Roles.InfluencerRep,
         MasterDataCodes.LifecycleStatuses.Active,
         .. suffix,
     ];

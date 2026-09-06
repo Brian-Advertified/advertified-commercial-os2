@@ -37,6 +37,7 @@ def test_grouped_money_stops_before_an_adjacent_percentage():
 
 def test_inline_table_rate_keeps_commercial_units_but_not_production_costs():
     assert is_table_rate("description", "1 X SOCIAL POST @ R500 EACH") is True
+    assert is_table_rate("description", "R640 000 PACKAGE") is True
     assert is_table_rate("description", "Printing cost R500") is False
     assert is_table_rate("description", "Site beside route R44") is False
 
@@ -208,6 +209,60 @@ def test_sparse_rate_fact_card_is_not_flattened_into_table_rows():
     assert rows[0].extraction_method == "KEY_VALUE"
     assert rows[0].values["productcode"] == "UNIT-42"
     assert rows[0].rate_variants[0].raw_value == "R32 000"
+
+
+def test_spanned_physical_rate_cell_is_projected_once():
+    header = _cell("2026/05/12 Tuesday", 0, 0)
+    header["column_header"] = True
+    rate = _cell("R76,000", 1, 0)
+    rate["end_col_offset_idx"] = 3
+    document = {
+        "texts": [], "pictures": [],
+        "tables": [{"prov": [{"page_no": 1}],
+                    "data": {"table_cells": [header, rate]}}],
+    }
+
+    rows = project_inventory(InventoryProjectionRequest(
+        provider_document=document
+    )).rows
+
+    variants = [item for row in rows for item in (row.rate_variants or ())]
+    assert [item.raw_value for item in variants] == ["R76,000"]
+
+
+def test_overlapping_physical_rate_cell_is_not_hidden_by_dense_grid():
+    header = _cell("2026/05/12 Tuesday", 0, 0)
+    header["column_header"] = True
+    document = {
+        "texts": [], "pictures": [],
+        "tables": [{"prov": [{"page_no": 1}], "data": {"table_cells": [
+            header, _cell("Morning programme", 1, 0),
+            _cell("R90 000 19:30 Programme", 1, 0),
+        ]}}],
+    }
+
+    rows = project_inventory(InventoryProjectionRequest(
+        provider_document=document
+    )).rows
+
+    variants = [item for row in rows for item in (row.rate_variants or ())]
+    assert [item.raw_value for item in variants] == ["R90 000"]
+
+
+def test_image_code_pair_requires_inventory_context():
+    def rows(context: str):
+        texts = [{
+            "text": value, "label": "text", "_advertified_virtual_page": 10001,
+            "_advertified_locator_prefix": "docling:picture=1;child-page=1",
+        } for value in (context, "DISPLAY", "DSP 104A")]
+        return project_inventory(InventoryProjectionRequest(provider_document={
+            "texts": texts, "pictures": [], "tables": [],
+        })).rows
+
+    assert rows("CAMPAIGN CREATIVE") == ()
+    accepted = rows("SITE LOCATION")
+    assert len(accepted) == 1
+    assert accepted[0].values["productcode"] == "DSP 104A"
 
 
 def test_first_priced_row_is_not_consumed_as_a_header():

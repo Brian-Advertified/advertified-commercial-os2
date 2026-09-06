@@ -157,9 +157,8 @@ public sealed class InventorySupplierAccessPolicy(
               AND status_code = {MasterDataCodes.LifecycleStatuses.Active}
             """).SingleOrDefaultAsync(cancellationToken)
             ?? throw new UnauthorizedAccessException("Tenant access denied.");
-        if (role == MasterDataCodes.Roles.SupplierAdmin)
-            throw new UnauthorizedAccessException("The retired supplier role cannot access inventory.");
-        if (role != MasterDataCodes.Roles.SupplierUser)
+        if (role is not (MasterDataCodes.Roles.SupplierUser or
+                MasterDataCodes.Roles.InfluencerRep))
         {
             return null;
         }
@@ -168,7 +167,7 @@ public sealed class InventorySupplierAccessPolicy(
             FROM commercial.inventory_supplier_memberships
             WHERE tenant_id = {tenantId.Value} AND user_id = {actorId.Value}
               AND status_code = {MasterDataCodes.LifecycleStatuses.Active}
-              AND role_code = {MasterDataCodes.Roles.SupplierUser}
+              AND role_code = {role}
             ORDER BY supplier_id
             """).ToListAsync(cancellationToken);
         var scope = supplierIds.Distinct().ToArray();
