@@ -15,15 +15,33 @@ internal static class InventoryAcceptancePolicy
         InventoryCodeSets codes, IReadOnlyList<PreparedInventoryCandidate> candidates,
         DateTimeOffset now)
     {
+        if (!string.IsNullOrWhiteSpace(
+                extraction.Document.SchemaDiscoveryFailure))
+        {
+            return candidates.Select(candidate => candidate with
+            {
+                Validation = candidate.Validation.Append(
+                    new InventoryValidationIssueView(
+                        "schemaDiscovery",
+                        MasterDataCodes.ValidationIssueTypes
+                            .CommercialTermsInvalid,
+                        extraction.Document.SchemaDiscoveryFailure,
+                        true)).ToArray(),
+            }).ToArray();
+        }
         var documentChecks = InventoryAcceptanceSourceChecks.Evaluate(
             extraction, expectedSourceHash, sourceFileVersion, codes);
         var rows = extraction.Rows.ToDictionary(row => row.Number);
-        return candidates.Select(candidate => candidate.HasDiscoveredSchema
-            ? Evaluate(candidate, rows.GetValueOrDefault(candidate.RowNumber), extraction,
-                sourceFileVersion, codes,
-                ApplicableDocumentChecks(documentChecks,
-                    rows.GetValueOrDefault(candidate.RowNumber)), now)
-            : candidate).ToArray();
+        return candidates.Select(candidate =>
+            Evaluate(candidate,
+                rows.GetValueOrDefault(candidate.RowNumber),
+                extraction,
+                sourceFileVersion,
+                codes,
+                ApplicableDocumentChecks(
+                    documentChecks,
+                    rows.GetValueOrDefault(candidate.RowNumber)),
+                now)).ToArray();
     }
 
     internal static InventoryAcceptanceCheckEvidence[] ApplicableDocumentChecks(
@@ -50,10 +68,33 @@ internal static class InventoryAcceptancePolicy
             candidate, row, extraction.SourceHash, issues)).ToArray();
         var outcome = Outcome(checks);
         var schema = extraction.Document.DiscoveredSchema;
-        var evaluation = new InventoryAcceptanceEvaluation(Version, extraction.SourceHash,
-            sourceFileVersion, extraction.CanonicalOutputHash,
-            schema is null ? string.Empty : MappingRevision(schema),
-            CandidateRevision(candidate.Values), schema?.Provenance, now, outcome, checks);
+        var mappingRevision = schema is null
+            ? InventoryExtractionContract.Hash(
+                JsonSerializer.Serialize(new
+                {
+                    extraction.SchemaVersion,
+                    extraction.AdapterVersion,
+                }))
+            : MappingRevision(schema);
+        var provenance = schema?.Provenance ??
+            new InventorySchemaProvenance(
+                "python-docling-projector",
+                extraction.AdapterVersion,
+                null,
+                null,
+                0,
+                0);
+        var evaluation = new InventoryAcceptanceEvaluation(
+            Version,
+            extraction.SourceHash,
+            sourceFileVersion,
+            extraction.CanonicalOutputHash,
+            mappingRevision,
+            CandidateRevision(candidate.Values),
+            provenance,
+            now,
+            outcome,
+            checks);
         var extension = new Dictionary<string, string>(candidate.Values.Extension ??
             new Dictionary<string, string>(), StringComparer.Ordinal);
         extension.Remove(InventoryCandidateReviewPolicy.AutoCertifiedMarker);

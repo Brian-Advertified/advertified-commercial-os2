@@ -114,7 +114,6 @@ builder.Services.AddScoped<IPerformanceEvidenceCommands, PerformanceEvidenceComm
 builder.Services.AddScoped<MeasurementReportRecordStore>();
 builder.Services.AddScoped<IMeasurementReportReader, MeasurementReportReader>();
 builder.Services.AddScoped<IMeasurementReportCommands, MeasurementReportCommands>();
-builder.Services.AddScoped<DeterministicMeasurementAgentClient>();
 builder.Services.AddScoped<FundingRecordStore>();
 builder.Services.AddScoped<IFundingReader, FundingReader>();
 builder.Services.AddScoped<IFundingCommands, FundingCommands>();
@@ -130,7 +129,6 @@ builder.Services.AddScoped<BriefRecordStore>();
 builder.Services.AddScoped<BriefClientResolver>();
 builder.Services.AddScoped<IBriefReader, BriefReader>();
 builder.Services.AddScoped<IBriefCommands, BriefCommands>();
-builder.Services.AddSingleton(SuppliedBriefAgentPolicy.Load());
 builder.AddSuppliedBriefInterpretation();
 builder.Services.AddScoped<ISuppliedBriefUnderstandingService, SuppliedBriefUnderstandingService>();
 builder.Services.AddScoped<InventoryRecordStore>();
@@ -167,12 +165,10 @@ builder.Services.AddScoped<IInventoryBenchmarkReader, InventoryBenchmarkReader>(
 builder.Services.AddSingleton(PlanningPolicy.Load());
 builder.Services.AddSingleton(CampaignModePolicy.Load());
 builder.Services.AddScoped<IPlanningCommands, PlanningCommands>();
-builder.Services.AddScoped<DeterministicPlanningAgentClient>();
 builder.Services.AddScoped<ProposalRecordStore>();
 builder.Services.AddSingleton(ProposalPolicy.Load());
 builder.Services.AddScoped<IProposalReader, ProposalReader>();
 builder.Services.AddScoped<IProposalCommands, ProposalCommands>();
-builder.Services.AddScoped<DeterministicProposalNarrativeClient>();
 builder.Services.AddScoped<ProposalInventoryReadiness>();
 builder.AddEmailAutomation(emailAutomation);
 builder.AddCommercialWorkers(processRole);

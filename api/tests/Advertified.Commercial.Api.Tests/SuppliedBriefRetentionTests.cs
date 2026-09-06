@@ -19,6 +19,22 @@ public sealed class SuppliedBriefRetentionTests
     }
 
     [Fact]
+    public async Task UnsupportedClarificationFieldFailsBeforeReservation()
+    {
+        var store = new MemoryStore();
+        var service = Service(new Provider(store, null, false), store);
+        var request = new UnderstandSuppliedBriefRequest(
+            "Request",
+            "Promote the launch.",
+            [new BriefClarificationInput("arbitrary.path", "override")]);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.UnderstandAsync(
+            new(Guid.NewGuid()), new(Guid.NewGuid()), request, default));
+
+        Assert.Empty(store.Events);
+    }
+
+    [Fact]
     public async Task GeneratedContractExposesRetainedSourceAndCorrectionReferences()
     {
         await using var factory = new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program>()
@@ -86,7 +102,7 @@ public sealed class SuppliedBriefRetentionTests
     public async Task RevokedMembershipCannotReadReplayOrCreateRetainedSource()
     {
         var store = new MemoryStore();
-        var service = new SuppliedBriefUnderstandingService(null!, SuppliedBriefAgentPolicy.Load(),
+        var service = new SuppliedBriefUnderstandingService(null!,
             new Authorizer(false), store);
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.UnderstandAsync(
             new(Guid.NewGuid()), new(Guid.NewGuid()), new("Request", "Source"), default));
@@ -94,7 +110,7 @@ public sealed class SuppliedBriefRetentionTests
     }
 
     private static SuppliedBriefUnderstandingService Service(ISuppliedBriefAgentClient provider, MemoryStore store) =>
-        new(provider, SuppliedBriefAgentPolicy.Load(), new Authorizer(true), store);
+        new(provider, new Authorizer(true), store);
 
     private sealed class Authorizer(bool allowed) : ITenantAuthorizer
     {
@@ -113,10 +129,9 @@ public sealed class SuppliedBriefRetentionTests
             Assert.NotNull(store.Input);
             store.Events.Add("invoke");
             if (fail) throw new HttpRequestException("Intercepted provider outage");
-            var output = await new DeterministicSuppliedBriefAgentClient(SuppliedBriefAgentPolicy.Load())
-                .UnderstandAsync(input, cancellationToken);
+            var output = SuppliedBriefAgentFixture.Create(input);
             caller?.Cancel();
-            return output;
+            return await Task.FromResult(output);
         }
     }
 

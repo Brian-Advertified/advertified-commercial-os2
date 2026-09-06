@@ -102,7 +102,7 @@ internal static partial class InventorySemanticMerger
             StringComparer.Ordinal);
         foreach (var field in candidate.Fields)
         {
-            var key = InventoryTabularProjection
+            var key = InventoryCandidateNormalizer
                 .NormalizeHeader(field.FieldName);
             values.Add(key, field.NormalizedValue!);
             locators.Add(key, field.SourceLocator);

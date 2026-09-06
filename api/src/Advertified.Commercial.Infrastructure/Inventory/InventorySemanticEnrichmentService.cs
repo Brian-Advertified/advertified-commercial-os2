@@ -31,26 +31,12 @@ public sealed class InventorySemanticEnrichmentService(
 
         var runtime = runtimeOptions.Value;
         EnsureLiveConfiguration(runtime, settings);
-        var (source, codes, sourceContent) =
+        var (source, codes) =
             await LoadSourceAsync(claim, cancellationToken);
         var context = CreateContext(claim, source);
-        var request = new InventoryExtractionRequest(
-            source.FileName,
-            source.DeclaredMediaType,
-            context.DocumentClass,
-            source.SourceHash,
-            sourceContent);
-
-        if (NativeOfficeImageReader.IsRequired(extraction.Rows))
-        {
-            // Local OCR could not safely establish source rows. Paid AI is
-            // never used as a fallback source of commercial truth.
-            return extraction;
-        }
 
         var enrichmentPackets = InventorySemanticPacketBuilder
             .BuildEnrichment(
-                request,
                 extraction,
                 codes,
                 settings);
@@ -133,7 +119,10 @@ public sealed class InventorySemanticEnrichmentService(
               extraction.Document.DiscoveredSchema,
               extraction.Document.SchemaDiscoveryFailure,
               deduplicationDecisions:
-                  extraction.Document.DeduplicationDecisions);
+                  extraction.Document.DeduplicationDecisions,
+              sourceElements: extraction.Document.SourceElements,
+              projectionWarnings:
+                  extraction.Document.ProjectionWarnings);
 
     private static InventorySemanticContext CreateContext(
         InventoryExtractionWorkerClaim claim,
@@ -145,7 +134,6 @@ public sealed class InventorySemanticEnrichmentService(
         claim.ImportId,
         source.Version,
         claim.SourceHash,
-        source.FileName,
         source.DocumentClass ??
             throw new InvalidOperationException(
                 "The inventory document class is absent."));
@@ -163,11 +151,24 @@ public sealed class InventorySemanticEnrichmentService(
             attemptId,
             packets,
             runtime.ModelFor(
-                MasterDataCodes.AgentTypes.InventoryIntelligence),
+                MasterDataCodes.AgentTypes.InventoryIntelligence,
+                RequireSingleOperation(packets)),
             settings.PromptVersion,
             settings.BudgetScope,
             settings.CertificationBudgetUsdMicros,
             cancellationToken);
+
+    private static string RequireSingleOperation(
+        IReadOnlyList<InventorySemanticPacket> packets)
+    {
+        var operations = packets.Select(packet => packet.Operation)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        return operations.Length == 1
+            ? operations[0]
+            : throw new InvalidOperationException(
+                "One semantic run batch must use one model operation.");
+    }
 
     private async Task<IReadOnlyList<AgentSemanticResult>>
         RunPacketsAsync(
@@ -302,8 +303,7 @@ public sealed class InventorySemanticEnrichmentService(
             CancellationToken.None);
 
     private async Task<(InventoryImportRow Source,
-        InventoryCodeSets Codes,
-        byte[] Content)> LoadSourceAsync(
+        InventoryCodeSets Codes)> LoadSourceAsync(
             InventoryExtractionWorkerClaim claim,
             CancellationToken cancellationToken)
     {
@@ -333,7 +333,7 @@ public sealed class InventorySemanticEnrichmentService(
             cancellationToken);
         InventoryExtractionCompletionPolicy.VerifySource(
             content, claim.SourceHash);
-        return (source, codes, content);
+        return (source, codes);
     }
 
     private static InventorySemanticCodes ToCodes(
@@ -358,8 +358,8 @@ public sealed class InventorySemanticEnrichmentService(
             !runtime.AllowLive ||
             !string.Equals(
                 runtime.ModelFor(
-                    MasterDataCodes.AgentTypes
-                        .InventoryIntelligence),
+                    MasterDataCodes.AgentTypes.InventoryIntelligence,
+                    InventorySemanticOperations.SemanticEnrichment),
                 semantic.ModelId,
                 StringComparison.Ordinal) ||
             runtime.CostCapFor(

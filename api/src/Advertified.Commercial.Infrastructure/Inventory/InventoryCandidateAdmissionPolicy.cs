@@ -22,8 +22,7 @@ internal static class InventoryCandidateAdmissionPolicy
         string sourceHash,
         string selectedSupplier,
         InventoryCodeSets codes,
-        DateTimeOffset capturedAtUtc,
-        string? sourceFileName = null)
+        DateTimeOffset capturedAtUtc)
     {
         var result = new List<PreparedInventoryCandidate>();
         foreach (var row in rows)

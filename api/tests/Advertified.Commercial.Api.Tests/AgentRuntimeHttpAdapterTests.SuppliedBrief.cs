@@ -79,6 +79,6 @@ public sealed partial class AgentRuntimeHttpAdapterTests
         Questions = mode is null
             ? new[] { new SuppliedBriefQuestionView("campaignMode", "Which channels are permitted?", true, ["OOH_ONLY", "FULL_CAMPAIGN"]) }
             : [],
-        Evidence = new[] { new SuppliedBriefEvidenceView("campaignMode", "SUPPLIED_CLAIM", text, 1m, "supplied:brief") },
+        Evidence = new[] { new SuppliedBriefEvidenceView("campaignMode", "SUPPLIED_CLAIM", text, 1m, "supplied:brief/current") },
     };
 }

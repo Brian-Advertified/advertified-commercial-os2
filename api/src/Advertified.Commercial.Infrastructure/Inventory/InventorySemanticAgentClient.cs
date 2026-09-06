@@ -32,13 +32,11 @@ public sealed class InventorySemanticAgentClient(
             context.ImportId,
             context.ImportVersion,
             [],
-            settings);
+            settings,
+            modelOperation: packet.Operation);
         var payload = new InventorySemanticAgentRequest(
             packet.Operation,
             invocation,
-            context.SourceHash,
-            context.FileName,
-            context.DocumentClass,
             packet.Number,
             packet.Count,
             packet.SourceItems,
@@ -52,7 +50,8 @@ public sealed class InventorySemanticAgentClient(
             MasterDataCodes.AgentTypes.InventoryIntelligence,
             payload,
             [],
-            cancellationToken);
+            cancellationToken,
+            packet.Operation);
     }
 }
 
@@ -64,15 +63,11 @@ internal sealed record InventorySemanticContext(
     Guid ImportId,
     long ImportVersion,
     string SourceHash,
-    string FileName,
     string DocumentClass);
 
 internal sealed record InventorySemanticAgentRequest(
     string Operation,
     AgentInvocationRequest Invocation,
-    string SourceHash,
-    string FileName,
-    string DocumentClass,
     int ChunkNumber,
     int ChunkCount,
     IReadOnlyList<InventorySemanticSourceItem> SourceItems,
@@ -97,6 +92,14 @@ internal sealed record InventorySemanticSourceItem(
     string Kind,
     string Content,
     decimal? Confidence);
+
+internal sealed record InventorySemanticImage(
+    int Ordinal,
+    string Locator,
+    string MediaType,
+    string Base64Content,
+    int ByteLength,
+    string Sha256);
 
 internal sealed record InventorySemanticExistingRow(
     int RowNumber,

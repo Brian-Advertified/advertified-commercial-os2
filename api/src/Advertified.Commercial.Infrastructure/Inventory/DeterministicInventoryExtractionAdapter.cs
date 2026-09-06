@@ -12,7 +12,7 @@ public sealed class DeterministicInventoryExtractionAdapter :
         cancellationToken.ThrowIfCancellationRequested();
         InventoryExtractedRow[] rows =
         [
-            new(1, $"fixture:{request.FileName}#record=1",
+            new(1, $"fixture:source={request.SourceHash};record=1",
                 new Dictionary<string, string>()),
         ];
         var providerJson = System.Text.Json.JsonSerializer.Serialize(new

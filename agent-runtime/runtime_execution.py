@@ -66,6 +66,7 @@ from proposal_contracts import (
 )
 from proposal_service import propose_narrative
 from supplied_brief_contracts import OPERATION as SUPPLIED_BRIEF, SuppliedBriefRequest, SuppliedBriefArtifact
+from supplied_brief_model_input import build_model_input as build_brief_model_input
 from supplied_brief_service import (
     INSTRUCTION as SUPPLIED_BRIEF_INSTRUCTION, unavailable_fixture,
     validate_source as validate_brief_source, validate_grounding as validate_brief_grounding,
@@ -203,11 +204,17 @@ def execute_agent(
 
 def _grounded_bedrock_output(agent_code, request, artifact_type, instruction):
     try:
+        model_input = (
+            build_brief_model_input(request)
+            if isinstance(request, SuppliedBriefRequest)
+            else None
+        )
         output = generate_with_bedrock(
             agent_code,
             request,
             artifact_type,
             instruction,
+            model_input=model_input,
         )
         try:
             _validate_operation_output(request, output)

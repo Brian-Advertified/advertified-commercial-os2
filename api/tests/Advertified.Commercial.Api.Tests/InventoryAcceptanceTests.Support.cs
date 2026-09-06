@@ -56,7 +56,8 @@ public sealed partial class InventoryAcceptanceTests
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<IInventoryDocumentExtractionAdapter>();
-            services.AddSingleton<IInventoryDocumentExtractionAdapter>(adapter ?? new SchemaFixtureAdapter());
+            services.AddSingleton<IInventoryDocumentExtractionAdapter>(
+                adapter ?? new PythonFixtureAdapter());
         });
     });
 
@@ -156,7 +157,33 @@ public sealed partial class InventoryAcceptanceTests
         string code)
     {
         Assert.Equal(status, response.StatusCode);
-        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        Assert.Equal(code, json.RootElement.GetProperty("code").GetString());
+        using var json = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+        Assert.Equal(
+            code, json.RootElement.GetProperty("code").GetString());
+    }
+
+    private sealed class PythonFixtureAdapter(
+        bool readCsvIdentity = false) :
+        IInventoryDocumentExtractionAdapter
+    {
+        public Task<InventoryExtractionResult> ExtractAsync(
+            InventoryExtractionRequest request,
+            CancellationToken cancellationToken)
+        {
+            _ = cancellationToken;
+            var identity = readCsvIdentity
+                ? System.Text.Encoding.UTF8.GetString(request.Content)
+                    .Split(
+                        ['\r', '\n'],
+                        StringSplitOptions.RemoveEmptyEntries)[1]
+                    .Split(',')
+                : null;
+            return Task.FromResult(
+                InventoryAcceptancePolicyRegressionTests.Fixture(
+                    sourceHash: request.SourceHash,
+                    productCode: identity?[0],
+                    name: identity?[1]));
+        }
     }
 }

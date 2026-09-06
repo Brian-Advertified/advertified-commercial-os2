@@ -48,6 +48,15 @@ public sealed record InventoryExtractedRow(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     IReadOnlyList<InventoryExtractedRateVariant>? RateVariants = null);
 
+public sealed record InventoryExtractedSourceElement(
+    string Locator,
+    string StructureId,
+    string StructureKind,
+    int Row,
+    int Column,
+    string RawValue,
+    string? PositionJson = null);
+
 public sealed record InventoryExtractionDocument(
     string SchemaVersion,
     IReadOnlyList<InventoryExtractedRow> Rows,
@@ -58,7 +67,11 @@ public sealed record InventoryExtractionDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     InventorySourceAccountingReport? SourceAccounting = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    IReadOnlyList<InventoryDeduplicationDecision>? DeduplicationDecisions = null);
+    IReadOnlyList<InventoryDeduplicationDecision>? DeduplicationDecisions = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<InventoryExtractedSourceElement>? SourceElements = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<string>? ProjectionWarnings = null);
 
 public sealed record InventoryExtractionResult(
     string AdapterCode,

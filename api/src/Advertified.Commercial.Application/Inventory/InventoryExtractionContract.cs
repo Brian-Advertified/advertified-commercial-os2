@@ -18,12 +18,15 @@ public static class InventoryExtractionContract
         DiscoveredInventorySchema? discoveredSchema = null,
         string? schemaDiscoveryFailure = null,
         InventorySourceAccountingReport? sourceAccounting = null,
-        IReadOnlyList<InventoryDeduplicationDecision>? deduplicationDecisions = null)
+        IReadOnlyList<InventoryDeduplicationDecision>? deduplicationDecisions = null,
+        IReadOnlyList<InventoryExtractedSourceElement>? sourceElements = null,
+        IReadOnlyList<string>? projectionWarnings = null)
     {
         EnsureJson(providerJson);
         var document = new InventoryExtractionDocument(
             schemaVersion, CanonicalRows(rows), discoveredSchema,
-            schemaDiscoveryFailure, sourceAccounting, deduplicationDecisions);
+            schemaDiscoveryFailure, sourceAccounting, deduplicationDecisions,
+            sourceElements, projectionWarnings);
         var canonicalJson = Serialize(document);
         return new InventoryExtractionResult(
             adapterCode,

@@ -54,12 +54,28 @@ internal static class InventoryAcceptanceCandidateChecks
         IReadOnlyList<InventoryDiscoveredField> fields,
         PreparedInventoryCandidate candidate,
         InventoryExtractedRow? row) =>
-        VariantBound(meaning, candidate, row) || fields.Any(field =>
+        VariantBound(meaning, candidate, row) ||
+        ProjectedFieldBound(meaning, candidate, row) ||
+        fields.Any(field =>
             field.CanonicalMeaning == meaning && !string.IsNullOrWhiteSpace(field.RawValue) &&
             !string.IsNullOrWhiteSpace(field.Interpretation) && field.Warnings.Count == 0 &&
             candidate.Evidence.Any(evidence => evidence.FieldName == meaning &&
                 evidence.SourceLocator == field.SourceLocator && evidence.RawValue == field.RawValue &&
                 !string.IsNullOrWhiteSpace(evidence.NormalizedValue)));
+
+    private static bool ProjectedFieldBound(
+        string meaning,
+        PreparedInventoryCandidate candidate,
+        InventoryExtractedRow? row) =>
+        row?.FieldLocators is { Count: > 0 } locators &&
+        candidate.Evidence.Any(evidence =>
+            evidence.FieldName == meaning &&
+            !string.IsNullOrWhiteSpace(evidence.RawValue) &&
+            !string.IsNullOrWhiteSpace(evidence.NormalizedValue) &&
+            locators.Any(binding =>
+                binding.Value == evidence.SourceLocator &&
+                row.Values.TryGetValue(binding.Key, out var raw) &&
+                raw == evidence.RawValue));
 
     private static bool VariantBound(
         string meaning,
@@ -91,18 +107,32 @@ internal static class InventoryAcceptanceCandidateChecks
             field.ExtractionMethod == MasterDataCodes.InventoryExtractionMethods.PolicyDefault &&
             field.EvidenceBasis == MasterDataCodes.InventoryEvidenceBases.DerivedPolicy);
 
-    private static bool RawEvidence(PreparedInventoryCandidate candidate, InventoryExtractedRow? row, string hash)
+    private static bool RawEvidence(
+        PreparedInventoryCandidate candidate,
+        InventoryExtractedRow? row,
+        string hash)
     {
-        if (row?.DiscoveredFields is not { Count: > 0 } fields || row.Locator != candidate.SourceLocator)
+        if (row is null || row.Locator != candidate.SourceLocator)
             return false;
         var rateEvidence = row.RateVariants?.All(rate =>
             candidate.Evidence.Any(item => item.SourceHash == hash &&
                 item.SourceLocator == rate.SourceLocator &&
                 item.RawValue == rate.RawValue)) ?? true;
-        return rateEvidence && candidate.Evidence.All(item => item.SourceHash == hash &&
-                !string.IsNullOrWhiteSpace(item.SourceLocator)) &&
-            fields.All(field => candidate.Evidence.Any(item => item.SourceLocator == field.SourceLocator &&
+        var common = rateEvidence && candidate.Evidence.All(item =>
+            item.SourceHash == hash &&
+            !string.IsNullOrWhiteSpace(item.SourceLocator));
+        if (!common)
+            return false;
+        if (row.DiscoveredFields is { Count: > 0 } fields)
+            return fields.All(field => candidate.Evidence.Any(item =>
+                item.SourceLocator == field.SourceLocator &&
                 item.RawValue == field.RawValue));
+        return row.FieldLocators is { Count: > 0 } locators &&
+            row.Values.All(value =>
+                locators.TryGetValue(value.Key, out var locator) &&
+                candidate.Evidence.Any(item =>
+                    item.SourceLocator == locator &&
+                    item.RawValue == value.Value));
     }
 
     private static InventoryAcceptanceCheckEvidence Coordinates(PreparedInventoryCandidate candidate)

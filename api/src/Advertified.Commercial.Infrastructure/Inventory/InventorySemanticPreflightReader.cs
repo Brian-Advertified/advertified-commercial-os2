@@ -14,7 +14,8 @@ public sealed partial class InventorySemanticPreflightReader(
     InventoryRecordStore store,
     ITenantAuthorizer authorizer,
     IOptions<InventorySemanticOptions> semanticOptions,
-    IOptions<AgentRuntimeOptions> runtimeOptions) :
+    IOptions<AgentRuntimeOptions> runtimeOptions,
+    PythonInventoryProjectionClient projector) :
     IInventorySemanticPreflightReader
 {
     public async Task<InventorySemanticPreflightView> GetAsync(
@@ -156,22 +157,21 @@ public sealed partial class InventorySemanticPreflightReader(
                 source.ProtectedObjectKey, cancellationToken);
             InventoryExtractionCompletionPolicy.VerifySource(
                 content, source.SourceHash);
-            var request = new InventoryExtractionRequest(
-                source.FileName, source.MediaType,
-                source.DocumentClass, source.SourceHash,
-                content);
-            var rows = DoclingInventoryProjection.ReadRows(
-                request, source.ProviderJson);
-            var provider = InventoryExtractionContract.Create(
+            var projection = await projector.ProjectAsync(
+                source.ProviderJson, cancellationToken);
+            var extraction = InventoryExtractionContract.Create(
                 "docling",
                 InventoryExtractionOptions.PinnedAdapterVersion,
-                InventoryExtractionOptions.CurrentSchemaVersion,
+                projection.SchemaVersion,
                 source.SourceHash,
                 source.ProviderJson,
-                rows);
-            var extraction =
-                NativeOfficeInventoryProjection.Apply(
-                    request, provider);
+                projection.Rows,
+                schemaDiscoveryFailure: projection.Rows.Count == 0
+                    ? string.Join(" ", projection.Warnings.DefaultIfEmpty(
+                        "The Python projection returned no inventory rows."))
+                    : null,
+                sourceElements: projection.SourceElements,
+                projectionWarnings: projection.Warnings);
             var candidates = InventoryCandidateAdmissionPolicy
                 .Prepare(
                     extraction.Rows,
@@ -186,20 +186,12 @@ public sealed partial class InventorySemanticPreflightReader(
                         candidate.Values,
                         candidate.Evidence))
                 .ToArray();
-            if (NativeOfficeImageReader.IsRequired(extraction.Rows))
-            {
-                return new(
-                    source,
-                    [],
-                    candidates,
-                    "LOCAL_IMAGE_OCR_REQUIRED");
-            }
             InventorySemanticPacket[] packets;
             try
             {
                 packets = InventorySemanticPacketBuilder
                     .BuildEnrichment(
-                        request, extraction, codes, settings)
+                        extraction, codes, settings)
                     .Where(packet =>
                         packet.ExistingRows.Count > 0)
                     .ToArray();

@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.Constants;
 using Advertified.Commercial.Domain.MasterData;
@@ -167,7 +166,7 @@ internal static partial class InventoryCandidateNormalizer
             "rate" when
                 InventoryMoneyParser.IsAmbiguousTruncatedRate(value) =>
                 null,
-            "rate" when InventoryMoneyParser.TryParse(
+            "rate" or "production_cost" when InventoryMoneyParser.TryParse(
                     value,
                     out var amount,
                     out var parsedCurrency) =>
@@ -201,7 +200,7 @@ internal static partial class InventoryCandidateNormalizer
             "rate" or "currency" when header == "value" =>
                 MasterDataCodes.InventoryTransformationTypes
                     .ParseCurrencyAmount,
-            "rate" => MasterDataCodes.InventoryTransformationTypes
+            "rate" or "production_cost" => MasterDataCodes.InventoryTransformationTypes
                 .MajorToMinor,
             "latitude" or "longitude" =>
                 MasterDataCodes.InventoryTransformationTypes.ParseDecimal,
@@ -265,64 +264,6 @@ internal static partial class InventoryCandidateNormalizer
         return code;
     }
 
-    private static void ApplyContextualMappings(
-        InventoryExtractedRow row,
-        Dictionary<string, string> canonical,
-        Dictionary<string, (string Header, string Value)> sources)
-    {
-        ApplyElementValuePair(row, canonical, sources);
-        ApplyRateHeader(canonical, sources);
-        ApplyVatTreatment(canonical);
-        ApplyRatePeriod(canonical, sources);
-    }
-
-    private static void ApplyElementValuePair(
-        InventoryExtractedRow row,
-        Dictionary<string, string> canonical,
-        Dictionary<string, (string Header, string Value)> sources)
-    {
-        if (!row.Values.TryGetValue("element", out var element) ||
-            !row.Values.TryGetValue("value", out var value) ||
-            !InventoryMoneyParser.TryParse(value, out _, out var currency) ||
-            currency.Length == 0)
-        {
-            return;
-        }
-        if (!canonical.ContainsKey("name") &&
-            !string.IsNullOrWhiteSpace(element))
-        {
-            canonical["name"] = element;
-            sources["name"] = ("element", element);
-        }
-        if (!canonical.ContainsKey("rate"))
-        {
-            canonical["rate"] = value;
-            sources["rate"] = ("value", value);
-        }
-    }
-
-    private static void ApplyRateHeader(
-        Dictionary<string, string> canonical,
-        Dictionary<string, (string Header, string Value)> sources)
-    {
-        if (canonical.ContainsKey("rate_type") ||
-            !sources.TryGetValue("rate", out var source))
-        {
-            return;
-        }
-        var header = InventoryTabularProjection.NormalizeHeader(
-            source.Header);
-        var rateType = header switch
-        {
-            "cpm" => MasterDataCodes.RateTypes.Cpm,
-            _ => null,
-        };
-        if (rateType is null)
-            return;
-        canonical["rate_type"] = rateType;
-        sources["rate_type"] = (source.Header, source.Header);
-    }
-
     private static void ApplyVatTreatment(
         Dictionary<string, string> canonical)
     {
@@ -342,12 +283,7 @@ internal static partial class InventoryCandidateNormalizer
         Dictionary<string, (string Header, string Value)> sources)
     {
         if (!canonical.TryGetValue("rate_type", out var raw))
-        {
-            if (!canonical.TryGetValue("conditions", out var conditions))
-                return;
-            raw = conditions;
-            sources["rate_type"] = ("conditions", conditions);
-        }
+            return;
         var normalized = new string(raw
             .Where(char.IsLetterOrDigit)
             .Select(char.ToLowerInvariant)
@@ -364,14 +300,10 @@ internal static partial class InventoryCandidateNormalizer
                 MasterDataCodes.RateTypes.SpotRate,
             "package" or "packagerate" =>
                 MasterDataCodes.RateTypes.PackageRate,
+            "flat" or "flatrate" =>
+                MasterDataCodes.RateTypes.FlatRate,
             "cpm" or "per1000" =>
                 MasterDataCodes.RateTypes.Cpm,
-            _ when Regex.IsMatch(
-                raw,
-                @"\bper\s+month\b|\bmonthly\b",
-                RegexOptions.IgnoreCase |
-                RegexOptions.CultureInvariant) =>
-                MasterDataCodes.RateTypes.MonthRate,
             _ => null,
         };
         if (rateType is null)

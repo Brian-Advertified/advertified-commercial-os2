@@ -5,9 +5,10 @@ using Microsoft.Extensions.Options;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
-public sealed partial class DoclingInventoryExtractionAdapter(
+public sealed class DoclingInventoryExtractionAdapter(
     HttpClient client,
-    IOptions<InventoryExtractionOptions> options) :
+    IOptions<InventoryExtractionOptions> options,
+    PythonInventoryProjectionClient projectionClient) :
     IDurableInventoryDocumentExtractionAdapter
 {
     private const string SuccessStatus = "success";
@@ -101,9 +102,8 @@ public sealed partial class DoclingInventoryExtractionAdapter(
             HttpMethod.Get,
             "/v1/result/" + Uri.EscapeDataString(externalTaskId),
             null, false, cancellationToken);
-        var mapped = MapResult(request, result.RootElement);
-        return await EnrichEmbeddedOfficeImagesAsync(
-            request, mapped, cancellationToken);
+        return await MapResultAsync(
+            request, result.RootElement, cancellationToken);
     }
 
     public Task<bool> CancelAsync(
@@ -182,9 +182,10 @@ public sealed partial class DoclingInventoryExtractionAdapter(
             : null;
     }
 
-    private static InventoryExtractionResult MapResult(
+    private async Task<InventoryExtractionResult> MapResultAsync(
         InventoryExtractionRequest request,
-        JsonElement root)
+        JsonElement root,
+        CancellationToken cancellationToken)
     {
         if (!root.TryGetProperty("status", out var status) ||
             status.GetString() != SuccessStatus ||
@@ -196,19 +197,21 @@ public sealed partial class DoclingInventoryExtractionAdapter(
         var json = structured.ValueKind == JsonValueKind.String
             ? structured.GetString() ?? "{}"
             : structured.GetRawText();
-        var projection = DoclingInventoryProjection.ReadRowsWithAccounting(
-            request, json);
-        var provider = InventoryExtractionContract.Create(
+        var projection = await projectionClient.ProjectAsync(
+            json, cancellationToken);
+        return InventoryExtractionContract.Create(
             "docling",
             InventoryExtractionOptions.PinnedAdapterVersion,
-            InventoryExtractionOptions.CurrentSchemaVersion,
+            projection.SchemaVersion,
             request.SourceHash,
             json,
             projection.Rows,
-            deduplicationDecisions: projection.DeduplicationDecisions);
-        var projected = NativeOfficeInventoryProjection.Apply(
-            request, provider);
-        return projected;
+            schemaDiscoveryFailure: projection.Rows.Count == 0
+                ? string.Join(" ", projection.Warnings.DefaultIfEmpty(
+                    "The Python projection returned no inventory rows."))
+                : null,
+            sourceElements: projection.SourceElements,
+            projectionWarnings: projection.Warnings);
     }
 
     private static MultipartFormDataContent CreateForm(

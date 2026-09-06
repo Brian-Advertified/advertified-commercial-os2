@@ -6,10 +6,10 @@ public sealed class InventoryExtractionOptions
     public const string DoclingMode = "Docling";
     public const string DeterministicMode = "Deterministic";
     public const string PinnedAdapterVersion =
-        "docling-serve/1.30.0;docling/2.118.0;advertified-projection/4.0.0;" +
-        NativeOfficeInventoryProjection.AdapterVersion + ";" +
-        DoclingInventoryExtractionAdapter.EmbeddedImageProjectionVersion;
-    public const string CurrentSchemaVersion = "advertified.inventory-extraction.v4";
+        "docling-serve/1.30.0;docling/2.118.0;" +
+        PythonInventoryProjectionClient.ProjectorVersion;
+    public const string CurrentSchemaVersion =
+        PythonInventoryProjectionClient.SchemaVersion;
 
     public string Mode { get; init; } = DeterministicMode;
     public string BaseUrl { get; init; } = "http://localhost:55001";

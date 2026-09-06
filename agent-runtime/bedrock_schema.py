@@ -6,8 +6,12 @@ import json
 
 from pydantic import BaseModel
 
+from supplied_brief_contracts import SuppliedBriefRequest
+from supplied_brief_model_input import model_source_locators
+
 SOURCE_TRANSCRIPTION = "SOURCE_TRANSCRIPTION"
 SEMANTIC_ENRICHMENT = "SEMANTIC_ENRICHMENT"
+SUPPLIED_BRIEF_UNDERSTANDING = "SUPPLIED_BRIEF_UNDERSTANDING"
 SEMANTIC_FIELDS = ("channel", "product_type", "description")
 RESTRICTED_TRANSCRIPTION_FIELDS = frozenset({
     *SEMANTIC_FIELDS,
@@ -26,6 +30,10 @@ def source_bound_schema(schema_json: str, request: BaseModel) -> str:
     sources = _locators(request, "source_items", "source_images")
     existing = _locators(request, "existing_rows")
     operation = getattr(request, "operation", None)
+    if operation == SUPPLIED_BRIEF_UNDERSTANDING:
+        if not isinstance(request, SuppliedBriefRequest):
+            raise TypeError("Supplied-Brief schema binding requires its typed request.")
+        sources = list(model_source_locators(request))
     if not sources and not existing:
         return schema_json
     _bind(

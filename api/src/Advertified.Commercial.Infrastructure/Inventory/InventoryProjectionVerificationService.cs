@@ -15,11 +15,32 @@ public sealed record InventoryProjectionVerificationView(
     string AdapterCode,
     string AdapterVersion,
     string SchemaVersion,
+    string ProviderJson,
     string ProviderOutputHash,
     string CanonicalOutputHash,
     int ExtractedRowCount,
     IReadOnlyList<InventoryProjectionCandidateView> ProjectedCandidates,
-    InventorySourceAccountingReport SourceAccounting);
+    InventorySourceAccountingReport SourceAccounting,
+    IReadOnlyList<InventoryProjectionVerificationStageView> Stages);
+
+public sealed record InventoryProjectionVerificationStageView(
+    string Stage,
+    string State,
+    string Reason);
+
+internal static class InventoryProjectionVerificationStages
+{
+    internal const string AdapterExtraction = "ADAPTER_EXTRACTION";
+    internal const string DocumentProjection = "DOCUMENT_PROJECTION";
+    internal const string SchemaExtraction = "SCHEMA_EXTRACTION";
+    internal const string SemanticEnrichment = "SEMANTIC_ENRICHMENT";
+    internal const string CandidatePreparation = "CANDIDATE_PREPARATION";
+    internal const string BaseValidation = "BASE_VALIDATION";
+    internal const string AcceptanceQuarantine = "ACCEPTANCE_QUARANTINE";
+    internal const string Persistence = "PERSISTENCE";
+    internal const string SourceAccounting = "SOURCE_ACCOUNTING";
+    internal const string Publication = "PUBLICATION_STAGE";
+}
 
 public sealed class InventoryProjectionVerificationService(
     InventoryRecordStore store,
@@ -66,8 +87,7 @@ public sealed class InventoryProjectionVerificationService(
                 sourceHash,
                 string.Empty,
                 codes,
-                DateTimeOffset.UnixEpoch,
-                source.FileName)
+                DateTimeOffset.UnixEpoch)
             .ToArray();
         extraction = InventoryExtractionSourceAccounting.Attach(
             extraction, candidates);
@@ -85,13 +105,50 @@ public sealed class InventoryProjectionVerificationService(
             extraction.AdapterCode,
             extraction.AdapterVersion,
             extraction.SchemaVersion,
+            extraction.ProviderJson,
             extraction.ProviderOutputHash,
             extraction.CanonicalOutputHash,
             extraction.Rows.Count,
             views,
             extraction.Document.SourceAccounting ??
-                throw new InvalidOperationException("Source accounting was not produced."));
+                throw new InvalidOperationException("Source accounting was not produced."),
+            VerificationStages());
     }
+
+    internal static InventoryProjectionVerificationStageView[]
+        VerificationStages() =>
+    [
+        Mapped(InventoryProjectionVerificationStages.AdapterExtraction,
+            "The adapter result and exact provider JSON are retained."),
+        Mapped(InventoryProjectionVerificationStages.DocumentProjection,
+            "The authenticated Python Docling projection executed."),
+        Mapped(InventoryProjectionVerificationStages.SchemaExtraction,
+            "The versioned Python projector mapped source structures to typed rows."),
+        Skipped(InventoryProjectionVerificationStages.SemanticEnrichment,
+            "The read-only verifier does not execute semantic enrichment."),
+        Mapped(InventoryProjectionVerificationStages.CandidatePreparation,
+            "Candidate normalization and preparation executed."),
+        Mapped(InventoryProjectionVerificationStages.BaseValidation,
+            "Base candidate validation executed during preparation."),
+        Skipped(InventoryProjectionVerificationStages.AcceptanceQuarantine,
+            "The read-only verifier does not execute acceptance policy."),
+        Skipped(InventoryProjectionVerificationStages.Persistence,
+            "The read-only verifier never persists candidates."),
+        Mapped(InventoryProjectionVerificationStages.SourceAccounting,
+            "Source accounting executed against prepared candidates."),
+        Skipped(InventoryProjectionVerificationStages.Publication,
+            "The read-only verifier cannot publish inventory."),
+    ];
+
+    private static InventoryProjectionVerificationStageView Mapped(
+        string stage,
+        string reason) => new(
+            stage, InventoryExtractionTraceCodes.Mapped, reason);
+
+    private static InventoryProjectionVerificationStageView Skipped(
+        string stage,
+        string reason) => new(
+            stage, InventoryExtractionTraceCodes.NotEvaluated, reason);
 
     private void EnsureSafeExecutionBoundary()
     {

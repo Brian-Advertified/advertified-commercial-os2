@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 from decimal import Decimal
 from typing import Annotated, Literal, get_args
 
@@ -122,23 +121,13 @@ def _project_field(
     name: str,
     value: BedrockTranscribedField,
 ) -> ProposedInventoryField:
-    raw_value = value.raw_value
-    transformation = value.transformation
-    if name == "dimensions":
-        match = re.fullmatch(
-            r"\s*(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]\d+)?)\s*",
-            raw_value,
-        )
-        if match:
-            raw_value = f"{match.group(1)} x {match.group(2)}"
-            transformation = "DERIVED_FROM_SOURCE_CONTEXT"
     return ProposedInventoryField(
         field_name=name,
-        raw_value=raw_value,
+        raw_value=value.raw_value,
         normalized_value=None,
         source_locator=value.source_locator,
         evidence_basis="SUPPLIER_SUPPLIED",
-        transformation=transformation,
+        transformation=value.transformation,
         confidence=value.confidence,
     )
 

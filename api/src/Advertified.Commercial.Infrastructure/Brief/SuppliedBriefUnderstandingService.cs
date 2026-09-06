@@ -8,7 +8,6 @@ namespace Advertified.Commercial.Infrastructure.Brief;
 
 public sealed class SuppliedBriefUnderstandingService(
     ISuppliedBriefAgentClient agentClient,
-    SuppliedBriefAgentPolicy policy,
     ITenantAuthorizer authorizer,
     ISuppliedBriefInterpretationStore interpretations) : ISuppliedBriefUnderstandingService
 {
@@ -78,13 +77,18 @@ public sealed class SuppliedBriefUnderstandingService(
         return result;
     }
 
-    private void ValidateResult(SuppliedBriefUnderstandingView result)
+    private static void ValidateResult(SuppliedBriefUnderstandingView result)
     {
         if (result.Usage.IncrementalCostMinor < 0 || result.Usage.ToolCalls < 0 ||
             result.CampaignModeConfidence is < 0 or > 1 ||
             result.Evidence.Any(item => item.Confidence is < 0 or > 1) ||
             result.Questions.Select(item => item.FieldPath)
-                .Distinct(StringComparer.OrdinalIgnoreCase).Count() != result.Questions.Count)
+                .Distinct(StringComparer.OrdinalIgnoreCase).Count() != result.Questions.Count ||
+            result.Questions.Any(item => !SuppliedBriefFieldPaths.IsSupported(item.FieldPath)) ||
+            result.Evidence.Any(item => !SuppliedBriefFieldPaths.IsSupported(item.FieldPath)) ||
+            result.Draft.Unknowns.Any(item => !SuppliedBriefFieldPaths.IsSupported(item.FieldPath)) ||
+            result.Draft.Assumptions.Any(item => !SuppliedBriefFieldPaths.IsSupported(item.FieldPath)) ||
+            result.Draft.Conflicts.Any(item => !SuppliedBriefFieldPaths.IsSupported(item.FieldPath)))
         {
             throw new InvalidOperationException("The Brief-understanding result is invalid.");
         }
@@ -94,20 +98,28 @@ public sealed class SuppliedBriefUnderstandingService(
         {
             throw new InvalidOperationException("The Brief-understanding campaign mode is invalid.");
         }
-        var requiresChoice = result.CampaignMode is null ||
-            result.CampaignModeConfidence < policy.MinimumModeConfidence;
+        // Confidence is diagnostic metadata, never the campaign-mode decision rule.
+        var requiresChoice = result.CampaignMode is null;
         if (requiresChoice != result.Questions.Any(item =>
-                string.Equals(item.FieldPath, "campaignMode", StringComparison.OrdinalIgnoreCase)))
+                string.Equals(item.FieldPath, SuppliedBriefFieldPaths.CampaignMode,
+                    StringComparison.OrdinalIgnoreCase)))
         {
             throw new InvalidOperationException(
                 "The Brief-understanding campaign-mode clarification is inconsistent.");
         }
     }
 
-    private static BriefClarificationInput ValidateClarification(BriefClarificationInput input) =>
-        new(
-            Required(input.FieldPath, 200, nameof(input.FieldPath)),
-            Required(input.Value, 4000, nameof(input.Value)));
+    private static BriefClarificationInput ValidateClarification(BriefClarificationInput input)
+    {
+        var fieldPath = Required(input.FieldPath, 200, nameof(input.FieldPath));
+        if (!SuppliedBriefFieldPaths.IsSupported(fieldPath))
+        {
+            throw new ArgumentException(
+                "The Brief correction targets an unsupported field.",
+                nameof(input));
+        }
+        return new(fieldPath, Required(input.Value, 4000, nameof(input.Value)));
+    }
 
     private static string Required(string value, int maximumLength, string parameterName)
     {

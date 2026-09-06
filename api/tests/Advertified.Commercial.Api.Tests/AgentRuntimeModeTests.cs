@@ -38,7 +38,7 @@ public sealed class AgentRuntimeModeTests
 
     [Theory]
     [InlineData("invalid")]
-    [InlineData(AgentRuntimeOptions.InProcessMode)]
+    [InlineData("InProcessDeterministic")]
     [InlineData(AgentRuntimeOptions.HttpDeterministicMode)]
     [InlineData(AgentRuntimeOptions.HttpMode)]
     public void ProductionRejectsInvalidOrFixtureRuntime(string mode)

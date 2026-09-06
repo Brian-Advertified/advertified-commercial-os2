@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Infrastructure.Inventory;
+using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -16,26 +17,33 @@ using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
 
-public sealed partial class DoclingInventoryExtractionAdapterTests
+public sealed class DoclingInventoryExtractionAdapterTests
 {
+    private static readonly string[] ProjectionWarnings =
+    [
+        "Picture regions were retained without pixel reinterpretation.",
+    ];
+
     [Theory]
     [InlineData("http://docling.test")]
     [InlineData("https://identity@docling.test")]
     public void ProductionStartupRejectsUnsafeDoclingTransport(string baseUrl)
     {
-        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-        {
-            ConfigureClosedProduction(builder);
-            builder.UseSetting("InventoryExtraction:Mode", "Docling");
-            builder.UseSetting("InventoryExtraction:BaseUrl", baseUrl);
-            builder.UseSetting("InventoryExtraction:ApiKey", "closed-test-key");
-        });
+        using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                ConfigureClosedProduction(builder);
+                builder.UseSetting("InventoryExtraction:Mode", "Docling");
+                builder.UseSetting("InventoryExtraction:BaseUrl", baseUrl);
+                builder.UseSetting(
+                    "InventoryExtraction:ApiKey", "closed-test-key");
+            });
 
-        var exception = Assert.Throws<InvalidOperationException>(factory.CreateClient);
+        var exception =
+            Assert.Throws<InvalidOperationException>(factory.CreateClient);
 
         Assert.Contains(
-            "Docling document extraction must use an HTTPS URL with a host and no " +
-            "embedded credentials outside development and test.",
+            "Docling document extraction must use an HTTPS URL with a host",
             exception.ToString(),
             StringComparison.Ordinal);
     }
@@ -43,7 +51,8 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
     [Fact]
     public async Task TestStartupAllowsLocalHttpDoclingTransport()
     {
-        await using var factory = CreateDoclingTestFactory("http://docling.test");
+        await using var factory =
+            CreateDoclingTestFactory("http://docling.test");
         using var client = factory.CreateClient();
 
         using var response = await client.GetAsync("/");
@@ -52,47 +61,180 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
     }
 
     [Fact]
-    public async Task RegisteredClientDoesNotFollowRedirectWithBytesOrApiKey()
+    public async Task ResultUsesAuthenticatedVersionedPythonProjection()
+    {
+        const string providerJson =
+            "{\"texts\":[],\"tables\":[{\"data\":{\"table_cells\":[]}}]}";
+        var doclingResponse = JsonSerializer.Serialize(new
+        {
+            status = "success",
+            document = new { json_content = providerJson },
+        });
+        using var docling = Client(_ => Json(doclingResponse), "docling.test");
+        using var python = Client(request =>
+        {
+            Assert.Equal(
+                "/v1/inventory-extraction/project",
+                request.RequestUri!.AbsolutePath);
+            Assert.Equal(
+                "projection-key",
+                request.Headers.GetValues(
+                    "X-Advertified-Service-Key").Single());
+            var body = request.Content!.ReadAsStringAsync().GetAwaiter()
+                .GetResult();
+            Assert.Contains("\"providerDocument\"", body,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain("sourceHash", body,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("documentClass", body,
+                StringComparison.OrdinalIgnoreCase);
+            return Json(JsonSerializer.Serialize(new
+            {
+                schemaVersion =
+                    PythonInventoryProjectionClient.SchemaVersion,
+                projectorVersion =
+                    PythonInventoryProjectionClient.ProjectorVersion,
+                rows = new[]
+                {
+                    new
+                    {
+                        number = 1,
+                        locator =
+                            "docling:page=1;table=1;row=2;cell=1",
+                        values = new Dictionary<string, string>
+                        {
+                            ["productcode"] = "SITE-1",
+                            ["rate"] = "R 90 000",
+                        },
+                        extractionMethod = "TABULAR",
+                        fieldLocators =
+                            new Dictionary<string, string>
+                            {
+                                ["productcode"] =
+                                    "docling:page=1;table=1;row=2;cell=1",
+                            },
+                    },
+                },
+                sourceElements = new[]
+                {
+                    new
+                    {
+                        locator =
+                            "docling:page=1;table=1;row=2;cell=1",
+                        structureId = "docling:page=1;table=1",
+                        structureKind = "table",
+                        row = 2,
+                        column = 1,
+                        rawValue = "SITE-1",
+                    },
+                },
+                warnings = ProjectionWarnings,
+            }));
+        }, "agent.test");
+        var adapter = new DoclingInventoryExtractionAdapter(
+            docling,
+            Options.Create(DoclingOptions()),
+            new PythonInventoryProjectionClient(
+                python, Options.Create(new AgentRuntimeOptions
+                {
+                    Mode = AgentRuntimeOptions.HttpDeterministicMode,
+                    ServiceKey = "projection-key",
+                })));
+
+        var result = await adapter.ReadResultAsync(
+            Request(), "retained-result", CancellationToken.None);
+
+        var row = Assert.Single(result.Rows);
+        Assert.Equal("SITE-1", row.Values["productcode"]);
+        Assert.Equal(PythonInventoryProjectionClient.SchemaVersion,
+            result.SchemaVersion);
+        Assert.Single(result.Document.SourceElements!);
+        Assert.Null(result.Document.SchemaDiscoveryFailure);
+        Assert.Single(result.Document.ProjectionWarnings!);
+        Assert.Equal(providerJson, result.ProviderJson);
+    }
+
+    [Fact]
+    public async Task MissingTaskIsAnExplicitTerminalPollResult()
+    {
+        using var docling = Client(
+            _ => new HttpResponseMessage(HttpStatusCode.NotFound),
+            "docling.test");
+        using var python = Client(
+            _ => throw new InvalidOperationException(), "agent.test");
+        var adapter = new DoclingInventoryExtractionAdapter(
+            docling,
+            Options.Create(DoclingOptions()),
+            new PythonInventoryProjectionClient(
+                python, Options.Create(new AgentRuntimeOptions())));
+
+        var result = await adapter.PollAsync(
+            Guid.NewGuid().ToString(), CancellationToken.None);
+
+        Assert.Equal(InventoryProviderTaskState.Failed, result.State);
+        Assert.Equal("task_not_found", result.ProviderResponseCode);
+        Assert.Equal("DOCLING_TASK_NOT_FOUND", result.ProviderErrorCode);
+    }
+
+    [Fact]
+    public async Task RegisteredDoclingClientDoesNotFollowRedirect()
     {
         var redirectedRequests = 0;
         await using var target = await StartLoopbackServerAsync(app =>
-            app.MapPost("/redirected", async context =>
+            app.MapPost("/redirected", () =>
             {
                 Interlocked.Increment(ref redirectedRequests);
-                context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync(
-                    "{\"status\":\"success\",\"document\":{\"json_content\":{\"tables\":[]}}}");
+                return Results.Ok();
             }));
         var targetAddress = GetServerAddress(target);
-        string? receivedApiKey = null;
-        string? receivedBody = null;
         await using var source = await StartLoopbackServerAsync(app =>
-            app.MapPost("/v1/convert/file/async", async context =>
+            app.MapPost("/v1/convert/file/async", (HttpContext context) =>
             {
-                receivedApiKey = context.Request.Headers["X-Api-Key"];
-                using var reader = new StreamReader(context.Request.Body);
-                receivedBody = await reader.ReadToEndAsync(context.RequestAborted);
-                context.Response.StatusCode = StatusCodes.Status307TemporaryRedirect;
-                context.Response.Headers.Location = $"{targetAddress}/redirected";
+                context.Response.StatusCode =
+                    StatusCodes.Status307TemporaryRedirect;
+                context.Response.Headers.Location =
+                    $"{targetAddress}/redirected";
+                return Task.CompletedTask;
             }));
-        await using var factory = CreateDoclingTestFactory(GetServerAddress(source));
+        await using var factory =
+            CreateDoclingTestFactory(GetServerAddress(source));
         using var scope = factory.Services.CreateScope();
         var adapter = scope.ServiceProvider
             .GetRequiredService<DoclingInventoryExtractionAdapter>();
 
-        await Assert.ThrowsAsync<InventoryExtractionUnavailableException>(() =>
-            adapter.ExtractAsync(new InventoryExtractionRequest(
-                "redirect-proof.pdf", "application/pdf", "PDF",
-                new string('a', 64), [1, 2, 3]), CancellationToken.None));
+        await Assert.ThrowsAsync<InventoryExtractionUnavailableException>(
+            () => adapter.ExtractAsync(Request(), CancellationToken.None));
 
-        Assert.Equal("redirect-test-key", receivedApiKey);
-        Assert.Contains("redirect-proof.pdf", receivedBody, StringComparison.Ordinal);
-        Assert.Contains("placeholder", receivedBody, StringComparison.Ordinal);
-        Assert.Contains("include_images", receivedBody, StringComparison.Ordinal);
         Assert.Equal(0, Volatile.Read(ref redirectedRequests));
     }
 
-    private static WebApplicationFactory<Program> CreateDoclingTestFactory(string baseUrl) =>
+    private static InventoryExtractionRequest Request() => new(
+        "rates.pdf", "application/pdf", "PDF",
+        new string('a', 64), [1, 2, 3]);
+
+    private static InventoryExtractionOptions DoclingOptions() => new()
+    {
+        Mode = InventoryExtractionOptions.DoclingMode,
+        BaseUrl = "http://docling.test",
+        ApiKey = "local-contract-key",
+    };
+
+    private static HttpClient Client(
+        Func<HttpRequestMessage, HttpResponseMessage> send,
+        string host) => new(new StubHandler(send))
+    {
+        BaseAddress = new Uri($"http://{host}"),
+    };
+
+    private static HttpResponseMessage Json(string body) => new(
+        HttpStatusCode.OK)
+    {
+        Content = new StringContent(
+            body, Encoding.UTF8, "application/json"),
+    };
+
+    private static WebApplicationFactory<Program>
+        CreateDoclingTestFactory(string baseUrl) =>
         new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Test");
@@ -101,16 +243,48 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
                 "Host=localhost;Database=closed;Username=closed");
             builder.UseSetting("InventoryExtraction:Mode", "Docling");
             builder.UseSetting("InventoryExtraction:BaseUrl", baseUrl);
-            builder.UseSetting("InventoryExtraction:ApiKey", "redirect-test-key");
+            builder.UseSetting(
+                "InventoryExtraction:ApiKey", "redirect-test-key");
         });
 
-    private static async Task<WebApplication> StartLoopbackServerAsync(
-        Action<WebApplication> configure)
+    private static void ConfigureClosedProduction(
+        IWebHostBuilder builder)
     {
-        var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions
-        {
-            EnvironmentName = "Test",
-        });
+        builder.UseEnvironment("Production");
+        builder.UseSetting(
+            "ConnectionStrings:CommercialDatabase",
+            "Host=localhost;Database=closed;Username=closed");
+        builder.UseSetting("Authentication:Mode", "Disabled");
+        builder.UseSetting("AgentRuntime:Mode", "Disabled");
+        builder.UseSetting(
+            "AllowedHosts", "api.advertified.example");
+        builder.UseSetting(
+            "ReverseProxy:KnownProxies:0", "127.0.0.1");
+        builder.UseSetting(
+            "InventoryProtection:ObjectStoreMode", "Minio");
+        builder.UseSetting(
+            "InventoryProtection:ScannerMode", "ClamAv");
+        builder.UseSetting(
+            "InventoryProtection:Endpoint", "localhost:9000");
+        builder.UseSetting(
+            "InventoryProtection:AccessKey", "closed-test-access");
+        builder.UseSetting(
+            "InventoryProtection:SecretKey", "closed-test-secret");
+        builder.UseSetting(
+            "InventoryProtection:UseTls", "true");
+        builder.UseSetting(
+            "InventoryProtection:ClamAvHost", "localhost");
+    }
+
+    private static async Task<WebApplication>
+        StartLoopbackServerAsync(
+            Action<WebApplication> configure)
+    {
+        var builder = WebApplication.CreateSlimBuilder(
+            new WebApplicationOptions
+            {
+                EnvironmentName = "Test",
+            });
         builder.Logging.ClearProviders();
         builder.WebHost.ConfigureKestrel(options =>
             options.Listen(IPAddress.Loopback, 0));
@@ -127,256 +301,13 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
         return Assert.Single(addresses!.Addresses);
     }
 
-    [Fact]
-    public async Task MapsPinnedStructuredTableAndCoordinatesWithoutVendorTypes()
-    {
-        var response = JsonSerializer.Serialize(new
-        {
-            status = "success",
-            document = new
-            {
-                json_content = new
-                {
-                    texts = new[]
-                    {
-                        new
-                        {
-                            text = "Supplier: City Media; VAT status: REGISTERED",
-                            prov = new[] { new { page_no = 1 } },
-                            ocr_confidence = 0.99m,
-                        },
-                    },
-                    tables = new[]
-                    {
-                        new
-                        {
-                            prov = new[] { new { page_no = 2 } },
-                            data = new
-                            {
-                                table_cells = new object[]
-                                {
-                                    Cell("Product Code", 0, 0), Cell("Rate", 0, 1),
-                                    Cell("SITE-1", 1, 0), Cell("1250.00", 1, 1),
-                                },
-                            },
-                        },
-                    },
-                },
-                text_content = string.Empty,
-            },
-        });
-        var taskId = Guid.NewGuid();
-        var requestedPaths = new List<string>();
-        using var client = new HttpClient(new StubHandler(request =>
-        {
-            Assert.Equal("local-contract-key", request.Headers.GetValues("X-Api-Key").Single());
-            Assert.False(request.Headers.Contains("X-Tenant-Id"));
-            requestedPaths.Add(request.RequestUri!.AbsolutePath);
-            var body = request.RequestUri.AbsolutePath switch
-            {
-                "/v1/convert/file/async" => JsonSerializer.Serialize(new
-                {
-                    task_id = taskId,
-                    task_type = "convert",
-                    task_status = "pending",
-                }),
-                var path when path == $"/v1/status/poll/{taskId:D}" => JsonSerializer.Serialize(new
-                {
-                    task_id = taskId,
-                    task_type = "convert",
-                    task_status = "success",
-                }),
-                var path when path == $"/v1/result/{taskId:D}" => response,
-                _ => throw new InvalidOperationException("Unexpected Docling path."),
-            };
-            return new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(body, Encoding.UTF8, "application/json"),
-            };
-        }))
-        { BaseAddress = new Uri("http://docling.test") };
-        var settings = Options.Create(new InventoryExtractionOptions
-        {
-            Mode = InventoryExtractionOptions.DoclingMode,
-            BaseUrl = "http://docling.test",
-            ApiKey = "local-contract-key",
-        });
-        var adapter = new DoclingInventoryExtractionAdapter(client, settings);
-
-        var result = await adapter.ExtractAsync(new InventoryExtractionRequest(
-            "rates.pdf", "application/pdf", "PDF", new string('a', 64), [1, 2, 3]),
-            CancellationToken.None);
-
-        Assert.Equal("docling", result.AdapterCode);
-        Assert.Equal([
-            "/v1/convert/file/async",
-            $"/v1/status/poll/{taskId:D}",
-            $"/v1/result/{taskId:D}",
-        ], requestedPaths);
-        Assert.Equal(InventoryExtractionOptions.PinnedAdapterVersion, result.AdapterVersion);
-        Assert.Equal("SITE-1", Assert.Single(result.Rows).Values["productcode"]);
-        Assert.Equal("City Media", result.Rows[0].Values["supplier"]);
-        Assert.Equal("REGISTERED", result.Rows[0].Values["vatstatus"]);
-        Assert.Equal("docling:page=2;table=1;row=2", result.Rows[0].Locator);
-        Assert.Equal("docling:page=1;text=1;segment=1",
-            result.Rows[0].FieldLocators!["supplier"]);
-        Assert.Equal(64, result.ProviderOutputHash.Length);
-        Assert.Equal(64, result.CanonicalOutputHash.Length);
-        Assert.Contains("\"tables\"", result.ProviderJson, StringComparison.Ordinal);
-        using var canonical = JsonDocument.Parse(result.CanonicalJson);
-        Assert.Equal(InventoryExtractionOptions.CurrentSchemaVersion,
-            canonical.RootElement.GetProperty("schemaVersion").GetString());
-        Assert.Equal("SITE-1", canonical.RootElement.GetProperty("rows")[0]
-            .GetProperty("values").GetProperty("productcode").GetString());
-    }
-
-    [Fact]
-    public async Task MultipleTablesRenumberRowsAfterDiscardingEmptyRows()
-    {
-        var response = JsonSerializer.Serialize(new
-        {
-            status = "success",
-            document = new
-            {
-                json_content = new
-                {
-                    texts = Array.Empty<object>(),
-                    tables = new[]
-                    {
-                        Table(Cell("Product Code", 0, 0), Cell("", 1, 0),
-                            Cell("SITE-1", 2, 0)),
-                        Table(Cell("Product Code", 0, 0), Cell("SITE-2", 1, 0)),
-                    },
-                },
-            },
-        });
-        using var client = new HttpClient(new StubHandler(_ => new HttpResponseMessage(
-            HttpStatusCode.OK)
-        {
-            Content = new StringContent(response, Encoding.UTF8, "application/json"),
-        }))
-        { BaseAddress = new Uri("http://docling.test") };
-        var adapter = new DoclingInventoryExtractionAdapter(client, Options.Create(
-            new InventoryExtractionOptions
-            {
-                Mode = InventoryExtractionOptions.DoclingMode,
-                BaseUrl = "http://docling.test",
-                ApiKey = "local-contract-key",
-            }));
-
-        var result = await adapter.ReadResultAsync(
-            new InventoryExtractionRequest(
-                "rates.pdf", "application/pdf", "PDF", new string('a', 64), [1]),
-            Guid.NewGuid().ToString(), CancellationToken.None);
-
-        Assert.Equal([1, 2], result.Rows.Select(row => row.Number));
-        Assert.Equal(["SITE-1", "SITE-2"],
-            result.Rows.Select(row => row.Values["productcode"]));
-    }
-
-    [Fact]
-    public async Task DuplicateNormalizedHeadersKeepValueAndEvidenceFromLastColumn()
-    {
-        var response = JsonSerializer.Serialize(new
-        {
-            status = "success",
-            document = new
-            {
-                json_content = new
-                {
-                    texts = Array.Empty<object>(),
-                    tables = new[]
-                    {
-                        Table(Cell("Product Code", 0, 0), Cell("Product-Code", 0, 1),
-                            Cell("SITE-1", 1, 0), Cell("SITE-2", 1, 1)),
-                    },
-                },
-            },
-        });
-        using var client = new HttpClient(new StubHandler(_ => new HttpResponseMessage(
-            HttpStatusCode.OK)
-        {
-            Content = new StringContent(response, Encoding.UTF8, "application/json"),
-        }))
-        { BaseAddress = new Uri("http://docling.test") };
-        var adapter = new DoclingInventoryExtractionAdapter(client, Options.Create(
-            new InventoryExtractionOptions
-            {
-                Mode = InventoryExtractionOptions.DoclingMode,
-                BaseUrl = "http://docling.test",
-                ApiKey = "local-contract-key",
-            }));
-
-        var result = await adapter.ReadResultAsync(
-            new InventoryExtractionRequest(
-                "rates.pdf", "application/pdf", "PDF", new string('a', 64), [1]),
-            Guid.NewGuid().ToString(), CancellationToken.None);
-
-        var row = Assert.Single(result.Rows);
-        Assert.Equal("SITE-2", row.Values["productcode"]);
-        Assert.EndsWith("cell=2", row.FieldLocators!["productcode"],
-            StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task MissingDurableProviderTaskIsAnExplicitTerminalPollResult()
-    {
-        using var client = new HttpClient(new StubHandler(_ =>
-            new HttpResponseMessage(HttpStatusCode.NotFound)))
-        { BaseAddress = new Uri("http://docling.test") };
-        var adapter = new DoclingInventoryExtractionAdapter(client, Options.Create(
-            new InventoryExtractionOptions
-            {
-                Mode = InventoryExtractionOptions.DoclingMode,
-                BaseUrl = "http://docling.test",
-                ApiKey = "local-contract-key",
-            }));
-
-        var result = await adapter.PollAsync(
-            Guid.NewGuid().ToString(), CancellationToken.None);
-
-        Assert.Equal(InventoryProviderTaskState.Failed, result.State);
-        Assert.Equal("task_not_found", result.ProviderResponseCode);
-        Assert.Equal("DOCLING_TASK_NOT_FOUND", result.ProviderErrorCode);
-    }
-
-    private static void ConfigureClosedProduction(IWebHostBuilder builder)
-    {
-        builder.UseEnvironment("Production");
-        builder.UseSetting(
-            "ConnectionStrings:CommercialDatabase",
-            "Host=localhost;Database=closed;Username=closed");
-        builder.UseSetting("Authentication:Mode", "Disabled");
-        builder.UseSetting("AgentRuntime:Mode", "Disabled");
-        builder.UseSetting("AllowedHosts", "api.advertified.example");
-        builder.UseSetting("ReverseProxy:KnownProxies:0", "127.0.0.1");
-        builder.UseSetting("InventoryProtection:ObjectStoreMode", "Minio");
-        builder.UseSetting("InventoryProtection:ScannerMode", "ClamAv");
-        builder.UseSetting("InventoryProtection:Endpoint", "localhost:9000");
-        builder.UseSetting("InventoryProtection:AccessKey", "closed-test-access");
-        builder.UseSetting("InventoryProtection:SecretKey", "closed-test-secret");
-        builder.UseSetting("InventoryProtection:UseTls", "true");
-        builder.UseSetting("InventoryProtection:ClamAvHost", "localhost");
-    }
-
-    private static object Cell(string text, int row, int column) => new
-    {
-        text,
-        start_row_offset_idx = row,
-        start_col_offset_idx = column,
-    };
-
-    private static object Table(params object[] cells) => new
-    {
-        prov = new[] { new { page_no = 1 } },
-        data = new { table_cells = cells },
-    };
-
-    private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> send) :
+    private sealed class StubHandler(
+        Func<HttpRequestMessage, HttpResponseMessage> send) :
         HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
-            CancellationToken cancellationToken) => Task.FromResult(send(request));
+            CancellationToken cancellationToken) =>
+            Task.FromResult(send(request));
     }
 }

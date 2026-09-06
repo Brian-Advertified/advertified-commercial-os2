@@ -5,24 +5,14 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 
 internal static partial class InventorySemanticPacketBuilder
 {
-    internal static IReadOnlyList<InventorySemanticPacket> Build(
-        InventoryExtractionRequest request,
-        InventoryExtractionResult extraction,
-        InventoryCodeSets codeSets,
-        InventorySemanticOptions settings) =>
-        BuildEnrichment(request, extraction, codeSets, settings);
-
     internal static IReadOnlyList<InventorySemanticPacket>
         BuildEnrichment(
-            InventoryExtractionRequest request,
             InventoryExtractionResult extraction,
             InventoryCodeSets codeSets,
             InventorySemanticOptions settings)
     {
         var items = ReadItems(
-            request,
-            extraction.ProviderJson,
-            extraction.Rows,
+            extraction,
             settings);
         // Embedded images are handled by local Docling OCR before this stage.
         // Bedrock receives only deterministic rows and their source text.
@@ -32,7 +22,6 @@ internal static partial class InventorySemanticPacketBuilder
             extraction.Rows,
             sources);
         return BuildPackets(
-            request,
             codeSets,
             settings,
             plans);
@@ -85,7 +74,6 @@ internal static partial class InventorySemanticPacketBuilder
     }
 
     private static InventorySemanticPacket[] BuildPackets(
-        InventoryExtractionRequest request,
         InventoryCodeSets codeSets,
         InventorySemanticOptions settings,
         InventorySemanticPacketPlan[] plans)
@@ -103,7 +91,6 @@ internal static partial class InventorySemanticPacketBuilder
             Sorted(codeSets.Availability));
         return plans.Select((plan, index) =>
             CreatePacket(
-                request,
                 codes,
                 plan,
                 index + 1,
@@ -112,7 +99,6 @@ internal static partial class InventorySemanticPacketBuilder
     }
 
     private static InventorySemanticPacket CreatePacket(
-        InventoryExtractionRequest request,
         InventorySemanticCodes codes,
         InventorySemanticPacketPlan plan,
         int number,
@@ -123,9 +109,6 @@ internal static partial class InventorySemanticPacketBuilder
         {
             promptVersion = settings.PromptVersion,
             operation = InventorySemanticOperations.SemanticEnrichment,
-            request.SourceHash,
-            request.FileName,
-            request.DocumentClass,
             chunkNumber = number,
             chunkCount = count,
             sourceItems = plan.Sources.Items,

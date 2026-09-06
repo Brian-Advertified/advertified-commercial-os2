@@ -61,7 +61,9 @@ public sealed partial class InventoryCommands
         {
             var artifact = await InventoryRetainedAcceptance.LoadAsync(store.DbContext,
                 new TenantId(source.TenantId), group.First().Id, cancellationToken);
-            if (artifact.Extraction().Document.DiscoveredSchema is null) throw new InventoryPublishBlockedException();
+            if (!InventoryRetainedSchemaProjection.HasRetainedLineage(
+                    artifact.Extraction().Document))
+                throw new InventoryPublishBlockedException();
             var evaluated = InventoryRetainedAcceptance.Evaluate(artifact, source, codes, timeProvider.GetUtcNow())
                 .ToDictionary(item => item.RowNumber);
             foreach (var row in group)

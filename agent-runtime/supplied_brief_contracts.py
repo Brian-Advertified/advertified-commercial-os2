@@ -9,10 +9,16 @@ from contracts import AgentInvocationEnvelope, ContractModel
 
 OPERATION = "SUPPLIED_BRIEF_UNDERSTANDING"
 Text = Annotated[str, Field(max_length=4000)]
+BriefFieldPath = Literal[
+    "clientName", "title", "campaignMode", "businessProblem", "objective",
+    "audiences", "geographies", "timing", "budget", "currency", "vatStatus",
+    "fees", "mediaRequirements", "constraints", "measurement", "facts",
+    "unknowns", "assumptions", "conflicts",
+]
 
 
 class Clarification(ContractModel):
-    field_path: Annotated[str, Field(min_length=1, max_length=200)]
+    field_path: BriefFieldPath
     value: Text
 
 
@@ -30,14 +36,14 @@ class SuppliedBriefRequest(ContractModel):
 
 
 class BriefQuestion(ContractModel):
-    field_path: Text
+    field_path: BriefFieldPath
     question: Text
     is_blocking: bool
     options: tuple[Text, ...]
 
 
 class BriefEvidence(ContractModel):
-    field_path: Text
+    field_path: BriefFieldPath
     kind: Text
     excerpt: Text
     confidence: Annotated[Decimal, Field(ge=0, le=1)]
@@ -45,20 +51,20 @@ class BriefEvidence(ContractModel):
 
 
 class BriefUnknown(ContractModel):
-    field_path: Text
+    field_path: BriefFieldPath
     question: Text
     is_blocking: bool
 
 
 class BriefAssumption(ContractModel):
-    field_path: Text
+    field_path: BriefFieldPath
     value: Text
     impact: Text
     validation_needed: Text
 
 
 class BriefConflict(ContractModel):
-    field_path: Text
+    field_path: BriefFieldPath
     description: Text
     severity: Text
     resolved: bool

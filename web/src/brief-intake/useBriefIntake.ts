@@ -277,7 +277,8 @@ async function createCampaign(
   const modeClarified = clarifications.some(item => item.fieldPath === CampaignModeField)
   const modeEvidence = understanding.evidence.find(item => item.fieldPath === CampaignModeField)
   const suppliedModeFact = modeEvidence?.kind === masterDataCodes.evidenceClassifications.fact &&
-    modeEvidence.sourceLocator === 'supplied:brief'
+    (modeEvidence.sourceLocator === 'supplied:brief' ||
+      modeEvidence.sourceLocator.startsWith('supplied:brief/'))
   await planningApi.selectCampaignMode(
     context.tenantId, approved.id, understanding.campaignMode, context.token, {
       source: modeClarified

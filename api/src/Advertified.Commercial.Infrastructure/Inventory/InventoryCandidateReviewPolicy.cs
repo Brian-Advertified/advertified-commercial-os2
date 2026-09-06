@@ -16,7 +16,7 @@ internal static class InventoryCandidateReviewPolicy
 
     internal static bool RequiresReview(PreparedInventoryCandidate candidate)
     {
-        if (!candidate.HasDiscoveredSchema || !InventoryAcceptancePolicy.CanAccept(candidate.Values))
+        if (!InventoryAcceptancePolicy.CanAccept(candidate.Values))
         {
             return true;
         }

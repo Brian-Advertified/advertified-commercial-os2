@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
 
-public sealed partial class DoclingInventoryExtractionAdapterTests
+public sealed class InventoryCandidateAdmissionPolicyTests
 {
     [Fact]
     public void CandidateAdmissionSeparatesEvidenceFragmentsFromInventory()
@@ -122,7 +122,7 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
     }
 
     [Fact]
-    public void CandidateAdmissionDoesNotInferPackageIdentityFromFileName()
+    public void CandidateAdmissionDoesNotInferPackageIdentityWithoutSourceEvidence()
     {
         var locator = "docling:page=1;table=1;row=";
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(
@@ -136,11 +136,18 @@ public sealed partial class DoclingInventoryExtractionAdapterTests
             new string('a', 64),
             "Not supplied",
             EmptyCodes(),
-            DateTimeOffset.UnixEpoch,
-            "Algoa Club Plan A Package.pdf");
+            DateTimeOffset.UnixEpoch);
 
         Assert.Equal(2, candidates.Length);
         Assert.All(candidates, candidate => Assert.Null(candidate.Values.Package));
+    }
+
+    private static InventoryCodeSets EmptyCodes()
+    {
+        var empty = new HashSet<string>(StringComparer.Ordinal);
+        return new(
+            empty, empty, empty, empty, empty,
+            empty, empty, empty, empty);
     }
 
     private static InventoryExtractedRow Row(

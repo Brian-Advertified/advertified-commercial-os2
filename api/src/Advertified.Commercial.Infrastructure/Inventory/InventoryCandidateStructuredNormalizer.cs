@@ -34,7 +34,8 @@ internal static partial class InventoryCandidateNormalizer
     {
         var result = new InventoryCommercialTermsValues(
             Code(values, "vat_treatment"), Date(values, "rate_valid_from"),
-            Date(values, "rate_valid_to"), Long(values, "production_cost_minor"),
+            Date(values, "rate_valid_to"), MoneyMinor(values, "production_cost") ??
+                Long(values, "production_cost_minor"),
             Long(values, "installation_cost_minor"), Int(values, "minimum_order"),
             Text(values, "discount_terms"), List(values, "inclusions"),
             List(values, "exclusions"), List(values, "conditions"),
@@ -122,6 +123,21 @@ internal static partial class InventoryCandidateNormalizer
             raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
             ? value : null;
 
+    private static long? MoneyMinor(
+        Dictionary<string, string> values,
+        string field)
+    {
+        if (!values.TryGetValue(field, out var raw) ||
+            !InventoryMoneyParser.TryParse(raw, out var amount, out var currency))
+        {
+            return null;
+        }
+        var normalized = currency.Length > 0
+            ? currency
+            : Code(values, "currency");
+        return MajorRateToMinor(amount, normalized);
+    }
+
     private static string[] List(Dictionary<string, string> values, string field) =>
         !values.TryGetValue(field, out var raw) ? [] : raw.Split(
             [';', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -165,6 +181,7 @@ internal static partial class InventoryCandidateNormalizer
         Add(result, "rate_valid_from", "ratevalidfrom", "validfrom", "effectivefrom");
         Add(result, "rate_valid_to", "ratevalidto", "validto", "effectiveto", "rateexpiry");
         Add(result, "production_cost_minor", "productioncostminor");
+        Add(result, "production_cost", "productioncost");
         Add(result, "installation_cost_minor", "installationcostminor", "installcostminor");
         Add(result, "minimum_order", "minimumorder", "minimumquantity");
         Add(result, "billing_days", "billingdays");

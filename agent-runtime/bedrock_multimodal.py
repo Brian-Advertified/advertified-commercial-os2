@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import json
 import math
+from typing import Any
 
 from botocore.exceptions import ClientError
 from pydantic import BaseModel
@@ -19,13 +20,14 @@ class BedrockMultimodalError(ValueError):
 
 
 def request_content(
-    request: BaseModel,
+    request: BaseModel | dict[str, Any],
     model: str,
     multimodal_models: frozenset[str],
+    *,
+    source_images: tuple[Any, ...] | None = None,
 ) -> list[dict[str, object]]:
-    payload = request.model_dump(mode="json")
+    payload, images = _payload_and_images(request, source_images)
     payload.pop("source_images", None)
-    images = tuple(getattr(request, "source_images", ()))
     if images and model not in multimodal_models:
         raise BedrockMultimodalError("The requested Bedrock model is not approved for images.")
     if images:
@@ -73,6 +75,20 @@ def request_content(
             }
         )
     return content
+
+
+def _payload_and_images(
+    request: BaseModel | dict[str, Any],
+    source_images: tuple[Any, ...] | None,
+) -> tuple[dict[str, Any], tuple[Any, ...]]:
+    if isinstance(request, BaseModel):
+        payload = request.model_dump(mode="json")
+        embedded_images = tuple(getattr(request, "source_images", ()))
+    else:
+        payload = dict(request)
+        embedded_images = ()
+    images = embedded_images if source_images is None else source_images
+    return payload, images
 
 
 def count_input_tokens(

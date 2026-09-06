@@ -5,6 +5,8 @@ using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Proposal;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Xunit;
 
@@ -27,8 +29,15 @@ public sealed class InventoryPurchasePersistenceTests
             CanonicalPlanningAcceptanceTests.OperatorId,
             configureServices: CanonicalPlanningAcceptanceTests.ConfigureDeterministicPlanningClock)
             .WithWebHostBuilder(builder => {
-                builder.UseSetting("AgentRuntime:Mode", "InProcessDeterministic");
+                builder.UseSetting("AgentRuntime:Mode", "Disabled");
                 builder.UseSetting("InventoryProcessing:Paused", "true");
+                builder.ConfigureServices(services =>
+                {
+                    services.RemoveAll<IPlanningAgentClient>();
+                    services.AddScoped<
+                        IPlanningAgentClient,
+                        PlanningAgentFixture>();
+                });
             });
         using var client = factory.CreateClient();
         var prefix = $"/api/v1/tenants/{CanonicalPlanningAcceptanceTests.TenantId}";

@@ -61,9 +61,8 @@ internal static partial class InventoryCandidateNormalizer
             canonical["rate_type"] = explicitRateType;
             sources["rate_type"] = ("ratetype", explicitRateType);
         }
-        ApplyContextualMappings(row, canonical, sources);
-        ApplyProductCodeContext(canonical, sources);
-        ApplyDimensionContext(canonical, sources);
+        ApplyVatTreatment(canonical);
+        ApplyRatePeriod(canonical, sources);
         if (canonical.TryGetValue("rate", out var rawRate) &&
             InventoryMoneyParser.IsAmbiguousTruncatedRate(rawRate))
         {
@@ -92,6 +91,19 @@ internal static partial class InventoryCandidateNormalizer
                 source.Value.Header) ?? row.Confidence,
             row.FieldEvidenceBases?.GetValueOrDefault(
                 source.Value.Header))));
+        evidence.AddRange(extension.Select(source => Evidence(
+            "extension." + source.Key,
+            source.Value,
+            source.Value.Trim(),
+            row.FieldTransformations?.GetValueOrDefault(source.Key) ??
+                MasterDataCodes.InventoryTransformationTypes.Trim,
+            row.FieldLocators?.GetValueOrDefault(source.Key) ?? row.Locator,
+            sourceHash,
+            capturedAtUtc,
+            row.ExtractionMethod ??
+                MasterDataCodes.InventoryExtractionMethods.Tabular,
+            row.FieldConfidences?.GetValueOrDefault(source.Key) ?? row.Confidence,
+            row.FieldEvidenceBases?.GetValueOrDefault(source.Key))));
         var values = ToValues(
             canonical,
             extension,
@@ -166,4 +178,9 @@ internal static partial class InventoryCandidateNormalizer
         string normalizedHeader) =>
         Aliases.ContainsKey(normalizedHeader) ||
         normalizedHeader is "element" or "exposure" or "value";
+
+    internal static string NormalizeHeader(string value) => new(
+        value.Trim().ToLowerInvariant()
+            .Where(char.IsLetterOrDigit)
+            .ToArray());
 }

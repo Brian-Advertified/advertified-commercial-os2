@@ -45,8 +45,7 @@ internal static class StartupConfigurationValidator
                 "Non-local authentication must use OIDC or be explicitly disabled for release smoke checks.");
         }
         if (!localEnvironment &&
-            agentRuntime.Mode is AgentRuntimeOptions.InProcessMode or
-                AgentRuntimeOptions.HttpDeterministicMode)
+            agentRuntime.Mode == AgentRuntimeOptions.HttpDeterministicMode)
         {
             throw new InvalidOperationException(
                 "Development-only agent runtime modes are restricted to development and test.");

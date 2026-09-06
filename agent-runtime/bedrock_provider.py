@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
@@ -73,6 +73,8 @@ def generate_with_bedrock(
     request: BaseModel,
     artifact_type: type[ArtifactT],
     instruction: str,
+    *,
+    model_input: BaseModel | dict[str, Any] | None = None,
 ) -> AgentOutputEnvelope[ArtifactT]:
     if is_source_transcription(request):
         raise BedrockProviderError(
@@ -98,6 +100,7 @@ def generate_with_bedrock(
         invocation,
         policy,
         pricing,
+        model_input,
     )
     usage = _usage(
         response, policy.model, pricing, policy.cost_cap_minor
@@ -133,12 +136,17 @@ def _invoke_bedrock(
     invocation: AgentInvocationEnvelope,
     policy: ProviderPolicy,
     pricing: BedrockPricing,
+    model_input: BaseModel | dict[str, Any] | None,
 ) -> dict[str, object]:
     system = [{"text": _system_prompt(
         agent_code, instruction, schema_json
     )}]
     try:
-        client, messages = _request_context(request, policy)
+        client, messages = _request_context(
+            request,
+            model_input,
+            policy,
+        )
         input_tokens = _input_token_count(
             client, policy.model, system, messages
         )
@@ -165,16 +173,28 @@ def _invoke_bedrock(
 
 def _request_context(
     request: BaseModel,
+    model_input: BaseModel | dict[str, Any] | None,
     policy: ProviderPolicy,
 ):
+    payload = _model_payload(request, model_input)
     content = request_content(
-        request,
+        payload,
         policy.model,
         _multimodal_allowlist(),
+        source_images=tuple(getattr(request, "source_images", ())),
     )
     messages = [{"role": "user", "content": content}]
     client = _client(policy.timeout_seconds, policy.max_attempts)
     return client, messages
+
+
+def _model_payload(
+    request: BaseModel,
+    prepared: BaseModel | dict[str, Any] | None,
+) -> BaseModel | dict[str, Any]:
+    if prepared is not None:
+        return prepared
+    return request.model_dump(mode="json", exclude={"invocation"})
 
 
 def _input_token_count(client, model: str, system, messages) -> int:

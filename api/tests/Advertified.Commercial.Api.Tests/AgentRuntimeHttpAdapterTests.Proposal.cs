@@ -55,7 +55,7 @@ public sealed partial class AgentRuntimeHttpAdapterTests
     [Fact]
     public async Task InProcessProposalAdapterAlsoPreservesMinorUnits()
     {
-        var adapter = new DeterministicProposalNarrativeClient(ProposalPolicy.Load());
+        var adapter = new ProposalNarrativeFixture(ProposalPolicy.Load());
 
         var result = await adapter.CreateAsync(ProposalInput(), CancellationToken.None);
 

@@ -9,6 +9,8 @@ using Advertified.Commercial.Infrastructure.MasterData;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Xunit;
 
@@ -40,7 +42,14 @@ public sealed partial class SuppliedBriefPersistenceTests
             builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
             builder.UseDeterministicInventoryProtection();
             builder.UseSetting("InventoryProcessing:Paused", "true");
-            builder.UseSetting("SuppliedBrief:Mode", "Deterministic");
+            builder.UseSetting("SuppliedBrief:Mode", "Disabled");
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<ISuppliedBriefAgentClient>();
+                services.AddScoped<ISuppliedBriefAgentClient>(_ =>
+                    new SuppliedBriefAgentFixture(input =>
+                        SuppliedBriefAgentFixture.Create(input, mode)));
+            });
         });
         using var client = factory.CreateClient();
         var prefix = $"/api/v1/tenants/{tenant}";

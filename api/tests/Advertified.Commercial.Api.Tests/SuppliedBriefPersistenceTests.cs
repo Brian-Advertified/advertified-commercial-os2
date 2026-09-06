@@ -33,8 +33,7 @@ public sealed partial class SuppliedBriefPersistenceTests
         var reserved = await store.ReserveAsync(input, id, null, default);
         Assert.Null(reserved.Retained);
         var retainedInput = input with { Interpretation = reserved.Reference };
-        var output = await new DeterministicSuppliedBriefAgentClient(SuppliedBriefAgentPolicy.Load())
-            .UnderstandAsync(retainedInput, default);
+        var output = SuppliedBriefAgentFixture.Create(retainedInput);
         output = output with { Interpretation = reserved.Reference };
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => store.CompleteAsync(
             retainedInput with { ActorId = Guid.NewGuid() }, output, default));
@@ -71,8 +70,7 @@ public sealed partial class SuppliedBriefPersistenceTests
         var input = new SuppliedBriefAgentInput(tenant, actor, "Rejected source", "Unclear campaign", []);
         var reservation = await store.ReserveAsync(input, Guid.NewGuid(), null, default);
         input = input with { Interpretation = reservation.Reference };
-        var output = await new DeterministicSuppliedBriefAgentClient(SuppliedBriefAgentPolicy.Load())
-            .UnderstandAsync(input, default);
+        var output = SuppliedBriefAgentFixture.Create(input);
         var failure = new SuppliedBriefValidationException(output.Usage, "{\"ungrounded\":true}",
             new InvalidOperationException("Synthetic grounding failure"));
         await store.RejectAsync(input, failure, default);

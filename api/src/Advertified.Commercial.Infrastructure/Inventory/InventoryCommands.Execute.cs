@@ -56,11 +56,12 @@ public sealed partial class InventoryCommands
             source.SourceHash,
             supplier.SupplierName,
             codes,
-            now,
-            source.FileName);
+            now);
         candidates = InventoryAcceptancePolicy.Apply(extraction, source.SourceHash,
             source.Version, codes, candidates, now);
-        var documentReview = extraction.Document.DiscoveredSchema is null || candidates.Length == 0;
+        var documentReview =
+            extraction.Document.SchemaDiscoveryFailure is not null ||
+            candidates.Length == 0;
         Guid? reviewer = documentReview || candidates.Any(InventoryCandidateReviewPolicy.RequiresReview)
             ? await InventoryReviewerAssignment.FindAsync(
                 store.DbContext, source.TenantId, source.CreatedBy, cancellationToken)

@@ -33,7 +33,9 @@ internal static partial class InventoryExtractionSourceAccounting
             extraction.AdapterVersion, extraction.SchemaVersion,
             extraction.SourceHash, extraction.ProviderJson, extraction.Rows,
             extraction.Document.DiscoveredSchema,
-            extraction.Document.SchemaDiscoveryFailure, report, decisions);
+            extraction.Document.SchemaDiscoveryFailure, report, decisions,
+            extraction.Document.SourceElements,
+            extraction.Document.ProjectionWarnings);
     }
 
     internal static InventorySourceAccountingReport Build(
@@ -66,23 +68,18 @@ internal static partial class InventoryExtractionSourceAccounting
     private static List<SourceElement> ReadElements(
         InventoryExtractionResult extraction)
     {
-        var result = new List<SourceElement>();
-        try
-        {
-            var document = InventoryDocumentStructureReader.Read(
-                extraction.SourceHash, extraction.ProviderJson);
-            foreach (var structure in document.Structures)
-            foreach (var cell in structure.Cells.Where(cell =>
-                         !string.IsNullOrWhiteSpace(cell.RawText)))
-                result.Add(new SourceElement(cell.Locator, structure.Id,
-                    structure.Kind, cell.Row, cell.Column, cell.RawText,
-                    cell.PositionJson, null));
-        }
-        catch (InventorySchemaRejectedException)
-        {
-            // The retained provider artifact is still preserved. Projected OpenXML
-            // evidence below remains accountably visible instead of being discarded.
-        }
+        var result = (extraction.Document.SourceElements ?? [])
+            .Where(element => !string.IsNullOrWhiteSpace(element.RawValue))
+            .Select(element => new SourceElement(
+                element.Locator,
+                element.StructureId,
+                element.StructureKind,
+                element.Row,
+                element.Column,
+                element.RawValue,
+                element.PositionJson,
+                null))
+            .ToList();
         AddProjectedElements(extraction.Rows, result);
         var rateLocators = extraction.Rows.SelectMany(row => row.RateVariants ?? [])
             .Select(rate => rate.SourceLocator).ToHashSet(StringComparer.Ordinal);
@@ -308,7 +305,9 @@ internal static partial class InventoryExtractionSourceAccounting
         if (InventoryMoneyParser.TryParse(value, out _, out var currency) && currency.Length > 0)
             return "MONETARY_VALUE";
         if (RateOnRequestPattern().IsMatch(value)) return "UNPRICED_RATE";
-        var normalized = InventoryTabularProjection.NormalizeHeader(value);
+        var normalized = Regex.Replace(
+            value.Trim().ToLowerInvariant(), @"[^a-z0-9]+", string.Empty,
+            RegexOptions.CultureInvariant);
         if (InventoryCandidateNormalizer.RecognizesHeader(normalized) ||
             CommercialTermPattern().IsMatch(value)) return "COMMERCIAL_CONTEXT";
         if (ProductCodePattern().IsMatch(value)) return "PRODUCT_IDENTITY";

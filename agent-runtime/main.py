@@ -20,6 +20,11 @@ from inventory_embedding_service import (
 from runtime_execution import DETERMINISTIC_MODE, execute_agent, implemented_agents
 from runtime_admission import admitted_request
 from inventory_processing_control import ensure_inventory_processing
+from inventory_extraction_contracts import (
+    InventoryProjectionRequest,
+    InventoryProjectionResponse,
+)
+from inventory_extraction_service import project_inventory_with_embedded_images
 
 RUNTIME_MODE_KEY = "ADVERTIFIED_AGENT_RUNTIME_MODE"
 SERVICE_KEY = "ADVERTIFIED_AGENT_RUNTIME_SERVICE_KEY"
@@ -103,6 +108,30 @@ async def invoke(
             request_body,
             mode,
         )
+
+
+@app.post(
+    "/v1/inventory-extraction/project",
+    response_model=InventoryProjectionResponse,
+)
+async def project_inventory_document(
+    http_request: Request,
+    x_advertified_service_key: str | None = Header(default=None),
+) -> InventoryProjectionResponse:
+    mode = _runtime_mode()
+    _require_service(mode, x_advertified_service_key)
+    async with admitted_request(http_request) as body:
+        try:
+            request = InventoryProjectionRequest.model_validate_json(body)
+        except ValidationError as error:
+            raise HTTPException(422, "Invalid inventory projection request.") from error
+        try:
+            return await to_thread.run_sync(
+                project_inventory_with_embedded_images,
+                request,
+            )
+        except (TypeError, ValueError, KeyError) as error:
+            raise HTTPException(422, "Docling document structure is invalid.") from error
 
 
 @app.post("/v1/inventory-embeddings", response_model=InventoryEmbeddingResponse)

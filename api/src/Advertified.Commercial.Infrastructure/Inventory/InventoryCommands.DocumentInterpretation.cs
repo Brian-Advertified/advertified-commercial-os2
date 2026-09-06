@@ -49,7 +49,7 @@ public sealed partial class InventoryCommands
     {
         var tenant = new TenantId(source.TenantId);
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(corrected.Rows, source.SourceHash,
-            source.SupplierName, codes, now, source.FileName);
+            source.SupplierName, codes, now);
         candidates = InventoryAcceptancePolicy.Apply(corrected, source.SourceHash,
             artifact.SourceFileVersion, codes, candidates, now);
         var rejected = await InventoryRejectionCarryForward.FromHistoryAsync(store.DbContext,
@@ -61,7 +61,9 @@ public sealed partial class InventoryCommands
                 tenant, source.Id, artifact.ExtractionId, null, corrected, candidates.Length, actorId, now, cancellationToken);
         await InventoryCandidateBatchPersistence.PersistAsync(store.DbContext, tenant, source.Id,
             projectionId, actorId, now, candidates, cancellationToken, rejected);
-        var documentFailure = corrected.Document.DiscoveredSchema is null || candidates.Length == 0;
+        var documentFailure =
+            corrected.Document.SchemaDiscoveryFailure is not null ||
+            candidates.Length == 0;
         await CompleteDocumentInterpretationAsync(source, actorId, now, cancellationToken);
         if (documentFailure)
             await InventoryDocumentReviewPersistence.InsertAsync(store.DbContext, source, actorId, source.Version + 1,

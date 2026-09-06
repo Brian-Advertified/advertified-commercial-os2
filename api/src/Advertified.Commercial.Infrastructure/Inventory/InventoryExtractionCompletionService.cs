@@ -15,7 +15,6 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 public sealed class InventoryExtractionCompletionService(
     InventoryExtractionAttemptStore attemptStore,
     InventoryRecordStore inventoryStore,
-    InventorySchemaExtractionStep schemaExtraction,
     InventorySchemaExecutionGuard schemaGuard,
     InventorySemanticEnrichmentService semanticEnrichment,
     TimeProvider timeProvider)
@@ -28,9 +27,8 @@ public sealed class InventoryExtractionCompletionService(
     {
         InventoryExtractionCompletionPolicy.VerifyResult(
             extraction, claim.SourceHash);
-        var (context, codes) = await schemaGuard.PrepareAsync(claim, cancellationToken);
-        extraction = await schemaExtraction.ApplyAsync(
-            extraction, codes, context, cancellationToken);
+        var (_, codes) = await schemaGuard.PrepareAsync(
+            claim, cancellationToken);
         extraction = await semanticEnrichment.EnrichAsync(
             claim, extraction, cancellationToken);
         InventoryExtractionCompletionPolicy.VerifyResult(
@@ -57,8 +55,7 @@ public sealed class InventoryExtractionCompletionService(
             source.SourceHash,
             supplier.SupplierName,
             codes,
-            now,
-            source.FileName);
+            now);
         extraction = InventoryExtractionSourceAccounting.Attach(
             extraction, candidates);
         candidates = InventoryAcceptancePolicy.Apply(extraction, source.SourceHash,

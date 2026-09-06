@@ -58,7 +58,7 @@ def test_actual_transcription_schema_uses_unique_fields_per_row() -> None:
             "source_locator": "image:1",
             "fields": {
                 "name": {
-                    "raw_value": "DStv Stream VOD",
+                    "raw_value": "On-demand Stream",
                     "source_locator": "image:1",
                     "transformation": "TRIM",
                     "confidence": 1,
@@ -92,7 +92,7 @@ def test_actual_transcription_schema_uses_unique_fields_per_row() -> None:
         })
 
 
-def test_transcription_drops_header_row_and_reconstructs_dimensions() -> None:
+def test_transcription_drops_header_row_and_preserves_uncertain_dimensions() -> None:
     def value(raw: str) -> dict:
         return {
             "raw_value": raw,
@@ -106,8 +106,8 @@ def test_transcription_drops_header_row_and_reconstructs_dimensions() -> None:
             {
                 "source_locator": "image:1",
                 "fields": {
-                    "name": value("Streaming"),
-                    "placement": value("Ad Unit"),
+                    "name": value("Inventory"),
+                    "placement": value("Placement"),
                     "dimensions": value("Width x Height"),
                     "format": value("Format"),
                     "rate": value("Rate"),
@@ -117,7 +117,7 @@ def test_transcription_drops_header_row_and_reconstructs_dimensions() -> None:
             {
                 "source_locator": "image:1",
                 "fields": {
-                    "name": value("DStv Stream VOD"),
+                    "name": value("On-demand Stream"),
                     "placement": value("Video Pre Roll"),
                     "dimensions": value("16 9"),
                     "format": value("MP4"),
@@ -139,8 +139,8 @@ def test_transcription_drops_header_row_and_reconstructs_dimensions() -> None:
         item for item in candidate.fields
         if item.field_name == "dimensions"
     )
-    assert dimension.raw_value == "16 x 9"
-    assert dimension.transformation == "DERIVED_FROM_SOURCE_CONTEXT"
+    assert dimension.raw_value == "16 9"
+    assert dimension.transformation == "TRIM"
 
 
 def test_actual_enrichment_schema_targets_only_existing_rows() -> None:
@@ -172,7 +172,7 @@ def test_actual_enrichment_schema_targets_only_existing_rows() -> None:
             "source_locator": "row:1",
             "fields": {
                 "channel": {
-                    "raw_value": "DStv Stream VOD",
+                    "raw_value": "On-demand Stream",
                     "normalized_value": "DIGITAL",
                     "source_locator": "source:1",
                     "transformation": "DERIVED_POLICY",

@@ -21,13 +21,6 @@ internal static class AgentRuntimeRegistration
                 builder.Services.AddScoped<IProposalNarrativeClient, DisabledAgentRuntimeClient>();
                 builder.Services.AddScoped<IMeasurementAgentClient, DisabledAgentRuntimeClient>();
                 break;
-            case AgentRuntimeOptions.InProcessMode:
-                EnsureLocal(builder);
-                builder.Services.AddScoped<IOpportunityAgentClient, InProcessOpportunityAgentClient>();
-                builder.Services.AddScoped<IPlanningAgentClient, DeterministicPlanningAgentClient>();
-                builder.Services.AddScoped<IProposalNarrativeClient, DeterministicProposalNarrativeClient>();
-                builder.Services.AddScoped<IMeasurementAgentClient, DeterministicMeasurementAgentClient>();
-                break;
             case AgentRuntimeOptions.HttpDeterministicMode:
                 EnsureLocal(builder);
                 AddHttpClients(builder);
@@ -52,6 +45,6 @@ internal static class AgentRuntimeRegistration
     private static void EnsureLocal(WebApplicationBuilder builder)
     {
         if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Test"))
-            throw new InvalidOperationException("Deterministic agent clients are development/test only.");
+            throw new InvalidOperationException("The deterministic HTTP agent runtime is development/test only.");
     }
 }

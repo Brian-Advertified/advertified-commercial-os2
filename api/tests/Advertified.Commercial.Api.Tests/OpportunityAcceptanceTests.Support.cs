@@ -2,12 +2,15 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Advertified.Commercial.Api.Startup;
+using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -47,9 +50,7 @@ public sealed partial class OpportunityAcceptanceTests
             builder.UseSetting("Authentication:DevelopmentIdentity:UserId", userId.ToString());
             builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", userId.ToString());
             builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
-            builder.UseSetting(
-                "AgentRuntime:Mode",
-                enableRuntime ? "InProcessDeterministic" : "Disabled");
+            builder.UseSetting("AgentRuntime:Mode", "Disabled");
             if (enableRuntime)
             {
                 builder.UseSetting("Process:Role", ProcessRoleOptions.CombinedRole);
@@ -59,6 +60,16 @@ public sealed partial class OpportunityAcceptanceTests
             builder.UseSetting("AgentRuntime:RecoverySweepSeconds", "300");
             builder.UseSetting("Logging:LogLevel:Default", "Warning");
             builder.UseSetting("Logging:LogLevel:Microsoft.EntityFrameworkCore", "Warning");
+            if (enableRuntime)
+            {
+                builder.ConfigureServices(services =>
+                {
+                    services.RemoveAll<IOpportunityAgentClient>();
+                    services.AddScoped<
+                        IOpportunityAgentClient,
+                        OpportunityAgentFixture>();
+                });
+            }
         });
 
     private static async Task SeedAsync(string connectionString)

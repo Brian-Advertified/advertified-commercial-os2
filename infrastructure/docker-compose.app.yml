@@ -70,6 +70,10 @@ services:
       ADVERTIFIED_AGENT_RUNTIME_MODE: deterministic
       ADVERTIFIED_INVENTORY_PROCESSING_PAUSED: "true"
       ADVERTIFIED_AGENT_RUNTIME_SERVICE_KEY: advertified-agent-runtime-local-only
+      DOCLING_BASE_URL: http://docling:5001
+      DOCLING_API_KEY: ${DOCLING_API_KEY:-advertified-docling-local-only}
+      DOCLING_EMBEDDED_IMAGE_TIMEOUT_SECONDS: "120"
+      DOCLING_EMBEDDED_IMAGE_MAX: "20"
     ports:
       - "127.0.0.1:5098:8080"
 

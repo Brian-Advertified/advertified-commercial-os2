@@ -178,6 +178,7 @@ internal static partial class InventoryCandidateNormalizer
             result,
             "audience_impressions",
             MasterDataCodes.InventoryUnsupportedClaimTerms.Impressions,
+            "audienceimpressions",
             "estimatedimpressions");
         Add(result, "audience_impressions_unit", "impressionsunit");
         AddStructuredAliases(result);

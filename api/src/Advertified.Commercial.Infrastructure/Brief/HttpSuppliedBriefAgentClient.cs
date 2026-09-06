@@ -14,7 +14,7 @@ public sealed class HttpSuppliedBriefAgentClient(
     public bool IsAvailable => options.Value.UsesHttp;
 
     private const string Operation = "SUPPLIED_BRIEF_UNDERSTANDING";
-    private const string PromptVersion = "1.0.0";
+    private const string PromptVersion = "1.1.0";
     private const string InputReferenceType = "SuppliedBriefInput";
 
     public async Task<SuppliedBriefUnderstandingView> UnderstandAsync(
@@ -25,11 +25,13 @@ public sealed class HttpSuppliedBriefAgentClient(
         var requestId = input.Interpretation?.Id ?? Guid.NewGuid();
         var invocation = AgentRuntimeHttpSupport.CreateInvocation(input.TenantId, input.ActorId,
             requestId, requestId, requestId, MasterDataCodes.AgentTypes.BriefDrafting,
-            InputReferenceType, requestId, input.Interpretation?.Version ?? 1, [], options.Value);
+            InputReferenceType, requestId, input.Interpretation?.Version ?? 1, [], options.Value,
+            PromptVersion, Operation);
         var payload = new { Operation, Invocation = invocation,
             Source = new { input.SourceTitle, input.SourceContent, SourceHash = sourceHash, input.Clarifications } };
         var response = await AgentRuntimeHttpSupport.InvokeAsync<SuppliedBriefArtifact>(
-            client, options.Value, MasterDataCodes.AgentTypes.BriefDrafting, payload, [], cancellationToken);
+            client, options.Value, MasterDataCodes.AgentTypes.BriefDrafting, payload, [],
+            cancellationToken, Operation);
         var artifact = response.Artifact ?? throw new InvalidOperationException("Brief interpretation is incomplete.");
         var usage = new SuppliedBriefAgentUsageView(response.Usage.Provider, response.Usage.Model, PromptVersion,
             "NOT_REQUESTED", response.Usage.ToolCalls, response.Usage.IncrementalCostMinor,
@@ -54,8 +56,11 @@ public sealed class HttpSuppliedBriefAgentClient(
             throw new InvalidOperationException("Brief interpretation must bind the exact source.");
         foreach (var evidence in artifact.Evidence)
         {
-            var source = evidence.SourceLocator == "supplied:brief" ? input.SourceContent :
-                input.Clarifications.LastOrDefault(item => evidence.SourceLocator == $"clarification:{item.FieldPath}")?.Value;
+            var source = evidence.SourceLocator == "supplied:title" ? input.SourceTitle :
+                evidence.SourceLocator.StartsWith("supplied:brief/", StringComparison.Ordinal)
+                    ? input.SourceContent
+                    : input.Clarifications.LastOrDefault(item =>
+                        evidence.SourceLocator == $"clarification:{item.FieldPath}")?.Value;
             if (string.IsNullOrEmpty(evidence.Excerpt) || source is null ||
                 !source.Contains(evidence.Excerpt, StringComparison.Ordinal))
                 throw new InvalidOperationException("Brief evidence is not grounded in its declared source.");

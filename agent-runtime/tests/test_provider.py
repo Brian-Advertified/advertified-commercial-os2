@@ -19,6 +19,7 @@ from bedrock_provider import (
     MULTIMODAL_ALLOWLIST_KEY,
     PRICING_KEY,
     REGION_KEY,
+    _model_payload,
     bedrock_configuration_ready,
 )
 from bedrock_schema import source_bound_schema, structured_output_tool
@@ -128,6 +129,28 @@ def test_bedrock_configuration_is_verified_without_network(
 
     monkeypatch.setenv(PRICING_KEY, "{}")
     assert not bedrock_configuration_ready()
+
+
+def test_generic_model_payload_excludes_internal_invocation_envelope() -> None:
+    class Request(BaseModel):
+        invocation: AgentInvocationEnvelope
+        operation: str
+        approved_business_value: str
+
+    request = Request(
+        invocation=load_fixture().invocation,
+        operation="BUSINESS_INTERPRETATION",
+        approved_business_value="Grow qualified demand",
+    )
+
+    payload = _model_payload(request, None)
+
+    assert isinstance(payload, dict)
+    assert "invocation" not in payload
+    assert payload == {
+        "operation": "BUSINESS_INTERPRETATION",
+        "approved_business_value": "Grow qualified demand",
+    }
 
 
 def test_unsupported_free_token_count_uses_conservative_local_estimate() -> None:

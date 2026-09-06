@@ -53,6 +53,22 @@ public sealed class InventoryProjectionVerificationBoundaryTests
             name.Contains("Release", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void VerificationContractExposesProviderArtifactAndEveryPipelineBoundary()
+    {
+        Assert.NotNull(typeof(InventoryProjectionVerificationView)
+            .GetProperty(nameof(InventoryProjectionVerificationView.ProviderJson)));
+        var stages = InventoryProjectionVerificationService.VerificationStages();
+        Assert.Equal(10, stages.Length);
+        Assert.Equal(10, stages.Select(stage => stage.Stage).Distinct().Count());
+        Assert.Contains(stages, stage =>
+            stage.Stage == InventoryProjectionVerificationStages.DocumentProjection &&
+            stage.State == InventoryExtractionTraceCodes.Mapped);
+        Assert.Contains(stages, stage =>
+            stage.Stage == InventoryProjectionVerificationStages.Persistence &&
+            stage.State == InventoryExtractionTraceCodes.NotEvaluated);
+    }
+
     private sealed class RecordingAuthorizer : ITenantAuthorizer
     {
         internal bool WasCalled { get; private set; }

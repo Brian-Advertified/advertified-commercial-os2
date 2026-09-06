@@ -28,18 +28,16 @@ internal static class InventoryExtractionRegistration
             {
                 AllowAutoRedirect = false,
             });
+        builder.Services.AddHttpClient<PythonInventoryProjectionClient>(
+            ConfigureProjectionClient)
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                AllowAutoRedirect = false,
+            });
         builder.Services.AddScoped<IInventoryDocumentExtractionAdapter>(serviceProvider =>
             settings.Mode == InventoryExtractionOptions.DoclingMode
                 ? serviceProvider.GetRequiredService<DoclingInventoryExtractionAdapter>()
                 : new DeterministicInventoryExtractionAdapter());
-        builder.Services.AddHttpClient<InventorySchemaAgentClient>(
-            AgentRuntimeClientConfiguration.Configure)
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
-        builder.Services.AddScoped<InventoryAgentInvocationLedger>();
-        builder.Services.AddScoped<IInventorySchemaInterpreter>(serviceProvider =>
-            serviceProvider.GetRequiredService<InventorySchemaAgentClient>());
-        builder.Services.AddScoped<InventorySchemaDiscoveryService>();
-        builder.Services.AddScoped<InventorySchemaExtractionStep>();
         builder.Services.AddScoped<InventorySchemaExecutionGuard>();
     }
 
@@ -58,7 +56,8 @@ internal static class InventoryExtractionRegistration
                      agentRuntime.Provider == AgentRuntimeOptions.BedrockProvider &&
                      agentRuntime.AllowLive &&
                      agentRuntime.ModelFor(
-                         MasterDataCodes.AgentTypes.InventoryIntelligence) !=
+                         MasterDataCodes.AgentTypes.InventoryIntelligence,
+                         InventorySemanticOperations.SemanticEnrichment) !=
                             "fixture-v1"),
                 "Inventory semantic extraction requires an explicitly enabled live Bedrock agent route.")
             .ValidateOnStart();
@@ -96,5 +95,15 @@ internal static class InventoryExtractionRegistration
             Microsoft.Extensions.Options.IOptions<InventoryExtractionOptions>>().Value;
         client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
         client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+    }
+
+    private static void ConfigureProjectionClient(
+        IServiceProvider serviceProvider,
+        HttpClient client)
+    {
+        AgentRuntimeClientConfiguration.Configure(serviceProvider, client);
+        var extraction = serviceProvider.GetRequiredService<
+            Microsoft.Extensions.Options.IOptions<InventoryExtractionOptions>>().Value;
+        client.Timeout = TimeSpan.FromSeconds(extraction.TimeoutSeconds);
     }
 }

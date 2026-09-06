@@ -137,7 +137,6 @@ class SemanticSourceItem(ContractModel):
         "TABLE",
         "IMAGE_OCR",
         "PAGE_OCR",
-        "FILE_NAME",
         "UNSUPPORTED_EMBEDDED_ASSET",
     ]
     content: SourceText
@@ -205,9 +204,6 @@ class InventorySemanticCodes(ContractModel):
 class InventorySemanticAgentRequest(ContractModel):
     operation: InventorySemanticOperation
     invocation: AgentInvocationEnvelope
-    source_hash: SourceHash
-    file_name: Annotated[str, Field(min_length=1, max_length=500)]
-    document_class: StableCode
     chunk_number: Annotated[int, Field(ge=1)]
     chunk_count: Annotated[int, Field(ge=1, le=256)]
     source_items: Annotated[

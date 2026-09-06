@@ -24,7 +24,7 @@ public sealed partial class InventoryAcceptanceTests
         await DisposableDatabaseRoles.ProvisionAsync(connectionString);
         await SeedAsync(connectionString);
         await using var importerFactory = CreateFactory(connectionString, ImporterId,
-            new SchemaFixtureAdapter(readCsvIdentity: true));
+            new PythonFixtureAdapter(readCsvIdentity: true));
         await using var reviewerFactory = CreateFactory(connectionString, ReviewerId);
         using var importer = importerFactory.CreateClient();
         using var reviewer = reviewerFactory.CreateClient();

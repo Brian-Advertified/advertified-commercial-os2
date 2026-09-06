@@ -2,6 +2,7 @@
 
 import base64
 import hashlib
+import json
 from decimal import Decimal
 from uuid import UUID
 
@@ -94,23 +95,20 @@ def request(
         SemanticExistingRow(
             row_number=1,
             locator=LOCATOR,
-            values={"name": "DStv Stream VOD", "rate": "R575"},
+            values={"name": "On-demand Stream", "rate": "R575"},
         ),
     ) if operation == SEMANTIC_ENRICHMENT else ()
     return InventorySemanticAgentRequest(
         operation=operation,
         invocation=invocation(),
-        source_hash="a" * 64,
-        file_name="DMS Digital Rate Card.xlsx",
-        document_class="XLSX",
         chunk_number=1,
         chunk_count=1,
         source_items=(SemanticSourceItem(
             locator=LOCATOR,
             kind="TEXT",
             content=(
-                "DStv Media Sales Digital Rate Card. DStv Stream VOD "
-                "Video Pre Roll MP4 R575 R1,10."
+                "Example Media Owner Digital Rate Card. On-demand Stream "
+                "Video Pre Roll MP4 R575 R2,50."
             ),
         ),),
         existing_rows=existing,
@@ -158,7 +156,7 @@ def envelope(
 def semantic_output(
     *,
     field_name: str = "channel",
-    raw_value: str = "DStv Stream VOD",
+    raw_value: str = "On-demand Stream",
     normalized_value: str | None = "DIGITAL",
     evidence_basis: str = "DERIVED_POLICY",
     candidate_locator: str = LOCATOR,
@@ -180,11 +178,11 @@ def semantic_output(
 
 def transcription_output(
     *,
-    raw_rate: str = "R1,10",
+    raw_rate: str = "R2,50",
     normalized_rate: str | None = None,
     evidence_basis: str = "SUPPLIER_SUPPLIED",
     ambiguity_notes: tuple[str, ...] = (
-        "The visible amount R1,10 is incomplete or ambiguous.",
+        "The visible amount R2,50 is incomplete or ambiguous.",
     ),
 ) -> AgentOutputEnvelope[InventorySemanticExtractionArtifact]:
     return envelope(ProposedInventoryCandidate(
@@ -192,7 +190,7 @@ def transcription_output(
         fields=(
             ProposedInventoryField(
                 field_name="supplier_name",
-                raw_value="DStv Media Sales",
+                raw_value="Example Media Owner",
                 source_locator=LOCATOR,
                 evidence_basis="SUPPLIER_SUPPLIED",
                 transformation="TRIM",
@@ -200,7 +198,7 @@ def transcription_output(
             ),
             ProposedInventoryField(
                 field_name="name",
-                raw_value="DStv Stream VOD",
+                raw_value="On-demand Stream",
                 source_locator=LOCATOR,
                 evidence_basis="SUPPLIER_SUPPLIED",
                 transformation="TRIM",
@@ -258,7 +256,7 @@ def test_source_transcription_rejects_non_source_fields(
         fields=(
             ProposedInventoryField(
                 field_name="name",
-                raw_value="DStv Stream VOD",
+                raw_value="On-demand Stream",
                 source_locator=LOCATOR,
                 evidence_basis="SUPPLIER_SUPPLIED",
                 transformation="TRIM",
@@ -266,7 +264,7 @@ def test_source_transcription_rejects_non_source_fields(
             ),
             ProposedInventoryField(
                 field_name=field_name,
-                raw_value="DStv Stream VOD",
+                raw_value="On-demand Stream",
                 source_locator=LOCATOR,
                 evidence_basis="SUPPLIER_SUPPLIED",
                 transformation="TRIM",
@@ -283,7 +281,7 @@ def test_source_transcription_rejects_non_source_fields(
 def test_source_transcription_rejects_duplicate_fields() -> None:
     field = ProposedInventoryField(
         field_name="name",
-        raw_value="DStv Stream VOD",
+        raw_value="On-demand Stream",
         source_locator=LOCATOR,
         evidence_basis="SUPPLIER_SUPPLIED",
         transformation="TRIM",
@@ -338,19 +336,22 @@ def test_image_source_is_hash_bound_and_explicitly_accounted() -> None:
         data_base64=base64.b64encode(content).decode(),
     )
     value = request().model_copy(update={"source_images": (image,)})
+    payload = value.model_dump(mode="json", exclude={"invocation"})
     blocks = request_content(
-        value,
+        payload,
         "multimodal-model",
         frozenset({"multimodal-model"}),
+        source_images=value.source_images,
     )
+    assert "invocation" not in json.loads(blocks[0]["text"])
     assert locator in blocks[1]["text"]  # type: ignore[operator]
     assert blocks[2]["image"]["source"]["bytes"] == content  # type: ignore[index]
     assert image.data_base64 not in str(blocks[0]["text"])
 
     described = semantic_output(
         field_name="description",
-        raw_value="DStv Stream VOD",
-        normalized_value="DStv digital streaming placement",
+        raw_value="On-demand Stream",
+        normalized_value="On-demand digital streaming placement",
         field_locator=locator,
     )
     validate_semantic_grounding(value, described)

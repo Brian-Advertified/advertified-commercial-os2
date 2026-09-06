@@ -1,8 +1,8 @@
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
-internal static class InventorySemanticOperations
+public static class InventorySemanticOperations
 {
-    internal const string SemanticEnrichment =
+    public const string SemanticEnrichment =
         "SEMANTIC_ENRICHMENT";
 
     internal static bool IsSupported(string value) =>

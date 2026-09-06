@@ -115,8 +115,8 @@ public sealed partial class InventorySemanticPreflightReader
         AgentRuntimeOptions runtime) =>
         string.Equals(
             runtime.ModelFor(
-                MasterDataCodes.AgentTypes
-                    .InventoryIntelligence),
+                MasterDataCodes.AgentTypes.InventoryIntelligence,
+                InventorySemanticOperations.SemanticEnrichment),
             settings.ModelId,
             StringComparison.Ordinal);
 

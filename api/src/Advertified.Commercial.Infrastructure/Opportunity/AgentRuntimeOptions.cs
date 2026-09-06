@@ -1,14 +1,41 @@
+using Advertified.Commercial.Domain.MasterData;
+
 namespace Advertified.Commercial.Infrastructure.Opportunity;
 
 public sealed class AgentRuntimeOptions
 {
     public const string SectionName = "AgentRuntime";
     public const string DisabledMode = "Disabled";
-    public const string InProcessMode = "InProcessDeterministic";
     public const string HttpDeterministicMode = "HttpDeterministic";
     public const string HttpMode = "Http";
     public const string DeterministicProvider = "deterministic";
     public const string BedrockProvider = "bedrock";
+
+    private const string ModelRouteSeparator = "__";
+
+    private static readonly string[] RequiredBedrockModelRoutes =
+    [
+        MasterDataCodes.AgentTypes.BusinessInterpretation,
+        MasterDataCodes.AgentTypes.OpportunityIntelligence,
+        MasterDataCodes.AgentTypes.Strategy,
+        MasterDataCodes.AgentTypes.CriticReadiness,
+        MasterDataCodes.AgentTypes.BriefDrafting,
+        MasterDataCodes.AgentTypes.Audience,
+        MasterDataCodes.AgentTypes.InventoryIntelligence,
+        MasterDataCodes.AgentTypes.MediaPlanning,
+        MasterDataCodes.AgentTypes.ProposalNarrative,
+        MasterDataCodes.AgentTypes.Creative,
+        MasterDataCodes.AgentTypes.Measurement,
+        ModelRoute(
+            MasterDataCodes.AgentTypes.BriefDrafting,
+            "SUPPLIED_BRIEF_UNDERSTANDING"),
+        ModelRoute(
+            MasterDataCodes.AgentTypes.InventoryIntelligence,
+            "SCHEMA_DISCOVERY"),
+        ModelRoute(
+            MasterDataCodes.AgentTypes.InventoryIntelligence,
+            "SEMANTIC_ENRICHMENT"),
+    ];
 
     public string Mode { get; init; } = DisabledMode;
     public string BaseUrl { get; init; } = "http://localhost:8000";
@@ -22,8 +49,10 @@ public sealed class AgentRuntimeOptions
     public int TimeoutSeconds { get; init; } = 30;
     public int MaxAttempts { get; init; } = 1;
     public bool AllowLive { get; init; }
-    public Dictionary<string, string> Models { get; init; } = new(StringComparer.Ordinal);
-    public Dictionary<string, long> CostCapsMinor { get; init; } = new(StringComparer.Ordinal);
+    public Dictionary<string, string> Models { get; init; } =
+        new(StringComparer.Ordinal);
+    public Dictionary<string, long> CostCapsMinor { get; init; } =
+        new(StringComparer.Ordinal);
 
     public static bool HasSafeTiming(AgentRuntimeOptions options) =>
         options.RecoverySweepSeconds is >= 30 and <= 3_600 &&
@@ -34,14 +63,23 @@ public sealed class AgentRuntimeOptions
 
     public bool UsesHttp => Mode is HttpMode or HttpDeterministicMode;
 
-    public string ModelFor(string agentCode) =>
-        Models.TryGetValue(agentCode, out var model) ? model : DefaultModel;
+    public string ModelFor(string agentCode, string? operation = null)
+    {
+        if (Provider == DeterministicProvider) return "fixture-v1";
+        var route = ModelRoute(agentCode, operation);
+        return Models.TryGetValue(route, out var model)
+            ? model
+            : throw new InvalidOperationException(
+                $"No approved Bedrock model is configured for route '{route}'.");
+    }
 
     public long CostCapFor(string agentCode) =>
-        CostCapsMinor.TryGetValue(agentCode, out var cap) ? cap : DefaultCostCapMinor;
+        CostCapsMinor.TryGetValue(agentCode, out var cap)
+            ? cap
+            : DefaultCostCapMinor;
 
     public static bool HasSupportedMode(AgentRuntimeOptions options) =>
-        options.Mode is DisabledMode or InProcessMode or HttpDeterministicMode or HttpMode;
+        options.Mode is DisabledMode or HttpDeterministicMode or HttpMode;
 
     public static bool HasSupportedProvider(AgentRuntimeOptions options) =>
         options.Provider is DeterministicProvider or BedrockProvider;
@@ -56,28 +94,50 @@ public sealed class AgentRuntimeOptions
                 options.MaxAttempts == 1;
         }
         return options.Provider == BedrockProvider &&
-            options.DefaultModel != "fixture-v1" &&
             options.DefaultCostCapMinor > 0 &&
-            options.MaxAttempts == 1;
+            options.MaxAttempts == 1 &&
+            RequiredBedrockModelRoutes.All(options.Models.ContainsKey);
     }
 
     public static bool HasCompatibleMode(AgentRuntimeOptions options) =>
-        options.Mode is not (InProcessMode or HttpDeterministicMode) ||
+        options.Mode != HttpDeterministicMode ||
         options.Provider == DeterministicProvider;
 
     public static bool HasSafeRoutes(AgentRuntimeOptions options) =>
         options.Models.All(item =>
-            IsSafeAgentCode(item.Key) && IsSafeModel(item.Value) &&
-            (options.Provider == DeterministicProvider
-                ? item.Value == "fixture-v1"
-                : item.Value != "fixture-v1")) &&
+            IsSafeRouteCode(item.Key) &&
+            IsSafeModel(item.Value) &&
+            item.Value != "fixture-v1") &&
         options.CostCapsMinor.All(item =>
-            IsSafeAgentCode(item.Key) &&
-            (options.Provider == DeterministicProvider ? item.Value == 0 : item.Value > 0));
+            IsSafeRouteCode(item.Key) &&
+            (options.Provider == DeterministicProvider
+                ? item.Value == 0
+                : item.Value > 0));
 
-    private static bool IsSafeAgentCode(string value) =>
-        !string.IsNullOrWhiteSpace(value) && value.Length <= 100 &&
-        value.All(character => char.IsLetterOrDigit(character) || character is '_' or '-');
+    public static string ModelRoute(
+        string agentCode,
+        string? operation = null)
+    {
+        if (!IsSafeRouteCode(agentCode) ||
+            operation is not null && !IsSafeRouteCode(operation))
+        {
+            throw new ArgumentException(
+                "The agent model route is invalid.",
+                nameof(agentCode));
+        }
+        return operation is null
+            ? agentCode
+            : string.Concat(
+                agentCode,
+                ModelRouteSeparator,
+                operation.ToLowerInvariant());
+    }
+
+    private static bool IsSafeRouteCode(string value) =>
+        !string.IsNullOrWhiteSpace(value) && value.Length <= 200 &&
+        value.All(character =>
+            char.IsLetterOrDigit(character) ||
+            character is '_' or '-');
 
     private static bool IsSafeModel(string value) =>
         !string.IsNullOrWhiteSpace(value) && value.Length <= 300 &&

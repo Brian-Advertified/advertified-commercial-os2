@@ -30,7 +30,9 @@ internal static class AgentRuntimeHttpSupport
         Guid resourceId,
         long resourceVersion,
         IReadOnlyList<Guid> evidenceItemIds,
-        AgentRuntimeOptions settings) => CreateInvocation(
+        AgentRuntimeOptions settings,
+        string? promptVersion = null,
+        string? modelOperation = null) => CreateInvocation(
             tenantId,
             actorId,
             runId,
@@ -39,7 +41,9 @@ internal static class AgentRuntimeHttpSupport
             agentCode,
             [new AgentResourceReference(resourceType, resourceId, resourceVersion)],
             evidenceItemIds,
-            settings);
+            settings,
+            promptVersion,
+            modelOperation);
 
     internal static AgentInvocationRequest CreateInvocation(
         Guid tenantId,
@@ -50,7 +54,9 @@ internal static class AgentRuntimeHttpSupport
         string agentCode,
         IReadOnlyList<AgentResourceReference> resourceRefs,
         IReadOnlyList<Guid> evidenceItemIds,
-        AgentRuntimeOptions settings)
+        AgentRuntimeOptions settings,
+        string? promptVersion = null,
+        string? modelOperation = null)
     {
         if (tenantId == Guid.Empty || actorId == Guid.Empty || runId == Guid.Empty ||
             stepId == Guid.Empty || correlationId == Guid.Empty ||
@@ -69,26 +75,27 @@ internal static class AgentRuntimeHttpSupport
             correlationId,
             agentCode,
             SchemaVersion,
-            SchemaVersion,
+            promptVersion ?? SchemaVersion,
             resourceRefs,
             evidenceItemIds,
             UndefinedLocale,
             SchemaVersion,
             new AgentToolPolicy([], 0, "PROPOSE_ONLY"),
-            CreateProviderPolicy(settings, agentCode),
+            CreateProviderPolicy(settings, agentCode, modelOperation),
             new AgentResumeContext(null, null, null));
     }
 
     private static AgentProviderPolicy CreateProviderPolicy(
         AgentRuntimeOptions settings,
-        string agentCode)
+        string agentCode,
+        string? modelOperation)
     {
         if (!AgentRuntimeOptions.HasSafeProviderPolicy(settings) ||
             !AgentRuntimeOptions.HasSafeRoutes(settings))
         {
             throw new InvalidOperationException("The agent provider policy is unsafe.");
         }
-        var model = settings.ModelFor(agentCode);
+        var model = settings.ModelFor(agentCode, modelOperation);
         var costCap = settings.CostCapFor(agentCode);
         if (settings.Provider == AgentRuntimeOptions.BedrockProvider &&
             (!settings.AllowLive || costCap <= 0))
@@ -112,7 +119,8 @@ internal static class AgentRuntimeHttpSupport
         string agentCode,
         object payload,
         IReadOnlyList<Guid> approvedEvidenceItemIds,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? modelOperation = null)
     {
         if (!settings.UsesHttp) throw new AgentRuntimeUnavailableException();
         if (string.IsNullOrWhiteSpace(settings.ServiceKey))
@@ -137,7 +145,12 @@ internal static class AgentRuntimeHttpSupport
         var output = await response.Content.ReadFromJsonAsync<AgentRuntimeResponse<TArtifact>>(
             WireJson, cancellationToken)
             ?? throw new JsonException("The agent runtime returned an empty response.");
-        Validate(output, settings, agentCode, approvedEvidenceItemIds);
+        Validate(
+            output,
+            settings,
+            agentCode,
+            approvedEvidenceItemIds,
+            modelOperation);
         return output;
     }
 
@@ -145,10 +158,13 @@ internal static class AgentRuntimeHttpSupport
         AgentRuntimeResponse<TArtifact> output,
         AgentRuntimeOptions settings,
         string agentCode,
-        IReadOnlyList<Guid> approvedEvidenceItemIds)
+        IReadOnlyList<Guid> approvedEvidenceItemIds,
+        string? modelOperation)
     {
         ValidateEnvelope(output);
-        ValidateUsage(output.Usage, CreateProviderPolicy(settings, agentCode));
+        ValidateUsage(
+            output.Usage,
+            CreateProviderPolicy(settings, agentCode, modelOperation));
         ValidateEvidence(output.EvidenceBindings, approvedEvidenceItemIds);
         ValidateMetadata(output);
     }

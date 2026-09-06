@@ -1,26 +1,8 @@
 using Advertified.Commercial.Application.Inventory;
-using Advertified.Commercial.Domain.MasterData;
-
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
 internal static partial class InventorySemanticPacketBuilder
 {
-    private static IReadOnlyList<InventorySemanticImage>
-        ReadImages(
-            InventoryExtractionRequest request,
-            IReadOnlyList<InventoryExtractedRow> rows,
-            InventorySemanticOptions settings) =>
-        IsOfficeDocument(request) ||
-        NativeOfficeImageReader.IsRequired(rows)
-            ? NativeOfficeImageReader.Read(request, settings)
-            : [];
-
-    private static bool IsOfficeDocument(
-        InventoryExtractionRequest request) =>
-        request.DocumentClass is
-            MasterDataCodes.DocumentClasses.Xlsx or
-            MasterDataCodes.DocumentClasses.Pptx;
-
     private static List<
         InventorySemanticPacketSources> BuildSources(
             List<InventorySemanticSourceItem> items,
@@ -140,12 +122,11 @@ internal static partial class InventorySemanticPacketBuilder
     }
 
     private static IEnumerable<InventorySemanticSourceItem>
-        ReadNativeRows(
+        ReadProjectedRows(
             IReadOnlyList<InventoryExtractedRow> rows,
             int maximumCharacters)
     {
         foreach (var row in rows.Where(row =>
-                     IsNativeRow(row) &&
                      !row.Values.ContainsKey("extractionblocker")))
         {
             var content = string.Join(
@@ -155,10 +136,13 @@ internal static partial class InventorySemanticPacketBuilder
                     "\nvalue=" + item.Value));
             if (content.Length == 0)
                 continue;
-            var kind = row.Locator.StartsWith(
-                "xlsx:", StringComparison.Ordinal)
-                ? "TABLE"
-                : "TEXT";
+            var kind =
+                row.Locator.Contains(
+                    ";table=", StringComparison.Ordinal) ||
+                row.Locator.StartsWith(
+                    "xlsx:", StringComparison.Ordinal)
+                    ? "TABLE"
+                    : "TEXT";
             foreach (var item in SplitItem(
                          row.Locator,
                          kind,
@@ -253,13 +237,6 @@ internal static partial class InventorySemanticPacketBuilder
             ? item.Locator
             : item.Locator[..end];
     }
-
-    private static bool IsNativeRow(
-        InventoryExtractedRow row) =>
-        row.Locator.StartsWith(
-            "xlsx:", StringComparison.Ordinal) ||
-        row.Locator.StartsWith(
-            "pptx:", StringComparison.Ordinal);
 
     private static string Partless(string locator)
     {

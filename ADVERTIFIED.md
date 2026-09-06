@@ -1159,19 +1159,22 @@ Canonical stages are:
 ```text
 Acquire source
 → Protect / malware and file controls
-→ Classify document and channel
-→ Render / preserve layout structure
-→ Detect known structure and changes
-→ Extract candidate facts and assets
+→ Classify the current document and channel
+→ Render / preserve the current layout structure
+→ Extract candidate facts and assets from the current source only
 → Normalize structure without changing commercial meaning
-→ Bind material fields to evidence
+→ Bind material fields to current-source evidence
 → Validate deterministically
-→ Reconcile identity and prior commercial history
-→ classify differences as resolved / comparable / conflict
 → review material exceptions
 → publish versioned commercial truth
-→ monitor freshness and later changes
+→ reconcile published truth and monitor later changes
 ```
+
+The extraction boundary ends with a validated, evidence-bound candidate package. Every extraction
+must behave as if Advertified has never seen an inventory file before: prior files, supplier identity,
+filenames, source hashes, learned layouts, historical outputs, gold data and earlier human corrections
+must not influence what the extractor reads or returns. Reconciliation with approved commercial
+history is a later C#-owned business workflow and is never an extraction input.
 
 ## 11.4 Preserve source and layout before interpretation [Principle]
 
@@ -1440,70 +1443,87 @@ The reviewer sees the candidate beside the exact source evidence.
 
 Corrections retain original value, changed value, actor, reason, supporting evidence and time. A human correction is evidence, not automatic ground truth.
 
-## 11.14 Adaptive fidelity and extraction cost [Principle/Policy]
+## 11.14 Bounded fidelity and extraction cost [Principle/Policy]
 
-Inventory extraction is expected to be a high-volume workload. Advertified must not apply maximum-cost AI interpretation uniformly to every file, row or unchanged field.
+Advertified must not apply maximum-cost interpretation uniformly to every file, page or row.
 
-> **Extraction fidelity and AI cost scale with novelty, ambiguity, materiality and change — not merely document size.**
+> **Extraction fidelity and cost scale with ambiguity, materiality and the structure visible in the
+> current document — never with memory of a supplier or earlier file.**
 
-The pipeline should determine, before expensive interpretation where practical:
+The pipeline should determine, from the current source only:
 
 ```text
 source received
-→ known supplier/source/document class?
-→ structural fingerprint changed?
-→ which pages/sheets/regions/rows changed?
-→ which materiality tiers are affected?
-→ deterministic extraction/mapping sufficient?
-→ AI interpretation actually required?
-→ human review actually required?
+→ what document/layout structure is present now?
+→ which current pages/sheets/regions contain material evidence?
+→ is deterministic current-source extraction sufficient?
+→ does a current image/region require another generic OCR/render pass?
+→ is model interpretation actually required?
+→ is human review actually required?
 ```
 
-Examples:
+A dense irregular document may require full rendering and stronger review. A simple structured
+document may require only deterministic extraction. The choice is based solely on the bytes and
+structure in that request. Advertified does not compare the file with a previous source, reuse a
+learned layout or skip unchanged-looking fields inside the extractor.
 
-- A first-time supplier's irregular 70-page rate card may require full rendering, layout reconstruction, richer extraction and stronger review.
-- A known supplier's monthly availability workbook with unchanged schema should prefer deterministic mapping, structural validation and targeted review.
-- If only a small subset of rows/fields changed, Advertified should avoid re-interpreting thousands of unchanged commercial fields without a quality reason.
+Model/provider policy follows Section 8.6: use the lowest-cost method that meets the quality and
+safety requirement. Cost optimization must never lower evidence requirements for Tier 1 facts.
 
-Model/provider policy follows Section 8.6: use the lowest-cost method that meets the quality and safety requirement. Escalate to a stronger model/tool only when the cheaper deterministic or lower-cost path cannot establish the required result.
+## 11.15 Generic vocabulary without supplier or file memory [Principle]
 
-Cost optimization must never silently lower evidence requirements for Tier 1 commercial facts.
+Generic structural rules may recognize locale-valid monetary formats, explicit buying units,
+multiple independently evidenced prices within one retained cell or text block, current-page
+product-name and product-code pairs even when no price is present, and picture-led documents that
+require a bounded second Docling pass because retained structured evidence is sparse. Repeated
+adjacent label/value pairs may be treated as one fact card when the current table shape and sparse
+rate distribution distinguish that structure from a row-oriented rate table. Composite buying units
+such as per-slot monthly pricing are interpreted from the current page rather than prior layouts.
 
-## 11.15 Declarative supplier mappings versus forbidden special-casing [Principle]
+Road identifiers, exposure counts, demographic values and production-only costs do not become
+product rates merely because they contain digits or a currency-like token. Exact source elements
+remain retained when their commercial role cannot be assigned automatically.
 
-Advertified may maintain governed declarative mappings that explain how a source expresses the generic commercial schema.
+The extractor may maintain only fixed, governed, dataset-independent mappings that translate
+commonly observed commercial vocabulary into the canonical schema.
 
 Allowed example:
 
 ```text
-Supplier/source mapping:
-"Site No."       → supplierProductCode
-"4 Weekly Rate"  → publishedRate
-"Lat"            → latitude
-"Long"           → longitude
+Any current-source label "Site No."       → supplierProductCode
+Any current-source label "Published Rate" → publishedRate
+Any current-source label "Lat"            → latitude
+Any current-source label "Long"           → longitude
 ```
 
-This is acceptable when the mapping:
+A mapping is acceptable only when it:
 
-- only translates source vocabulary/structure into the canonical schema;
-- still uses the same validation, evidence, materiality, identity and publication rules;
-- is versioned and reviewable;
-- does not create hidden supplier-specific commercial behaviour.
+- applies identically to every current document containing the same observed label or structure;
+- is part of versioned generic code or governed master data;
+- uses only evidence present in the current request;
+- preserves raw values and exact source lineage; and
+- uses the same validation, materiality and review rules for every supplier.
 
-Forbidden example:
+Forbidden inputs and behaviours include supplier mappings, filenames, source hashes, corpus
+membership, prior extraction output, gold/reference data, remembered layouts, learned templates and
+earlier human corrections. Tests may contain synthetic fixtures, but runtime code cannot read or
+identify them.
+
+Forbidden examples:
 
 ```text
-if supplier == "Supplier A":
-    skip_standard_validation()
-    use_special_price_logic()
-    create_supplier_specific_product_state()
+if supplier == "Supplier A": use_special_price_logic()
+if source_hash in known_files: apply_saved_layout()
+if filename contains "package": infer_package()
 ```
 
 The governing test is:
 
-> **Does this mapping only explain the supplier's source structure to the generic pipeline, or does it create different business behaviour for that supplier?**
+> **Would extraction return the same candidate evidence if supplier identity, filename, source hash
+> and processing history were removed or replaced?**
 
-The former may be governed configuration. The latter requires a genuine generic capability/policy decision and must not be smuggled in as configuration.
+If not, the behaviour is forbidden. A human correction applies only to the exact reviewed source
+revision and does not train, configure or otherwise influence later extraction.
 
 ## 11.16 Publish commercially usable truth [Principle]
 
@@ -5585,6 +5605,120 @@ deterministic extraction defect is repaired or explicitly blocked and the remain
 to be genuine semantic ambiguity. Completion is 46/46 real documents physically compared and either
 certified or explicitly blocked with reproducible evidence; fixture and unit-test results alone do
 not complete this work packet.
+
+### 49.2.18 Supplied-Brief model boundary correction — 2026-09-05
+
+The owner directed the current supplied-Brief/Bedrock implementation to be reviewed and corrected
+against the canonical source-first and evidence-not-confidence rules. The internal invocation
+envelope remains the authenticated C#→Python execution contract and audit context, but it is no
+longer serialized wholesale into the Bedrock user message. A supplied-Brief-specific Python
+adapter now produces the minimal model input: operation, immutable source hash, labelled title,
+conservatively separated primary-message/quoted-history segments and separately labelled
+clarifications. Tenant/actor IDs, run/checkpoint IDs, tool policy, provider policy and cost controls
+remain outside model content. The generic Bedrock provider accepts prepared operation input but
+contains no supplied-Brief business rules. The same provider boundary strips the internal invocation
+envelope from every other Bedrock operation while retaining the operation-specific business packet.
+The typed full request remains available internally for policy enforcement, schema binding, usage and
+post-output validation. Approved multimodal inputs retain their bounded metadata and image bytes
+through the separate image-content path. Bedrock request metadata still carries the agent, run and
+step identifiers, and the governed model content still crosses the AWS boundary through token count
+and Converse requests; those transport facts are not disguised as model evidence.
+
+Segmentation never rewrites the retained original. It separates quoted history only at a stable
+message boundary; otherwise the complete content remains one primary segment. Source locators are
+bound into the forced output schema only when present in the exact request, and exact excerpts are
+validated against the declared title, current-message, history or clarification segment. Quoted
+history is context rather than a current instruction. Arbitrary clarification paths are rejected by
+the shared C#/Python contract. A field-specific clarification is newer evidence and supersedes
+conflicting earlier supplied wording in the proposed draft, but remains user-supplied evidence rather
+than automatically verified truth. Campaign-mode
+confidence remains diagnostic metadata only and no longer triggers or suppresses the deterministic
+clarification decision. Relative dates remain verbatim and unresolved when no authoritative
+timestamp/timezone is present; no runtime-current date is invented.
+
+This bounded change does not add attachment transport, signature/disclaimer removal, canonical
+temporal resolution or a second Brief state machine. C# retains source immutability, tenant/actor
+scope, interpretation lineage, usage retention, canonical BriefVersion creation and human
+approval. Python owns model-input packaging, Bedrock inference and typed/evidence validation.
+No live provider call, inventory processing, database mutation, deployment, service restart,
+commit or push occurred.
+
+Verification: all 67 Python runtime tests passed, including supplied-Brief model-input isolation,
+quoted-history and request-specific locator-schema cases plus generic invocation-envelope exclusion
+and preserved multimodal image transport; all 50 architecture checks passed.
+Web lint and TypeScript type-check passed; lint retained two unrelated existing effect warnings.
+The current tree's Docker-pinned SDK 10.0.400 build published the API and migrator successfully.
+The supplied-Brief-only test filter could not execute because the shared test project is blocked by
+an unrelated concurrent inventory compile error: `InventoryCandidateAdmissionPolicyTests.cs:128`
+still calls a removed six-argument `Prepare` overload (`CS1501`). The inventory work was not changed.
+Therefore the current-tree application build is passing, while isolated C# supplied-Brief tests are
+blocked before execution and are not reported as passing.
+
+### 49.2.19 C#/Python ownership and governed Bedrock profiles — 2026-09-05
+
+The owner reconfirmed the original implementation boundary. C#/.NET is the sole canonical
+commercial authority: it retains authenticated source and clarification records, tenant/actor
+scope, workflow and approval state, deterministic validation and calculations, model/provider
+policy, cost authority, usage/audit records and every canonical write. Python/FastAPI owns AI
+orchestration: model-facing packaging, specialist instructions and schemas, provider integration,
+inference, grounding checks and proposed artifacts. Python does not connect to PostgreSQL, mutate
+commercial state, approve work or duplicate C# domain rules. Conversely, C# must not duplicate
+model extraction or semantic interpretation. The production C# supplied-Brief heuristic parser,
+budget parser and mode/timing classifiers were therefore removed. The older in-process C#
+Opportunity, Planning, Proposal Narrative and Measurement agent clients were also removed from the
+production assemblies. Their zero-cost acceptance behavior now exists only as explicitly injected
+test fixtures. Production agent execution supports disabled or HTTP runtime modes; the deterministic
+zero-cost provider is served through Python/FastAPI. The development supplied-Brief capability is
+disabled until that governed HTTP runtime is configured.
+
+The following provider profiles are the approved, version-controlled configuration for the present
+Bedrock evaluation boundary:
+
+| Operation/profile | Configured Bedrock model |
+| --- | --- |
+| Business Interpretation | `global.anthropic.claude-sonnet-4-6` |
+| Opportunity Intelligence | `global.anthropic.claude-sonnet-4-6` |
+| Strategy | `global.anthropic.claude-sonnet-4-6` |
+| Critic & Readiness | `global.anthropic.claude-sonnet-4-6` |
+| Opportunity-derived Brief | `global.anthropic.claude-sonnet-4-6` |
+| Supplied-Brief understanding | `global.anthropic.claude-sonnet-4-6` |
+| Audience/STP | `global.anthropic.claude-sonnet-4-6` |
+| Inventory shortlist intelligence | `global.anthropic.claude-sonnet-4-6` |
+| Media Planning | `global.anthropic.claude-sonnet-4-6` |
+| Proposal Narrative | `global.anthropic.claude-sonnet-4-6` |
+| Creative | `global.anthropic.claude-sonnet-4-6` |
+| Measurement | `global.anthropic.claude-sonnet-4-6` |
+| Inventory schema discovery | `global.amazon.nova-2-lite-v1:0` |
+| Inventory semantic enrichment | `global.amazon.nova-2-lite-v1:0` |
+| Inventory source transcription/OCR | No Bedrock model; deterministic extractor or human review |
+
+These identifiers are governed configuration, not hard-coded product truth. Bedrock mode requires
+every mandatory base and operation-specific route to be present before startup is accepted. C#
+selects the configured route for the exact operation and seals it into the invocation provider
+policy. Python accepts only the model named in that authenticated policy and in its deployment
+allow-list. C# validates returned usage against the same operation-specific route; it does not
+compare a Nova enrichment response with the base Sonnet inventory profile. Unknown or missing
+routes fail closed.
+
+There is no silent model fallback. Provider attempts remain one, and inventory source transcription
+is rejected at the Bedrock boundary. Nova Pro is not an automatic retry target; adding a stronger
+model requires a new attributable profile decision, capped evaluation evidence and a separately
+audited invocation. The configured client region is `af-south-1` with global inference profile IDs;
+this is a deployment/provider choice, not a claim that inference remains inside South Africa.
+
+This profile assignment does not activate paid inference. The example environment remains
+`ADVERTIFIED_AGENT_RUNTIME_MODE=disabled`, has empty pricing, zero application cost authority and
+disabled inventory semantic extraction. No live Bedrock call, deployment, service restart,
+database mutation, commit or push is authorised by this change.
+
+Verification: the two dedicated AI-ownership/model-profile architecture checks and the 31
+focused Python provider, supplied-Brief, inventory-semantic, source-transcription and schema checks
+passed. The Docker-pinned .NET SDK 10.0.400 target published the API and migrator and completed the
+filtered model-routing, HTTP-adapter and supplied-Brief retention tests. The complete architecture
+collection currently passes 51 of 52 checks; the separate concurrent inventory projection function
+`_project_key_value` is five lines over the 60-line limit. The complete Python runtime suite also
+has two unrelated failures because `inventory_extraction_service.py:137` references an undefined
+`supplier`. This change does not alter or disguise those separate inventory failures.
 
 ## 49.3 Release evidence
 

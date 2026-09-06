@@ -240,7 +240,8 @@ public sealed partial class InventoryRecordStore(
         return new(InventoryInterpretationRevision.Revision(extraction),
             schema is null ? null : System.Text.Json.JsonSerializer.Serialize(schema, InventoryRowMapper.StoredJson),
             System.Text.Json.JsonSerializer.Serialize(
-                InventoryDocumentStructureReader.Read(extraction.SourceHash, extraction.ProviderJson), InventoryRowMapper.StoredJson),
+                extraction.Document.SourceElements ?? [],
+                InventoryRowMapper.StoredJson),
             extraction.Document.SchemaDiscoveryFailure);
     }
 

@@ -1,6 +1,41 @@
+using System.Collections.Frozen;
+using System.Text.Json;
 using Advertified.Commercial.Domain.Governance;
 
 namespace Advertified.Commercial.Application.Brief;
+
+public static class SuppliedBriefFieldPaths
+{
+    public const string ClientName = "clientName";
+    public const string Title = "title";
+    public const string CampaignMode = "campaignMode";
+    public const string BusinessProblem = "businessProblem";
+    public const string Objective = "objective";
+    public const string Audiences = "audiences";
+    public const string Geographies = "geographies";
+    public const string Timing = "timing";
+    public const string Budget = "budget";
+    public const string Currency = "currency";
+    public const string VatStatus = "vatStatus";
+    public const string Fees = "fees";
+    public const string MediaRequirements = "mediaRequirements";
+    public const string Constraints = "constraints";
+    public static readonly string Measurement =
+        JsonNamingPolicy.CamelCase.ConvertName(nameof(SuppliedBriefDraftView.Measurement));
+    public const string Facts = "facts";
+    public const string Unknowns = "unknowns";
+    public const string Assumptions = "assumptions";
+    public const string Conflicts = "conflicts";
+
+    private static readonly FrozenSet<string> Supported = new[]
+    {
+        ClientName, Title, CampaignMode, BusinessProblem, Objective, Audiences,
+        Geographies, Timing, Budget, Currency, VatStatus, Fees, MediaRequirements,
+        Constraints, Measurement, Facts, Unknowns, Assumptions, Conflicts,
+    }.ToFrozenSet(StringComparer.Ordinal);
+
+    public static bool IsSupported(string value) => Supported.Contains(value);
+}
 
 public sealed class SuppliedBriefInterpretationUnavailableException()
     : Exception("Supplied-brief interpretation is not configured.");
