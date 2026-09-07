@@ -60,7 +60,8 @@ public sealed partial class InventoryReader(
         await transaction.CommitAsync(cancellationToken);
         var page = rows.Take(pageSize).ToArray();
         var next = rows.Count > pageSize
-            ? InventoryCursor.Encode(page[^1].Name.ToLowerInvariant(), page[^1].Id) : null;
+            ? InventoryCursor.Encode(page[^1].SupplierName.ToLowerInvariant(),
+                page[^1].Name.ToLowerInvariant(), page[^1].Id) : null;
         return new InventoryProductPage(
             page.Select(InventoryRowMapper.ToView).ToArray(), next, maximumSourceBytes);
     }
@@ -131,12 +132,12 @@ public sealed partial class InventoryReader(
                   AND ({3}::text IS NULL OR version.channel_code = {3})
                   AND ({4}::text IS NULL OR supplier.name ILIKE '%' || {4} || '%')
                   AND ({5}::text IS NULL OR version.geography ILIKE '%' || {5} || '%')
-                ORDER BY lower(version.name), version.product_id LIMIT {6}
+                ORDER BY lower(supplier.name), lower(version.name), version.product_id LIMIT {6}
                 """
             : """
                 WHERE product.tenant_id = {0}
                   AND product.status_code = {1}
-                  AND ({9}::uuid[] IS NULL OR product.supplier_id = ANY({9}))
+                  AND ({10}::uuid[] IS NULL OR product.supplier_id = ANY({10}))
                   AND NOT EXISTS (
                       SELECT 1 FROM commercial.inventory_product_identity_links identity_link
                       WHERE identity_link.tenant_id = product.tenant_id
@@ -146,14 +147,15 @@ public sealed partial class InventoryReader(
                   AND ({3}::text IS NULL OR version.channel_code = {3})
                   AND ({4}::text IS NULL OR supplier.name ILIKE '%' || {4} || '%')
                   AND ({5}::text IS NULL OR version.geography ILIKE '%' || {5} || '%')
-                  AND (lower(version.name), version.product_id) > ({6}, {7})
-                ORDER BY lower(version.name), version.product_id LIMIT {8}
+                  AND (lower(supplier.name), lower(version.name), version.product_id) > ({6}, {7}, {8})
+                ORDER BY lower(supplier.name), lower(version.name), version.product_id LIMIT {9}
                 """);
         var arguments = cursor is null
             ? new object?[] { tenantId.Value, MasterDataCodes.LifecycleStatuses.Active,
                 search, channel, supplier, geography, take, supplierScope }
             : [tenantId.Value, MasterDataCodes.LifecycleStatuses.Active,
-                search, channel, supplier, geography, cursor.Name, cursor.Id, take, supplierScope];
+                search, channel, supplier, geography, cursor.Supplier, cursor.Name,
+                cursor.Id, take, supplierScope];
         var statement = FormattableStringFactory.Create(format, arguments);
         return store.DbContext.Database.SqlQuery<InventoryProductSummaryRow>(statement)
             .ToListAsync(cancellationToken);

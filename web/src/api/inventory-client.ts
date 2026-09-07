@@ -243,10 +243,11 @@ export const inventoryApi = {
 
   async search(
     tenantId: string,
-    filters: { search?: string; channel?: string; geography?: string; cursor?: string },
+    filters: { search?: string; supplier?: string; channel?: string; geography?: string; cursor?: string },
   ): Promise<InventoryProductPage> {
     const query = new URLSearchParams()
     if (filters.search) query.set('search', filters.search)
+    if (filters.supplier) query.set('supplier', filters.supplier)
     if (filters.channel) query.set('channel', filters.channel)
     if (filters.geography) query.set('geography', filters.geography)
     if (filters.cursor) query.set('cursor', filters.cursor)

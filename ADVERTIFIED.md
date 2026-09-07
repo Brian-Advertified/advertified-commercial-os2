@@ -5782,6 +5782,34 @@ options. This proves proposal creation and explainable inventory selection; it i
 decision, booking, supplier commitment, production publication or production-readiness approval.
 No paid/live AI or external communication was used.
 
+### 49.2.21 Local catalogue supplier visibility and imagery correction — 2026-09-07
+
+The owner reported that the local catalogue appeared to contain only SABC inventory and that its
+cards lacked logos or images. All 3,763 source-reviewed active products were present, but global
+product-name ordering placed SABC in the first result windows because it owns 3,387 products. The
+catalogue now orders its stable cursor by supplier name, product name and product identity, and the
+web client exposes the existing supplier filter. This makes the supplier distribution visible and
+allows direct lookup without changing publication eligibility or commercial facts.
+
+Catalogue cards now use the retained media-partner logo where the supplier or product identity
+matches an existing evidenced partner asset. Other cards use the retained channel photograph for
+TV, radio, OOH/DOOH, print, digital or experiential inventory. These are presentation assets only;
+they do not claim a product-specific photograph or bypass the governed product-asset rights ledger.
+The product detail continues to show a product asset only when its rights permit internal planning.
+
+The same local restart exposed a stale deterministic demo seed whose two candidates did not bind
+to the now-required immutable extraction projection. The seed now creates its deterministic
+extraction and projection before those candidates. Re-running it succeeds and preserves the
+reviewed corpus idempotently.
+
+Acceptance evidence: the Docker-pinned SDK 10.0.400 API build and three cursor regression tests
+passed with zero warnings or errors; web type-check and production build passed; and all 55
+architecture checks passed. Against the running local database, the first 24 results contain three
+Algoa FM and 21 Arena Holdings products, pagination visits all 3,765 active products once across 39
+pages, and supplier filters return only Mediamark, Kena Outdoor or SABC as requested. The extra two
+products are the governed deterministic local Proposal fixtures. The local seed completed with exit
+code zero, and the API and web containers returned healthy.
+
 ## 49.3 Release evidence
 
 A production release records:

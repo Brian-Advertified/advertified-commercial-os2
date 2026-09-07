@@ -34,6 +34,7 @@ const reviewRoles = new Set<string>([
 
 const emptyFilters: InventoryFilters = {
   search: '',
+  supplier: '',
   channel: '',
   geography: '',
 }

@@ -2,19 +2,21 @@ using System.Text.Json;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
-internal sealed record InventoryCursorValue(string Name, Guid Id);
+internal sealed record InventoryCursorValue(string Supplier, string Name, Guid Id);
 internal sealed record InventoryCandidateCursorValue(int RowNumber, Guid Id);
 
 internal static class InventoryCursor
 {
-    internal static string Encode(string name, Guid id) =>
-        InventoryCursorCodec.Encode(new InventoryCursorValue(name, id));
+    internal static string Encode(string supplier, string name, Guid id) =>
+        InventoryCursorCodec.Encode(new InventoryCursorValue(supplier, name, id));
 
     internal static InventoryCursorValue? Decode(string? cursor)
     {
         var value = InventoryCursorCodec.Decode<InventoryCursorValue>(
             cursor, "The inventory cursor is invalid.");
-        return value is null || value.Id != Guid.Empty && !string.IsNullOrWhiteSpace(value.Name)
+        return value is null || value.Id != Guid.Empty &&
+                !string.IsNullOrWhiteSpace(value.Supplier) &&
+                !string.IsNullOrWhiteSpace(value.Name)
             ? value
             : throw new ArgumentException("The inventory cursor is invalid.", nameof(cursor));
     }

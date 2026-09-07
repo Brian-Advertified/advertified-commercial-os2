@@ -184,10 +184,41 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO commercial.inventory_extractions (
+    id, tenant_id, import_id, source_hash, adapter_code, adapter_version,
+    schema_version, provider_json, provider_output_hash, completed_at_utc,
+    canonical_json, canonical_output_hash, source_file_version
+)
+VALUES (
+    '10000000-0000-0000-0000-000000000104',
+    '10000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000101', repeat('d', 64),
+    'LOCAL_DETERMINISTIC_SEED', '1.0.0', 'local-demo-inventory/1',
+    '{"provider":"local-deterministic-seed"}'::jsonb, repeat('d', 64),
+    clock_timestamp(), '{}'::jsonb, repeat('d', 64), 1
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO commercial.inventory_extraction_projections (
+    id, tenant_id, import_id, input_artifact_id, projector_code,
+    projector_version, schema_version, canonical_json, canonical_output_hash,
+    candidate_count, created_by, created_at_utc
+)
+VALUES (
+    '10000000-0000-0000-0000-000000000105',
+    '10000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000101',
+    '10000000-0000-0000-0000-000000000104', 'LOCAL_DETERMINISTIC_SEED',
+    '1.0.0', 'local-demo-inventory/1', '{}'::jsonb, repeat('d', 64), 2,
+    '10000000-0000-0000-0000-000000000001', clock_timestamp()
+)
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO commercial.inventory_candidates (
     id, tenant_id, import_id, row_number, status_code,
     proposed_values_json, canonical_values_json, validation_json,
-    source_locator, reviewed_by, version, created_at_utc, updated_at_utc
+    source_locator, reviewed_by, version, created_at_utc, updated_at_utc,
+    projection_id
 )
 VALUES
 (
@@ -197,7 +228,8 @@ VALUES
     2, 'APPROVED', '{}'::jsonb, '{}'::jsonb, '[]'::jsonb,
     'local-demo-proposal-inventory.csv#row=2',
     '10000000-0000-0000-0000-000000000001',
-    1, clock_timestamp(), clock_timestamp()
+    1, clock_timestamp(), clock_timestamp(),
+    '10000000-0000-0000-0000-000000000105'
 ),
 (
     '10000000-0000-0000-0000-000000000103',
@@ -206,7 +238,8 @@ VALUES
     3, 'APPROVED', '{}'::jsonb, '{}'::jsonb, '[]'::jsonb,
     'local-demo-proposal-inventory.csv#row=3',
     '10000000-0000-0000-0000-000000000001',
-    1, clock_timestamp(), clock_timestamp()
+    1, clock_timestamp(), clock_timestamp(),
+    '10000000-0000-0000-0000-000000000105'
 )
 ON CONFLICT (id) DO NOTHING;
 

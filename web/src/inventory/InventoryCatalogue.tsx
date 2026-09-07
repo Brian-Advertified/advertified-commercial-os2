@@ -5,8 +5,14 @@ import { Icon } from '../components/Icon'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { masterDataCodes, masterDataDefinitions } from '../generated/master-data-codes'
 import { formatDateTime, formatMiB, humanizeCode } from '../presentation/format'
+import { findMediaInventoryPartner } from '../public/data/mediaInventoryPartners'
 
-export type InventoryFilters = { search: string; channel: string; geography: string }
+export type InventoryFilters = {
+  search: string
+  supplier: string
+  channel: string
+  geography: string
+}
 
 export function InventoryCatalogueHeader({ items }: { items: InventoryProductSummary[] }) {
   const suppliers = new Set(items.map(item => item.supplierId)).size
@@ -34,6 +40,9 @@ export function InventorySearchForm({ filters, setFilters, search }: {
     <label className="approved-catalogue-search"><Icon name="search" /><input value={filters.search}
       onChange={event => setFilters({ ...filters, search: event.target.value })}
       placeholder="Search inventory by product, location, supplier…" maxLength={200} /></label>
+    <input aria-label="Supplier" value={filters.supplier} maxLength={300}
+      onChange={event => setFilters({ ...filters, supplier: event.target.value })}
+      placeholder="Supplier / media owner" />
     <select aria-label="Channel" value={filters.channel}
       onChange={event => setFilters({ ...filters, channel: event.target.value })}>
       <option value="">Channel · All</option>{masterDataDefinitions.channels.filter(item => item.isActive).map(item =>
@@ -62,7 +71,7 @@ export function InventoryProductCards({ page, loadMore }: {
         <InventoryCard key={item.id} item={item} />)}</div>
       <aside className="approved-catalogue-map"><header><span>Published geographies</span></header>
         <div className="approved-map-canvas"><strong>{geographies.length} represented in this window</strong>
-          <small>{geographies.join(' · ') || 'No geography supplied'}</small>
+          <small>{geographies.slice(0, 3).join(' · ') || 'No geography supplied'}</small>
           <p>A spatial map requires verified product geometry. Open a product to inspect its coordinates.</p></div></aside>
     </div>
     {page.nextCursor && <button className="secondary-button approved-load-more" type="button" onClick={() => loadMore(page.nextCursor!)}>Load more products</button>}
@@ -70,12 +79,31 @@ export function InventoryProductCards({ page, loadMore }: {
 }
 
 function InventoryCard({ item }: { item: InventoryProductSummary }) {
+  const artwork = inventoryArtwork(item)
   return <Link className="approved-inventory-card" to={`/inventory/products/${item.id}`}>
-    <div className="approved-inventory-card-media" aria-hidden="true"><MediaTypeIcon channel={item.channel} /></div>
+    <img className={artwork.isLogo ? 'is-logo' : undefined} src={artwork.path} alt="" />
     <div className="approved-inventory-card-copy"><small>{item.geography}</small>
       <strong>{item.name}</strong><span>{humanizeCode(item.productType, true)}</span></div>
     <footer><em className={verificationTone(item.verification)}>{humanizeCode(item.verification, true)}</em>
       <small>{item.supplierName}</small><time>{relative(item.updatedAtUtc)}</time></footer></Link>
+}
+
+function inventoryArtwork(item: InventoryProductSummary) {
+  const namedPartner = findMediaInventoryPartner(item.name)
+  const supplierPartner = item.supplierName.toLowerCase() === 'sabc'
+    ? undefined : findMediaInventoryPartner(item.supplierName)
+  const partner = namedPartner ?? supplierPartner
+  if (partner) return { path: partner.assetPath, isLogo: true }
+  const byChannel: Record<string, string> = {
+    [masterDataCodes.channels.tv]: '/assets/media-inventory/television-real.jpg',
+    [masterDataCodes.channels.radio]: '/assets/media-inventory/radio-real.jpg',
+    [masterDataCodes.channels.ooh]: '/assets/media-inventory/out-of-home-real.jpg',
+    [masterDataCodes.channels.dooh]: '/assets/media-inventory/out-of-home-real.jpg',
+    [masterDataCodes.channels.print]: '/assets/media-inventory/print-real.jpg',
+    [masterDataCodes.channels.digital]: '/assets/media-inventory/digital-real.jpg',
+    [masterDataCodes.channels.experiential]: '/assets/media-inventory/experiential-real.jpg',
+  }
+  return { path: byChannel[item.channel] ?? '/assets/media-inventory/digital-real.jpg', isLogo: false }
 }
 
 export function InventoryUploadForm({ busy, maximumSourceBytes, upload }: {

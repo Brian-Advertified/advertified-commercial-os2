@@ -200,3 +200,9 @@
   .inventory-import-page .candidate-facts { grid-template-columns: 1fr; }
   .inventory-import-page .candidate-facts div { border-right: 0; border-bottom: 1px solid var(--line); }
 }
+.approved-product-card-grid .approved-inventory-card > img.is-logo {
+  box-sizing: border-box;
+  object-fit: contain;
+  background: linear-gradient(135deg, #f8f7fc, #ffffff);
+  padding: 14px 24px;
+}
