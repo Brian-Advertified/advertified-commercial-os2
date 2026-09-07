@@ -206,3 +206,24 @@
   background: linear-gradient(135deg, #f8f7fc, #ffffff);
   padding: 14px 24px;
 }
+
+.approved-inventory-card-identity {
+  color: #6038f5;
+  background: linear-gradient(135deg, #f3efff, #f9f8fc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 86px;
+}
+
+.approved-inventory-card-identity svg { width: 24px; height: 24px; }
+.approved-inventory-card-identity strong { color: #344054; font-size: 18px; }
+.approved-catalogue-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border-top: 1px solid #eef1f5;
+}

@@ -5810,6 +5810,33 @@ pages, and supplier filters return only Mediamark, Kena Outdoor or SABC as reque
 products are the governed deterministic local Proposal fixtures. The local seed completed with exit
 code zero, and the API and web containers returned healthy.
 
+### 49.2.22 Catalogue navigation, identity imagery and legacy detail compatibility — 2026-09-07
+
+The catalogue presents a populated supplier selector and explicit Previous, page-number and Next
+controls. Changing any search filter starts again at page one. Page transitions replace the current
+result window instead of appending products, so the visible result count and navigation state remain
+clear during proposal inventory review.
+
+The active local inventory has no governed product-asset records. Generic channel photographs are
+therefore withdrawn from product cards because they could be mistaken for evidence of the advertised
+site, placement or programme. A card shows an exact retained supplier logo only for a supplier whose
+identity is established by that asset; every other card uses a neutral supplier-initial and channel
+identity tile. Product-specific imagery remains absent until a rights-approved source asset is linked
+to the product ledger.
+
+Legacy imported product documents may contain null list values for commercial-term inclusions,
+exclusions and conditions or spatial points of interest. The API and web boundary now normalize
+those list values to empty arrays. This preserves the distinction between a missing list and invented
+content while allowing the product detail to load.
+
+Acceptance evidence: the Docker-pinned SDK 10.0.400 API build and three cursor tests passed; web
+type-check, focused lint, production build and all 12 unit tests passed; all 55 architecture checks
+passed. The retained connected Playwright test passed against the rebuilt local
+API and web containers. It proved a populated supplier selector, 24-item replace-in-place pages,
+forward and backward navigation, an Insight Outdoor-only result, absence of generic catalogue
+photographs, and successful loading of `Lynnwood Road, The Grove` with normalized empty lists and no
+failed API response.
+
 ## 49.3 Release evidence
 
 A production release records:

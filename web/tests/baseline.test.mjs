@@ -31,7 +31,7 @@ test('React runtime versions are exact, not floating ranges', () => {
 })
 
 test('unsupported task and notification surfaces stay truthful', () => {
-  assert.match(deferredSource, /does not invent queue entries or counts/)
+  assert.match(deferredSource, /Navigate to="\/home" replace/)
   assert.doesNotMatch(deferredSource, /mock task|sample notification/i)
 })
 

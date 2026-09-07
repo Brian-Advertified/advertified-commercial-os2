@@ -53,26 +53,10 @@ function InventoryIndex({ tenantId, canImport, canReview }: {
 }) {
   const { session } = useSession()
   const navigate = useNavigate()
-  const [page, setPage] = useState<InventoryProductPage | null>(null)
-  const [filters, setFilters] = useState<InventoryFilters>(emptyFilters)
-  const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  useEffect(() => {
-    let active = true
-    void inventoryApi.search(tenantId, {})
-      .then(result => { if (active) setPage(result) })
-      .catch((failure: unknown) => { if (active) setError(humanMessage(failure)) })
-    return () => { active = false }
-  }, [tenantId])
-  async function load(cursor?: string) {
-    try {
-      setError(null)
-      const result = await inventoryApi.search(tenantId, { ...filters, cursor })
-      setPage(current => mergePage(current, result, cursor))
-    } catch (failure) {
-      setError(humanMessage(failure))
-    }
-  }
+  const catalogue = useInventoryCatalogue(tenantId)
+  const { page, suppliers, pageNumber, pageCursors, filters, error,
+    setFilters, setError, load } = catalogue
   async function upload(values: FormData) {
     const file = values.get('source')
     if (!session || !page || !(file instanceof File) || file.size === 0) return
@@ -97,17 +81,47 @@ function InventoryIndex({ tenantId, canImport, canReview }: {
   if (error && !page) return <MessageState title="Inventory could not be loaded" message={error} />
   if (!page) return <LoadingState label="Loading inventory" />
   return <InventoryWorkbench tenantId={tenantId} page={page} filters={filters}
+    suppliers={suppliers} pageNumber={pageNumber} pageCursors={pageCursors}
     error={error} busy={busy} canImport={canImport} canReview={canReview}
     token={session?.antiforgeryToken ?? null} setFilters={setFilters} load={load}
     upload={upload} setBusy={setBusy} setError={setError} />
 }
 
-function InventoryWorkbench({ tenantId, page, filters, error, busy, canImport,
-  canReview, token, setFilters, load, upload, setBusy, setError }: {
+function useInventoryCatalogue(tenantId: string) {
+  const [page, setPage] = useState<InventoryProductPage | null>(null)
+  const [suppliers, setSuppliers] = useState<string[]>([])
+  const [pageNumber, setPageNumber] = useState(1)
+  const [pageCursors, setPageCursors] = useState<Array<string | undefined>>([undefined])
+  const [filters, setFilters] = useState<InventoryFilters>(emptyFilters)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => { let active = true
+    void Promise.all([inventoryApi.search(tenantId, {}),
+      inventoryApi.listSupplierNames(tenantId)])
+      .then(([result, names]) => { if (active) { setPage(result); setSuppliers(names) } })
+      .catch((failure: unknown) => { if (active) setError(humanMessage(failure)) })
+    return () => { active = false } }, [tenantId])
+  async function load(cursor?: string, targetPage = 1) {
+    try {
+      setError(null)
+      setPage(await inventoryApi.search(tenantId, { ...filters, cursor }))
+      setPageNumber(targetPage)
+      setPageCursors(current => targetPage === 1 ? [undefined]
+        : [...current.slice(0, targetPage - 1), cursor])
+    } catch (failure) { setError(humanMessage(failure)) }
+  }
+  return { page, suppliers, pageNumber, pageCursors, filters, error,
+    setFilters, setError, load }
+}
+
+function InventoryWorkbench({ tenantId, page, filters, suppliers, pageNumber,
+  pageCursors, error, busy, canImport, canReview, token, setFilters, load,
+  upload, setBusy, setError }: {
   tenantId: string; page: InventoryProductPage; filters: InventoryFilters
+  suppliers: string[]; pageNumber: number; pageCursors: Array<string | undefined>
   error: string | null; busy: boolean; canImport: boolean; canReview: boolean
   token: string | null; setFilters: (value: InventoryFilters) => void
-  load: (cursor?: string) => Promise<void>; upload: (values: FormData) => Promise<void>
+  load: (cursor?: string, targetPage?: number) => Promise<void>
+  upload: (values: FormData) => Promise<void>
   setBusy: (value: boolean) => void; setError: (value: string | null) => void
 }) {
   return <section className="inventory-workbench-page" aria-labelledby="inventory-title">
@@ -115,9 +129,13 @@ function InventoryWorkbench({ tenantId, page, filters, error, busy, canImport,
     {error && <p className="inline-alert" role="alert">{error}</p>}
     <div className={canImport ? 'inventory-workbench-layout' : undefined}>
       <div className="inventory-catalogue-column">
-        <InventorySearchForm filters={filters} setFilters={setFilters}
+        <InventorySearchForm filters={filters} suppliers={suppliers} setFilters={setFilters}
           search={() => void load()} />
-        <InventoryProductCards page={page} loadMore={(cursor) => void load(cursor)} />
+        <InventoryProductCards page={page} pageNumber={pageNumber}
+          previous={pageNumber > 1
+            ? () => void load(pageCursors[pageNumber - 2], pageNumber - 1) : null}
+          next={page.nextCursor
+            ? () => void load(page.nextCursor!, pageNumber + 1) : null} />
       </div>
       {canImport && <InventoryUploadForm busy={busy}
         maximumSourceBytes={page.maximumSourceBytes} upload={upload} />}
@@ -127,11 +145,6 @@ function InventoryWorkbench({ tenantId, page, filters, error, busy, canImport,
     {canReview && token && <DuplicateReviewPanel tenantId={tenantId}
       token={token} busy={busy} setBusy={setBusy} reportError={setError} />}
   </section>
-}
-
-function mergePage(current: InventoryProductPage | null, next: InventoryProductPage,
-  cursor?: string) {
-  return cursor && current ? { ...next, items: [...current.items, ...next.items] } : next
 }
 
 function DuplicateReviewPanel({ tenantId, token, busy, setBusy, reportError }: {

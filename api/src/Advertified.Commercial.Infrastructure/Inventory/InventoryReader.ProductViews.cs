@@ -21,7 +21,7 @@ public sealed partial class InventoryReader
         new InventoryRateView(
             detail.RateType, detail.Currency, detail.AmountMinor, detail.RateLocator,
             detail.EffectiveFrom, detail.EffectiveTo, detail.VatTreatment,
-            Read<InventoryCommercialTermsValues>(detail.CommercialTermsJson)),
+            ReadCommercialTerms(detail.CommercialTermsJson)),
         new InventoryAvailabilityView(
             detail.Availability, detail.ObservedAtUtc, detail.ValidUntilUtc,
             detail.AvailabilityLocator),
@@ -47,7 +47,7 @@ public sealed partial class InventoryReader
                 item.Email, item.Phone, item.Website, item.SocialHandle,
                 item.ObservedAtUtc)).ToArray(),
         Read<InventoryDeliverableValues>(detail.DeliverableJson),
-        Read<InventorySpatialValues>(detail.SpatialJson),
+        ReadSpatial(detail.SpatialJson),
         packages.Select(ToPackageView).ToArray(),
         exceptions.Select(item => new InventoryAvailabilityExceptionView(
             item.Id, item.ProductId, item.ProductVersionId, item.ExceptionType,
@@ -74,6 +74,26 @@ public sealed partial class InventoryReader
     private static T? Read<T>(string? json) where T : class =>
         json is null ? null : JsonSerializer.Deserialize<T>(
             json, InventoryRowMapper.StoredJson);
+
+    private static InventoryCommercialTermsValues? ReadCommercialTerms(string? json)
+    {
+        var value = Read<InventoryCommercialTermsValues>(json);
+        return value is null ? null : value with
+        {
+            Inclusions = value.Inclusions ?? [],
+            Exclusions = value.Exclusions ?? [],
+            Conditions = value.Conditions ?? [],
+        };
+    }
+
+    private static InventorySpatialValues? ReadSpatial(string? json)
+    {
+        var value = Read<InventorySpatialValues>(json);
+        return value is null ? null : value with
+        {
+            PointsOfInterest = value.PointsOfInterest ?? [],
+        };
+    }
 
     private static InventoryAudienceProfileView? ToAudienceView(
         InventoryProductDetailRow detail)

@@ -243,7 +243,8 @@ export const inventoryApi = {
 
   async search(
     tenantId: string,
-    filters: { search?: string; supplier?: string; channel?: string; geography?: string; cursor?: string },
+    filters: { search?: string; supplier?: string; channel?: string; geography?: string
+      cursor?: string; pageSize?: number },
   ): Promise<InventoryProductPage> {
     const query = new URLSearchParams()
     if (filters.search) query.set('search', filters.search)
@@ -251,11 +252,22 @@ export const inventoryApi = {
     if (filters.channel) query.set('channel', filters.channel)
     if (filters.geography) query.set('geography', filters.geography)
     if (filters.cursor) query.set('cursor', filters.cursor)
-    query.set('pageSize', '24')
+    query.set('pageSize', String(filters.pageSize ?? 24))
     return (await request(
       `/api/v1/tenants/${tenantId}/inventory-products?${query}`,
       inventoryProductPageSchema,
     )).data
+  },
+
+  async listSupplierNames(tenantId: string): Promise<string[]> {
+    const names = new Set<string>()
+    let cursor: string | undefined
+    do {
+      const page = await this.search(tenantId, { cursor, pageSize: 100 })
+      page.items.forEach(item => names.add(item.supplierName))
+      cursor = page.nextCursor ?? undefined
+    } while (cursor)
+    return [...names].sort((left, right) => left.localeCompare(right))
   },
 
   async getProduct(tenantId: string, productId: string) {

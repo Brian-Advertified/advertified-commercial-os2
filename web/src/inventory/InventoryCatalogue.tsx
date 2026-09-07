@@ -30,8 +30,9 @@ function Snapshot({ label, value }: { label: string; value: number }) {
   return <div><dt>{label}</dt><dd>{new Intl.NumberFormat().format(value)}</dd><small>Current result window</small></div>
 }
 
-export function InventorySearchForm({ filters, setFilters, search }: {
+export function InventorySearchForm({ filters, suppliers, setFilters, search }: {
   filters: InventoryFilters
+  suppliers: string[]
   setFilters: (value: InventoryFilters) => void
   search: () => void
 }) {
@@ -40,9 +41,10 @@ export function InventorySearchForm({ filters, setFilters, search }: {
     <label className="approved-catalogue-search"><Icon name="search" /><input value={filters.search}
       onChange={event => setFilters({ ...filters, search: event.target.value })}
       placeholder="Search inventory by product, location, supplier…" maxLength={200} /></label>
-    <input aria-label="Supplier" value={filters.supplier} maxLength={300}
-      onChange={event => setFilters({ ...filters, supplier: event.target.value })}
-      placeholder="Supplier / media owner" />
+    <select aria-label="Supplier" value={filters.supplier}
+      onChange={event => setFilters({ ...filters, supplier: event.target.value })}>
+      <option value="">Supplier · All</option>{suppliers.map(supplier =>
+        <option value={supplier} key={supplier}>{supplier}</option>)}</select>
     <select aria-label="Channel" value={filters.channel}
       onChange={event => setFilters({ ...filters, channel: event.target.value })}>
       <option value="">Channel · All</option>{masterDataDefinitions.channels.filter(item => item.isActive).map(item =>
@@ -53,9 +55,11 @@ export function InventorySearchForm({ filters, setFilters, search }: {
   </form>
 }
 
-export function InventoryProductCards({ page, loadMore }: {
+export function InventoryProductCards({ page, pageNumber, previous, next }: {
   page: InventoryProductPage
-  loadMore: (cursor: string) => void
+  pageNumber: number
+  previous: (() => void) | null
+  next: (() => void) | null
 }) {
   if (page.items.length === 0) return <article className="approved-inventory-empty"><Icon name="inventory" />
     <div><h2>No products match these filters</h2><p>Adjust the filters. Only reviewed, published inventory appears here.</p></div></article>
@@ -74,14 +78,23 @@ export function InventoryProductCards({ page, loadMore }: {
           <small>{geographies.slice(0, 3).join(' · ') || 'No geography supplied'}</small>
           <p>A spatial map requires verified product geometry. Open a product to inspect its coordinates.</p></div></aside>
     </div>
-    {page.nextCursor && <button className="secondary-button approved-load-more" type="button" onClick={() => loadMore(page.nextCursor!)}>Load more products</button>}
+    <nav className="approved-catalogue-pagination" aria-label="Inventory pages">
+      <button className="secondary-button" type="button" disabled={!previous}
+        onClick={() => previous?.()}>Previous</button>
+      <span>Page {pageNumber}</span>
+      <button className="secondary-button" type="button" disabled={!next}
+        onClick={() => next?.()}>Next</button>
+    </nav>
   </section>
 }
 
 function InventoryCard({ item }: { item: InventoryProductSummary }) {
   const artwork = inventoryArtwork(item)
   return <Link className="approved-inventory-card" to={`/inventory/products/${item.id}`}>
-    <img className={artwork.isLogo ? 'is-logo' : undefined} src={artwork.path} alt="" />
+    {artwork ? <img className="is-logo" src={artwork} alt="" />
+      : <div className="approved-inventory-card-identity" aria-hidden="true">
+        <MediaTypeIcon channel={item.channel} /><strong>{supplierInitials(item.supplierName)}</strong>
+      </div>}
     <div className="approved-inventory-card-copy"><small>{item.geography}</small>
       <strong>{item.name}</strong><span>{humanizeCode(item.productType, true)}</span></div>
     <footer><em className={verificationTone(item.verification)}>{humanizeCode(item.verification, true)}</em>
@@ -89,21 +102,20 @@ function InventoryCard({ item }: { item: InventoryProductSummary }) {
 }
 
 function inventoryArtwork(item: InventoryProductSummary) {
-  const namedPartner = findMediaInventoryPartner(item.name)
-  const supplierPartner = item.supplierName.toLowerCase() === 'sabc'
-    ? undefined : findMediaInventoryPartner(item.supplierName)
-  const partner = namedPartner ?? supplierPartner
-  if (partner) return { path: partner.assetPath, isLogo: true }
-  const byChannel: Record<string, string> = {
-    [masterDataCodes.channels.tv]: '/assets/media-inventory/television-real.jpg',
-    [masterDataCodes.channels.radio]: '/assets/media-inventory/radio-real.jpg',
-    [masterDataCodes.channels.ooh]: '/assets/media-inventory/out-of-home-real.jpg',
-    [masterDataCodes.channels.dooh]: '/assets/media-inventory/out-of-home-real.jpg',
-    [masterDataCodes.channels.print]: '/assets/media-inventory/print-real.jpg',
-    [masterDataCodes.channels.digital]: '/assets/media-inventory/digital-real.jpg',
-    [masterDataCodes.channels.experiential]: '/assets/media-inventory/experiential-real.jpg',
-  }
-  return { path: byChannel[item.channel] ?? '/assets/media-inventory/digital-real.jpg', isLogo: false }
+  if (item.supplierName.toLowerCase() === 'sabc') return undefined
+  return exactSupplierLogos[item.supplierName] ?? undefined
+}
+
+const exactSupplierLogos: Readonly<Record<string, string>> = {
+  'Algoa FM': findMediaInventoryPartner('Algoa FM')!.assetPath,
+  'Jozi FM': findMediaInventoryPartner('Jozi FM')!.assetPath,
+  'Kaya 959': findMediaInventoryPartner('Kaya 959')!.assetPath,
+  'Primedia Broadcasting': findMediaInventoryPartner('Primedia')!.assetPath,
+  'Smile 90.4FM': findMediaInventoryPartner('Smile 90.4FM')!.assetPath,
+}
+
+function supplierInitials(name: string) {
+  return name.split(/\s+/u).slice(0, 2).map(part => part[0]).join('').toUpperCase()
 }
 
 export function InventoryUploadForm({ busy, maximumSourceBytes, upload }: {
