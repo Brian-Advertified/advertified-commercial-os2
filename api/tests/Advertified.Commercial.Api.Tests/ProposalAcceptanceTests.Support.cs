@@ -1,11 +1,15 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.MasterData;
+using Advertified.Commercial.Infrastructure.Proposal;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Xunit;
 
@@ -35,7 +39,15 @@ public sealed partial class ProposalAcceptanceTests
         builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", userId.ToString());
         builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
         builder.UseDeterministicInventoryProtection();
+        builder.UseSetting("EmailAutomation:Mode", "Deterministic");
+        builder.UseSetting("EmailAutomation:SenderAddress", "proposals@advertified.test");
         builder.UseSetting("Logging:LogLevel:Default", "Warning");
+        builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<IProposalNarrativeClient>();
+            services.AddScoped<IProposalNarrativeClient>(_ =>
+                new ProposalNarrativeFixture(ProposalPolicy.Load()));
+        });
     });
 
     private static async Task SeedAsync(string connectionString)

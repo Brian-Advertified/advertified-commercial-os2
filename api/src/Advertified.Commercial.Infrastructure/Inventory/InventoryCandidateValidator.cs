@@ -124,14 +124,6 @@ internal static class InventoryCandidateValidator
                 "Supplier VAT status and the rate VAT treatment require review before client pricing.",
                 false));
         }
-        if (supplier?.VatStatus == MasterDataCodes.VatStatuses.Registered &&
-            string.IsNullOrWhiteSpace(supplier.VatNumber))
-        {
-            issues.Add(new("supplierCommercial.vatNumber",
-                MasterDataCodes.ValidationIssueTypes.SupplierCommercialIncomplete,
-                "A VAT-registered supplier requires an evidenced VAT number before client pricing.",
-                false));
-        }
         if ((supplier?.VatStatus == MasterDataCodes.VatStatuses.Registered &&
                 commercial?.VatTreatment == MasterDataCodes.VatTreatments.NotApplicable) ||
             (supplier?.VatStatus is MasterDataCodes.VatStatuses.Exempt or

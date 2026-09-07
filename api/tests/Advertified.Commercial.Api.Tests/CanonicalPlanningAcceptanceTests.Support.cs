@@ -43,6 +43,8 @@ public sealed partial class CanonicalPlanningAcceptanceTests
     {
         services.RemoveAll<TimeProvider>();
         services.AddSingleton<TimeProvider>(new FixedPlanningTimeProvider());
+        services.RemoveAll<IPlanningAgentClient>();
+        services.AddScoped<IPlanningAgentClient, PlanningAgentFixture>();
     }
 
     internal static void ConfigureDeterministicEmailInventorySelection(

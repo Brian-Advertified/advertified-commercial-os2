@@ -34,11 +34,6 @@ internal static class InventoryCommercialReadiness
         {
             gaps.Add("inventory.availability.sourceEvidence");
         }
-        if (value.SupplierVatStatus == MasterDataCodes.VatStatuses.Registered &&
-            string.IsNullOrWhiteSpace(supplier?.VatNumber))
-        {
-            gaps.Add("inventory.supplierCommercial.vatNumber");
-        }
         if ((value.SupplierVatStatus == MasterDataCodes.VatStatuses.Registered &&
                 value.VatTreatment == MasterDataCodes.VatTreatments.NotApplicable) ||
             (value.SupplierVatStatus is MasterDataCodes.VatStatuses.Exempt or

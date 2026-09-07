@@ -5726,6 +5726,62 @@ collection currently passes 51 of 52 checks; the separate concurrent inventory p
 has two unrelated failures because `inventory_extraction_service.py:137` references an undefined
 `supplier`. This change does not alter or disguise those separate inventory failures.
 
+### 49.2.20 Physically reviewed local inventory and proposal-test baseline — 2026-09-07
+
+The owner directed Advertified's complete supplied inventory corpus to be loaded into the local
+non-production workspace so full-system Brief, planning and Proposal journeys can use real,
+traceable commercial inventory. The 46 exact source files were physically reviewed against their
+pages, slides and worksheets. The retained bootstrap binds each filename, byte size and SHA-256,
+the source document and supplier facts, commercial-looking records and exact locators. Missing or
+ambiguous facts remain review-required. Inventory is available unless the source explicitly marks
+it unavailable; this default is recorded with the same source locator and does not invent confirmed
+supply.
+
+The canonical reviewed seed contains 27 supplier identities, 46 documents, 7,341 conceptual
+records, 505 SABC rate-grid cells and 26 supporting planning-evidence records. Independently
+buyable rate variants expand to 7,418 local candidates: 3,763 approved active products and 3,655
+review-required candidates. The shared SABC T0–T100 schedule remains pricing data rather than 101
+fake products. Weakly contextual visual fragments, logo-only station columns and documents whose
+visible cells do not establish a selectable offer remain quarantined; 707 earlier weak
+interpretations are inactive. Every active version retains supplier, product, channel, format,
+placement/geography where applicable, exact price and unit, validity and VAT treatment when
+evidenced, availability, conditions/deliverables when evidenced, and file/page/heading/raw-text
+provenance. The 46 original binaries are held under hash-addressed keys in the private local object
+store.
+
+The generated local loader is deterministic, controlled and idempotent. It resolves governed
+codes from `shared/contracts/master-data.json`, synchronizes changed candidate dispositions,
+creates immutable product/rate/availability versions and deactivates products that no longer pass
+publication review. It is invoked after local identities are established. Supplier VAT status and
+rate VAT treatment remain required for client pricing. A supplier VAT number is retained when
+supplied, but its absence does not block pricing when those required VAT facts are evidenced; this
+implements the owner rule that contact/onboarding details are extracted only when needed and that
+missing facts are not invented.
+
+Acceptance evidence: exact-source validation returned zero errors with seed checksum
+`04ecd2103e5185c9db66001c6c1164c8c8c79dec9660caa0b4734f87303bbb9b`; two independent fixture
+generations produced SHA-256
+`322772121f615dce827f660f7daf0c41b2a8f9cc55d8ca373675105692636e6d`; a second database load
+changed zero rows; active channel counts are DIGITAL 98, DOOH 70, EXPERIENTIAL 8, PRINT 31, RADIO
+695 and TV 2,861; and zero active product names are shorter than five characters or contain the
+known boilerplate fragment. The Docker-pinned SDK 10.0.400 API build passed, both focused VAT
+admission/readiness regressions passed with zero warnings and errors, and all 55 architecture
+checks passed. Four focused disposable-PostgreSQL planning and Proposal journeys passed, including
+the approved-plan happy path, aggregate channel-budget rejection, proposal preparation/selection
+and invalid-choice rejection. Their factories explicitly inject the existing deterministic
+planning, narrative and email fixtures; they do not invoke a live provider.
+
+The local full-system proof used approved BriefVersion
+`359b388e-b2b1-4d1e-8eea-ab2ce0104ae7`. A reconciled DIGITAL mix selected `Eyewitness News daily
+social post` at ZAR 10,500 per day, valid 2026-07-01 through 2027-06-30 and VAT exclusive, from
+`Digital Rates & Packages F27_FINAL.pdf`, page 7. Its shortlist rationale records hard eligibility,
+geography, objective/format fit, budget efficiency, evidence quality and portfolio contribution;
+commercial-readiness gaps are empty. Three plan versions were approved through the local human
+operator path and draft ProposalVersion `f9d3b5af-122a-487d-b3cf-1324dda6abb8` contains three
+options. This proves proposal creation and explainable inventory selection; it is not a client
+decision, booking, supplier commitment, production publication or production-readiness approval.
+No paid/live AI or external communication was used.
+
 ## 49.3 Release evidence
 
 A production release records:

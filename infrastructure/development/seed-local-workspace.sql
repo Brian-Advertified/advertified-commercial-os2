@@ -310,3 +310,6 @@ VALUES
     'development-confirmation:local-demo-jhb-002'
 )
 ON CONFLICT (id) DO NOTHING;
+
+-- Load the physically reviewed source corpus after the local identities and demo rows exist.
+\ir inventory-bootstrap.generated.sql
