@@ -18,10 +18,7 @@ public sealed partial class InventoryReader
         detail.Latitude, detail.Longitude,
         JsonSerializer.Deserialize<Dictionary<string, string>>(
             detail.ExtensionJson, InventoryRowMapper.StoredJson) ?? [],
-        new InventoryRateView(
-            detail.RateType, detail.Currency, detail.AmountMinor, detail.RateLocator,
-            detail.EffectiveFrom, detail.EffectiveTo, detail.VatTreatment,
-            ReadCommercialTerms(detail.CommercialTermsJson)),
+        ToRateView(detail),
         new InventoryAvailabilityView(
             detail.Availability, detail.ObservedAtUtc, detail.ValidUntilUtc,
             detail.AvailabilityLocator),
@@ -53,6 +50,14 @@ public sealed partial class InventoryReader
             item.Id, item.ProductId, item.ProductVersionId, item.ExceptionType,
             item.StartsOn, item.EndsOn, item.SourceLocator, item.EvidenceHash,
             item.RecordedBy, item.RecordedAtUtc, 1)).ToArray());
+
+    private static InventoryRateView? ToRateView(InventoryProductDetailRow detail) =>
+        detail.RateType is null || detail.Currency is null ||
+        !detail.AmountMinor.HasValue || detail.RateLocator is null
+            ? null
+            : new(detail.RateType, detail.Currency, detail.AmountMinor.Value,
+                detail.RateLocator, detail.EffectiveFrom, detail.EffectiveTo,
+                detail.VatTreatment, ReadCommercialTerms(detail.CommercialTermsJson));
 
     private static InventorySupplierCommercialView? ToSupplierCommercialView(
         InventoryProductDetailRow detail) => !detail.SupplierVersionNumber.HasValue ||

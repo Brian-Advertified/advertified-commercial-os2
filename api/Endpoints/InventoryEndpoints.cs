@@ -61,6 +61,9 @@ public static class InventoryEndpoints
         group.MapGet("/inventory-products", SearchProductsAsync)
             .WithName("SearchInventoryProducts").Produces<InventoryProductPage>()
             .WithQueryProblems();
+        group.MapGet("/inventory-product-suppliers", ListProductSuppliersAsync)
+            .WithName("ListInventoryProductSuppliers").Produces<IReadOnlyList<string>>()
+            .WithQueryProblems();
         group.MapGet("/inventory-products/{productId:guid}", GetProductAsync)
             .WithName("GetInventoryProduct").Produces<InventoryProductView>()
             .WithQueryProblems();
@@ -248,6 +251,11 @@ public static class InventoryEndpoints
         Guid tenantId, Guid productId, ICurrentIdentity identity, IInventoryReader reader,
         CancellationToken cancellationToken) => Results.Ok(await reader.GetProductAsync(
             identity.ActorId, new TenantId(tenantId), productId, cancellationToken));
+
+    private static async Task<IResult> ListProductSuppliersAsync(
+        Guid tenantId, ICurrentIdentity identity, IInventoryReader reader,
+        CancellationToken cancellationToken) => Results.Ok(await reader.ListSupplierNamesAsync(
+            identity.ActorId, new TenantId(tenantId), cancellationToken));
 
     private static async Task<IResult> GetBenchmarkAsync(
         Guid tenantId, Guid productId, ICurrentIdentity identity,

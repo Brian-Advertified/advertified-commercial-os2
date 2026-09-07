@@ -42,6 +42,8 @@ public sealed class InventoryCandidateNormalizerTests
         Assert.Null(candidate.SupplierName);
         Assert.Equal("Ab034", candidate.Values.ProductCode);
         Assert.Equal("Central Mall Portrait Screen", candidate.Values.Name);
+        Assert.Equal(MasterDataCodes.VatTreatments.Exclusive,
+            candidate.Values.CommercialTerms!.VatTreatment);
         Assert.Contains(candidate.Evidence, item =>
             item.FieldName == "product_code" &&
             item.RawValue == "Ab034" &&

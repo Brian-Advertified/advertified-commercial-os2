@@ -5,7 +5,7 @@ import { Icon } from '../components/Icon'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { masterDataCodes, masterDataDefinitions } from '../generated/master-data-codes'
 import { formatDateTime, formatMiB, humanizeCode } from '../presentation/format'
-import { findMediaInventoryPartner } from '../public/data/mediaInventoryPartners'
+import { inventoryArtwork, inventoryIdentityLabel } from './inventoryArtwork'
 
 export type InventoryFilters = {
   search: string
@@ -93,7 +93,7 @@ function InventoryCard({ item }: { item: InventoryProductSummary }) {
   return <Link className="approved-inventory-card" to={`/inventory/products/${item.id}`}>
     {artwork ? <img className="is-logo" src={artwork} alt="" />
       : <div className="approved-inventory-card-identity" aria-hidden="true">
-        <MediaTypeIcon channel={item.channel} /><strong>{supplierInitials(item.supplierName)}</strong>
+        <MediaTypeIcon channel={item.channel} /><strong>{identityInitials(item)}</strong>
       </div>}
     <div className="approved-inventory-card-copy"><small>{item.geography}</small>
       <strong>{item.name}</strong><span>{humanizeCode(item.productType, true)}</span></div>
@@ -101,21 +101,9 @@ function InventoryCard({ item }: { item: InventoryProductSummary }) {
       <small>{item.supplierName}</small><time>{relative(item.updatedAtUtc)}</time></footer></Link>
 }
 
-function inventoryArtwork(item: InventoryProductSummary) {
-  if (item.supplierName.toLowerCase() === 'sabc') return undefined
-  return exactSupplierLogos[item.supplierName] ?? undefined
-}
-
-const exactSupplierLogos: Readonly<Record<string, string>> = {
-  'Algoa FM': findMediaInventoryPartner('Algoa FM')!.assetPath,
-  'Jozi FM': findMediaInventoryPartner('Jozi FM')!.assetPath,
-  'Kaya 959': findMediaInventoryPartner('Kaya 959')!.assetPath,
-  'Primedia Broadcasting': findMediaInventoryPartner('Primedia')!.assetPath,
-  'Smile 90.4FM': findMediaInventoryPartner('Smile 90.4FM')!.assetPath,
-}
-
-function supplierInitials(name: string) {
-  return name.split(/\s+/u).slice(0, 2).map(part => part[0]).join('').toUpperCase()
+function identityInitials(item: InventoryProductSummary) {
+  return inventoryIdentityLabel(item).split(/\s+/u).slice(0, 3)
+    .map(part => part[0]).join('').toUpperCase()
 }
 
 export function InventoryUploadForm({ busy, maximumSourceBytes, upload }: {

@@ -66,6 +66,28 @@ public sealed partial class InventoryReader(
             page.Select(InventoryRowMapper.ToView).ToArray(), next, maximumSourceBytes);
     }
 
+    public async Task<IReadOnlyList<string>> ListSupplierNamesAsync(
+        ActorId actorId, TenantId tenantId, CancellationToken cancellationToken)
+    {
+        await EnsureAllowedAsync(
+            actorId, tenantId, MasterDataReferences.Permissions.InventoryView, cancellationToken);
+        await using var transaction = await store.BeginSessionAsync(actorId, tenantId, cancellationToken);
+        var supplierScope = await supplierAccess.ResolveSupplierScopeAsync(
+            actorId, tenantId, cancellationToken);
+        var names = await store.DbContext.Database.SqlQuery<string>($"""
+            SELECT DISTINCT supplier.name AS "Value"
+            FROM commercial.inventory_products product
+            JOIN commercial.inventory_suppliers supplier
+              ON supplier.tenant_id=product.tenant_id AND supplier.id=product.supplier_id
+            WHERE product.tenant_id={tenantId.Value}
+              AND product.status_code={MasterDataCodes.LifecycleStatuses.Active}
+              AND ({supplierScope}::uuid[] IS NULL OR product.supplier_id=ANY({supplierScope}))
+            ORDER BY supplier.name
+            """).ToListAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return names;
+    }
+
     public async Task<InventoryProductView> GetProductAsync(
         ActorId actorId,
         TenantId tenantId,
@@ -218,7 +240,7 @@ public sealed partial class InventoryReader(
             LEFT JOIN commercial.inventory_supplier_versions supplier_version
               ON supplier_version.tenant_id = supplier.tenant_id
              AND supplier_version.id = supplier.current_commercial_version_id
-            JOIN LATERAL (
+            LEFT JOIN LATERAL (
                 SELECT item.* FROM commercial.inventory_rates item
                 WHERE item.tenant_id = version.tenant_id
                   AND item.product_version_id = version.id

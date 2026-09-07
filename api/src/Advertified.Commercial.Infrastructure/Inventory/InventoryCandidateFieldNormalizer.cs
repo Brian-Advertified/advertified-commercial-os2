@@ -268,11 +268,13 @@ internal static partial class InventoryCandidateNormalizer
         Dictionary<string, string> canonical)
     {
         if (!canonical.TryGetValue(
-                "vat_treatment", out var raw) ||
-            !bool.TryParse(raw, out var inclusive))
+                "vat_treatment", out var raw))
         {
+            canonical["vat_treatment"] = MasterDataCodes.VatTreatments.Exclusive;
             return;
         }
+        if (!bool.TryParse(raw, out var inclusive))
+            return;
         canonical["vat_treatment"] = inclusive
             ? MasterDataCodes.VatTreatments.Inclusive
             : MasterDataCodes.VatTreatments.Exclusive;

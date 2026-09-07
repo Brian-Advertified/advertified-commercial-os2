@@ -113,14 +113,14 @@ internal sealed record InventoryProductDetailRow
     public string? DeliverableJson { get; set; }
     public string? SpatialJson { get; set; }
     public string AudienceSourceLocator { get; set; } = string.Empty;
-    public string RateType { get; set; } = string.Empty;
-    public string Currency { get; set; } = string.Empty;
-    public long AmountMinor { get; set; }
+    public string? RateType { get; set; }
+    public string? Currency { get; set; }
+    public long? AmountMinor { get; set; }
     public DateOnly? EffectiveFrom { get; set; }
     public DateOnly? EffectiveTo { get; set; }
     public string? VatTreatment { get; set; }
     public string? CommercialTermsJson { get; set; }
-    public string RateLocator { get; set; } = string.Empty;
+    public string? RateLocator { get; set; }
     public string Availability { get; set; } = string.Empty;
     public DateTimeOffset? ObservedAtUtc { get; set; }
     public DateTimeOffset? ValidUntilUtc { get; set; }

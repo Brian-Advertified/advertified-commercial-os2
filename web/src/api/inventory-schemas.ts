@@ -365,7 +365,7 @@ export const inventoryProductSchema = z.object({
   latitude: z.number().nullable(),
   longitude: z.number().nullable(),
   extension: z.record(z.string(), z.string()),
-  rate: inventoryRateSchema,
+  rate: inventoryRateSchema.nullable(),
   availability: inventoryAvailabilitySchema,
   audienceProfile: inventoryPublishedAudienceProfileSchema.nullable(),
   assets: z.array(inventoryAssetSchema),

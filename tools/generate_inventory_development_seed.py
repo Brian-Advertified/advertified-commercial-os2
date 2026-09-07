@@ -1,12 +1,10 @@
 """Generate an idempotent local PostgreSQL fixture from the reviewed inventory seed."""
 from __future__ import annotations
-
 import argparse
 import hashlib
 import json
 import uuid
 from pathlib import Path
-
 
 TENANT_ID = "10000000-0000-0000-0000-000000000002"
 CREATOR_ID = "10000000-0000-0000-0000-000000000001"
@@ -14,20 +12,16 @@ REVIEWER_ID = "10000000-0000-0000-0000-000000000021"
 NAMESPACE = uuid.UUID("2dd2b302-d11c-4c3d-9ef0-40559dd1a73d")
 MASTER_DATA_PATH = Path(__file__).resolve().parents[1] / "shared/contracts/master-data.json"
 
-
 def stable_id(kind: str, key: str) -> str:
     return str(uuid.uuid5(NAMESPACE, f"{kind}:{key}"))
-
 
 def canonical_hash(value: object) -> str:
     encoded = json.dumps(value, ensure_ascii=False, sort_keys=True,
                          separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
-
 def governed_codes() -> dict[str, str]:
     collections = json.loads(MASTER_DATA_PATH.read_text(encoding="utf-8"))["collections"]
-
     def find(collection: str, label: str) -> str:
         matches = [item["code"] for item in collections[collection]
                    if item["displayLabel"] == label and item["isActive"]]
@@ -50,14 +44,12 @@ def governed_codes() -> dict[str, str]:
         "supplier_ambiguous": find("inventorySupplierResolutionStatuses", "Supplier Requires Review"),
     }
 
-
 def locator(record: dict) -> str:
     source = record["provenance"]
     unit = (f"page={source['page']}" if "page" in source else
             f"slide={source['slide']}" if "slide" in source else
             f"worksheet={source['worksheet']}")
     return f"{source['file']}#{unit};heading={source.get('heading', '')}"
-
 
 def selectable_records(records: list[dict]) -> list[dict]:
     result: list[dict] = []
@@ -80,7 +72,6 @@ def selectable_records(records: list[dict]) -> list[dict]:
             item["deliverable"] = deliverable
             result.append(item)
     return result
-
 
 def enrich(seed: dict) -> dict:
     sources = {item["file"]: item for item in seed["sources"]}
@@ -137,7 +128,6 @@ def enrich(seed: dict) -> dict:
         payload["records"].append(item)
     return payload
 
-
 def sql_literal(payload: dict) -> str:
     value = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     if "$inventory$" in value:
@@ -153,6 +143,15 @@ SET LOCAL app.current_tenant_id = '{TENANT_ID}';
 SET LOCAL app.current_actor_id = '{CREATOR_ID}';
 CREATE TEMP TABLE inventory_bootstrap_payload (value jsonb) ON COMMIT DROP;
 INSERT INTO inventory_bootstrap_payload VALUES ({sql_literal(payload)});
+CREATE TEMP TABLE inventory_bootstrap_candidate_rows ON COMMIT DROP AS
+SELECT (r->>'candidateId')::uuid AS candidate_id, (r->>'importId')::uuid AS import_id,
+       (r->>'rowNumber')::integer AS row_number, (r->>'productId')::uuid AS product_id,
+       (r->>'publicationEligible')::boolean AS publication_eligible
+FROM inventory_bootstrap_payload p CROSS JOIN LATERAL jsonb_array_elements(p.value->'records') r;
+CREATE UNIQUE INDEX ux_inventory_bootstrap_candidate_id ON inventory_bootstrap_candidate_rows(candidate_id);
+CREATE UNIQUE INDEX ux_inventory_bootstrap_candidate_import_row ON inventory_bootstrap_candidate_rows(import_id, row_number);
+CREATE INDEX ix_inventory_bootstrap_published_product ON inventory_bootstrap_candidate_rows(product_id)
+    WHERE publication_eligible;
 
 INSERT INTO commercial.memberships (id, tenant_id, user_id, role_code, status_code,
     invited_by, invited_at_utc, accepted_at_utc, version, created_at_utc, updated_at_utc)
@@ -166,6 +165,13 @@ SELECT (s->>'id')::uuid, '{TENANT_ID}', s->>'name', s->>'key', lower(s->>'key'),
     '{codes['unclaimed']}', 1, clock_timestamp(), clock_timestamp()
 FROM inventory_bootstrap_payload p CROSS JOIN LATERAL jsonb_array_elements(p.value->'suppliers') s
 ON CONFLICT (id) DO NOTHING;
+
+UPDATE commercial.inventory_suppliers supplier
+SET name=s->>'name', updated_at_utc=clock_timestamp(), version=supplier.version + 1
+FROM inventory_bootstrap_payload p CROSS JOIN LATERAL jsonb_array_elements(p.value->'suppliers') s
+WHERE supplier.id=(s->>'id')::uuid
+  AND supplier.claim_status_code='{codes['unclaimed']}'
+  AND supplier.name IS DISTINCT FROM s->>'name';
 
 INSERT INTO commercial.inventory_imports (id, tenant_id, supplier_id, source_file_name,
     declared_media_type, document_class_collection_code, document_class_code, status_code,
@@ -225,9 +231,18 @@ SELECT (d->>'projectionId')::uuid, '{TENANT_ID}', (d->>'importId')::uuid,
     'advertified.production-inventory-bootstrap.v1', d,
     encode(digest(d::text, 'sha256'),'hex'),
     (SELECT count(*) FROM jsonb_array_elements(p.value->'records') r
-       WHERE r->>'importId'=d->>'importId'), '{CREATOR_ID}', clock_timestamp()
+WHERE r->>'importId'=d->>'importId'), '{CREATOR_ID}', clock_timestamp()
 FROM inventory_bootstrap_payload p CROSS JOIN LATERAL jsonb_array_elements(p.value->'documents') d
 ON CONFLICT (id) DO NOTHING;
+
+UPDATE commercial.inventory_candidates candidate
+SET row_number = candidate.row_number + 10000000
+FROM inventory_bootstrap_candidate_rows desired
+WHERE candidate.tenant_id = '{TENANT_ID}'
+  AND desired.import_id=candidate.import_id
+  AND desired.row_number=candidate.row_number
+  AND desired.candidate_id<>candidate.id
+  AND candidate.row_number < 10000000;
 
 INSERT INTO commercial.inventory_candidates (id, tenant_id, import_id, row_number,
     status_code, proposed_values_json, canonical_values_json, validation_json,
@@ -241,6 +256,7 @@ SELECT (r->>'candidateId')::uuid, '{TENANT_ID}', (r->>'importId')::uuid,
     1, clock_timestamp(), clock_timestamp(), (r->>'projectionId')::uuid
 FROM inventory_bootstrap_payload p CROSS JOIN LATERAL jsonb_array_elements(p.value->'records') r
 ON CONFLICT (id) DO UPDATE SET
+    row_number=EXCLUDED.row_number,
     status_code=EXCLUDED.status_code,
     proposed_values_json=EXCLUDED.proposed_values_json,
     canonical_values_json=EXCLUDED.canonical_values_json,
@@ -248,15 +264,31 @@ ON CONFLICT (id) DO UPDATE SET
     source_locator=EXCLUDED.source_locator,
     reviewed_by=EXCLUDED.reviewed_by,
     projection_id=EXCLUDED.projection_id,
+    soft_deleted_at_utc=NULL,
+    superseded_at_utc=NULL,
     version=commercial.inventory_candidates.version + 1,
     updated_at_utc=clock_timestamp()
-WHERE commercial.inventory_candidates.status_code IS DISTINCT FROM EXCLUDED.status_code
+WHERE commercial.inventory_candidates.row_number IS DISTINCT FROM EXCLUDED.row_number
+   OR commercial.inventory_candidates.status_code IS DISTINCT FROM EXCLUDED.status_code
    OR commercial.inventory_candidates.proposed_values_json IS DISTINCT FROM EXCLUDED.proposed_values_json
    OR commercial.inventory_candidates.canonical_values_json IS DISTINCT FROM EXCLUDED.canonical_values_json
    OR commercial.inventory_candidates.validation_json IS DISTINCT FROM EXCLUDED.validation_json
    OR commercial.inventory_candidates.source_locator IS DISTINCT FROM EXCLUDED.source_locator
    OR commercial.inventory_candidates.reviewed_by IS DISTINCT FROM EXCLUDED.reviewed_by
-   OR commercial.inventory_candidates.projection_id IS DISTINCT FROM EXCLUDED.projection_id;
+   OR commercial.inventory_candidates.projection_id IS DISTINCT FROM EXCLUDED.projection_id
+   OR commercial.inventory_candidates.soft_deleted_at_utc IS NOT NULL
+   OR commercial.inventory_candidates.superseded_at_utc IS NOT NULL;
+
+UPDATE commercial.inventory_candidates candidate
+SET soft_deleted_at_utc=clock_timestamp(), superseded_at_utc=clock_timestamp(),
+    version=candidate.version + 1, updated_at_utc=clock_timestamp()
+FROM inventory_bootstrap_payload p
+WHERE candidate.tenant_id = '{TENANT_ID}'
+  AND EXISTS (SELECT 1 FROM jsonb_array_elements(p.value->'documents') d
+      WHERE (d->>'importId')::uuid = candidate.import_id)
+  AND NOT EXISTS (SELECT 1 FROM inventory_bootstrap_candidate_rows desired
+      WHERE desired.candidate_id = candidate.id)
+  AND candidate.soft_deleted_at_utc IS NULL;
 
 INSERT INTO commercial.inventory_products (id, tenant_id, supplier_id, supplier_product_code,
     status_code, version, created_at_utc, updated_at_utc)
@@ -266,12 +298,30 @@ FROM inventory_bootstrap_payload p CROSS JOIN LATERAL jsonb_array_elements(p.val
 WHERE (r->>'publicationEligible')::boolean ON CONFLICT (id) DO NOTHING;
 
 UPDATE commercial.inventory_products product
+SET status_code='{codes['active']}', expired_at_utc=NULL, version=product.version + 1,
+    updated_at_utc=clock_timestamp()
+FROM inventory_bootstrap_payload p CROSS JOIN LATERAL jsonb_array_elements(p.value->'records') r
+WHERE product.id=(r->>'productId')::uuid AND (r->>'publicationEligible')::boolean
+  AND (product.status_code <> '{codes['active']}' OR product.expired_at_utc IS NOT NULL);
+
+UPDATE commercial.inventory_products product
 SET status_code='{codes['inactive']}', expired_at_utc=COALESCE(product.expired_at_utc, clock_timestamp()),
     version=product.version + 1, updated_at_utc=clock_timestamp()
 FROM inventory_bootstrap_payload p
 CROSS JOIN LATERAL jsonb_array_elements(p.value->'records') r
 WHERE product.id=(r->>'productId')::uuid
   AND NOT (r->>'publicationEligible')::boolean
+  AND product.status_code <> '{codes['inactive']}';
+
+UPDATE commercial.inventory_products product
+SET status_code='{codes['inactive']}', expired_at_utc=COALESCE(product.expired_at_utc, clock_timestamp()),
+    version=product.version + 1, updated_at_utc=clock_timestamp()
+FROM commercial.inventory_product_versions current_version, inventory_bootstrap_payload p
+WHERE current_version.id=product.current_version_id AND current_version.tenant_id=product.tenant_id
+  AND EXISTS (SELECT 1 FROM jsonb_array_elements(p.value->'documents') document
+      WHERE (document->>'importId')::uuid=current_version.source_import_id)
+  AND NOT EXISTS (SELECT 1 FROM inventory_bootstrap_candidate_rows desired
+      WHERE desired.publication_eligible AND desired.product_id=product.id)
   AND product.status_code <> '{codes['inactive']}';
 
 INSERT INTO commercial.inventory_product_versions (id, tenant_id, product_id, version_number,
@@ -288,6 +338,7 @@ SELECT (r->>'versionId')::uuid, '{TENANT_ID}', (r->>'productId')::uuid,
     NULLIF(r#>>'{{spatial,longitude}}','')::numeric, r->>'description',
     jsonb_build_object('bootstrapKey',r->>'key','documentKey',r->>'documentKey',
       'format',r->>'format','placement',r->>'placement',
+      'pricingStatus',COALESCE(r->>'pricingStatus','PUBLISHED_RATE'),
       'package',COALESCE((r->'package')::text,''),
       'planning',COALESCE((r->'planning')::text,''),
       'provenance',COALESCE((r->'provenance')::text,'')), NULL,
@@ -316,7 +367,10 @@ SELECT (rate->>'id')::uuid, '{TENANT_ID}', (r->>'versionId')::uuid,
     rate - 'id' - 'amountMinor' - 'currency' - 'rateType' - 'vat'
 FROM inventory_bootstrap_payload p CROSS JOIN LATERAL jsonb_array_elements(p.value->'records') r
 CROSS JOIN LATERAL jsonb_array_elements(r->'rates') rate
-WHERE (r->>'publicationEligible')::boolean ON CONFLICT (id) DO NOTHING;
+WHERE (r->>'publicationEligible')::boolean
+  AND rate->>'amountMinor' IS NOT NULL AND rate->>'currency' IS NOT NULL
+  AND rate->>'rateType' IS NOT NULL
+ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO commercial.inventory_availability (id, tenant_id, product_version_id,
     availability_code, observed_at_utc, source_locator)

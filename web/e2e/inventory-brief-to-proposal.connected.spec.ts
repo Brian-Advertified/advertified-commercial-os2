@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page, type Response } from '@playwrigh
 
 const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3017'
 const brief = `
-Takealot Black Friday rapid OOH campaign.
+Takealot Black Friday OOH campaign.
 Budget: R320,000 excluding VAT, with approval to increase to R400,000.
 Flight dates: 4 November 2026 to 28 November 2026.
 Digital OOH only in Johannesburg, Cape Town and Durban.
@@ -13,7 +13,7 @@ A human must approve the final inventory before proposal release.
 `.trim()
 
 test.describe('published inventory brief-to-proposal canary', () => {
-  test('creates a rapid OOH proposal from published corpus inventory', async ({ page }) => {
+  test('creates an OOH-only proposal from published corpus inventory', async ({ page }) => {
     test.setTimeout(240_000)
     const inventoryPayloads: unknown[] = []
     const proposalPayloads: unknown[] = []
@@ -64,13 +64,24 @@ test.describe('published inventory brief-to-proposal canary', () => {
 })
 
 async function openBriefIntake(page: Page) {
+  await page.goto(`${baseUrl}/sign-in`, { waitUntil: 'domcontentloaded' })
+  const continueButton = page.getByRole('button', { name: /Continue to Advertified/ })
+  await continueButton.waitFor()
+  await continueButton.click()
+  const workspaceButton = page.getByRole('button', { name: /Advertified Local/ })
+  await workspaceButton.waitFor()
+  await workspaceButton.click()
+  await page.getByRole('heading', { name: /Good (morning|afternoon|evening), Local/ }).waitFor()
   for (const path of ['/briefs/new', '/briefs', '/']) {
     await page.goto(`${baseUrl}${path}`, { waitUntil: 'domcontentloaded' })
+    await page.waitForFunction(() => document.querySelector('textarea') !== null ||
+      !document.body.innerText.includes('Loading page'), undefined, { timeout: 10_000 })
     if (await firstVisible(page.locator('textarea'))) return
     const start = page.getByRole('button', { name: /start.*brief|new.*brief/i })
       .or(page.getByRole('link', { name: /start.*brief|new.*brief/i }))
     if (await firstVisible(start)) {
       await start.first().click()
+      await page.locator('textarea').first().waitFor({ state: 'visible', timeout: 10_000 })
       if (await firstVisible(page.locator('textarea'))) return
     }
   }
@@ -122,7 +133,7 @@ async function selectFirstInventory(page: Page) {
 
 async function nextAction(page: Page) {
   const patterns = [
-    /create.*brief|submit.*brief|analyse|analyze|interpret/i,
+    /create.*brief|submit.*brief|understand.*brief|analyse|analyze|interpret/i,
     /approve.*brief|confirm.*brief/i,
     /continue|next/i,
     /generate.*plan|create.*plan|start.*planning/i,

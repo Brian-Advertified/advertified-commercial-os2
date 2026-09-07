@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: 6a92d5312e635b4aa75b2e070cb35e8590b904f8ae70b66cd3355755c1c7dfd7
+# source-sha256: a4ea72a38b2888129ffb65470f1eafbad0ed8b80010b37422c6c68e358f461d4
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.33.0"
+REGISTRY_VERSION = "2.35.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -973,12 +973,14 @@ class RateTypes(StrEnum):
     CPC = "CPC"
     CPL = "CPL"
     CPA = "CPA"
+    CPV = "CPV"
     FLAT_RATE = "FLAT_RATE"
     SPOT_RATE = "SPOT_RATE"
     PACKAGE_RATE = "PACKAGE_RATE"
     DAY_RATE = "DAY_RATE"
     WEEK_RATE = "WEEK_RATE"
     MONTH_RATE = "MONTH_RATE"
+    UNSPECIFIED_PERIOD_RATE = "UNSPECIFIED_PERIOD_RATE"
 
 class AssetTypes(StrEnum):
     LOGO = "LOGO"

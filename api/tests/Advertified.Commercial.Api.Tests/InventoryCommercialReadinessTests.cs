@@ -49,6 +49,12 @@ public sealed class InventoryCommercialReadinessTests
 
         Assert.Empty(result.EvidenceGaps);
         Assert.Null(result.SupplierVatNumber);
+
+        var unspecified = InventoryCommercialReadiness.Evaluate(inventory with
+        {
+            RateType = MasterDataCodes.RateTypes.UnspecifiedPeriodRate,
+        });
+        Assert.Contains("inventory.rate.buyingUnit", unspecified.EvidenceGaps);
     }
 
     [Fact]
@@ -82,6 +88,60 @@ public sealed class InventoryCommercialReadinessTests
         Assert.DoesNotContain(issues,
             issue => issue.FieldName == "supplierCommercial.vatNumber");
     }
+
+    [Fact]
+    public void CandidateValidationDoesNotInvalidateVatSilence()
+    {
+        var codes = new InventoryCodeSets(
+            Set(MasterDataCodes.Channels.Digital),
+            Set(MasterDataCodes.InventoryProductTypes.SocialPlacement),
+            Set(MasterDataCodes.RateTypes.DayRate), Set(MasterDataCodes.Currencies.Zar),
+            Set(MasterDataCodes.AvailabilityStatuses.Available), Set(), Set(), Set(),
+            Set(MasterDataCodes.VatTreatments.Exclusive));
+        var values = new InventoryCandidateValues(
+            "SOURCE-1", "Source-priced placement", MasterDataCodes.Channels.Digital,
+            MasterDataCodes.InventoryProductTypes.SocialPlacement, "Website", null, null, null,
+            MasterDataCodes.RateTypes.DayRate, MasterDataCodes.Currencies.Zar, 100_000,
+            MasterDataCodes.AvailabilityStatuses.Available, null, null, null, null);
+
+        var issues = InventoryCandidateValidator.Validate(values, codes);
+
+        Assert.DoesNotContain(issues,
+            issue => issue.FieldName.Contains("vat", StringComparison.OrdinalIgnoreCase) ||
+                issue.Message.Contains("vat", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void EvaluateDefaultsVatSilenceToExclusiveWithoutInvalidatingInventory()
+    {
+        var inventory = CreateReadyInventory() with
+        {
+            SupplierVatStatus = null,
+            VatTreatment = null,
+        };
+
+        var result = InventoryCommercialReadiness.Evaluate(inventory);
+
+        Assert.Equal(MasterDataCodes.VatTreatments.Exclusive, result.VatTreatment);
+        Assert.DoesNotContain(result.EvidenceGaps, gap => gap.Contains("vat",
+            StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static PlanningInventoryRow CreateReadyInventory() => new(
+        InventoryTenantId: Guid.NewGuid(), MarketplaceListingVersionId: null,
+        ProductId: Guid.NewGuid(), ProductVersionId: Guid.NewGuid(), SupplierId: Guid.NewGuid(),
+        Name: "Source-priced placement", Channel: MasterDataCodes.Channels.Digital,
+        ProductType: MasterDataCodes.InventoryProductTypes.SocialPlacement,
+        Geography: "South Africa", Latitude: null, Longitude: null, RateId: Guid.NewGuid(),
+        RateType: MasterDataCodes.RateTypes.DayRate, Currency: MasterDataCodes.Currencies.Zar,
+        RateAmountMinor: 100_000, EffectiveFrom: new DateOnly(2026, 1, 1),
+        EffectiveTo: new DateOnly(2026, 12, 31), RateSource: "Rate card page 1",
+        AvailabilityId: Guid.NewGuid(), Availability: MasterDataCodes.AvailabilityStatuses.Available,
+        ObservedAtUtc: null, ValidUntilUtc: null,
+        AvailabilitySource: "Source does not mark unavailable", UnavailablePeriodsJson: "[]",
+        AudienceProfileJson: null, SupplierVatStatus: null, SupplierCommercialJson: null,
+        VatTreatment: null, CommercialTermsJson: null, DeliverableJson: null, SpatialJson: null,
+        LogoAssetId: null);
 
     private static HashSet<string> Set(params string[] values) =>
         values.ToHashSet(StringComparer.Ordinal);

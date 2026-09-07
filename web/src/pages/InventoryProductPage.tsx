@@ -11,9 +11,10 @@ import { InventoryBenchmarkSection } from '../components/InventoryBenchmarkSecti
 import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { InventoryAudienceProfile } from '../inventory/InventoryAudienceProfile'
+import { ProductCommercial, ProductMedia } from '../inventory/InventoryProductOverview'
 import { SemanticDuplicateRecall } from '../inventory/SemanticDuplicateRecall'
 import { SupplierClaimPanel } from '../inventory/SupplierClaimPanel'
-import { formatDateTime, formatMoney, humanizeCode } from '../presentation/format'
+import { formatDateTime, humanizeCode } from '../presentation/format'
 
 export function InventoryProductPage() {
   const route = z.guid().safeParse(useParams().productId)
@@ -77,38 +78,20 @@ function ProductRecordView({ tenantId, productId, record, token, canUpload, canR
   onUpdated: (value: InventoryProduct) => void
 }) {
   const item = record.product
-  const approvedImage = record.assets.find(asset => internalPlanningEligible(asset))
   return <section className="inventory-record-page approved-inventory-detail" aria-labelledby="product-title">
     <ProductHeading record={record} />
     <nav className="approved-product-tabs"><a href="#product-overview" className="is-active">Overview</a>
       <a href="#audience-profile">Audience</a><a href="#source-evidence">Evidence</a>
       <a href="#market-comparison">Benchmark</a></nav>
     <div className="approved-product-detail-grid" id="product-overview">
-      <section className="approved-product-media">{approvedImage
-        ? <img src={`/api/v1/tenants/${tenantId}/inventory-assets/${approvedImage.assetId}/content`}
-          alt={`${item.supplierName} ${approvedImage.assetType.replaceAll('_', ' ')}`} />
-        : <div className="approved-empty">Rights-approved product imagery is not supplied.</div>}
-        <dl><Fact label="Supplier" value={item.supplierName} /><Fact label="Product code" value={item.productCode} />
-          <Fact label="Product type" value={humanizeCode(item.productType, true)} /><Fact label="Geography" value={item.geography} />
-          <Fact label="Address" value={record.address ?? 'Not supplied'} /><Fact label="Coordinates" value={coordinates(record)} /></dl></section>
-      <section className="approved-product-commercial"><article><header><h2>Rate & validity</h2><span className="approved-availability-pill">{humanizeCode(record.availability.status, true)}</span></header>
-        <strong className="approved-product-rate">{formatMoney(record.rate.amountMinor, record.rate.currency)}</strong><small>{humanizeCode(record.rate.rateType, true)}</small>
-        <dl><Fact label="Rate source" value={record.rate.sourceLocator} /><Fact label="Published" value={formatDateTime(record.publishedAtUtc)} />
-          <Fact label="Availability observed" value={record.availability.observedAtUtc ? formatDateTime(record.availability.observedAtUtc) : 'Not supplied'} />
-          <Fact label="Availability valid until" value={record.availability.validUntilUtc ? formatDateTime(record.availability.validUntilUtc) : 'Not supplied'} />
-          <Fact label="Rate VAT treatment" value={record.rate.vatTreatment ? humanizeCode(record.rate.vatTreatment, true) : 'Not supplied'} /></dl>
-        {record.availability.status === inventoryCodes.availability.unknown && <p className="approved-reconfirm-note">⚠ Confirm availability before booking.</p>}
-      </article>
-      <article><header><h2>Commercial history</h2></header><div className="approved-rate-history">
-        <div><span>Current published rate</span><strong>{formatMoney(record.rate.amountMinor, record.rate.currency)}</strong></div>
-        <div><span>Current basis</span><strong>{humanizeCode(record.rate.rateType, true)}</strong></div>
-        <div><span>Verification</span><strong>{humanizeCode(item.verification, true)}</strong></div></div></article></section>
+      <ProductMedia tenantId={tenantId} record={record} />
+      <ProductCommercial record={record} />
       <aside className="approved-product-intelligence">
         <div id="market-comparison"><InventoryBenchmarkSection tenantId={tenantId} productId={productId} channel={item.channel} /></div>
         <SemanticDuplicateRecall tenantId={tenantId} token={token} record={record}
           canNominate={canReview} canBackfill={canBackfill} onUpdated={onUpdated} />
         <article className="approved-evidence-timeline"><header><h2>Recent evidence & freshness</h2></header>
-          <ul><li>Rate source retained</li><li>Inventory candidate reviewed</li><li>Published to catalogue</li>
+          <ul>{record.rate && <li>Rate source retained</li>}<li>Inventory candidate reviewed</li><li>Published to catalogue</li>
             {record.availability.observedAtUtc && <li>Availability observed</li>}</ul></article>
         <article className="approved-product-quick-actions"><header><h2>Quick actions</h2></header><a href="#market-comparison">View benchmark</a><a href="#source-evidence">View evidence trail</a><Link to="/inventory">Return to catalogue</Link></article>
       </aside>
@@ -194,7 +177,7 @@ function StructuredInventory({ record }: { record: InventoryProduct }) {
 function SupplierCommercialFacts({ record }: { record: InventoryProduct }) {
   const { vatStatus, vatNumber, paymentTerms, cancellationTerms } =
     record.supplierCommercial ?? {}
-  const rateCancellation = record.rate.commercialTerms?.cancellationTerms
+  const rateCancellation = record.rate?.commercialTerms?.cancellationTerms
   return <><Fact label="Supplier VAT status" value={vatStatus
     ? humanizeCode(vatStatus, true) : 'Not supplied'} />
   <Fact label="Supplier VAT number" value={vatNumber ?? 'Not supplied'} />
@@ -372,18 +355,4 @@ function RightsActions({ busy, canApprove, hasEvidence, review }: {
 
 function Fact({ label, value }: { label: string; value: string }) {
   return <div className="product-fact"><dt>{label}</dt><dd>{value}</dd></div>
-}
-
-function coordinates(record: InventoryProduct) {
-  return record.latitude === null || record.longitude === null
-    ? 'Not supplied'
-    : `${record.latitude}, ${record.longitude}`
-}
-
-function internalPlanningEligible(asset: InventoryProduct['assets'][number]) {
-  const today = new Date().toISOString().slice(0, 10)
-  return Boolean(asset.assetId && asset.rightsStatus === inventoryCodes.assetRights.approved &&
-    asset.rightsScopes.includes(inventoryCodes.assetRightsScope.internalPlanning) &&
-    asset.territoryCode === 'ZA' && asset.effectiveOn && asset.effectiveOn <= today &&
-    (asset.untilRevoked || Boolean(asset.licensedUntil && asset.licensedUntil >= today)))
 }

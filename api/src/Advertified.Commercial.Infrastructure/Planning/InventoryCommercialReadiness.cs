@@ -14,14 +14,9 @@ internal static class InventoryCommercialReadiness
     {
         var gaps = new List<string>();
         var supplier = ReadSupplier(value.SupplierCommercialJson);
-        if (string.IsNullOrWhiteSpace(value.SupplierVatStatus))
-        {
-            gaps.Add("inventory.supplierCommercial.vatStatus");
-        }
-        if (string.IsNullOrWhiteSpace(value.VatTreatment))
-        {
-            gaps.Add("inventory.rate.vatTreatment");
-        }
+        var vatTreatment = string.IsNullOrWhiteSpace(value.VatTreatment)
+            ? MasterDataCodes.VatTreatments.Exclusive
+            : value.VatTreatment;
         if (string.IsNullOrWhiteSpace(value.RateSource))
         {
             gaps.Add("inventory.rate.sourceEvidence");
@@ -30,20 +25,24 @@ internal static class InventoryCommercialReadiness
         {
             gaps.Add("inventory.rate.validity");
         }
+        if (value.RateType == MasterDataCodes.RateTypes.UnspecifiedPeriodRate)
+        {
+            gaps.Add("inventory.rate.buyingUnit");
+        }
         if (string.IsNullOrWhiteSpace(value.AvailabilitySource))
         {
             gaps.Add("inventory.availability.sourceEvidence");
         }
         if ((value.SupplierVatStatus == MasterDataCodes.VatStatuses.Registered &&
-                value.VatTreatment == MasterDataCodes.VatTreatments.NotApplicable) ||
+                vatTreatment == MasterDataCodes.VatTreatments.NotApplicable) ||
             (value.SupplierVatStatus is MasterDataCodes.VatStatuses.Exempt or
                     MasterDataCodes.VatStatuses.NotApplicable &&
-                value.VatTreatment is MasterDataCodes.VatTreatments.Inclusive or
+                vatTreatment is MasterDataCodes.VatTreatments.Inclusive or
                     MasterDataCodes.VatTreatments.Exclusive))
         {
             gaps.Add("inventory.rate.vatTreatmentConsistency");
         }
-        return new(value.SupplierVatStatus, value.VatTreatment, gaps, supplier?.VatNumber, value.RateType);
+        return new(value.SupplierVatStatus, vatTreatment, gaps, supplier?.VatNumber, value.RateType);
     }
 
     private static InventorySupplierCommercialValues? ReadSupplier(string? json) =>

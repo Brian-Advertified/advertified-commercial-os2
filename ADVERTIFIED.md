@@ -4123,7 +4123,8 @@ Materiality policy may version these classes, but AI does not decide them ad hoc
 |---|---|
 | Supplier/product identity unresolved | block affected product publish |
 | Missing amount/currency/rate basis where product is presented as priced | block priced publish; may publish explicitly unpriced only if product policy allows |
-| VAT unknown where commercial comparison/client pricing requires it | review/block commercial use |
+| Source is silent about VAT | treat the printed price as VAT-exclusive under the owner commercial policy; retain `OWNER_DEFAULT_WHEN_SOURCE_SILENT` provenance; VAT silence does not invalidate the product or block catalogue, comparison or proposal use |
+| Source explicitly states VAT treatment | retain the stated inclusive, exclusive, exempt or not-applicable treatment and its evidence; an explicit contradiction remains review-required |
 | OOH/DOOH required coordinates missing/invalid | block geography-dependent publish/planning until resolved, unless explicit non-coordinate product policy exists |
 | No availability exception supplied | product is planning-available; absence/stale supplier response does not block matching or proposal; booking remains separately confirmed |
 | Overlapping not-available/blackout/confirmed booking conflict | reject inventory for the affected requested dates |
@@ -5752,11 +5753,11 @@ store.
 The generated local loader is deterministic, controlled and idempotent. It resolves governed
 codes from `shared/contracts/master-data.json`, synchronizes changed candidate dispositions,
 creates immutable product/rate/availability versions and deactivates products that no longer pass
-publication review. It is invoked after local identities are established. Supplier VAT status and
-rate VAT treatment remain required for client pricing. A supplier VAT number is retained when
-supplied, but its absence does not block pricing when those required VAT facts are evidenced; this
-implements the owner rule that contact/onboarding details are extracted only when needed and that
-missing facts are not invented.
+publication review. It is invoked after local identities are established. This baseline's earlier
+rule that VAT silence required review is superseded by Section 44.4 and Section 49.2.23. A supplier
+VAT number or registration status is retained when supplied and remains an onboarding/accounting
+fact; its absence does not invalidate inventory. When the rate card is silent, the price is treated
+as VAT-exclusive under the owner commercial policy with explicit default provenance.
 
 Acceptance evidence: exact-source validation returned zero errors with seed checksum
 `04ecd2103e5185c9db66001c6c1164c8c8c79dec9660caa0b4734f87303bbb9b`; two independent fixture
@@ -5836,6 +5837,48 @@ API and web containers. It proved a populated supplier selector, 24-item replace
 forward and backward navigation, an Insight Outdoor-only result, absence of generic catalogue
 photographs, and successful loading of `Lynnwood Road, The Grove` with normalized empty lists and no
 failed API response.
+
+### 49.2.23 Complete reviewed inventory publication and commercial interpretation — 2026-09-07
+
+The owner requires the complete reviewed local inventory corpus for Brief-to-Proposal testing. All
+46 supplied source files have been physically reviewed and source-hash checked. They contain 7,341
+conceptual records. Of those, 7,140 are independently selectable products and 201 are retained
+supporting evidence, duplicated summaries, headings, shared pricing rules or malformed fragments
+that must not become fake products. Expanding independently buyable rate variants produces 7,218
+active source-backed catalogue products. The development tenant also retains its two governed local
+Proposal fixtures, for 7,220 active products in total.
+
+The active source-backed catalogue covers 3,197 TV, 2,608 radio, 420 print, 363 digital, 312 DOOH,
+230 OOH and ten experiential conceptual products. Variant expansion preserves each independently
+buyable rate without turning the SABC `T0–T100` schedule into products. Products whose source proves
+the placement but does not provide a safely normalizable price remain selectable catalogue records
+with `Request supplier quote`; there are 335 such active variants in the development database.
+
+Source silence about VAT means the displayed and calculated amount excludes VAT. It does not make
+inventory invalid or incomplete. Source-stated inclusive VAT remains inclusive. The bootstrap and
+runtime apply that rule consistently, while retaining source wording and the owner-default provenance.
+The superseded VAT review messages were removed from the unresolved evidence register.
+
+Catalogue identity follows the advertised station or television channel before the sales-house or
+supplier identity. Every SABC television row identifies SABC1, SABC2, SABC3 or SABC News from the
+physically reviewed rate-card page. Metro FM, 5FM, Kaya 959, the other SABC radio stations and the
+available television brands use their exact retained brand asset. Where no rights-approved or
+source-retained product image exists, the catalogue uses a neutral channel identity instead of an
+unrelated photograph. A tenant-scoped supplier-name query supplies the filter in one request while
+the product list remains server-paged.
+
+Acceptance evidence: bootstrap validation passed with source checksum
+`df3fbead565dbe726b4273284ea0404058274f687927b8d420cc6ce00c29285c`; a second database load made
+zero inventory mutations. The running local database contains 7,220 active products across all 27
+suppliers, including BlackSpace and Eleven8, with 6,794 effective VAT-exclusive numeric rates, 91
+source-stated VAT-inclusive numeric rates and two legacy local fixture rates whose VAT silence is
+interpreted as exclusive. Web unit tests, type-check, focused lint and the production build pass.
+The connected catalogue journey verifies supplier filtering, paging, source-backed detail loading,
+request-quote rendering and exact Metro FM, 5FM, Kaya 959, SABC1, SABC2, SABC3, SABC News, SABC Sport
+and eMedia identity assets. The supplied-Brief-to-Proposal browser journey remains blocked because
+local development deliberately has no live Brief-understanding provider and the governed contract
+forbids a fixture fallback; inventory selection itself retains eligibility, rejection, score,
+benchmark and rationale evidence for every shortlist candidate.
 
 ## 49.3 Release evidence
 

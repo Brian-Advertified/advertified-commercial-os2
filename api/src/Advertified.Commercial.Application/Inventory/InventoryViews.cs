@@ -255,7 +255,7 @@ public sealed record InventoryProductView(
     decimal? Latitude,
     decimal? Longitude,
     IReadOnlyDictionary<string, string> Extension,
-    InventoryRateView Rate,
+    InventoryRateView? Rate,
     InventoryAvailabilityView Availability,
     InventoryAudienceProfileView? AudienceProfile,
     IReadOnlyList<InventoryAssetView> Assets,
@@ -301,6 +301,11 @@ public interface IInventoryReader
         ActorId actorId,
         TenantId tenantId,
         InventorySearchQuery query,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<string>> ListSupplierNamesAsync(
+        ActorId actorId,
+        TenantId tenantId,
         CancellationToken cancellationToken);
 
     Task<InventoryProductView> GetProductAsync(

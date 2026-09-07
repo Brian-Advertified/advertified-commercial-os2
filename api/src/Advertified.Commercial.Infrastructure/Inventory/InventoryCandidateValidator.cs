@@ -115,14 +115,14 @@ internal static class InventoryCandidateValidator
     {
         var supplier = values.SupplierCommercial;
         var commercial = values.CommercialTerms;
-        if (supplier?.VatStatus is null || !codes.VatStatuses.Contains(supplier.VatStatus) ||
-            commercial?.VatTreatment is null ||
-            !codes.VatTreatments.Contains(commercial.VatTreatment))
+        if ((supplier?.VatStatus is not null &&
+                !codes.VatStatuses.Contains(supplier.VatStatus)) ||
+            (commercial?.VatTreatment is not null &&
+                !codes.VatTreatments.Contains(commercial.VatTreatment)))
         {
             issues.Add(new("supplierCommercial",
                 MasterDataCodes.ValidationIssueTypes.SupplierCommercialIncomplete,
-                "Supplier VAT status and the rate VAT treatment require review before client pricing.",
-                false));
+                "A supplied VAT code is not recognised.", true));
         }
         if ((supplier?.VatStatus == MasterDataCodes.VatStatuses.Registered &&
                 commercial?.VatTreatment == MasterDataCodes.VatTreatments.NotApplicable) ||

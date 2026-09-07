@@ -260,14 +260,9 @@ export const inventoryApi = {
   },
 
   async listSupplierNames(tenantId: string): Promise<string[]> {
-    const names = new Set<string>()
-    let cursor: string | undefined
-    do {
-      const page = await this.search(tenantId, { cursor, pageSize: 100 })
-      page.items.forEach(item => names.add(item.supplierName))
-      cursor = page.nextCursor ?? undefined
-    } while (cursor)
-    return [...names].sort((left, right) => left.localeCompare(right))
+    return (await request(
+      `/api/v1/tenants/${tenantId}/inventory-product-suppliers`, z.array(z.string()),
+    )).data
   },
 
   async getProduct(tenantId: string, productId: string) {

@@ -91,16 +91,19 @@ def validate(seed: dict, source_dir: Path | None) -> list[str]:
               f"format and placement are required for {key}")
         rates = record.get("rates") or ([record["rate"]] if record.get("rate") else [])
         issue(errors, bool(rates), f"at least one price is required for {key}")
+        unpriced = record.get("pricingStatus") == "REQUEST_QUOTE"
         for rate_index, rate in enumerate(rates, 1):
             prefix = f"rate {rate_index} for {key}"
             issue(errors, bool(rate.get("raw")), f"raw price is required for {prefix}")
-            if record.get("publicationEligible"):
+            if record.get("publicationEligible") and not unpriced:
                 issue(errors, isinstance(rate.get("amountMinor"), int)
                       and rate["amountMinor"] >= 0,
                       f"publishable amountMinor must be a non-negative integer for {prefix}")
                 issue(errors, bool(rate.get("currency")) and bool(rate.get("rateType"))
                       and bool(rate.get("buyingUnit")),
                       f"publishable currency, rateType and buyingUnit are required for {prefix}")
+        issue(errors, not unpriced or all(rate.get("amountMinor") is None for rate in rates),
+              f"request-quote inventory cannot publish a numeric rate for {key}")
         package = record.get("package")
         if package:
             issue(errors, bool(package.get("name")) and bool(package.get("components")),

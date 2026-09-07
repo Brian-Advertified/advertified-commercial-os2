@@ -13,6 +13,7 @@ internal sealed record ExtractedInventoryCandidate(
 
 internal static partial class InventoryCandidateNormalizer
 {
+    private const string OwnerDefaultVatBasis = "OWNER_DEFAULT_WHEN_SOURCE_SILENT";
     private static readonly Dictionary<string, string> Aliases =
         BuildAliases();
 
@@ -61,6 +62,8 @@ internal static partial class InventoryCandidateNormalizer
             canonical["rate_type"] = explicitRateType;
             sources["rate_type"] = ("ratetype", explicitRateType);
         }
+        if (!canonical.ContainsKey("vat_treatment"))
+            extension["vat_treatment_basis"] = OwnerDefaultVatBasis;
         ApplyVatTreatment(canonical);
         ApplyRatePeriod(canonical, sources);
         if (canonical.TryGetValue("rate", out var rawRate) &&
