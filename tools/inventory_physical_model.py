@@ -91,7 +91,7 @@ def group_by_scope(items: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]
 
 def locator_scope(locator: str) -> str:
     for pattern in (
-        r"(?:docling|pdf):page=(\d+)",
+        r"(?:source|pdf):page=(\d+)",
         r"pptx:slide=(\d+)",
     ):
         match = re.search(pattern, locator, re.IGNORECASE)

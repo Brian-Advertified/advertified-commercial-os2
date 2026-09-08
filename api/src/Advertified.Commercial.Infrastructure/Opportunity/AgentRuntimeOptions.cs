@@ -34,6 +34,9 @@ public sealed class AgentRuntimeOptions
             "SCHEMA_DISCOVERY"),
         ModelRoute(
             MasterDataCodes.AgentTypes.InventoryIntelligence,
+            "SOURCE_TRANSCRIPTION"),
+        ModelRoute(
+            MasterDataCodes.AgentTypes.InventoryIntelligence,
             "SEMANTIC_ENRICHMENT"),
     ];
 

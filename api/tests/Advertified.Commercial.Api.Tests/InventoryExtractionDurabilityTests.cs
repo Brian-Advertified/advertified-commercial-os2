@@ -43,7 +43,7 @@ public sealed partial class InventoryExtractionDurabilityTests
             Guid.NewGuid(), 30, 1, CancellationToken.None);
         Assert.NotNull(firstClaim);
         Assert.Equal(FirstAttemptId, firstClaim.AttemptId);
-        Assert.Equal("docling-task-original", firstClaim.ExternalTaskId);
+        Assert.Equal("provider-task-original", firstClaim.ExternalTaskId);
 
         await ExpireLeaseAsync(connectionString, FirstAttemptId);
         var restartClaim = await scheduler.ClaimInventoryExtractionAsync(
@@ -204,7 +204,7 @@ public sealed partial class InventoryExtractionDurabilityTests
             SET status_code = 'SUBMITTING', submitted_at_utc = @now
             WHERE worker_lease_token = @claim;
             UPDATE commercial.inventory_extraction_attempts
-            SET status_code = 'RUNNING', external_task_id = 'docling-task-retry'
+            SET status_code = 'RUNNING', external_task_id = 'provider-task-retry'
             WHERE worker_lease_token = @claim;
             """, ("claim", claimToken), ("now", Now.AddMinutes(1)));
         await InsertArtifactAsync(connectionString, artifactId, SecondAttemptId);
@@ -227,7 +227,7 @@ public sealed partial class InventoryExtractionDurabilityTests
                 id, tenant_id, import_id, source_hash, adapter_code, adapter_version,
                 schema_version, provider_json, provider_output_hash, canonical_json,
                 canonical_output_hash, completed_at_utc, attempt_id, source_file_version)
-            VALUES (@artifact, @tenant, @import, @hash, 'docling', '1.30.0', '1',
+            VALUES (@artifact, @tenant, @import, @hash, 'source-extraction', '1.0.0', '1',
                 '{}'::jsonb, repeat('b', 64), '{}'::jsonb, repeat('c', 64), @now,
                 @attempt, 1)
             """, ("artifact", artifactId), ("tenant", TenantId), ("import", ImportId),
@@ -329,7 +329,7 @@ public sealed partial class InventoryExtractionDurabilityTests
             external_task_id, submitted_at_utc, polling_checkpoint, attempt_number,
             correlation_id, command_id, requested_by, version, created_at_utc, updated_at_utc)
         VALUES (@attempt, @tenant, @import, 1, @hash, 'submission-original',
-            'docling', '1.30.0', 'RUNNING', 'docling-task-original', @now, '{}'::jsonb,
+            'source-extraction', '1.0.0', 'RUNNING', 'provider-task-original', @now, '{}'::jsonb,
             1, gen_random_uuid(), gen_random_uuid(), @user, 1, @now, @now);
         """;
 
@@ -340,7 +340,7 @@ public sealed partial class InventoryExtractionDurabilityTests
             polling_checkpoint, attempt_number, correlation_id, command_id,
             requested_by, reconciliation_notes, version, created_at_utc, updated_at_utc)
         VALUES (@attempt, @tenant, @import, 1, @hash, 'submission-explicit-retry',
-            'docling', '1.30.0', 'PENDING', '{}'::jsonb, 2, gen_random_uuid(),
+            'source-extraction', '1.0.0', 'PENDING', '{}'::jsonb, 2, gen_random_uuid(),
             gen_random_uuid(), @user, 'operator approved retry', 1, @now, @now);
         """;
 
@@ -360,7 +360,7 @@ public sealed partial class InventoryExtractionDurabilityTests
             polling_checkpoint, attempt_number, correlation_id, command_id,
             requested_by, version, created_at_utc, updated_at_utc)
         VALUES (@attempt, @tenant, @import, 1, @hash, 'submission-queued',
-            'docling', '1.30.0', 'PENDING', '{}'::jsonb, 1, gen_random_uuid(),
+            'source-extraction', '1.0.0', 'PENDING', '{}'::jsonb, 1, gen_random_uuid(),
             gen_random_uuid(), @user, 1, @now, @now);
         """;
 }

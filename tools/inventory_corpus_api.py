@@ -78,7 +78,7 @@ class InventoryApi:
             json={
                 "reason": (
                     "Authorised semantic recovery reprojects the retained "
-                    "Docling artifact without resubmitting the source."
+                    "retained extraction artifact without resubmitting the source."
                 )
             },
             idempotency=(

@@ -87,6 +87,7 @@ var connectionString = StartupConfigurationValidator.ValidateAndGetConnectionStr
 
 builder.Services.AddDbContext<GovernanceDbContext>(
     options => options.UseNpgsql(connectionString));
+builder.Services.AddSingleton<AiMonthlyBudgetStore>(); builder.Services.AddTransient<AiMonthlyBudgetHandler>();
 builder.AddOutboxDispatch();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IBrowserSessionStore, PostgresBrowserSessionStore>();
@@ -249,12 +250,11 @@ builder.Services.AddOptions<AgentRuntimeOptions>()
         "The HTTP agent runtime requires an absolute URL and service key.")
     .ValidateOnStart();
 builder.AddInventorySemantic(agentRuntime);
-builder.Services.AddHttpClient<HttpOpportunityAgentClient>(AgentRuntimeClientConfiguration.Configure);
-builder.Services.AddHttpClient<HttpPlanningAgentClient>(AgentRuntimeClientConfiguration.Configure);
-builder.Services.AddHttpClient<HttpProposalNarrativeClient>(AgentRuntimeClientConfiguration.Configure);
-builder.Services.AddHttpClient<HttpMeasurementAgentClient>(AgentRuntimeClientConfiguration.Configure);
-builder.Services.AddHttpClient<InventorySemanticAgentClient>(
-    AgentRuntimeClientConfiguration.Configure);
+builder.Services.AddHttpClient<HttpOpportunityAgentClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
+builder.Services.AddHttpClient<HttpPlanningAgentClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
+builder.Services.AddHttpClient<HttpProposalNarrativeClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
+builder.Services.AddHttpClient<HttpMeasurementAgentClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
+builder.Services.AddHttpClient<InventorySemanticAgentClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
 builder.AddAgentRuntimeClients(agentRuntime);
 if (agentRuntime.Mode != AgentRuntimeOptions.DisabledMode && processRole.RunsWorkers)
 {

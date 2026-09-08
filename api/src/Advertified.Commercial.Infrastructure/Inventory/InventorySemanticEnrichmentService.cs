@@ -35,6 +35,24 @@ public sealed class InventorySemanticEnrichmentService(
             await LoadSourceAsync(claim, cancellationToken);
         var context = CreateContext(claim, source);
 
+        if (extraction.Rows.Count == 0)
+        {
+            var transcriptionPackets = InventorySemanticPacketBuilder
+                .BuildTranscription(extraction, codes, settings);
+            InventorySemanticBudgetPolicy.Ensure(
+                transcriptionPackets, settings);
+            var transcribedRows = await ExecuteStageAsync(
+                context,
+                claim.AttemptId,
+                [],
+                transcriptionPackets,
+                codes,
+                runtime,
+                settings,
+                cancellationToken);
+            extraction = CreateResult(extraction, transcribedRows);
+        }
+
         var enrichmentPackets = InventorySemanticPacketBuilder
             .BuildEnrichment(
                 extraction,
@@ -94,16 +112,11 @@ public sealed class InventorySemanticEnrichmentService(
             runs,
             codes,
             cancellationToken);
-        if (packets.Any(packet => packet.Operation !=
-                InventorySemanticOperations.SemanticEnrichment))
-        {
-            throw new InventorySemanticReconciliationRequiredException();
-        }
-        return InventorySemanticMerger.Merge(
-            sourceRows,
-            packets,
-            results,
-            codes);
+        var operation = RequireSingleOperation(packets);
+        return operation == InventorySemanticOperations.SourceTranscription
+            ? InventorySemanticTranscriptionMerger.Merge(packets, results)
+            : InventorySemanticMerger.Merge(
+                sourceRows, packets, results, codes);
     }
 
     private InventoryExtractionResult CreateResult(
@@ -122,7 +135,8 @@ public sealed class InventorySemanticEnrichmentService(
                   extraction.Document.DeduplicationDecisions,
               sourceElements: extraction.Document.SourceElements,
               projectionWarnings:
-                  extraction.Document.ProjectionWarnings);
+                  extraction.Document.ProjectionWarnings,
+              sourceImages: extraction.Document.SourceImages);
 
     private static InventorySemanticContext CreateContext(
         InventoryExtractionWorkerClaim claim,
@@ -272,6 +286,11 @@ public sealed class InventorySemanticEnrichmentService(
             throw new
                 InventorySemanticReconciliationRequiredException();
         }
+        catch (AiMonthlyBudgetExceededException)
+        {
+            await semanticStore.MarkBudgetRejectedAsync(context, run, CancellationToken.None);
+            throw new InventorySemanticBudgetExceededException();
+        }
         catch (OperationCanceledException)
             when (cancellationToken.IsCancellationRequested)
         {
@@ -360,6 +379,12 @@ public sealed class InventorySemanticEnrichmentService(
                 runtime.ModelFor(
                     MasterDataCodes.AgentTypes.InventoryIntelligence,
                     InventorySemanticOperations.SemanticEnrichment),
+                semantic.ModelId,
+                StringComparison.Ordinal) ||
+            !string.Equals(
+                runtime.ModelFor(
+                    MasterDataCodes.AgentTypes.InventoryIntelligence,
+                    InventorySemanticOperations.SourceTranscription),
                 semantic.ModelId,
                 StringComparison.Ordinal) ||
             runtime.CostCapFor(

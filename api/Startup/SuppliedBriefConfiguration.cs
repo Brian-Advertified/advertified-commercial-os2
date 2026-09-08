@@ -24,6 +24,7 @@ internal static class SuppliedBriefConfiguration
             if (!runtime.UsesHttp)
                 throw new InvalidOperationException("HTTP brief understanding requires the HTTP runtime boundary.");
             builder.Services.AddHttpClient<HttpSuppliedBriefAgentClient>(AgentRuntimeClientConfiguration.Configure)
+                .AddHttpMessageHandler<AiMonthlyBudgetHandler>()
                 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
             builder.Services.AddScoped<ISuppliedBriefAgentClient>(sp => sp.GetRequiredService<HttpSuppliedBriefAgentClient>());
         }

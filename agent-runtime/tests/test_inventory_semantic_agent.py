@@ -47,7 +47,7 @@ RUN_ID = UUID("11111111-1111-1111-1111-111111111111")
 STEP_ID = UUID("22222222-2222-2222-2222-222222222222")
 CORRELATION_ID = UUID("33333333-3333-3333-3333-333333333333")
 IMPORT_ID = UUID("44444444-4444-4444-4444-444444444444")
-LOCATOR = "docling:page=1;text=1"
+LOCATOR = "source:page=1;text=1"
 
 
 def invocation() -> AgentInvocationEnvelope:
@@ -320,7 +320,7 @@ def test_semantic_grounding_only_enriches_existing_rows() -> None:
     with pytest.raises(ValueError, match="existing deterministic row"):
         validate_semantic_grounding(
             value,
-            semantic_output(candidate_locator="docling:page=2;text=1"),
+            semantic_output(candidate_locator="source:page=2;text=1"),
         )
 
 

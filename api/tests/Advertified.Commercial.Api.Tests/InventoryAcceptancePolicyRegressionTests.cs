@@ -86,7 +86,7 @@ public sealed class InventoryAcceptancePolicyRegressionTests
             Hash,
             extraction.ProviderJson,
             extraction.Document,
-            PythonInventoryProjectionClient.ProjectorVersion);
+            InventoryExtractionOptions.PinnedAdapterVersion);
 
         Assert.Single(replay.Rows);
         Assert.Null(replay.Document.DiscoveredSchema);
@@ -106,7 +106,7 @@ public sealed class InventoryAcceptancePolicyRegressionTests
             Hash,
             extraction.ProviderJson,
             document,
-            PythonInventoryProjectionClient.ProjectorVersion);
+            InventoryExtractionOptions.PinnedAdapterVersion);
 
         Assert.Empty(replay.Rows);
         Assert.NotNull(replay.Document.SchemaDiscoveryFailure);
@@ -168,12 +168,12 @@ public sealed class InventoryAcceptancePolicyRegressionTests
         };
         var locators = values.Keys.ToDictionary(
             key => key,
-            key => $"docling:page=1;table=1;row=2;cell={key}",
+            key => $"source:page=1;table=1;row=2;cell={key}",
             StringComparer.Ordinal);
         var elements = values.Select((item, index) =>
             new InventoryExtractedSourceElement(
                 locators[item.Key],
-                "docling:page=1;table=1",
+                "source:page=1;table=1",
                 "table",
                 2,
                 index + 1,
@@ -181,8 +181,8 @@ public sealed class InventoryAcceptancePolicyRegressionTests
         if (footnote)
         {
             elements.Add(new InventoryExtractedSourceElement(
-                "docling:page=1;text=20",
-                "docling:page=1;text",
+                "source:page=1;text=20",
+                "source:page=1;text",
                 "footnote",
                 20,
                 1,
@@ -199,9 +199,9 @@ public sealed class InventoryAcceptancePolicyRegressionTests
             tables = new[] { new { evidence = "retained" } },
         });
         return InventoryExtractionContract.Create(
-            "docling",
-            PythonInventoryProjectionClient.ProjectorVersion,
-            PythonInventoryProjectionClient.SchemaVersion,
+            "source-extraction",
+            InventoryExtractionOptions.PinnedAdapterVersion,
+            InventoryExtractionOptions.CurrentSchemaVersion,
             hash,
             provider,
             [row],

@@ -22,7 +22,6 @@ LOCAL_DOCKER_ENTRYPOINTS = (
     "tools/inspect-os2-corpus-storage.ps1",
     "tools/update-os2-api-only.ps1",
     "tools/apply-local-development-seed.mjs",
-    "tools/extract_inventory_sources.py",
     "tools/inventory_source_readers.py",
 )
 

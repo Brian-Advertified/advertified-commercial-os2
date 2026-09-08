@@ -30,7 +30,7 @@ internal static class InventoryRetainedSchemaProjection
                 "The retained document has no source-bound interpretation.";
         }
         return InventoryExtractionContract.Create(
-            "docling",
+            "source-extraction",
             adapterVersion,
             retained.SchemaVersion,
             sourceHash,

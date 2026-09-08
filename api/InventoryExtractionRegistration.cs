@@ -19,25 +19,9 @@ internal static class InventoryExtractionRegistration
             .Bind(builder.Configuration.GetSection(InventoryExtractionOptions.SectionName))
             .Validate(InventoryExtractionOptions.HasSupportedMode,
                 "The inventory extraction mode is invalid.")
-            .Validate(InventoryExtractionOptions.HasCompleteDoclingConfiguration,
-                "Docling extraction requires an absolute URL, API key and valid timeout.")
             .ValidateOnStart();
-        builder.Services.AddHttpClient<DoclingInventoryExtractionAdapter>(
-            (serviceProvider, client) => ConfigureClient(serviceProvider, client))
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-            {
-                AllowAutoRedirect = false,
-            });
-        builder.Services.AddHttpClient<PythonInventoryProjectionClient>(
-            ConfigureProjectionClient)
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-            {
-                AllowAutoRedirect = false,
-            });
-        builder.Services.AddScoped<IInventoryDocumentExtractionAdapter>(serviceProvider =>
-            settings.Mode == InventoryExtractionOptions.DoclingMode
-                ? serviceProvider.GetRequiredService<DoclingInventoryExtractionAdapter>()
-                : new DeterministicInventoryExtractionAdapter());
+        builder.Services.AddScoped<IInventoryDocumentExtractionAdapter>(
+            _ => new NativeInventoryExtractionAdapter());
         builder.Services.AddScoped<InventorySchemaExecutionGuard>();
     }
 
@@ -57,6 +41,10 @@ internal static class InventoryExtractionRegistration
                      agentRuntime.AllowLive &&
                      agentRuntime.ModelFor(
                          MasterDataCodes.AgentTypes.InventoryIntelligence,
+                         InventorySemanticOperations.SourceTranscription) !=
+                            "fixture-v1" &&
+                     agentRuntime.ModelFor(
+                         MasterDataCodes.AgentTypes.InventoryIntelligence,
                          InventorySemanticOperations.SemanticEnrichment) !=
                             "fixture-v1"),
                 "Inventory semantic extraction requires an explicitly enabled live Bedrock agent route.")
@@ -72,38 +60,12 @@ internal static class InventoryExtractionRegistration
         {
             return;
         }
-        if (settings.Mode == InventoryExtractionOptions.DeterministicMode)
+        if (settings.Mode == InventoryExtractionOptions.DeterministicMode &&
+            !builder.Configuration.GetValue<bool>(
+                $"{InventoryProcessingOptions.SectionName}:Paused"))
         {
             throw new InvalidOperationException(
-                "Deterministic document extraction is restricted to development and test.");
+                "Production deterministic extraction is permitted only while inventory processing is paused.");
         }
-        if (settings.Mode == InventoryExtractionOptions.DoclingMode &&
-            (!Uri.TryCreate(settings.BaseUrl, UriKind.Absolute, out var baseUri) ||
-             baseUri.Scheme != Uri.UriSchemeHttps ||
-             string.IsNullOrWhiteSpace(baseUri.Host) ||
-             !string.IsNullOrEmpty(baseUri.UserInfo)))
-        {
-            throw new InvalidOperationException(
-                "Docling document extraction must use an HTTPS URL with a host and no " +
-                "embedded credentials outside development and test.");
-        }
-    }
-
-    private static void ConfigureClient(IServiceProvider serviceProvider, HttpClient client)
-    {
-        var options = serviceProvider.GetRequiredService<
-            Microsoft.Extensions.Options.IOptions<InventoryExtractionOptions>>().Value;
-        client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
-        client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
-    }
-
-    private static void ConfigureProjectionClient(
-        IServiceProvider serviceProvider,
-        HttpClient client)
-    {
-        AgentRuntimeClientConfiguration.Configure(serviceProvider, client);
-        var extraction = serviceProvider.GetRequiredService<
-            Microsoft.Extensions.Options.IOptions<InventoryExtractionOptions>>().Value;
-        client.Timeout = TimeSpan.FromSeconds(extraction.TimeoutSeconds);
     }
 }

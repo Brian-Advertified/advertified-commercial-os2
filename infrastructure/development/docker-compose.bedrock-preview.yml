@@ -1,0 +1,40 @@
+services:
+  agent-runtime:
+    environment:
+      ADVERTIFIED_AGENT_RUNTIME_MODE: bedrock
+      ADVERTIFIED_BEDROCK_REGION: us-east-1
+      ADVERTIFIED_BEDROCK_MODEL_ALLOWLIST: amazon.nova-lite-v1:0
+      ADVERTIFIED_BEDROCK_MULTIMODAL_MODEL_ALLOWLIST: amazon.nova-lite-v1:0
+      ADVERTIFIED_BEDROCK_PRICING_JSON: '{"amazon.nova-lite-v1:0":{"input_per_million_usd":"0.06","output_per_million_usd":"0.24"}}'
+      ADVERTIFIED_BEDROCK_MAX_TOKENS: "2048"
+      AWS_REGION: us-east-1
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_CONFIG_FILE: /tmp/.aws/config
+      AWS_SHARED_CREDENTIALS_FILE: /tmp/.aws/credentials
+      AWS_PROFILE: ${AWS_PROFILE:-default}
+      HOME: /tmp
+    volumes:
+      - ${USERPROFILE}/.aws:/tmp/.aws:ro
+  api:
+    volumes:
+      - ./development/appsettings.bedrock-preview.json:/app/appsettings.Development.json:ro
+    environment:
+      SuppliedBrief__Mode: Http
+      InventorySemantic__Enabled: "true"
+      InventorySemantic__ModelId: amazon.nova-lite-v1:0
+      InventorySemantic__InputPricePerMillionTokensUsdMicros: "60000"
+      InventorySemantic__OutputPricePerMillionTokensUsdMicros: "240000"
+      InventorySemantic__PerCallCostCapUsdMicros: "10000"
+      InventorySemantic__CertificationBudgetUsdMicros: "2000000"
+      InventorySemantic__BudgetScope: governed-production-preview-2026-09-07
+      InventorySemantic__PromptVersion: 5.0.0
+      InventorySemantic__MaximumOutputTokensPerChunk: "1024"
+      AgentRuntime__Mode: Http
+      AgentRuntime__Provider: bedrock
+      AgentRuntime__DefaultModel: amazon.nova-lite-v1:0
+      # US$0.05 maximum commitment per agent call. The bounded three-scenario preview
+      # remains within the user's cumulative US$2 ceiling; the ledger is a second gate.
+      AgentRuntime__DefaultCostCapMinor: "5"
+      AgentRuntime__AllowLive: "true"
+      AgentRuntime__MaxAttempts: "1"
+      AgentRuntime__TimeoutSeconds: "120"

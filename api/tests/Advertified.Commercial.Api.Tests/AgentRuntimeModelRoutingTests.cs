@@ -6,19 +6,19 @@ namespace Advertified.Commercial.Api.Tests;
 
 public sealed class AgentRuntimeModelRoutingTests
 {
-    private const string ClaudeSonnet46 =
-        "global.anthropic.claude-sonnet-4-6";
-    private const string AmazonNova2Lite =
-        "global.amazon.nova-2-lite-v1:0";
+    private const string AmazonNovaLite =
+        "amazon.nova-lite-v1:0";
     private const string SuppliedBriefOperation =
         "SUPPLIED_BRIEF_UNDERSTANDING";
     private const string SchemaDiscoveryOperation =
         "SCHEMA_DISCOVERY";
     private const string SemanticEnrichmentOperation =
         "SEMANTIC_ENRICHMENT";
+    private const string SourceTranscriptionOperation =
+        "SOURCE_TRANSCRIPTION";
 
     [Fact]
-    public void BedrockRoutesReasoningStagesToClaudeSonnet46()
+    public void BedrockRoutesEveryStageToApprovedNovaLite()
     {
         var settings = BedrockSettings();
         var agents = new[]
@@ -39,30 +39,35 @@ public sealed class AgentRuntimeModelRoutingTests
         Assert.All(
             agents,
             agent => Assert.Equal(
-                ClaudeSonnet46,
+                AmazonNovaLite,
                 settings.ModelFor(agent)));
         Assert.Equal(
-            ClaudeSonnet46,
+            AmazonNovaLite,
             settings.ModelFor(
                 MasterDataCodes.AgentTypes.BriefDrafting,
                 SuppliedBriefOperation));
     }
 
     [Fact]
-    public void BedrockRoutesBoundedInventoryExtractionToNova2Lite()
+    public void BedrockRoutesBoundedInventoryExtractionToNovaLite()
     {
         var settings = BedrockSettings();
 
         Assert.Equal(
-            AmazonNova2Lite,
+            AmazonNovaLite,
             settings.ModelFor(
                 MasterDataCodes.AgentTypes.InventoryIntelligence,
                 SchemaDiscoveryOperation));
         Assert.Equal(
-            AmazonNova2Lite,
+            AmazonNovaLite,
             settings.ModelFor(
                 MasterDataCodes.AgentTypes.InventoryIntelligence,
                 SemanticEnrichmentOperation));
+        Assert.Equal(
+            AmazonNovaLite,
+            settings.ModelFor(
+                MasterDataCodes.AgentTypes.InventoryIntelligence,
+                SourceTranscriptionOperation));
     }
 
     [Fact]
@@ -85,7 +90,7 @@ public sealed class AgentRuntimeModelRoutingTests
             modelOperation: SemanticEnrichmentOperation);
 
         Assert.Equal(
-            AmazonNova2Lite,
+            AmazonNovaLite,
             invocation.ProviderPolicy.Model);
         Assert.Equal(1, invocation.ProviderPolicy.MaxAttempts);
     }
@@ -94,11 +99,6 @@ public sealed class AgentRuntimeModelRoutingTests
     public void UnconfiguredOperationAndMissingRouteFailClosed()
     {
         var settings = BedrockSettings();
-        Assert.Throws<InvalidOperationException>(() =>
-            settings.ModelFor(
-                MasterDataCodes.AgentTypes.InventoryIntelligence,
-                "SOURCE_TRANSCRIPTION"));
-
         settings.Models.Remove(
             MasterDataCodes.AgentTypes.BusinessInterpretation);
 
@@ -163,20 +163,24 @@ public sealed class AgentRuntimeModelRoutingTests
             MasterDataCodes.AgentTypes.Measurement,
         })
         {
-            result[agent] = ClaudeSonnet46;
+            result[agent] = AmazonNovaLite;
         }
         result[AgentRuntimeOptions.ModelRoute(
             MasterDataCodes.AgentTypes.BriefDrafting,
             SuppliedBriefOperation)] =
-            ClaudeSonnet46;
+            AmazonNovaLite;
         result[AgentRuntimeOptions.ModelRoute(
             MasterDataCodes.AgentTypes.InventoryIntelligence,
             SchemaDiscoveryOperation)] =
-            AmazonNova2Lite;
+            AmazonNovaLite;
+        result[AgentRuntimeOptions.ModelRoute(
+            MasterDataCodes.AgentTypes.InventoryIntelligence,
+            SourceTranscriptionOperation)] =
+            AmazonNovaLite;
         result[AgentRuntimeOptions.ModelRoute(
             MasterDataCodes.AgentTypes.InventoryIntelligence,
             SemanticEnrichmentOperation)] =
-            AmazonNova2Lite;
+            AmazonNovaLite;
         return result;
     }
 }

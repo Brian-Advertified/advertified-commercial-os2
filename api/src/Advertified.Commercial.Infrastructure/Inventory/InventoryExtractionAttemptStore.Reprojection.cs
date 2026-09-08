@@ -12,7 +12,7 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 internal static class InventoryReprojectionPolicy
 {
     internal const string ProviderName =
-        "retained-docling-projection";
+        "retained-source-projection";
     internal const string ProviderResponseCode =
         "RETAINED_ARTIFACT_REPROJECTED";
 
@@ -59,7 +59,7 @@ public sealed partial class InventoryExtractionAttemptStore
             WHERE extraction.tenant_id = {source.TenantId}
               AND extraction.import_id = {source.Id}
               AND extraction.source_hash = {source.SourceHash}
-              AND extraction.adapter_code = {"docling"}
+              AND extraction.adapter_code = {"source-extraction"}
               AND NOT EXISTS (
                   SELECT 1
                   FROM commercial.inventory_extraction_projections projection
@@ -182,7 +182,7 @@ public sealed partial class InventoryExtractionAttemptStore
             ?? throw new InvalidLifecycleTransitionException();
         await transaction.CommitAsync(cancellationToken);
 
-        if (row.AdapterCode != "docling" ||
+        if (row.AdapterCode != "source-extraction" ||
             string.IsNullOrWhiteSpace(row.ProtectedObjectKey))
             throw new InventoryExtractionUnavailableException();
         var content = await inventoryStore.ObjectStore.ReadAsync(

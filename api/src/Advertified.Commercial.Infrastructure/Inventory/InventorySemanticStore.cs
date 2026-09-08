@@ -31,10 +31,6 @@ public sealed class InventorySemanticStore(
             new UserId(context.ActorId),
             new TenantId(context.TenantId),
             cancellationToken);
-        await dbContext.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT pg_advisory_xact_lock(hashtextextended({context.TenantId + ":" + budgetScope}, 0))",
-            cancellationToken);
-
         var hashes = packets
             .Select(packet => packet.InputHash)
             .ToArray();
@@ -61,20 +57,14 @@ public sealed class InventorySemanticStore(
             .ToArray();
         var reserved = await dbContext.Database
             .SqlQuery<long>($"""
-                SELECT COALESCE(sum(
-                    CASE
-                        WHEN status_code =
-                            {MasterDataCodes.LifecycleStatuses.Completed}
-                        THEN incremental_cost_usd_micros
-                        ELSE maximum_cost_usd_micros
-                    END), 0)::bigint AS "Value"
+                SELECT COALESCE(sum(COALESCE(
+                    incremental_cost_usd_micros,
+                    maximum_cost_usd_micros)), 0)::bigint AS "Value"
                 FROM commercial.inventory_semantic_runs
                 WHERE tenant_id = {context.TenantId}
                   AND budget_scope = {budgetScope}
-                """)
-            .SingleAsync(cancellationToken);
-        var requested = missing.Sum(
-            packet => packet.MaximumCostUsdMicros);
+                """).SingleAsync(cancellationToken);
+        var requested = missing.Sum(packet => packet.MaximumCostUsdMicros);
         if (requested > budgetUsdMicros - reserved)
             throw new InventorySemanticBudgetExceededException();
 
@@ -200,6 +190,26 @@ public sealed class InventorySemanticStore(
         await transaction.CommitAsync(cancellationToken);
     }
 
+    internal async Task MarkBudgetRejectedAsync(
+        InventorySemanticContext context,
+        InventorySemanticRunRow run,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(cancellationToken);
+        await SetSessionAsync(context, cancellationToken);
+        await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE commercial.inventory_semantic_runs
+            SET status_code = {MasterDataCodes.LifecycleStatuses.Failed},
+                failure_code = {"AI_MONTHLY_BUDGET_EXCEEDED"},
+                completed_at_utc = {timeProvider.GetUtcNow()},
+                version = version + 1
+            WHERE tenant_id = {context.TenantId} AND id = {run.Id}
+              AND status_code = {MasterDataCodes.LifecycleStatuses.Running}
+            """, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
     internal async Task MarkRejectedAsync(
         InventorySemanticContext context,
         InventorySemanticRunRow run,
@@ -295,6 +305,7 @@ public sealed class InventorySemanticStore(
             new UserId(context.ActorId),
             new TenantId(context.TenantId),
             cancellationToken);
+
 }
 
 internal sealed record InventorySemanticRunRow

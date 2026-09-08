@@ -135,11 +135,13 @@ internal static class StartupConfigurationValidator
             throw new InvalidOperationException(
                 "Production AI must use the governed live Bedrock HTTP runtime.");
         }
-        if (inventoryExtraction.Mode != InventoryExtractionOptions.DoclingMode ||
-            configuration.GetValue<bool>("InventoryProcessing:Paused"))
+        if (inventoryExtraction.Mode ==
+                InventoryExtractionOptions.DeterministicMode &&
+            !configuration.GetValue<bool>(
+                $"{InventoryProcessingOptions.SectionName}:Paused"))
         {
             throw new InvalidOperationException(
-                "Production inventory extraction must use Docling and processing must not be paused.");
+                "Production inventory extraction must remain paused until the governed Nova Lite source-transcription route is enabled.");
         }
         if (configuration[SuppliedBriefConfiguration.ModeKey] != SuppliedBriefConfiguration.Http)
         {

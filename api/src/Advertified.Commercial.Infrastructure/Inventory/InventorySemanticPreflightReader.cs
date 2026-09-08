@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Domain.Constants;
@@ -15,7 +14,7 @@ public sealed partial class InventorySemanticPreflightReader(
     ITenantAuthorizer authorizer,
     IOptions<InventorySemanticOptions> semanticOptions,
     IOptions<AgentRuntimeOptions> runtimeOptions,
-    PythonInventoryProjectionClient projector) :
+    TimeProvider timeProvider) :
     IInventorySemanticPreflightReader
 {
     public async Task<InventorySemanticPreflightView> GetAsync(
@@ -148,81 +147,39 @@ public sealed partial class InventorySemanticPreflightReader(
                 source.ProtectedObjectKey) ||
             string.IsNullOrWhiteSpace(source.DocumentClass))
         {
-            return new(source, [], [],
+            return new(
+                source, [], [],
                 "SOURCE_METADATA_INCOMPLETE");
         }
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var content = await store.ObjectStore.ReadAsync(
                 source.ProtectedObjectKey, cancellationToken);
             InventoryExtractionCompletionPolicy.VerifySource(
                 content, source.SourceHash);
-            var projection = await projector.ProjectAsync(
-                source.ProviderJson, cancellationToken);
-            var extraction = InventoryExtractionContract.Create(
-                "docling",
-                InventoryExtractionOptions.PinnedAdapterVersion,
-                projection.SchemaVersion,
+            var extraction = NativeInventorySourcePreprocessor.Process(new(
+                source.FileName,
+                source.MediaType,
+                source.DocumentClass,
                 source.SourceHash,
-                source.ProviderJson,
-                projection.Rows,
-                schemaDiscoveryFailure: projection.Rows.Count == 0
-                    ? string.Join(" ", projection.Warnings.DefaultIfEmpty(
-                        "The Python projection returned no inventory rows."))
-                    : null,
-                sourceElements: projection.SourceElements,
-                projectionWarnings: projection.Warnings);
-            var candidates = InventoryCandidateAdmissionPolicy
-                .Prepare(
-                    extraction.Rows,
-                    source.SourceHash,
-                    string.Empty,
-                    codes,
-                    DateTimeOffset.UnixEpoch)
-                .Select(candidate => new
-                    InventoryProjectionCandidateView(
-                        candidate.RowNumber,
-                        candidate.SourceLocator,
-                        candidate.Values,
-                        candidate.Evidence))
-                .ToArray();
-            InventorySemanticPacket[] packets;
-            try
-            {
-                packets = InventorySemanticPacketBuilder
-                    .BuildEnrichment(
-                        extraction, codes, settings)
-                    .Where(packet =>
-                        packet.ExistingRows.Count > 0)
-                    .ToArray();
-            }
-            catch (InvalidOperationException)
-            {
-                return new(source, [], candidates,
-                    "SEMANTIC_PLAN_LIMIT_EXCEEDED");
-            }
-            return new(source, packets, candidates, null);
+                content));
+            var packets = InventorySemanticPacketBuilder.BuildTranscription(
+                extraction, codes, settings);
+            return new(source, packets, [], null);
         }
-        catch (InventoryProtectionUnavailableException)
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
         {
-            return new(source, [], [], "SOURCE_HASH_MISMATCH");
+            throw;
         }
-        catch (InventorySemanticInputRejectedException)
+        catch (Exception error) when (error is
+            InventoryExtractionUnavailableException or
+            InventorySemanticInputRejectedException or
+            InvalidDataException or
+            System.Xml.XmlException)
         {
-            return new(source, [], [],
-                "SEMANTIC_INPUT_NOT_SUPPORTED");
-        }
-        catch (Exception error) when (
-            error is InventoryExtractionUnavailableException or
-                JsonException)
-        {
-            return new(source, [], [],
-                "RETAINED_ARTIFACT_INVALID");
-        }
-        catch (InvalidOperationException)
-        {
-            return new(source, [], [],
-                "SEMANTIC_PLAN_LIMIT_EXCEEDED");
+            return new(source, [], [], "SOURCE_FORMAT_REJECTED");
         }
     }
 
@@ -249,8 +206,11 @@ public sealed partial class InventorySemanticPreflightReader(
         var runs = await store.ListSemanticPreflightRunsAsync(
             tenantId, hashes, model,
             settings.PromptVersion, cancellationToken);
+        var now = timeProvider.GetUtcNow();
         var existing = await store.ReadSemanticCommittedCostAsync(
-            tenantId, settings.BudgetScope,
+            new DateTimeOffset(
+                now.Year, now.Month,
+                1, 0, 0, 0, TimeSpan.Zero),
             cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         var known = runs.Select(run => run.InputHash)

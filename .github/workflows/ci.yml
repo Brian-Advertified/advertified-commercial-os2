@@ -221,9 +221,7 @@ jobs:
             --env InventoryProtection__UseTls=true \
             --env InventoryProtection__ClamAvHost=closed.invalid \
             --env InventoryProtection__ClamAvPort=3310 \
-            --env InventoryExtraction__Mode=Docling \
-            --env InventoryExtraction__BaseUrl=https://closed.invalid \
-            --env InventoryExtraction__ApiKey=closed \
+            --env InventoryExtraction__Mode=Deterministic \
             advertified/commercial-api:ci-verification
           docker run --detach --name "$worker" --network "$network" --publish 127.0.0.1:18083:8080 \
             --env ASPNETCORE_ENVIRONMENT=Production \
@@ -242,9 +240,7 @@ jobs:
             --env InventoryProtection__UseTls=true \
             --env InventoryProtection__ClamAvHost=closed.invalid \
             --env InventoryProtection__ClamAvPort=3310 \
-            --env InventoryExtraction__Mode=Docling \
-            --env InventoryExtraction__BaseUrl=https://closed.invalid \
-            --env InventoryExtraction__ApiKey=closed \
+            --env InventoryExtraction__Mode=Deterministic \
             advertified/commercial-api:ci-verification
           docker run --detach --name "$runtime" --network "$network" --publish 127.0.0.1:18081:8080 \
             --env ADVERTIFIED_AGENT_RUNTIME_MODE=deterministic \

@@ -31,7 +31,7 @@ except ModuleNotFoundError:
         write_json,
     )
 
-RETAINED_PROVIDER = "retained-docling-projection"
+RETAINED_PROVIDER = "retained-source-projection"
 
 
 def main() -> int:

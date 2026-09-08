@@ -795,7 +795,7 @@
   ],
   "duplicates": [],
   "extraction_info": {
-    "extraction_adapter": "DoclingInventoryExtractionAdapter",
+    "extraction_adapter": "SourceTranscriptionAdapter",
     "schema_version": "advertified.inventory-extraction.v3",
     "processing_status": "inventory_processing_paused"
   }

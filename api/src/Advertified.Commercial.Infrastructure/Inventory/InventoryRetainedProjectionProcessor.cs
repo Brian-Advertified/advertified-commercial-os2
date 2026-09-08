@@ -213,7 +213,7 @@ public sealed partial class InventoryRetainedProjectionProcessor(
             InventoryExtractionUnavailableException => new(
                 status,
                 "LOCAL_OCR_EXTRACTION_UNAVAILABLE",
-                "Local Docling could not safely reconstruct the embedded source image."),
+                "The retained source could not be reconstructed safely."),
             ApprovalRequiredException => new(
                 status,
                 "REPROJECTION_REVIEWER_REQUIRED",
@@ -234,11 +234,11 @@ public sealed partial class InventoryRetainedProjectionProcessor(
             HttpRequestException => new(
                 status,
                 "LOCAL_OCR_TRANSPORT_FAILED",
-                "The local Docling service could not be reached."),
+                "The retained source projection service could not be reached."),
             TaskCanceledException => new(
                 status,
                 "LOCAL_OCR_TIMEOUT",
-                "The bounded local Docling operation timed out."),
+                "The bounded retained source projection timed out."),
             InvalidOperationException invalid => new(
                 status,
                 "REPROJECTION_INVARIANT_FAILED",

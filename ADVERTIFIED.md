@@ -5951,3 +5951,73 @@ The durable value is the platform's ability to know and preserve:
 Specialised AI agents reason across that governed history to reduce manual work and improve commercial preparation. They do not replace the evidence, commercial rules, human authority or transaction record.
 
 > **This `ADVERTIFIED.md` is the canonical Advertified business, product, commercial, governance, workflow, AI, data, UX, architecture and production build truth. Together with `AGENTS.md` for contributor behaviour, it is intended to be sufficient to build Advertified without inventing core business behaviour. If implementation reveals a missing business decision, the specification must be corrected rather than the decision being silently invented in code.**
+
+### 49.2.26 Nova Lite inventory extraction replacement — 2026-09-08
+
+Brian Rabuthu approved replacement of Docling in Advertified Commercial OS2 with Amazon Bedrock
+Nova Lite. This decision supersedes every earlier Principle, Policy, plan or release condition that
+requires Docling for current or future execution. Historical Docling evidence remains immutable
+history only and is not authority to retain the dependency. No Docling container, package, adapter,
+endpoint, configuration key, health dependency or live workflow may remain in the delivered system.
+
+The current cost-controlled model for inventory document extraction is Amazon Nova Lite model
+`amazon.nova-lite-v1:0`, invoked in `us-east-1`. US-region processing of governed supplier source
+documents is explicitly approved. Model and region admission remain explicit configuration
+allow-lists rather than hard-coded provider restrictions so a later owner-approved workflow can use
+another Bedrock model or region without a source-code exception. The provider remains disabled by
+default during redevelopment; tests and ordinary local development use deterministic fixtures and
+may not make live or paid provider calls.
+
+Advertified-wide Bedrock expenditure has a hard aggregate limit of USD 5.00 per UTC calendar month.
+The canonical C# API must transactionally reserve a conservative maximum invocation cost against a
+durable monthly ledger before a provider request is admitted. An invocation whose reservation could
+exceed the remaining monthly allowance fails closed before any provider call. Actual token usage and
+cost replace the reservation only after a response is durably accepted. Ambiguous outcomes retain
+their reservation until authorised reconciliation. There is no automatic budget override, model
+fallback, cross-model escalation or retry that can exceed the limit.
+
+PDF, CSV, DOCX and XLSX sources are deterministically preprocessed into bounded source text before
+Nova Lite invocation. PPTX is deterministically preprocessed into bounded slide text and
+relationship-linked embedded images. PNG and JPEG sources retain a content-hashed image input.
+Legacy binary DOC and XLS are not accepted because the retained classifier cannot verify or safely
+preprocess them; they require conversion to DOCX or XLSX. Preprocessing may preserve structure and
+evidence locators but may not infer, normalise or invent commercial facts. Unsupported, oversized,
+encrypted, malformed or incompletely represented sources remain blocked or require human review.
+
+Delivery acceptance requires typed schema-constrained Nova output; immutable source hash and
+version lineage; source/page/slide/cell/image locators; tenant and actor scope; prompt/model/config
+version; provider request ID; estimated and actual usage; durable retry and reconciliation; automatic
+acceptance only after deterministic evidence and completeness checks; human review for exceptions;
+and repeatable PDF, XLSX, PPTX and malformed-source tests. The retained 43-file corpus and untouched
+holdout remain the required quality evidence. Removal is not delivered until repository and composed
+runtime searches confirm that no executable Docling dependency remains. No current gate or
+production-readiness status is promoted by this decision record.
+
+Delivery evidence on 2026-09-08: executable and test/configuration searches across `agent-runtime`,
+`api`, `infrastructure`, `tests`, `tools` and `web` returned no retired-provider references; the
+retired Python projection endpoint, nine provider modules, C# adapter, provider test suite and local
+container were removed. The native preprocessing adapter now preserves PDF pages, CSV rows, DOCX
+paragraphs, XLSX coordinates, PPTX slide text and relationship-linked images, and PNG/JPEG images;
+malformed or unsupported inputs fail closed. Typed Nova source-transcription packets and validated,
+source-grounded row merging are wired through the existing durable inventory semantic run boundary.
+
+Migration `202609080011_AiMonthlyBudget` adds the Advertified-wide UTC-month reservation ledger.
+Every registered C# HTTP agent client uses the same admission handler, which reserves the invocation
+maximum before a live Bedrock request, replaces it with accepted actual usage, retains ambiguous
+reservations, and rejects the next request when aggregate committed usage would exceed USD 5.00.
+The current configured route remains `amazon.nova-lite-v1:0` in `us-east-1`; model and region safety
+remain explicit allow-lists, not hard-coded Python restrictions.
+
+Repeatable evidence passed without a live provider call: 83 Python runtime tests; 4 inventory cost
+ledger tests; 73 unaffected architecture checks including the retired-provider and all-agent budget
+wiring boundaries; Docker Compose resolves without the retired service; the stale local retired
+container was removed; the pinned .NET 10.0.400 build passed; 6 native format tests and 2 disposable
+PostgreSQL monthly-ledger tests passed. A broader 121-test .NET selection passed 118 and exposed three
+unrelated retained-work failures: the audience fixture supplies fewer than the required two segments,
+the purchase persistence test has no integration connection string, and a supplied-brief rejection
+fixture now violates the provider allow-list. The full architecture run has one unrelated line-limit
+failure covering two pre-existing files (`PlanningCommands.Shortlist.cs` and `brief-workflow.spec.ts`);
+all files changed by this packet satisfy the 400-line hard limit. These unrelated failures do not
+weaken the inventory ingestion or monthly-budget controls. Live activation remains disabled by
+default and requires an explicitly authorised deployment; implementation readiness does not assert
+production readiness or provider acceptance.

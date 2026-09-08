@@ -11,17 +11,17 @@ public sealed class InventoryCandidateAdmissionPolicyTests
     {
         var rows = new[]
         {
-            Row(1, "docling:page=1;table=1;row=2",
+            Row(1, "source:page=1;table=1;row=2",
                 ("area", "GARDENS"), ("47m", "49m")),
-            Row(2, "docling:page=2;table=1;row=2",
+            Row(2, "source:page=2;table=1;row=2",
                 ("name", "Metro FM 06:00-07:00"),
                 ("rate", "R34 260")),
             Row(3, "pptx:slide=2",
                 ("productcode", "WCD001")),
-            Row(4, "docling:page=1;table=1;row=4",
+            Row(4, "source:page=1;table=1;row=4",
                 ("name", "TOTAL VALUE"),
                 ("rate", "R448 560")),
-            Row(5, "docling:page=3;block=7",
+            Row(5, "source:page=3;block=7",
                 ("name", "NATURALLY"),
                 ("channel", "OOH"),
                 ("producttype", "OOH_SITE")),
@@ -58,7 +58,7 @@ public sealed class InventoryCandidateAdmissionPolicyTests
         string label)
     {
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(
-            [Row(1, "docling:page=1;table=1;row=1",
+            [Row(1, "source:page=1;table=1;row=1",
                 ("name", label), ("rate", "R448 560"))],
             new string('a', 64),
             "Not supplied",
@@ -81,7 +81,7 @@ public sealed class InventoryCandidateAdmissionPolicyTests
     public void CandidateAdmissionRejectsNonProductCodeOnlyRows(string code)
     {
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(
-            [Row(1, "docling:page=2;table=6;row=3", ("product_code", code))],
+            [Row(1, "source:page=2;table=6;row=3", ("product_code", code))],
             new string('a', 64),
             "Not supplied",
             EmptyCodes(),
@@ -94,7 +94,7 @@ public sealed class InventoryCandidateAdmissionPolicyTests
     public void CandidateAdmissionPreservesPricedPackageAndRelationships()
     {
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(
-            [Row(1, "docling:page=1;table=1;row=1",
+            [Row(1, "source:page=1;table=1;row=1",
                 ("name", "TOTAL INVESTMENT"),
                 ("rate", "R224 280"),
                 ("packagename", "Plan A"),
@@ -117,14 +117,14 @@ public sealed class InventoryCandidateAdmissionPolicyTests
             candidate.Values.Package?.DiscountRule);
         Assert.Equal(2, candidate.Values.PackageComponents?.Count);
         Assert.All(candidate.Values.PackageComponents!, component =>
-            Assert.Equal("docling:page=1;table=1;row=1", component.SourceLocator));
+            Assert.Equal("source:page=1;table=1;row=1", component.SourceLocator));
         Assert.Single(candidate.Values.Discounts!);
     }
 
     [Fact]
     public void CandidateAdmissionDoesNotInferPackageIdentityWithoutSourceEvidence()
     {
-        var locator = "docling:page=1;table=1;row=";
+        var locator = "source:page=1;table=1;row=";
         var candidates = InventoryCandidateAdmissionPolicy.Prepare(
             [
                 Row(1, locator + "2", ("name", "Generic spots"), ("rate", "R291 060")),

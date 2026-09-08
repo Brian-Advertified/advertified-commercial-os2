@@ -15,8 +15,6 @@ REFERENCE_GLOBS = (
     "tools/inspect_inventory_workbooks.py",
 )
 APPLICATION_GLOBS = (
-    "api/src/Advertified.Commercial.Infrastructure/Inventory/DoclingInventoryProjection*.cs",
-    "api/src/Advertified.Commercial.Infrastructure/Inventory/DoclingInventoryExtractionAdapter.cs",
     "api/src/Advertified.Commercial.Infrastructure/Inventory/InventoryCandidateAdmissionPolicy.cs",
     "api/src/Advertified.Commercial.Infrastructure/Inventory/InventoryCandidateAliases.cs",
     "api/src/Advertified.Commercial.Infrastructure/Inventory/InventoryCandidateStructuredNormalizer.cs",

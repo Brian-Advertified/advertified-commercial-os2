@@ -76,21 +76,19 @@ def generate_with_bedrock(
     *,
     model_input: BaseModel | dict[str, Any] | None = None,
 ) -> AgentOutputEnvelope[ArtifactT]:
-    if is_source_transcription(request):
-        raise BedrockProviderError(
-            "Source transcription is not an approved Bedrock operation.")
     invocation = _invocation(request)
     policy = invocation.provider_policy
     _validate_live_policy(policy)
     pricing = _pricing(policy.model)
     generated_type = GeneratedAgentOutput[artifact_type]
     semantic = is_semantic_enrichment(request)
+    transcription = is_source_transcription(request)
     schema_json = output_schema(
         request,
         artifact_type,
         generated_type,
         semantic,
-        False,
+        transcription,
     )
     response = _invoke_bedrock(
         agent_code,
@@ -110,7 +108,7 @@ def generate_with_bedrock(
         artifact_type,
         generated_type,
         semantic,
-        False,
+        transcription,
         invocation,
         usage,
     )

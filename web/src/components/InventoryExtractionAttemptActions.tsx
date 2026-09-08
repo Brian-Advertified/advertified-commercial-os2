@@ -55,7 +55,7 @@ function RetryAction({ tenantId, record, actions, reason }: Props) {
   const attempt = record.extractionAttempts[0]
   if (!attempt ||
       !retryableStatuses.has(attempt.status) ||
-      attempt.providerName === 'retained-docling-projection') return null
+      attempt.providerName === 'retained-source-projection') return null
   return <button className="primary-button"
     disabled={actions.busy || !reason.trim()}
     onClick={() => void actions.run(

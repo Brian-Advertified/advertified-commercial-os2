@@ -105,7 +105,7 @@ public sealed partial class InventoryExtractionAttemptProcessor(
         {
             await ReconcileAsync(
                 claim, MasterDataCodes.InventoryExtractionAttemptStatuses.Submitting,
-                "Docling submission response was lost or could not be interpreted.",
+                "Provider submission response was lost or could not be interpreted.",
                 cancellationToken);
             return;
         }

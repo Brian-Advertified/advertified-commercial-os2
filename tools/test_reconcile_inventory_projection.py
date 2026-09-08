@@ -37,7 +37,7 @@ class ReconciliationMatchTests(unittest.TestCase):
     def test_same_page_and_site_locator_matches_for_field_audit(self) -> None:
         reference = self.reference("BS-113", "R20 000")
         candidate = self.candidate("Unreadable source image", 2_000_000)
-        candidate["sourceLocator"] = "docling:page=7;site-card=1"
+        candidate["sourceLocator"] = "source:page=7;site-card=1"
 
         score = match_score(reference_view(reference), candidate_view(candidate))
 
@@ -95,7 +95,7 @@ class ReconciliationMatchTests(unittest.TestCase):
     @staticmethod
     def candidate(name: str, rate_minor: int) -> dict:
         return {
-            "sourceLocator": "docling:page=7;text=42;line=1",
+            "sourceLocator": "source:page=7;text=42;line=1",
             "values": {"name": name, "rateAmountMinor": rate_minor},
             "evidence": [],
         }

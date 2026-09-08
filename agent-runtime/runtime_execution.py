@@ -105,6 +105,15 @@ ENRICHMENT_INSTRUCTION = (
     "code owns status, governance and acceptance."
 )
 
+TRANSCRIPTION_INSTRUCTION = (
+    "Transcribe only supplier facts visible in the supplied source items and images. "
+    "Preserve raw wording, numbers and source locators exactly. Do not infer semantic "
+    "classification, rate type, currency, availability or dates. Return no candidate "
+    "without a name or product code, and account for every supplied image by citing "
+    "its exact locator or listing it in omitted_source_locators. Deterministic code "
+    "owns normalization, acceptance and publication."
+)
+
 INSTRUCTIONS: dict[AgentCode, str] = {
     AgentCode.BUSINESS_INTERPRETATION: (
         "Interpret the business from approved evidence only."
@@ -177,20 +186,11 @@ def execute_agent(
                 status_code=503,
                 detail="Requested provider is not enabled.",
             )
-        if (
-            isinstance(request, InventorySemanticAgentRequest)
-            and request.operation == SOURCE_TRANSCRIPTION
-        ):
-            raise HTTPException(
-                status_code=503,
-                detail=(
-                    "Inventory source transcription must be completed by "
-                    "deterministic extraction or human review."
-                ),
-            )
         instruction = (
             SUPPLIED_BRIEF_INSTRUCTION if isinstance(request, SuppliedBriefRequest) else
             SCHEMA_INSTRUCTION if isinstance(request, SchemaDiscoveryRequest) else ENRICHMENT_INSTRUCTION
+            if isinstance(request, InventorySemanticAgentRequest)
+            and request.operation == SEMANTIC_ENRICHMENT else TRANSCRIPTION_INSTRUCTION
             if isinstance(request, InventorySemanticAgentRequest)
             else INSTRUCTIONS[agent_code]
         )

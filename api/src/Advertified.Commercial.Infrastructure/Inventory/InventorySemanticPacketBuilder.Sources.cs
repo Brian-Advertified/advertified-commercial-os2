@@ -6,12 +6,12 @@ internal static partial class InventorySemanticPacketBuilder
     private static List<
         InventorySemanticPacketSources> BuildSources(
             List<InventorySemanticSourceItem> items,
-            IReadOnlyList<InventorySemanticImage> images,
+            InventorySemanticImage[] images,
             InventorySemanticOptions settings)
     {
         var result = new List<
             InventorySemanticPacketSources>();
-        if (items.Count > 1 || images.Count == 0)
+        if (items.Count > 1 || images.Length == 0)
         {
             result.AddRange(Pack(
                     items, settings.MaximumChunkCharacters)
@@ -41,12 +41,11 @@ internal static partial class InventorySemanticPacketBuilder
             .Select(image => ContextPrefix(image.Locator))
             .Where(value => value is not null)
             .ToHashSet(StringComparer.Ordinal);
-        var result = new List<InventorySemanticSourceItem>
-        {
-            items[0],
-        };
-        var characters = ItemSize(items[0]);
-        foreach (var item in items.Skip(1).Where(item =>
+        var result = items.Count == 0
+            ? []
+            : new List<InventorySemanticSourceItem> { items[0] };
+        var characters = items.Count == 0 ? 0 : ItemSize(items[0]);
+        foreach (var item in items.Skip(items.Count == 0 ? 0 : 1).Where(item =>
                      prefixes.Any(prefix =>
                          item.Locator == prefix ||
                          item.Locator.StartsWith(
@@ -227,7 +226,7 @@ internal static partial class InventorySemanticPacketBuilder
     private static string? PagePrefix(
         InventorySemanticSourceItem item)
     {
-        const string prefix = "docling:page=";
+        const string prefix = "source:page=";
         if (!item.Locator.StartsWith(
                 prefix, StringComparison.Ordinal))
             return null;

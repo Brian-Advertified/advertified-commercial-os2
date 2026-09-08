@@ -121,7 +121,7 @@ public sealed class InventoryProjectionVerificationService(
         Mapped(InventoryProjectionVerificationStages.AdapterExtraction,
             "The adapter result and exact provider JSON are retained."),
         Mapped(InventoryProjectionVerificationStages.DocumentProjection,
-            "The authenticated Python Docling projection executed."),
+            "The configured source extraction adapter executed."),
         Mapped(InventoryProjectionVerificationStages.SchemaExtraction,
             "The versioned Python projector mapped source structures to typed rows."),
         Skipped(InventoryProjectionVerificationStages.SemanticEnrichment,

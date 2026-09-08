@@ -6,6 +6,30 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 internal static partial class InventorySemanticPacketBuilder
 {
     internal static IReadOnlyList<InventorySemanticPacket>
+        BuildTranscription(
+            InventoryExtractionResult extraction,
+            InventoryCodeSets codeSets,
+            InventorySemanticOptions settings)
+    {
+        var items = ReadItems(extraction, settings);
+        var images = ReadImages(extraction, settings);
+        var sources = BuildSources(items, images, settings).ToArray();
+        if (sources.Length == 0 ||
+            sources.Length > settings.MaximumChunksPerDocument)
+            throw new InventorySemanticInputRejectedException();
+        var codes = new InventorySemanticCodes(
+            Sorted(codeSets.Channels),
+            Sorted(codeSets.ProductTypes),
+            Sorted(codeSets.RateTypes),
+            Sorted(codeSets.Currencies),
+            Sorted(codeSets.Availability));
+        return sources.Select((source, index) =>
+            CreateTranscriptionPacket(
+                codes, source, index + 1, sources.Length, settings))
+            .ToArray();
+    }
+
+    internal static IReadOnlyList<InventorySemanticPacket>
         BuildEnrichment(
             InventoryExtractionResult extraction,
             InventoryCodeSets codeSets,
@@ -14,7 +38,6 @@ internal static partial class InventorySemanticPacketBuilder
         var items = ReadItems(
             extraction,
             settings);
-        // Embedded images are handled by local Docling OCR before this stage.
         // Bedrock receives only deterministic rows and their source text.
         var sources = BuildSources(items, [], settings)
             .ToArray();
@@ -130,6 +153,61 @@ internal static partial class InventorySemanticPacketBuilder
             settings.MaximumCostUsdMicros(
                 planJson.Length,
                 0));
+    }
+
+    private static InventorySemanticPacket CreateTranscriptionPacket(
+        InventorySemanticCodes codes,
+        InventorySemanticPacketSources source,
+        int number,
+        int count,
+        InventorySemanticOptions settings)
+    {
+        var planJson = JsonSerializer.Serialize(new
+        {
+            promptVersion = settings.PromptVersion,
+            operation = InventorySemanticOperations.SourceTranscription,
+            chunkNumber = number,
+            chunkCount = count,
+            sourceItems = source.Items,
+            sourceImages = source.Images,
+            existingRows = Array.Empty<object>(),
+            governedCodes = codes,
+        }, WireJson);
+        var inputHash = Hash(planJson);
+        return new InventorySemanticPacket(
+            StepId(inputHash),
+            InventorySemanticOperations.SourceTranscription,
+            number,
+            count,
+            inputHash,
+            planJson,
+            source.Items,
+            [],
+            source.Images,
+            settings.MaximumCostUsdMicros(
+                planJson.Length,
+                source.Images.Count));
+    }
+
+    private static InventorySemanticImage[] ReadImages(
+        InventoryExtractionResult extraction,
+        InventorySemanticOptions settings)
+    {
+        var source = extraction.Document.SourceImages ?? [];
+        if (source.Count > settings.MaximumImagesPerDocument ||
+            source.Sum(image => (long)image.ByteLength) >
+                settings.MaximumImageDocumentBytes ||
+            source.Any(image =>
+                image.ByteLength <= 0 ||
+                image.ByteLength > settings.MaximumImageBytes))
+            throw new InventorySemanticInputRejectedException();
+        return source.Select((image, index) => new InventorySemanticImage(
+            index + 1,
+            image.Locator,
+            image.MediaType,
+            image.Base64Content,
+            image.ByteLength,
+            image.Sha256)).ToArray();
     }
 }
 

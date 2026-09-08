@@ -78,7 +78,7 @@ internal static class InventoryAcceptancePolicy
             : MappingRevision(schema);
         var provenance = schema?.Provenance ??
             new InventorySchemaProvenance(
-                "python-docling-projector",
+                "source-transcription-projector",
                 extraction.AdapterVersion,
                 null,
                 null,

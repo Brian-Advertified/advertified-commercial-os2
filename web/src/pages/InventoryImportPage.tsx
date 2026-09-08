@@ -86,7 +86,7 @@ function ExtractionAttemptPanel({ tenantId, record, actions }: {
         onChange={event => setReason(event.target.value)} /></label>
       {attempt.status === inventoryCodes.extractionStatus.reconciliationRequired &&
         <label className="field-group">
-        Confirmed Docling task ID<input value={externalTaskId}
+        Confirmed provider task ID<input value={externalTaskId}
           onChange={event => setExternalTaskId(event.target.value)} /></label>}
     </div><ExtractionAttemptActions tenantId={tenantId} record={record} actions={actions}
       reason={reason} externalTaskId={externalTaskId} />

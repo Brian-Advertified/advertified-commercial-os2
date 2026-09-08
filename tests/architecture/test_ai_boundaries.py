@@ -15,9 +15,8 @@ def test_governed_bedrock_routes_match_the_approved_profiles() -> None:
         )
     )["AgentRuntime"]
     models = settings["Models"]
-    sonnet = "global.anthropic.claude-sonnet-4-6"
-    nova_lite = "global.amazon.nova-2-lite-v1:0"
-    reasoning_agents = {
+    nova_lite = "amazon.nova-lite-v1:0"
+    governed_routes = {
         "business_interpretation",
         "opportunity_intelligence",
         "strategy",
@@ -26,16 +25,17 @@ def test_governed_bedrock_routes_match_the_approved_profiles() -> None:
         "brief_drafting__supplied_brief_understanding",
         "audience",
         "inventory_intelligence",
+        "inventory_intelligence__schema_discovery",
+        "inventory_intelligence__source_transcription",
+        "inventory_intelligence__semantic_enrichment",
         "media_planning",
         "proposal_narrative",
         "creative",
         "measurement",
     }
 
-    assert {models[route] for route in reasoning_agents} == {sonnet}
-    assert models["inventory_intelligence__schema_discovery"] == nova_lite
-    assert models["inventory_intelligence__semantic_enrichment"] == nova_lite
-    assert "source_transcription" not in models
+    assert set(models) == governed_routes
+    assert set(models.values()) == {nova_lite}
 
 
 def test_ai_interpretation_is_not_implemented_in_production_csharp() -> None:
@@ -89,7 +89,6 @@ def test_inventory_extraction_runtime_cannot_reference_corpus_memory() -> None:
         "physical-sources",
         "semantic-v1",
         "observed-3.9",
-        "raw-docling",
         "inventory-evidence",
         "replay-input",
     }
@@ -102,21 +101,24 @@ def test_inventory_extraction_runtime_cannot_reference_corpus_memory() -> None:
     assert not violations
 
 
-def test_python_inventory_projection_has_only_current_document_inputs() -> None:
-    contract = (
-        REPO_ROOT / "agent-runtime" / "inventory_extraction_contracts.py"
+def test_retired_document_provider_has_no_executable_runtime_surface() -> None:
+    runtime = REPO_ROOT / "agent-runtime"
+    inventory = (
+        REPO_ROOT
+        / "api"
+        / "src"
+        / "Advertified.Commercial.Infrastructure"
+        / "Inventory"
+    )
+    retired_provider = "doc" + "ling"
+    assert not list(runtime.glob(f"inventory_{retired_provider}_*.py"))
+    assert not (runtime / "inventory_extraction_service.py").exists()
+    assert not (
+        inventory / f"{retired_provider.title()}InventoryExtractionAdapter.cs"
+    ).exists()
+    assert "/v1/inventory-extraction/project" not in (
+        runtime / "main.py"
     ).read_text(encoding="utf-8")
-    request_body = contract.split(
-        "class InventoryProjectionRequest", 1
-    )[1].split("class ExtractedRateVariant", 1)[0]
-
-    assert "provider_document" in request_body
-    assert "source_hash" not in request_body
-    assert "document_class" not in request_body
-    assert "file_name" not in request_body
-    assert "supplier" not in request_body
-    assert "previous" not in request_body
-    assert "corpus" not in request_body
 
 
 def test_inventory_semantic_packets_cannot_receive_source_identity() -> None:
@@ -151,3 +153,25 @@ def test_inventory_semantic_packets_cannot_receive_source_identity() -> None:
     assert "request.SourceHash" not in operations
     assert "request.DocumentClass" not in operations
     assert "request.FileName" not in operations
+
+
+def test_every_http_agent_route_uses_the_monthly_budget_handler() -> None:
+    program = (REPO_ROOT / "api" / "Program.cs").read_text(encoding="utf-8")
+    supplied = (
+        REPO_ROOT / "api" / "Startup" / "SuppliedBriefConfiguration.cs"
+    ).read_text(encoding="utf-8")
+    clients = (
+        "HttpOpportunityAgentClient",
+        "HttpPlanningAgentClient",
+        "HttpProposalNarrativeClient",
+        "HttpMeasurementAgentClient",
+        "InventorySemanticAgentClient",
+    )
+    for client in clients:
+        registration = program.split(f"AddHttpClient<{client}>", 1)[1]
+        registration = registration.split(";", 1)[0]
+        assert "AddHttpMessageHandler<AiMonthlyBudgetHandler>" in registration
+    registration = supplied.split(
+        "AddHttpClient<HttpSuppliedBriefAgentClient>", 1
+    )[1].split(";", 1)[0]
+    assert "AddHttpMessageHandler<AiMonthlyBudgetHandler>" in registration

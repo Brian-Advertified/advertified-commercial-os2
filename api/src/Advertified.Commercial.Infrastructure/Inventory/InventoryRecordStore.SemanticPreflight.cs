@@ -82,18 +82,6 @@ public sealed partial class InventoryRecordStore
           AND prompt_version = {3}
         """;
 
-    private const string SemanticCommittedCostSql = """
-        SELECT COALESCE(sum(
-            CASE
-                WHEN status_code = {1}
-                THEN incremental_cost_usd_micros
-                ELSE maximum_cost_usd_micros
-            END), 0)::bigint AS "Value"
-        FROM commercial.inventory_semantic_runs
-        WHERE tenant_id = {0}
-          AND budget_scope = {2}
-        """;
-
     internal Task<List<SemanticPreflightSourceRow>>
         ListSemanticPreflightSourcesAsync(
             TenantId tenantId,
@@ -107,7 +95,7 @@ public sealed partial class InventoryRecordStore
                     tenantId.Value,
                     importId,
                     MasterDataCodes.LifecycleStatuses.ReviewRequired,
-                    "docling",
+                    "source-extraction",
                     projectionVersion,
                     MasterDataCodes.InventoryExtractionAttemptStatuses
                         .Completed))
@@ -131,14 +119,12 @@ public sealed partial class InventoryRecordStore
             .ToListAsync(cancellationToken);
 
     internal Task<long> ReadSemanticCommittedCostAsync(
-        TenantId tenantId,
-        string budgetScope,
+        DateTimeOffset monthStart,
         CancellationToken cancellationToken) =>
         dbContext.Database.SqlQuery<long>(
-                FormattableStringFactory.Create(
-                    SemanticCommittedCostSql,
-                    tenantId.Value,
-                    MasterDataCodes.LifecycleStatuses.Completed,
-                    budgetScope))
+                $"""
+                SELECT governance.read_ai_monthly_budget(
+                    {DateOnly.FromDateTime(monthStart.UtcDateTime)}) AS "Value"
+                """)
             .SingleAsync(cancellationToken);
 }

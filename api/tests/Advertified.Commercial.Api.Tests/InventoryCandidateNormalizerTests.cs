@@ -27,7 +27,7 @@ public sealed class InventoryCandidateNormalizerTests
                 ["name"] = "pptx:slide=2;shape=4",
             });
         var provider = InventoryExtractionContract.Create(
-            "docling",
+            "source-extraction",
             "test",
             InventoryExtractionOptions.CurrentSchemaVersion,
             sourceHash,
@@ -72,7 +72,7 @@ public sealed class InventoryCandidateNormalizerTests
                     "OOH advertising terms apply. Rates are per month.",
             });
         var provider = InventoryExtractionContract.Create(
-            "docling",
+            "source-extraction",
             "test",
             InventoryExtractionOptions.CurrentSchemaVersion,
             sourceHash,

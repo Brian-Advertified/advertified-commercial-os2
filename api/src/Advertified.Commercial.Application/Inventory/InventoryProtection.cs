@@ -57,6 +57,13 @@ public sealed record InventoryExtractedSourceElement(
     string RawValue,
     string? PositionJson = null);
 
+public sealed record InventoryExtractedSourceImage(
+    string Locator,
+    string MediaType,
+    string Base64Content,
+    int ByteLength,
+    string Sha256);
+
 public sealed record InventoryExtractionDocument(
     string SchemaVersion,
     IReadOnlyList<InventoryExtractedRow> Rows,
@@ -71,7 +78,9 @@ public sealed record InventoryExtractionDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     IReadOnlyList<InventoryExtractedSourceElement>? SourceElements = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    IReadOnlyList<string>? ProjectionWarnings = null);
+    IReadOnlyList<string>? ProjectionWarnings = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<InventoryExtractedSourceImage>? SourceImages = null);
 
 public sealed record InventoryExtractionResult(
     string AdapterCode,

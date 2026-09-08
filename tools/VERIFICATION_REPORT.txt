@@ -424,7 +424,7 @@ Inventory processing was temporarily enabled for extraction comparison, then rev
 
 EXTRACTION INFRASTRUCTURE STATUS:
 ----------------------------------------
-Current production infrastructure uses Docling extraction adapter
-Docling service (localhost:55001) was not available during verification
+The retired document provider has been removed from production infrastructure.
+No live document-provider service was used during verification.
 Inventory processing is intentionally paused for maintenance safety
 This verification used Python-based extraction simulation for comparison

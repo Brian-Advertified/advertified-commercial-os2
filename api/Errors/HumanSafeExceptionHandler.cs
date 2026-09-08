@@ -19,6 +19,7 @@ using Advertified.Commercial.Application.Measurement;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.MasterData;
+using Advertified.Commercial.Infrastructure.Opportunity;
 
 namespace Advertified.Commercial.Api.Errors;
 
@@ -70,6 +71,11 @@ public sealed class HumanSafeExceptionHandler(
                 "AI assistance is unavailable",
                 "The agent runtime is disabled. No AI artefact was created.",
                 MasterDataCodes.AgentFailureReasons.AgentRuntimeUnavailable),
+            AiMonthlyBudgetExceededException => new(
+                StatusCodes.Status429TooManyRequests,
+                "Monthly AI budget reached",
+                "No provider request was made. The USD 5 monthly allowance must reset before another live AI request can run.",
+                "AI_MONTHLY_BUDGET_EXCEEDED"),
             InventoryProcessingPausedException => new(
                 StatusCodes.Status503ServiceUnavailable,
                 "Inventory processing is paused",

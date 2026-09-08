@@ -70,10 +70,6 @@ services:
       ADVERTIFIED_AGENT_RUNTIME_MODE: deterministic
       ADVERTIFIED_INVENTORY_PROCESSING_PAUSED: "true"
       ADVERTIFIED_AGENT_RUNTIME_SERVICE_KEY: advertified-agent-runtime-local-only
-      DOCLING_BASE_URL: http://docling:5001
-      DOCLING_API_KEY: ${DOCLING_API_KEY:-advertified-docling-local-only}
-      DOCLING_EMBEDDED_IMAGE_TIMEOUT_SECONDS: "120"
-      DOCLING_EMBEDDED_IMAGE_MAX: "20"
     ports:
       - "127.0.0.1:5098:8080"
 
@@ -109,11 +105,8 @@ services:
       InventoryProtection__UseTls: "false"
       InventoryProtection__ClamAvHost: clamav
       InventoryProtection__ClamAvPort: "3310"
-      InventoryExtraction__Mode: Docling
+      InventoryExtraction__Mode: Deterministic
       InventoryProcessing__Paused: "true"
-      InventoryExtraction__BaseUrl: http://docling:5001
-      InventoryExtraction__ApiKey: ${DOCLING_API_KEY:-advertified-docling-local-only}
-      InventoryExtraction__TimeoutSeconds: "600"
       WorkerDispatch__InventoryExtractionMaxConcurrency: "1"
       InventoryEmbedding__Mode: Deterministic
       AgentRuntime__Mode: HttpDeterministic
@@ -131,8 +124,6 @@ services:
       minio:
         condition: service_healthy
       clamav:
-        condition: service_healthy
-      docling:
         condition: service_healthy
       redis:
         condition: service_healthy
