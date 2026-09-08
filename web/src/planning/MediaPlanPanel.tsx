@@ -25,7 +25,8 @@ export function MediaPlanPanel({ plan, busy, onResolve, onApprove }: {
       const visual = mediaVisual(line.channel)
       return <article className={`plan-line media-tone-${visual.tone}`} key={line.id}>
         <div className="media-identity"><MediaTypeIcon channel={line.channel} />
-          <div><span>{visual.label}</span><h3>{line.name}</h3><small>{line.geography}</small></div></div>
+          <div><span>{visual.label}</span><h3 title={line.name}>{line.name}</h3>
+            <small>{line.geography}</small></div></div>
         <div className="plan-line-periods">{line.runningPeriods.map(period =>
           <span key={`${period.start}-${period.end}`}>{formatDate(period.start)} – {formatDate(period.end)}</span>)}</div>
         <div className="plan-line-commercial"><span>Qty <strong>{line.quantity}</strong>

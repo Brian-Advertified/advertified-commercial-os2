@@ -9,6 +9,7 @@ import './proposal.css'
 import './proposal-funding.css'
 import './email-automation.css'
 import './marketplace.css'
+import './reporting.css'
 import './booking.css'
 import './funding.css'
 import './campaign-list.css'
@@ -20,6 +21,7 @@ import './delivery-requests.css'
 import './workbench.css'
 import './brief-workbench.css'
 import './brief-record.css'
+import './briefs-index.css'
 import './inventory-workbench.css'
 import './operations-workbench.css'
 import './agent-operations.css'
@@ -128,6 +130,53 @@ function deferredRoute(content: ReactNode) {
   return <Suspense fallback={<LoadingState label="Loading page" />}>{content}</Suspense>
 }
 
+function authenticatedRouteElements() {
+  return <>
+  <Route path="/workspaces" element={deferredRoute(<WorkspacesPage />)} />
+  <Route path="/home" element={deferredRoute(<HomePage />)} />
+  <Route path="/opportunities" element={deferredRoute(<OpportunitiesPage />)} />
+  <Route path="/opportunities/:opportunityId" element={deferredRoute(<OpportunityDetailPage />)} />
+  <Route path="/strategies/:strategyId" element={deferredRoute(<StrategyPage />)} />
+  <Route path="/runs/:runId" element={deferredRoute(<RunPage />)} />
+  <Route path="/briefs" element={deferredRoute(<BriefsIndexPage />)} />
+  <Route path="/briefs/new" element={deferredRoute(<NewBriefPage />)} />
+  <Route path="/briefs/:briefId" element={deferredRoute(<BriefPage />)} />
+  <Route path="/strategy-stp" element={deferredRoute(<StrategyStpIndexPage />)} />
+  <Route path="/stp/:briefVersionId" element={deferredRoute(<StpPage />)} />
+  <Route path="/inventory" element={deferredRoute(<InventoryPage />)} />
+  <Route path="/inventory/imports/:importId" element={deferredRoute(<InventoryImportPage />)} />
+  <Route path="/inventory/products/:productId" element={deferredRoute(<InventoryProductPage />)} />
+  <Route path="/planning" element={deferredRoute(<PlanningIndexPage />)} />
+  <Route path="/planning/:briefVersionId" element={deferredRoute(<PlanningPage />)} />
+  <Route path="/proposals" element={deferredRoute(<ProposalsIndexPage />)} />
+  <Route path="/briefs/:briefId/proposals/new" element={deferredRoute(<NewProposalPage />)} />
+  <Route path="/proposals/:proposalId" element={deferredRoute(<ProposalPage />)} />
+  <Route path="/ooh-inbox" element={deferredRoute(<OohInboxPage />)} />
+  <Route path="/marketplace" element={deferredRoute(<MarketplacePage />)} />
+  <Route path="/bookings" element={deferredRoute(<BookingsPage />)} />
+  <Route path="/funding" element={deferredRoute(<FundingPage />)} />
+  <Route path="/campaigns" element={deferredRoute(<CampaignsPage />)} />
+  <Route path="/campaigns/:campaignId" element={deferredRoute(<CampaignPage />)} />
+  <Route path="/creative-assets/:assetId" element={deferredRoute(<SupplierCreativePage />)} />
+  <Route path="/delivery-proof-requests" element={deferredRoute(<DeliveryProofRequestsPage />)} />
+  <Route path="/campaigns/:campaignId/bookings/:bookingId/delivery-proof/new" element={deferredRoute(<DeliveryProofSubmissionPage />)} />
+  <Route path="/delivery-proofs/:proofId" element={deferredRoute(<DeliveryProofPage />)} />
+  <Route path="/performance-evidence/:evidenceId" element={deferredRoute(<PerformanceEvidencePage />)} />
+  <Route path="/measurement" element={deferredRoute(<MeasurementIndexPage />)} />
+  <Route path="/reports" element={deferredRoute(<ReportsIndexPage />)} />
+  <Route path="/measurement-reports/:reportId" element={deferredRoute(<MeasurementReportPage />)} />
+  <Route path="/admin/commercial" element={deferredRoute(<CommercialPolicyPage />)} />
+  <Route path="/admin/agents" element={deferredRoute(<AgentOperationsPage />)} />
+  <Route path="/admin/onboarding" element={deferredRoute(<OnboardingPage />)} />
+  <Route path="/profile" element={deferredRoute(<ProfilePage />)} />
+  <Route path="/tasks" element={deferredRoute(<TasksPage />)} />
+  <Route path="/search" element={deferredRoute(<SearchPage />)} />
+  <Route path="/approvals" element={deferredRoute(<ApprovalsIndexPage />)} />
+  <Route path="/notifications" element={deferredRoute(<NotificationsPage />)} />
+  <Route path="*" element={deferredRoute(<NotFoundPage />)} />
+  </>;
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -143,48 +192,7 @@ function App() {
         <Route path="/sign-in" element={<SignInPage />} />
         <Route path="/supplier-claim/:tenantId/:invitationId" element={deferredRoute(<SupplierClaimPage />)} />
         <Route element={deferredRoute(<AuthenticatedApplication />)}>
-          <Route path="/workspaces" element={deferredRoute(<WorkspacesPage />)} />
-          <Route path="/home" element={deferredRoute(<HomePage />)} />
-          <Route path="/opportunities" element={deferredRoute(<OpportunitiesPage />)} />
-          <Route path="/opportunities/:opportunityId" element={deferredRoute(<OpportunityDetailPage />)} />
-          <Route path="/strategies/:strategyId" element={deferredRoute(<StrategyPage />)} />
-          <Route path="/runs/:runId" element={deferredRoute(<RunPage />)} />
-          <Route path="/briefs" element={deferredRoute(<BriefsIndexPage />)} />
-          <Route path="/briefs/new" element={deferredRoute(<NewBriefPage />)} />
-          <Route path="/briefs/:briefId" element={deferredRoute(<BriefPage />)} />
-          <Route path="/strategy-stp" element={deferredRoute(<StrategyStpIndexPage />)} />
-          <Route path="/stp/:briefVersionId" element={deferredRoute(<StpPage />)} />
-          <Route path="/inventory" element={deferredRoute(<InventoryPage />)} />
-          <Route path="/inventory/imports/:importId" element={deferredRoute(<InventoryImportPage />)} />
-          <Route path="/inventory/products/:productId" element={deferredRoute(<InventoryProductPage />)} />
-          <Route path="/planning" element={deferredRoute(<PlanningIndexPage />)} />
-          <Route path="/planning/:briefVersionId" element={deferredRoute(<PlanningPage />)} />
-          <Route path="/proposals" element={deferredRoute(<ProposalsIndexPage />)} />
-          <Route path="/briefs/:briefId/proposals/new" element={deferredRoute(<NewProposalPage />)} />
-          <Route path="/proposals/:proposalId" element={deferredRoute(<ProposalPage />)} />
-          <Route path="/ooh-inbox" element={deferredRoute(<OohInboxPage />)} />
-          <Route path="/marketplace" element={deferredRoute(<MarketplacePage />)} />
-          <Route path="/bookings" element={deferredRoute(<BookingsPage />)} />
-          <Route path="/funding" element={deferredRoute(<FundingPage />)} />
-          <Route path="/campaigns" element={deferredRoute(<CampaignsPage />)} />
-          <Route path="/campaigns/:campaignId" element={deferredRoute(<CampaignPage />)} />
-          <Route path="/creative-assets/:assetId" element={deferredRoute(<SupplierCreativePage />)} />
-          <Route path="/delivery-proof-requests" element={deferredRoute(<DeliveryProofRequestsPage />)} />
-          <Route path="/campaigns/:campaignId/bookings/:bookingId/delivery-proof/new" element={deferredRoute(<DeliveryProofSubmissionPage />)} />
-          <Route path="/delivery-proofs/:proofId" element={deferredRoute(<DeliveryProofPage />)} />
-          <Route path="/performance-evidence/:evidenceId" element={deferredRoute(<PerformanceEvidencePage />)} />
-          <Route path="/measurement" element={deferredRoute(<MeasurementIndexPage />)} />
-          <Route path="/reports" element={deferredRoute(<ReportsIndexPage />)} />
-          <Route path="/measurement-reports/:reportId" element={deferredRoute(<MeasurementReportPage />)} />
-          <Route path="/admin/commercial" element={deferredRoute(<CommercialPolicyPage />)} />
-          <Route path="/admin/agents" element={deferredRoute(<AgentOperationsPage />)} />
-          <Route path="/admin/onboarding" element={deferredRoute(<OnboardingPage />)} />
-          <Route path="/profile" element={deferredRoute(<ProfilePage />)} />
-          <Route path="/tasks" element={deferredRoute(<TasksPage />)} />
-          <Route path="/search" element={deferredRoute(<SearchPage />)} />
-          <Route path="/approvals" element={deferredRoute(<ApprovalsIndexPage />)} />
-          <Route path="/notifications" element={deferredRoute(<NotificationsPage />)} />
-          <Route path="*" element={deferredRoute(<NotFoundPage />)} />
+          {authenticatedRouteElements()}
         </Route>
       </Routes>
     </BrowserRouter>

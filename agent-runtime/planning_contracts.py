@@ -9,6 +9,7 @@ from uuid import UUID
 from pydantic import Field, NonNegativeInt, model_validator
 
 from contracts import AgentInvocationEnvelope, ContractModel, StableCode
+from inventory_strategy_contracts import InventoryStrategyContext
 
 
 class PlanningBriefContext(ContractModel):
@@ -50,7 +51,7 @@ class MediaPlanningAgentRequest(ContractModel):
 
 class InventoryBenchmarkFacts(ContractModel):
     policy_version: StableCode
-    geography_basis: StableCode
+    geography_basis: Annotated[str, Field(min_length=1, max_length=500)]
     cohort_size: NonNegativeInt
     median_minor: Annotated[int | None, Field(ge=0)] = None
     percentile: Annotated[Decimal | None, Field(ge=0, le=100)] = None
@@ -146,6 +147,7 @@ class InventoryIntelligenceContext(ContractModel):
     brief_version_id: UUID
     shortlist_version_id: UUID
     candidates: Annotated[tuple[InventoryCandidateFacts, ...], Field(min_length=1)]
+    strategy: InventoryStrategyContext | None = None
 
     @model_validator(mode="after")
     def validate_unique_candidates(self) -> InventoryIntelligenceContext:
@@ -169,6 +171,14 @@ class InventoryIntelligenceAgentRequest(ContractModel):
             "InventoryShortlistVersion",
             self.inventory.shortlist_version_id,
         )
+        if strategy := self.inventory.strategy:
+            for resource_type, resource_id, version in (
+                ("AudienceDefinitionSet", strategy.audience_set_id, strategy.audience_set_version),
+                ("MediaMixVersion", strategy.media_mix_version_id, strategy.media_mix_version),
+            ):
+                if not any(item.resource_type == resource_type and item.resource_id == resource_id
+                           and item.version == version for item in self.invocation.resource_refs):
+                    raise ValueError(f"The exact approved {resource_type} version is required.")
         return self
 
 

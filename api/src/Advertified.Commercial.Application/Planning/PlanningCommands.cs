@@ -6,6 +6,12 @@ namespace Advertified.Commercial.Application.Planning;
 
 public sealed record GenerateAudiencesCommand;
 
+public sealed record ApproveAudienceStrategyCommand(
+    IReadOnlyList<Guid> TargetAudienceIds,
+    string TargetingRationale,
+    string PositioningStatement,
+    string? Reason);
+
 public sealed record GenerateMediaMixCommand;
 
 public sealed record MediaRunningPeriodInput(
@@ -49,6 +55,11 @@ public interface IPlanningCommands
     Task<CommandResult<AudienceDefinitionSetView>> GenerateAudiencesAsync(
         Guid briefVersionId,
         CommandEnvelope<GenerateAudiencesCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<AudienceDefinitionSetView>> ApproveAudienceStrategyAsync(
+        Guid audienceSetId,
+        CommandEnvelope<ApproveAudienceStrategyCommand> envelope,
         CancellationToken cancellationToken);
 
     Task<CommandResult<MediaMixVersionView>> GenerateMediaMixAsync(

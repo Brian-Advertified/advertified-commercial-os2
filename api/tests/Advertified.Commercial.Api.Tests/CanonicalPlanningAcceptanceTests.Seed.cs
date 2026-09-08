@@ -215,12 +215,12 @@ public sealed partial class CanonicalPlanningAcceptanceTests
                 target_audience_ids_json, targeting_rationale,
                 positioning_statement, input_hash, agent_provider_code,
                 agent_model_code, agent_incremental_cost_minor,
-                status_code, created_by, created_at_utc)
-            VALUES ($1, $2, $3, 2, jsonb_build_array($4::uuid),
+                status_code, created_by, approved_by, approved_at_utc, version, created_at_utc)
+            VALUES ($1, $2, $3, 3, jsonb_build_array($4::uuid),
                 'Fixture target backed by a supplied aggregate study.',
                 'Reach the approved structured target without individual inference.',
                 repeat('c', 64), 'deterministic', 'fixture-v1', 0,
-                'APPROVED', $5, $6)
+                'APPROVED', $5, $5, $6, 1, $6)
             """, audienceSetId, TenantId, BriefVersionId, definitionId, OperatorId,
             Now.AddSeconds(1));
         AddCommand(batch,

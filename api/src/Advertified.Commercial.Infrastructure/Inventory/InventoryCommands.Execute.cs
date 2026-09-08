@@ -45,9 +45,6 @@ public sealed partial class InventoryCommands
         InventoryExtractionCompletionPolicy.VerifyResult(extraction, source.SourceHash);
         var codes = await InventoryCodeSets.LoadAsync(store.DbContext, cancellationToken);
         var artifactId = Guid.NewGuid();
-        await InsertExtractionAsync(
-            envelope.TenantId, source.Id, artifactId,
-            extraction, source.Version, cancellationToken);
         var rows = extraction.Rows;
         var now = timeProvider.GetUtcNow();
         var supplier = InventorySupplierIdentityService.ResolveExtraction(source, extraction);
@@ -57,6 +54,11 @@ public sealed partial class InventoryCommands
             supplier.SupplierName,
             codes,
             now);
+        extraction = InventoryExtractionSourceAccounting.Attach(
+            extraction, candidates);
+        await InsertExtractionAsync(
+            envelope.TenantId, source.Id, artifactId,
+            extraction, source.Version, cancellationToken);
         candidates = InventoryAcceptancePolicy.Apply(extraction, source.SourceHash,
             source.Version, codes, candidates, now);
         var documentReview =

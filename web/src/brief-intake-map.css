@@ -3,6 +3,14 @@
   margin: 12px 0 16px;
 }
 
+.brief-place-editor { margin: 16px 0; padding: 16px; border: 1px solid var(--approved-line, #d0d5dd); border-radius: 10px; background: #fafbff; }
+.brief-place-editor h3 { margin: 0; }
+.brief-place-note { color: var(--approved-muted, #667085); }
+.brief-place-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 12px 0; }
+.brief-place-fields label { display: grid; gap: 6px; min-width: 0; }
+.brief-place-fields input { width: 100%; box-sizing: border-box; }
+@media (max-width: 560px) { .brief-place-fields { grid-template-columns: minmax(0, 1fr); } }
+
 .brief-spatial-map-empty {
   min-height: 8rem;
   display: grid;

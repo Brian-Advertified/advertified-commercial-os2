@@ -86,6 +86,25 @@ public interface IProposalCommands
         CommandEnvelope<RejectProposalApprovalCommand> envelope,
         CancellationToken cancellationToken);
 
+    Task<CommandResult<ProposalBrandAssetView>> UploadBrandAssetAsync(
+        CommandEnvelope<UploadProposalBrandAssetCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<ProposalBrandAssetView>> ApproveBrandAssetAsync(
+        Guid assetId,
+        CommandEnvelope<ApproveProposalBrandAssetCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<ProposalVersionView>> ConfigureBrandingAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<ConfigureProposalBrandingCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<ProposalVersionView>> ApproveUnbrandedAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<ApproveUnbrandedProposalCommand> envelope,
+        CancellationToken cancellationToken);
+
     Task<CommandResult<ProposalVersionView>> RenderAsync(
         Guid proposalVersionId,
         CommandEnvelope<RenderProposalCommand> envelope,
@@ -144,6 +163,12 @@ public interface IProposalReader
     Task<IReadOnlyList<ProposalApproverView>> ListApproversAsync(
         ActorId actorId,
         TenantId tenantId,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<ProposalBrandAssetView>> ListBrandAssetsAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        Guid proposalVersionId,
         CancellationToken cancellationToken);
 
     Task<ProposalDocumentContent> GetDocumentAsync(
@@ -273,6 +298,7 @@ public sealed record ProposalVersionView(
     DateTimeOffset? ApprovalRejectedAtUtc,
     string InventoryReviewStatus,
     IReadOnlyList<ProposalInventoryImpactView> InventoryImpacts,
+    ProposalBrandingView Branding,
     long Version,
     DateTimeOffset CreatedAtUtc);
 
@@ -347,4 +373,10 @@ public sealed class ProposalDocumentRequiredException : Exception
 public sealed class ProposalExpiredException : Exception
 {
     public ProposalExpiredException() : base("The proposal has expired.") { }
+}
+
+public sealed class ProposalBrandingRequiredException : Exception
+{
+    public ProposalBrandingRequiredException()
+        : base("Approved agency and client branding, or an authorised unbranded decision, is required.") { }
 }

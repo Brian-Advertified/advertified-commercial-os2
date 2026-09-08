@@ -45,19 +45,10 @@
 }
 
 .advertified-public .brand-tagline-track {
-  display: flex;
-  width: max-content;
-  gap: 24px;
-  animation: public-brand-tagline-scroll 14s linear infinite;
-  will-change: transform;
-}
-
-.advertified-public .brand-tagline-track > span { flex: none; }
-.advertified-public .public-logo-link:hover .brand-tagline-track { animation-play-state: paused; }
-
-@keyframes public-brand-tagline-scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(calc(-50% - 12px)); }
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .advertified-public .public-logo-link--footer img {
@@ -164,9 +155,4 @@
   }
 
   .advertified-public .public-footer__legal { justify-content: flex-start; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .advertified-public .brand-tagline-track { animation: none; }
-  .advertified-public .brand-tagline-track > span:last-child { display: none; }
 }

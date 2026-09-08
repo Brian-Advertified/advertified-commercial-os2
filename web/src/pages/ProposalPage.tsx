@@ -12,6 +12,8 @@ import { masterDataCodes } from '../generated/master-data-codes'
 import { ProposalAgencyActions } from '../proposal/ProposalAgencyActions'
 import { ProposalClientDecision } from '../proposal/ProposalClientDecision'
 import { ProposalEditor } from '../proposal/ProposalEditor'
+import { clientMediaCopy } from '../presentation/media-labels'
+import { ProposalBrandingPanel } from '../proposal/ProposalBrandingPanel'
 import { formatDate, humanizeCode } from '../presentation/format'
 import { ProposalOptionCard } from '../proposal/ProposalOptionCard'
 
@@ -182,6 +184,11 @@ function AgencyProposalContent(props: ProposalContentProps) {
       proposal={proposal} busy={busy} onSave={(input: ProposalUpdateInput) => act(() =>
         proposalApi.update(tenantId, proposal, input, token))} /> :
       <ProposalSummary proposal={proposal} clientView={false} tenantId={tenantId} />}</div>
+    <ProposalBrandingPanel tenantId={tenantId} proposal={proposal} token={token} busy={busy}
+      onConfigure={input => act(() => proposalApi.configureBranding(
+        tenantId, proposal, input, token))}
+      onApproveUnbranded={reason => act(() => proposalApi.approveUnbranded(
+        tenantId, proposal, reason, token))} />
     <ProposalPreview proposal={proposal} busy={busy} />
     <div id="proposal-action"><ProposalAgencyActions tenantId={tenantId} proposal={proposal}
       recipients={props.recipients} approvers={props.approvers}
@@ -217,7 +224,7 @@ function ClientProposalContent(props: ProposalContentProps) {
 function ProposalHero({ proposal }: { proposal: Proposal }) {
   return <header className="proposal-hero proposal-record-hero"><div>
     <p className="eyebrow eyebrow-light">Media proposal</p>
-    <h1 id="proposal-title">{proposal.title}</h1><p>{proposal.executiveSummary}</p></div>
+    <h1 id="proposal-title">{clientMediaCopy(proposal.title)}</h1><p>{clientMediaCopy(proposal.executiveSummary)}</p></div>
     <dl className="proposal-record-metrics">
       <div><dt>Status</dt><dd><span className="status-chip">{humanizeCode(proposal.status, true)}</span></dd></div>
       <div><dt>Client choices</dt><dd>{proposal.options.length}</dd></div>
@@ -233,6 +240,7 @@ function ProposalNavigation({ canPrepare, hasFunding }: {
 }) {
   return <nav className="proposal-navigation" aria-label="Proposal sections">
     <a href="#proposal-details">Summary and wording</a>
+    {canPrepare && <a href="#proposal-branding">Branding</a>}
     <a href="#proposal-options">Client choices</a>
     {canPrepare && <a href="#proposal-action">Next action</a>}
     {hasFunding && <a href="#proposal-funding">Funding handoff</a>}
@@ -246,7 +254,7 @@ function ProposalSummary({ proposal, clientView, tenantId }: {
 }) {
   return <section className={`proposal-section ${clientView ? 'proposal-client-summary' : 'proposal-summary-card'}`}>
     <p className="eyebrow">{clientView ? 'Campaign direction' : 'Executive summary'}</p>
-    <h2>{proposal.executiveSummary}</h2><p>{proposal.terms}</p>
+    <h2>{clientMediaCopy(proposal.executiveSummary)}</h2><p>{proposal.terms}</p>
     {clientView && proposal.document && <a className="secondary-button" target="_blank" rel="noreferrer"
       href={proposalApi.documentUrl(tenantId, proposal.document.id)}>Open proposal PDF</a>}
   </section>

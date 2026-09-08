@@ -210,6 +210,7 @@ jobs:
             --env ASPNETCORE_ENVIRONMENT=Production \
             --env 'ConnectionStrings__CommercialDatabase=Host=127.0.0.1;Port=1;Database=closed;Username=closed;Password=closed;Timeout=1' \
             --env Authentication__Mode=Disabled \
+            --env ReleaseSmoke__Enabled=true \
             --env 'AllowedHosts=localhost;127.0.0.1' \
             --env ReverseProxy__KnownProxies__0=127.0.0.1 \
             --env InventoryProtection__ObjectStoreMode=Minio \
@@ -229,6 +230,7 @@ jobs:
             --env 'ConnectionStrings__CommercialDatabase=Host=127.0.0.1;Port=1;Database=closed;Username=closed;Password=closed;Timeout=1' \
             --env 'ConnectionStrings__WorkerSchedulerDatabase=Host=127.0.0.1;Port=1;Database=closed;Username=closed;Password=closed;Timeout=1' \
             --env Authentication__Mode=Disabled \
+            --env ReleaseSmoke__Enabled=true \
             --env 'AllowedHosts=localhost;127.0.0.1' \
             --env ReverseProxy__KnownProxies__0=127.0.0.1 \
             --env InventoryProtection__ObjectStoreMode=Minio \
@@ -354,7 +356,21 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - name: Validate Compose
+      - name: Validate production Compose contract
+        env:
+          ADVERTIFIED_API_IMAGE: example.invalid/advertified/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          ADVERTIFIED_MIGRATOR_IMAGE: example.invalid/advertified/migrator@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+          ADVERTIFIED_AGENT_RUNTIME_IMAGE: example.invalid/advertified/agent@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+          ADVERTIFIED_WEB_IMAGE: example.invalid/advertified/web@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+          ADVERTIFIED_API_ENV_FILE: /tmp/advertified-api.env
+          ADVERTIFIED_AGENT_ENV_FILE: /tmp/advertified-agent.env
+          ADVERTIFIED_DATA_PROTECTION_KEYS_DIR: /tmp/advertified-keys
+          ADVERTIFIED_DATA_PROTECTION_CERT_PATH: /tmp/advertified-data-protection.pfx
+        run: |
+          touch "$ADVERTIFIED_API_ENV_FILE" "$ADVERTIFIED_AGENT_ENV_FILE" "$ADVERTIFIED_DATA_PROTECTION_CERT_PATH"
+          mkdir --parents "$ADVERTIFIED_DATA_PROTECTION_KEYS_DIR"
+          docker compose --file docker-compose.production.yml config --quiet
+      - name: Validate local Compose
         run: docker compose config --quiet
       - name: Build PostgreSQL with spatial and vector extensions
         run: docker compose build postgres

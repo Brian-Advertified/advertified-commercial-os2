@@ -600,6 +600,10 @@ It contains immutable BriefVersions covering:
 
 An approved BriefVersion is never silently edited. A material change creates a new version.
 
+## 4.6 Brief review interaction [Policy]
+
+A retained, read-only BriefVersion must be reviewable as one continuous document. Section navigation may provide shortcuts, but must not force a confirmation click for every section. Only material clarification or correction and the lifecycle decision actions required by the active approval policy should require user input.
+
 ---
 
 # 5. Evidence Model
@@ -2079,13 +2083,22 @@ AvailabilityVersion, marketplace snapshot where applicable, evidence metadata an
 input hash. A Proposal inherits the approved plan's exact inventory and never searches or
 re-resolves inventory itself.
 
-The governed `INVENTORY_SUITABILITY_OOH_V1` policy weights the visible normalized components:
+The current governed `INVENTORY_SUITABILITY_OOH_V2` policy weights the visible normalized components:
 geographic/route/POI fit 30%, audience/context fit 25%, objective/format fit 15%, budget
 efficiency 15%, evidence quality/freshness 10%, and portfolio coverage/diversity contribution
 5%. Availability is binary and is not scored. Sponsored placement never changes suitability.
 Tie-breaking is deterministic: more complete critical evidence, fresher valid rate, better
 total target coverage, lower client-facing cost for materially equivalent suitability, then
 stable inventory ID.
+
+Version 1 remains retained for historical interpretation and is not comparable to version 2.
+Under version 2, a component without the required measurement or strategic evidence receives no
+credit and carries an explicit unscored evidence gap; a zero with such a gap is not an evidenced
+non-fit. Missing component weights are not redistributed. A channel allocation alone does not
+establish objective/format fit, a lower nominal rate does not establish target-audience cost
+efficiency, and catalogue density does not establish incremental reach. Unattended selection requires
+the exact current scoring-policy version and complete suitability evidence; otherwise an authorised
+human must review the shortlist. Approved historical selections remain immutable.
 
 Every Brief spatial requirement is classified `REQUIRED`, `PREFERRED` or `EXCLUDED` and uses
 one of four canonical forms: point plus explicit radius; versioned authoritative administrative
@@ -2257,6 +2270,8 @@ The intended permanent participation foundation includes:
 - receiving relevant enquiries;
 - responding with rates/availability;
 - participating in governed bookings.
+
+Administrator-approved inventory bootstrap data may be projected into buyer-visible Marketplace listings without waiting for a supplier claim. The projection must use only the current published product version and current eligible rate and availability, preserve immutable listing versions, remain idempotent, exclude duplicates and unavailable or inactive inventory, and never restore a manually archived listing. Suppliers may subsequently claim and govern their own listings through the normal Marketplace lifecycle.
 
 This boundary should be made clear so suppliers are not baited into dependency on something marketed as permanently free and then unexpectedly paywalled.
 
@@ -2804,20 +2819,60 @@ Redis or other approved infrastructure may be used where measured need exists, b
 
 ## 23.2 Production infrastructure topology [Policy]
 
-Advertified is currently AWS-oriented, including `af-south-1` where appropriate.
+Advertified is AWS-oriented and uses `af-south-1` for the launch environment.
 
-The precise production topology (for example EC2 vs managed container compute, database hosting, load balancing and supporting services) is an **infrastructure policy decision**, not a product principle.
+The launch topology is the hardened EC2/Docker path already represented in the AWS account. One
+Compose application stack runs digest-pinned web, API, worker and agent-runtime images. API and
+worker are separate process roles. Only the web edge is published on the host loopback interface;
+the host TLS reverse proxy is the sole public application ingress. Agent runtime, API and worker
+remain on an internal Docker network.
 
-Choose the simplest production-grade topology that meets:
+PostgreSQL 16 with PostGIS and pgvector is external to the application Compose stack. For launch it
+runs on a dedicated private EC2 data host with encrypted EBS, restricted security groups, automated
+EBS snapshots and encrypted logical backups in private S3. RDS is not part of the launch topology.
+Moving to RDS is a later migration requiring measured need, restore rehearsal and an approved change;
+documentation and deployment configuration must not imply that an RDS instance already exists.
 
-- security;
-- availability;
-- backup/recovery;
-- observability;
-- performance;
-- cost requirements.
+Original inventory sources, evidence and generated documents use private AWS S3 through an EC2 IAM
+instance profile. Resend, EventBridge, Docling and the Bedrock runtime are external dependencies.
+Redis is not a production dependency until measured need and an approved design establish one.
+
+The current non-production EC2 instances are not promotable as-is. Production requires encrypted
+volumes, detailed monitoring, least-privilege instance profiles, private database networking, an
+immutable scan-on-push ECR repository for every image, Route 53 DNS, TLS, tested backups and alerting.
+The repository production Compose contract is `infrastructure/docker-compose.production.yml`;
+its fail-closed preflight is `tools/validate-production-configuration.ps1`.
 
 Do not introduce expensive infrastructure merely because it is architecturally fashionable.
+
+### 23.2.1 EC2/Docker release and recovery runbook [Policy]
+
+Before a deployment, record the release commit and four image digests, validate the host/API/agent
+environment files, confirm the backup is current, and run the migrator as a separate one-shot job.
+Start or update only the digest-pinned application stack, then require API, worker, runtime and web
+readiness plus the retained production smoke journeys. Promotion is incomplete until evidence and
+the named approver are recorded.
+
+Application rollback selects the previously approved image digests and reruns the same preflight.
+Database changes are forward-compatible: never claim an irreversible migration was rolled back.
+When compatibility cannot be maintained, stop writes and use the documented database-restore path
+under incident authority.
+
+A database restore is performed into an isolated replacement data host from the encrypted snapshot
+and logical backup. Verify PostGIS/pgvector, the migration range, master-data version, row counts,
+tenant isolation and critical read-only journeys before moving application traffic. Record actual
+RPO/RTO and evidence; an untested backup is not release evidence.
+
+A seed incident never deletes history in place. Pause inventory processing, stop publication, retain
+the source hash and seed version, archive seed-managed Marketplace listings, and either apply a
+reviewed correcting seed or restore the isolated pre-seed backup. Replacement inventory expires the
+prior supplier release and flags affected uncommitted proposals.
+
+For a stuck agent, first inspect queue depth, lease expiry, retry count and the worker readiness
+endpoint. Preserve the run record and correlation ID. Allow bounded lease recovery before restarting
+the worker; never create a duplicate run manually. Failed payment operations remain disabled at
+launch until an approved provider exists. After activation, webhook evidence and reconciliation must
+be retained before any manual commercial correction.
 
 ## 23.3 Modular-monolith default [Principle]
 
@@ -5880,77 +5935,149 @@ local development deliberately has no live Brief-understanding provider and the 
 forbids a fixture fallback; inventory selection itself retains eligibility, rejection, score,
 benchmark and rationale evidence for every shortlist candidate.
 
-## 49.3 Release evidence
+### 49.2.24 Manual production inventory seed delivery — 2026-09-07
 
-A production release records:
+The launch inventory is initial data, not runtime behaviour. Its canonical input is the versioned,
+manually reviewed `data/production/inventory-bootstrap.v1.json`; production must never use the
+development SQL file or rerun document extraction to reconstruct it.
 
-- commit/build identifiers;
-- container/artifact hashes;
-- schema/migration range;
-- master-data/policy versions;
-- exact environment;
-- required test/acceptance results;
-- security/privacy checks;
-- backup/restore evidence where release requires it;
-- provider/model configuration and cost limits;
-- known limitations/blockers;
-- approver(s) and timestamp;
-- rollback/incident plan.
+`tools/generate_inventory_production_seed.py` requires the exact confirmed canonical checksum and
+the real production tenant, creator and independent reviewer identifiers. It namespaces stable IDs
+to that tenant and emits two reviewable files: one transactional inventory-plus-Marketplace SQL seed
+and one non-destructive rollback. Clean, current products with valid rates and availability are
+published; unresolved records stay retained and unpublished. A checksum mismatch, duplicate
+identity, missing identity or invalid configuration stops generation or application.
 
-One unresolved release-blocking check remains a NO-GO. AI cannot waive it.
+Apply the generated seed only after the matching migrations and master data, with automatic
+inventory processing paused and a verified pre-seed backup. Record the generated SQL hash, seed
+version, database target, actor/reviewer identities, row counts and Marketplace counts. Apply it
+first to a production-like restored copy, rerun it to prove zero mutations/duplicates, execute the
+rollback there, restore or reapply, and only then request production change approval. The retained
+launch pack is checked with `tools/validate_production_certification.py`; it fails closed unless all
+10/10/10 accepted journeys, 30 distinct checksum-matched proposal PDFs, lifecycle evidence,
+independent commercial and visual approvals, production checks, active-role and governance
+sign-offs, and a final GO recorded after those decisions are present.
 
-## 49.4 Handoff completeness test [Principle]
+After launch, inventory additions or replacements remain human-reviewed. Until the document
+extraction path earns separate production acceptance, create a new canonical reviewed seed version
+from the supplied source evidence and run the same checksum/rehearsal process. Never edit live
+product rows. A replacement must use the governed supplier-release cutover so the previous release
+is superseded, removed products/listings are expired or archived, and affected uncommitted proposals
+receive inventory-review impacts. If that cutover evidence is unavailable, the replacement is
+blocked rather than applied as a partial seed.
 
-The documentation is considered build-complete only if a competent team can receive only `ADVERTIFIED.md`, `AGENTS.md`, the approved brand assets/environment inputs and an empty implementation repository, then build the system without inventing Advertified business behaviour.
+### 49.2.25 Marketplace-to-reporting local completion packet — 2026-09-08
 
-The team may choose ordinary implementation details such as internal class names, private helper structure, query composition and equivalent library mechanics. It may **not** need to invent or guess:
+Brian Rabuthu authorised the next local, non-production implementation sequence against the
+existing repository and running development stack. Work must proceed in order: complete
+Marketplace visibility, governed search, pagination and truthful listing detail; model the
+currently supplied Google Ads, YouTube and Meta auction inventory only where retained source
+evidence exists; bind approved Audience Strategy inputs into deterministic planning and inventory
+recommendations; apply the governed South African ZAR commercial defaults of 15% VAT, 10% markup
+and 5% commission with exact minor-unit reconciliation; require approved proposal branding or an
+explicitly authorised unbranded route before delivery; and expose reporting from canonical
+measurement records rather than illustrative summaries.
 
-- product scope;
-- user roles or authority;
-- canonical lifecycle/state transitions;
-- data ownership or immutability rules;
-- approval/self-approval behaviour;
-- evidence/materiality behaviour;
-- agent responsibilities/tool boundaries;
-- inventory extraction/publication behaviour;
-- commercial calculations;
-- client/supplier transaction rules;
-- screen outcomes and exceptional states;
-- error/recovery/idempotency behaviour;
-- production acceptance journeys.
+The packet may use only inventory and evidence already retained in this repository and database.
+It may not rerun extraction, upload a replacement corpus, fabricate rates or audience evidence,
+enable Bedrock or another live provider, send externally, create a separate Docker project, or
+weaken tenant, permission, audit, concurrency or immutable-version boundaries. Administrator-
+managed unclaimed supply must not be assigned a fictional supplier tenant merely to enable an RFQ.
+Marketplace visibility must exclude inactive products, stale product versions, unavailable or
+expired availability, and ineffective rates at query time as well as at publication time.
 
-If implementation exposes a genuinely missing business decision, that is a specification defect. The missing decision must be resolved by the owner and added to `ADVERTIFIED.md`; developers must not quietly invent the answer in code.
+Acceptance evidence is targeted deterministic tests, affected architecture and web checks, and a
+connected-browser journey through the existing development application. Docker image builds are
+excluded from this packet unless Brian explicitly requests one, because repeated local image and
+builder-cache creation consumed material workstation storage. Run exactly three distinct local
+proposal previews, retain their hashes and visual/commercial review evidence, then stop for Brian's
+review before generating the remaining twenty-seven. This packet is implementation authority only;
+it is not a production deployment, release approval, or production-readiness decision.
 
----
+The Marketplace visibility implementation traced 7,422 retained candidates, 7,220 approved
+candidates, 7,242 catalogue products, 7,220 active current published products and 6,885 eligible
+published Marketplace listings in the populated local database. The listing API now applies
+server-side search, channel, geography, country, province, city, supplier, format, buying-basis,
+currency and minor-unit price-range filters with stable cursor pagination. Listing detail is
+clickable for all tenants; an RFQ remains unavailable when buyer and supplier are the same tenant.
+Expired rates and availability are rejected at publication and hidden from buyer search using the
+immutable publication snapshot. Supplier inventory replacement remains the canonical write
+boundary that archives superseded listings. A buyer-side read must not query the supplier-owned
+inventory product table: PostgreSQL row-level security correctly hides that table across tenants.
 
-# 50. Final Canonical Statement
+Focused evidence on 2026-09-08: 13 web unit tests passed; the focused web lint, TypeScript check and
+two Marketplace Playwright journeys passed; 73 architecture tests passed; eight focused Commercial
+API unit tests passed under Docker-pinned SDK 10.0.400; and all six Marketplace integration journeys
+passed after the cross-tenant read was corrected. Master-data generation check passed for registry
+2.36.0. No live AI provider, new corpus, external send, production resource or additional Docker
+project was used. The API validation runner now creates and removes a per-run BuildKit builder and
+removes the transient validation image even when integration tests fail, preventing validation
+artifacts from accumulating on the development workstation.
 
-Advertified's durable value is not that an LLM can write a media plan.
+The same packet now binds only an approved Audience Strategy version into planning and preserves its
+identity through approved plans, inventory recommendations and proposal choices. Canonical ZAR
+commercial policy defaults remain 15% VAT, 10% markup and 5% commission, with supplier cost, each
+fee component, VAT and client total exposed separately in operational reporting. Reporting reads
+tenant-scoped canonical workflow, plan, Marketplace, proposal, booking, proof and measurement records;
+it supports date, client, campaign, channel, supplier, status, owner and reviewer lenses and exposes
+stage ageing and actionable exceptions without manufacturing illustrative figures.
 
-The durable value is the platform's ability to know and preserve:
+Proposal delivery now fails closed until both agency and client JPEG brand assets have recorded
+source, uploader and approval evidence, or an authorised human records an explicit unbranded reason.
+Approved brand binaries are immutable at the database boundary, while proposal versions snapshot the
+agency/client identity, selected assets and colours used for rendering. The proposal PDF uses the
+approved identity and a neutral, visibly authorised treatment for the exceptional unbranded route.
+The Marketplace, proposal-branding and reporting surfaces use the shared compact commercial workspace
+hierarchy, responsive controls and truthful empty/error states; no decorative raster assets are
+generated for these interfaces.
 
-- what was requested;
-- what was actually supplied;
-- what is verified;
-- what is inferred;
-- what is unknown;
-- which evidence supports each material claim;
-- what inventory exists;
-- what its commercial state is;
-- what suppliers quoted;
-- what was negotiated;
-- what was approved;
-- who approved it and whether approval was self or independent;
-- what the client selected;
-- what was booked;
-- what was delivered;
-- what it cost;
-- what happened afterwards;
-- what was learned.
+Additional focused evidence on 2026-09-08: the proposal PDF renderer passed two deterministic unit
+tests; proposal and migration acceptance passed four scenarios against disposable PostgreSQL,
+including the branding readiness block, unbranded authorisation, render/share/client decision and
+canonical reporting query; web TypeScript and lint passed; and all 73 architecture checks passed.
+Validation left no transient API image or BuildKit builder. Docker-reported cleanup explicitly
+reclaimed 3.411 GB of unused build cache and dangling image layers; two temporary anonymous
+validation volumes were also removed while all nine long-running development services remained healthy.
 
-Specialised AI agents reason across that governed history to reduce manual work and improve commercial preparation. They do not replace the evidence, commercial rules, human authority or transaction record.
+Connected preview inspection then stopped before proposal generation. The retained Jameson source
+requires digital large-format inventory and excludes 3 x 6 sites, but every approved duplicate Brief
+generated by the previous preview runner lost that source constraint; its latest plan therefore
+selected an ineligible static glass-wrap line. The source-grounding boundary now retains exact,
+current labelled constraint lines, and shortlist eligibility rejects static OOH for a digital-only
+Brief and rejects inventory without canonical large-format evidence. The populated catalogue has
+2,071 DOOH product versions but zero versions whose retained format evidence identifies large format,
+so the Jameson preview remains truthfully blocked rather than substituting a generic screen.
 
-> **This `ADVERTIFIED.md` is the canonical Advertified business, product, commercial, governance, workflow, AI, data, UX, architecture and production build truth. Together with `AGENTS.md` for contributor behaviour, it is intended to be sufficient to build Advertified without inventing core business behaviour. If implementation reveals a missing business decision, the specification must be corrected rather than the decision being silently invented in code.**
+The earlier preview runner also created a new Brief on every retry, timestamped every Rayetsa attempt
+as a new opportunity, saved full-page PNGs and inserted unapproved certification budgets. It now
+requires identifiers for existing authorised records and no longer writes screenshots. No preview PDF
+was produced: Jameson has no client-confirmed budget or eligible evidenced large-format supply;
+the remittance scenario has no confirmed budget and the previous ZAR 900,000 value was not supplied
+by the owner; and the populated database contains no Rayetsa opportunity or retained Rayetsa evidence.
+Those inputs require owner evidence or an authorised commercial assumption before the three real
+workflow previews can resume. They must not be bypassed with another duplicate record.
+
+The same authorised packet includes a bounded public-inventory and Briefs-workspace correction.
+The public home page must derive distinct media-owner counts from current published Marketplace
+listing versions rather than a static or unavailable placeholder. The anonymous projection exposes
+only supplier identity and channel for current published, non-deleted listings; it exposes no rates,
+availability detail, tenant-private records or unpublished inventory. OOH and DOOH are combined in
+the public out-of-home directory without double-counting the same supplier. Decorative logo and
+tagline marquees are removed because their movement communicates no workflow state. The Briefs
+index becomes a campaign command-centre view with truthful stage totals, search, stage filtering,
+clear next-step copy and responsive campaign cards; it does not create or embed new raster assets.
+
+Focused evidence on 2026-09-08: the populated catalogue contains 6,885 current published listings,
+22 distinct media owners and 36 distinct channel-owner pairs. The public read model contains only the
+minimum public listing identity and is refreshed atomically from current published listing versions;
+the application role receives read-only access while source-table row-level security remains enforced.
+Web TypeScript, lint and all 13 deterministic web
+unit tests passed; all 73 architecture checks passed after the implementation. Connected inspection
+of the source preview confirmed the premium Briefs command-centre layout and confirmed that the
+public homepage no longer renders a scrolling partner-logo strip. No screenshot file, raster asset,
+Docker image, live provider call, external send or production resource was created. The API migration,
+retained OpenAPI regeneration and connected live count remain pending the next explicitly authorised
+Docker-pinned API build and clean/populated migration gate.
 
 ### 49.2.26 Nova Lite inventory extraction replacement — 2026-09-08
 
@@ -6021,3 +6148,303 @@ all files changed by this packet satisfy the 400-line hard limit. These unrelate
 weaken the inventory ingestion or monthly-budget controls. Live activation remains disabled by
 default and requires an explicitly authorised deployment; implementation readiness does not assert
 production readiness or provider acceptance.
+
+### 49.2.27 Media-plan readability and OOH decision-surface audit — 2026-09-08
+
+The bounded packet fixes the retained media-plan regression in which a long inventory name painted
+over running periods and commercial values. Acceptance requires the identity column and its flex
+child to shrink within the plan grid, long names to wrap without covering adjacent content, and the
+period and quantity/price/supply columns to retain their own bounded width at desktop and responsive
+sizes. This packet does not authorise a new replacement workflow, supplier report or map product.
+
+The audit found that an authorised planner can select and remove eligible candidates with visible
+checkboxes while an InventoryShortlistVersion is `DRAFT`, and confirmation retains one selection row
+per eligible candidate with the final selected state, actor, timestamp and a shared command reason.
+Confirmation is currently one-way in the interface: an approved shortlist has no direct change or
+replace action. The inventory agent interprets the five highest deterministically scored eligible
+candidates and retains rationale/provider lineage; it does not itself make the final selection.
+Recommendation bindings and final selection records can therefore support a future truthful
+recommendation-versus-human-decision report, but the operational reporting contract and supplier UI
+do not currently expose that report or an item-specific removal reason.
+
+OOH/DOOH benchmark snapshots are deterministic and retain compatible product/rate peers, spatial
+radius or geography fallback, cohort statistics, percentile, position, confidence and exclusions.
+The Inventory Product UI already presents rate versus local median, percentile, area and comparable
+sites. It does not yet expose every Section 12.5 requirement, including a complete quartile/range,
+freshness, limitations, policy-version and included/excluded-peer explanation. Mapbox is wired through
+the shared component with validated GeoJSON, point/radius/route/polygon rendering, fit-to-data and an
+accessible missing-token fallback, but authenticated use is currently limited to the Brief spatial
+editor. Shortlist and plan maps do not yet react to selected/rejected inventory, routes or POIs, so
+the Section 21.3.6 decision-surface standard remains only partially implemented.
+
+Implementation evidence: the media identity child now has an explicit zero minimum width; plan-grid
+tracks and commercial subtracks use shrink-safe bounds; long plan-line names wrap and retain their
+full value as a title. Web TypeScript, lint and all 13 deterministic web unit tests passed, followed
+by all 73 architecture checks. Source-preview navigation and authentication worked without creating
+a screenshot, but the historical planning identifier available in the running local stack was not
+available through the separate source preview, so connected acceptance of that exact populated row
+remains pending the next authorised local application refresh. No Docker image, raster asset, live
+provider call, external send or production resource was created.
+
+### 49.2.28 Collaborative role QA and planning intelligence — 2026-09-08
+
+The owner requests a collaborating implementation and QA team covering agency/planner, admin,
+supplier, influencer, client, UX, audience analysis, database/performance, architecture and security.
+Priority journeys are evidence-backed audience discovery, digital-screen selection near an exact
+Clicks or Dis-Chem branch, and understandable client language. Client presentation uses static
+billboard or digital screen when the actual format supports that description; broader outdoor
+formats retain accurate plain-language labels. Internal channel codes and historical evidence remain
+unchanged. No branch coordinate, audience size, demographic profile or measurement may be invented.
+
+The first bounded local packet follows the prior 13 web and 73 architecture passing checks: remove
+unsupported deterministic audience personas, clarify research gaps, improve exact place/radius entry
+and draft-map state, and centralise client-facing media terminology. Independent QA reviews role and
+tenant boundaries and records test versus inspection coverage. Acceptance requires deterministic
+audience regressions; exact coordinate order, radius, source and verification handling; truthful
+labels; and the affected web/runtime and architecture checks. Named-branch discovery requires an
+evidenced directory or configured permitted location service; entering a store name alone is never
+treated as a verified point. Docker image builds, live providers and production changes remain
+outside this packet. Agent review is implementation evidence, not independent human sign-off.
+
+The owner subsequently included the senior-media-planner remediation in this work. The next bounded
+step removes unsupported objective-fit, cheap-rate and catalogue-count contributions from scoring;
+retains them explicitly as unscored evidence gaps without redistributing their weights; and prevents
+those incomplete scores from driving unattended inventory choice. Existing human review remains
+available. Exact approved strategy, audience and mix context must reach inventory interpretation,
+including need/buying context, evidence references, positioning, channel roles and periods. Agent
+input compaction must preserve supplied audience-fit facts and limitations. Acceptance includes
+deterministic regressions that lower nominal prices or fewer catalogue peers cannot create strategic
+credit, that missing audience evidence blocks automatic selection, and that strategy context survives
+the API/runtime input boundary. This is not acceptance of a reach/duplication optimiser or of named
+branch discovery; those require compatible measurement and location evidence.
+
+Implemented locally: supplied audience names are preserved without fabricated adjacent personas;
+approved audience/mix versions, buying context and strategy reach inventory interpretation; compacted
+agent input retains audience measurements and limitations. Suitability policy V2 removes the three
+unsupported scoring contributions and retains V1 as inactive historical reference. Unscored criteria
+are visible as missing evidence, not an overall suitability percentage. Unattended selection requires
+current-policy, gap-free evidence; with the presently unimplemented strategic comparisons this means
+human review, not automatic campaign construction. No reach/frequency or duplication optimiser is
+claimed. Named places can be entered with source coordinates and radius, initially unverified;
+material geometry/source edits reset verification. The map distinguishes draft, verified and excluded
+areas. This is not a connected branch-name search service. Client media labels are centralised across
+web presentation, generated runtime narrative, PDF and automation templates without rewriting source
+artefacts or misclassifying every outdoor placement as a static billboard.
+
+Repeatable evidence for this packet: in `agent-runtime`, `python -B -m pytest -p no:cacheprovider`
+passed 83 tests; at repository root, `python -B -m pytest tests/architecture -q -p no:cacheprovider`
+passed 74 tests. In `web`, `npm run build`, `npm run lint`, `npm test` (16 tests), and
+`npm run master-data:check` passed (registry 2.37.0). The build retains a warning for the lazy Mapbox
+chunk (approximately 1.83 MB minified / 505 kB gzip); production performance is not verified.
+The first `npx playwright test --trace off --workers=1` run passed 58 of 66 desktop/compact cases.
+Failures identified missing required proposal-branding fixtures, a duplicate-text locator, and an
+untranslated retained automation message. Fixtures were corrected without relaxing production
+schemas, and the generated-message presentation was corrected. The five affected workflow suites
+then passed 24 of 26; the final two inbox cases passed on their subsequent targeted rerun.
+Final integrated rerun of `npx playwright test --trace off --workers=1` passed all 66 cases
+(33 desktop and 33 compact) in 3.8 minutes. After the final presentation change, `npm run build`
+and `npm run lint` passed again; the architecture rerun passed all 74 tests in 36.32 seconds.
+No failing browser cases remain in this packet. These are fixture-backed journeys, not connected
+backend or production certification.
+
+C# scorer, automatic-audience guard, strategy wire-contract and proposal-language regression tests
+were authored but not executed: no usable pinned API-test image was available and Docker image
+builds remain outside this packet. Backend compilation, database registry application and connected
+API journeys therefore remain unverified; the running port-3017 backend was not refreshed by this
+work. Role coverage combines deterministic browser fixtures, code inspection and unauthenticated
+401 checks, not signed-in cross-tenant database proof. Audience research acquisition, verified named
+branch discovery, campaign-level reach/frequency/deduplication and production load testing remain
+outstanding. No live provider call, production mutation, Docker image, generated image or screenshot
+was created by this packet. Existing unrelated staged/unstaged work was preserved.
+
+### 49.2.29 Local Docker refresh and repository push — 2026-09-08
+
+The owner explicitly requests continuation, push and Docker deployment. This authorises a bounded
+refresh of the existing `advertified-os2-dev` local stack and a reviewed repository commit/push,
+not cloud deployment, live provider use, inventory re-import or production certification. The
+preceding packet records 66 browser, 83 runtime and 74 architecture checks passing. Acceptance for
+this packet requires pinned SDK 10.0.400 API validation, applicable disposable database regressions,
+Compose validation, healthy replacement application containers and connected smoke checks. Preserve
+the existing database/object volumes and original working-tree changes; exclude local test output
+and secrets from the commit. Build sequentially within available disk space, keep providers disabled
+and inventory processing paused, and stop deployment on failed checks.
+
+The owner confirms that the push includes all pending repository changes after review. Initial
+pinned validation compiled API/migrator but returned 50 passing and two failing tests: a single
+supplied audience was rejected by an obsolete two-candidate minimum, and a fake provider omitted
+the required source-transcription route. The audience boundary is aligned with the supplied-Brief
+contract (one to twenty distinct supplied candidates), without padding personas or weakening evidence
+validation. Proposal-branding migration 009 must backfill populated rows under the migration owner
+and restore forced tenant isolation before commit; a real populated-upgrade regression is required.
+The owner instructs deletion, in development only, of historical audience records that lack genuine
+human approval; dependent artefact scope must be resolved before deletion. No historical approval
+may be inferred from generation, and existing migration 008 is not silently rewritten.
+
+The owner then explicitly includes dependent development artefacts and Briefs in the reset, retaining
+users and inventory. A local compressed database backup (177,194,067 bytes; SHA-256
+`769467abfd36af32e14257653411490012e92f598f4dee66b043f5d59b3b56a5`) is retained outside Git under
+`.artifacts/dev-reset/advertified-before-campaign-reset-20260908.dump`. Its archive catalogue and
+copied-file checksum were verified; a full restore rehearsal is not claimed. The guarded SQL first
+passed with ROLLBACK, then committed after stopping the API. Removed: 29 Briefs, 28 versions, 23
+unsupported audience sets/definitions, 19 mixes, 15 shortlists (78,391 candidate rows), four plans,
+four proposals and their dependent development records, plus 259 pending lifecycle messages and
+matching idempotency records to prevent replay. All 61 non-target commercial/governance tables kept
+their row counts, including three users, 7,242 inventory products, 60,109 product versions, 58,434
+rates, 6,885 Marketplace listings, 302 audit events and 33 AI cost records. Historical interpretation
+and agent-execution traces remain audit history; no canonical Brief remains. No bookings, invoices,
+payments or live campaigns existed in the reset scope. The unused retired Docling image was removed
+after verifying no container referenced it; it is recoverable by pulling its recorded pinned digest.
+
+Final validation: 57 selected API unit/adapter regressions pass under Docker SDK 10.0.400. The
+MasterDataMigrationTests, MarketplaceAcceptanceTests and ProposalBrandingMigrationTests selection
+passes all nine cases, including populated RLS backfill, tenant isolation, booking and funding guards.
+ProposalAcceptanceTests passes both cases after correcting unbranded authorisation to emit
+ProposalUpdated rather than falsely emitting ProposalApproved. The migration test resolves this
+repository's retained 12-digit migration IDs through EF's own migration-name generator. Marketplace
+fixtures use the real authorised-unbranded endpoint rather than bypassing branding readiness.
+
+Reproduce the selected API gate from the repository root:
+```powershell
+$unitFilter = 'FullyQualifiedName~InventorySuitabilityScorerTests|FullyQualifiedName~AutomatedAudienceEvidenceTests|FullyQualifiedName~AudienceProposalValidationTests|FullyQualifiedName~AgentRuntimeHttpAdapterTests|FullyQualifiedName~ProposalPdfRendererTests|FullyQualifiedName~InventoryEligibilityEvaluatorTests|FullyQualifiedName~PlanningSelectionCoverageTests|FullyQualifiedName~PublicInventorySummaryReaderTests'
+powershell -NoProfile -File tools/run-api-release-tests.ps1 -Filter $unitFilter -IntegrationFilter 'FullyQualifiedName~MasterDataMigrationTests|FullyQualifiedName~MarketplaceAcceptanceTests|FullyQualifiedName~ProposalBrandingMigrationTests'
+powershell -NoProfile -File tools/run-api-release-tests.ps1 -Filter $unitFilter -IntegrationFilter 'FullyQualifiedName~ProposalAcceptanceTests'
+```
+The launcher now resolves the active Docker context and preserves the original error if cleanup
+finds no validation image. Validation images are removed and unused build cache bounded after tests.
+`python -B -m pytest tests/architecture -q -p no:cacheprovider` passes 74 tests;
+`python -B -m pytest -p no:cacheprovider` in agent-runtime passes 83. In web, build, lint,
+16 unit tests and master-data projection validation pass. Earlier 66 fixture-backed browser journeys
+remain the UI baseline; no full production or all-API-suite certification is asserted.
+
+Deployment uses only `advertified-os2-dev` with infrastructure/docker-compose.yml and
+infrastructure/docker-compose.app.yml. Through Invoke-AdvertifiedCompose, sequential `build api`,
+`build migrator`, `build agent-runtime`, `build web` passed; explicit migrator
+`up --no-build --no-deps --force-recreate --abort-on-container-exit --exit-code-from migrator migrator`
+applied 009/010/011 and synchronised 97 master-data collections. The migrator logged an optional
+Kerberos-library warning but exited zero. `up -d --no-build --no-deps --force-recreate --wait
+--wait-timeout 120 agent-runtime api web` completed with all three services healthy. No development
+seed or inventory processing was replayed. Agent/runtime/extraction modes remain deterministic and
+inventory processing remains paused. The public summary now returns 22 distinct media owners across
+seven channel groups from the published listing directory, not an invented inventory count.
+
+With ADVERTIFIED_VERIFY_EMPTY_BRIEFS=true, `npx playwright test --config playwright.connected.config.ts
+e2e/development-reset.connected.spec.ts e2e/inventory-catalogue.connected.spec.ts --trace off
+--workers=1` passes all three connected cases. The initial catalogue assertion expected the old
+display name Local; it now verifies successful home navigation without assuming the user's name.
+The checks leave the Brief workspace empty and verify retained catalogue details and Marketplace.
+Unused build cache cleanup reported 928.8 MB reclaimed, without deleting volumes. Existing rollback
+application images and the compressed reset backup are retained; Windows virtual-disk compaction
+was not attempted. Remaining audience research, branch-name discovery and reach/frequency optimiser
+limitations from 49.2.28 are unchanged. This is a local development deployment, not production GO.
+
+## 49.3 Release evidence
+
+A production release records:
+
+- commit/build identifiers;
+- container/artifact hashes;
+- schema/migration range;
+- master-data/policy versions;
+- exact environment;
+- required test/acceptance results;
+- security/privacy checks;
+- backup/restore evidence where release requires it;
+- provider/model configuration and cost limits;
+- known limitations/blockers;
+- approver(s) and timestamp;
+- rollback/incident plan.
+
+One unresolved release-blocking check remains a NO-GO. AI cannot waive it.
+
+### 49.3.1 Local production-readiness checkpoint — 2026-09-07 [Evidence]
+
+The current working tree is **NO-GO** and no production-readiness approval is claimed. The
+Marketplace projection contains 6,885 current published listings after repeat application without
+duplicate insertion, and the connected Marketplace browser check confirms that the published supply
+ledger is visible. The architecture suite passes 72 tests, the agent-runtime suite passes 118 tests,
+the web unit suite passes 13 tests, and current web lint, type-check and production build pass.
+The ordinary browser suite passes all 29 desktop and all 29 compact journeys, including retained
+Brief review, STP interaction, public navigation/onboarding governance, authenticated
+workspace/profile behaviour, inventory intake, Marketplace requests, proposals and supplier booking
+confirmation. The dedicated browser-session sequence also passes session creation, survival across
+an API restart, logout revocation and revocation survival across a second restart. The Docker-pinned
+deterministic API release gate passes 47 tests, the disposable inventory acceptance journey passes
+both cases, and the persisted-command idempotency case passes. The disposable opportunity
+acceptance journey also passes against PostgreSQL with the hosted dispatcher enabled: queued work
+advances through interpretation, independent human approvals, critic resolution, strategy and both
+supplied and opportunity-derived canonical briefs without live or paid AI.
+
+The read-only AWS audit completed under the restored SSO session. The account currently contains
+non-production CloudFormation stacks and manually managed EC2 instances, no RDS instance and no
+Route 53 hosted zone. Both inspected EC2 root volumes are unencrypted and detailed monitoring is
+disabled. Legacy ECR repositories are mutable with scan-on-push disabled; the newer web and
+commercial-API repositories are immutable with scan-on-push enabled, but equivalent governed
+repositories for every launch image are not evidenced. These resources do not satisfy the selected
+production topology without remediation.
+
+Repository-owned production configuration is now explicit: a single hardened EC2/Docker
+application stack uses separate API and worker roles, digest-only images, internal service
+networking, an external PostgreSQL data host, private S3, persistent certificate-protected browser
+keys and a fail-closed preflight. Automatic inventory extraction remains paused for the manually
+certified launch corpus. Deployment, rollback, database restore, seed rollback and stuck-agent
+procedures are defined above; none is claimed as live-tested evidence.
+
+Release blockers remain: VodaPay and Advertise Now, Pay Later are intentionally inactive without
+approved provider integrations; live encrypted compute/data volumes, DNS/TLS, backups, restore,
+alerts and deployment rehearsal are not evidenced; and the retained 10 Rapid OOH, 10 full-campaign,
+10 unbriefed-opportunity and 30 commercially and visually approved PDF acceptance pack does not
+exist. Legal, privacy, asset-rights, role, finance and operational approvers have not signed off.
+No explicit final GO is recorded.
+
+## 49.4 Handoff completeness test [Principle]
+
+The documentation is considered build-complete only if a competent team can receive only `ADVERTIFIED.md`, `AGENTS.md`, the approved brand assets/environment inputs and an empty implementation repository, then build the system without inventing Advertified business behaviour.
+
+The team may choose ordinary implementation details such as internal class names, private helper structure, query composition and equivalent library mechanics. It may **not** need to invent or guess:
+
+- product scope;
+- user roles or authority;
+- canonical lifecycle/state transitions;
+- data ownership or immutability rules;
+- approval/self-approval behaviour;
+- evidence/materiality behaviour;
+- agent responsibilities/tool boundaries;
+- inventory extraction/publication behaviour;
+- commercial calculations;
+- client/supplier transaction rules;
+- screen outcomes and exceptional states;
+- error/recovery/idempotency behaviour;
+- production acceptance journeys.
+
+If implementation exposes a genuinely missing business decision, that is a specification defect. The missing decision must be resolved by the owner and added to `ADVERTIFIED.md`; developers must not quietly invent the answer in code.
+
+---
+
+# 50. Final Canonical Statement
+
+Advertified's durable value is not that an LLM can write a media plan.
+
+The durable value is the platform's ability to know and preserve:
+
+- what was requested;
+- what was actually supplied;
+- what is verified;
+- what is inferred;
+- what is unknown;
+- which evidence supports each material claim;
+- what inventory exists;
+- what its commercial state is;
+- what suppliers quoted;
+- what was negotiated;
+- what was approved;
+- who approved it and whether approval was self or independent;
+- what the client selected;
+- what was booked;
+- what was delivered;
+- what it cost;
+- what happened afterwards;
+- what was learned.
+
+Specialised AI agents reason across that governed history to reduce manual work and improve commercial preparation. They do not replace the evidence, commercial rules, human authority or transaction record.
+
+> **This `ADVERTIFIED.md` is the canonical Advertified business, product, commercial, governance, workflow, AI, data, UX, architecture and production build truth. Together with `AGENTS.md` for contributor behaviour, it is intended to be sufficient to build Advertified without inventing core business behaviour. If implementation reveals a missing business decision, the specification must be corrected rather than the decision being silently invented in code.**

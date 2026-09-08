@@ -4,9 +4,13 @@ import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { formatMoney } from '../presentation/format'
 import { mediaVisual } from './media-visuals'
+import { ShortlistSuitability } from './ShortlistSuitability'
 
-export function ShortlistPanel({ shortlist, busy, onConfirm }: {
+const shortlistPageSize = 24
+
+export function ShortlistPanel({ shortlist, requiredChannels, busy, onConfirm }: {
   shortlist: Shortlist
+  requiredChannels: string[]
   busy: boolean
   onConfirm: (selectedIds: string[]) => Promise<void>
 }) {
@@ -14,7 +18,9 @@ export function ShortlistPanel({ shortlist, busy, onConfirm }: {
   const [selected, setSelected] = useState<string[]>(
     eligible.filter(item => item.isSelected === true).map(item => item.id))
   const editable = shortlist.status === masterDataCodes.lifecycleStatuses.draft
-  const coverage = requiredCoverage(shortlist.candidates, eligible, selected)
+  const coverage = requiredCoverage(
+    shortlist.candidates, eligible, selected, requiredChannels,
+  )
   function toggle(id: string) {
     setSelected(current => current.includes(id)
       ? current.filter(item => item !== id) : [...current, id])
@@ -22,36 +28,91 @@ export function ShortlistPanel({ shortlist, busy, onConfirm }: {
   return <section className="planning-section" aria-labelledby="shortlist-title">
     <div className="planning-section-heading"><div><p className="eyebrow">Inventory</p>
       <h2 id="shortlist-title">Choose the placements to carry forward</h2>
-      <p>{eligible.length} eligible products from {shortlist.candidates.length} considered. Rejections remain visible.</p></div>
+      <p>{eligible.length} eligible products from {shortlist.candidates.length} considered. Rejections are available on demand.</p></div>
       {editable && <button className="primary-button" type="button"
         disabled={busy || selected.length === 0 || !coverage.selectedReady}
         onClick={() => void onConfirm(selected)}>Confirm selected inventory</button>}</div>
-    {coverage.unavailableCount > 0 && <p className="rejection-copy" role="alert">
-      <strong>Do not buy:</strong> eligible inventory cannot cover {coverage.unavailableCount} required {
-        coverage.unavailableCount === 1 ? 'area' : 'areas'}. Keep the shortlist unconfirmed until the geography or supply gap is resolved.
-    </p>}
-    {coverage.unavailableCount === 0 && selected.length > 0 && !coverage.selectedReady &&
-      <p className="rejection-copy" role="alert">Select eligible inventory that collectively covers every required area.</p>}
-    <div className="shortlist-grid">{shortlist.candidates.map(candidate =>
-      <CandidateCard key={candidate.id} candidate={candidate} editable={editable}
-        selected={selected.includes(candidate.id)} onToggle={() => toggle(candidate.id)} />)}</div>
+    <CoverageAlerts coverage={coverage} selectedCount={selected.length} />
+    <CandidateList candidates={shortlist.candidates} eligible={eligible}
+      editable={editable} selected={selected} onToggle={toggle} />
   </section>
+}
+
+function CoverageAlerts({ coverage, selectedCount }: {
+  coverage: ReturnType<typeof requiredCoverage>
+  selectedCount: number
+}) {
+  return <>
+    {coverage.unavailableCount > 0 && <p className="rejection-copy" role="alert">
+      <strong>Do not buy:</strong> eligible inventory cannot cover {
+        coverage.unavailableCount} required {
+        coverage.unavailableCount === 1 ? 'area' : 'areas'
+      }. Keep the shortlist unconfirmed until the geography or supply gap is resolved.
+    </p>}
+    {coverage.unavailableChannelCount > 0 && <p className="rejection-copy" role="alert">
+      <strong>Supply gap:</strong> eligible inventory cannot cover {
+        coverage.unavailableChannelCount} required {
+        coverage.unavailableChannelCount === 1 ? 'media channel' : 'media channels'
+      }. Revise the mix or publish suitable inventory before confirming the shortlist.
+    </p>}
+    {coverage.unavailableCount === 0 && coverage.unavailableChannelCount === 0 &&
+      selectedCount > 0 && !coverage.selectedReady &&
+      <p className="rejection-copy" role="alert">Select eligible inventory that
+        collectively covers every required area and media channel.</p>}
+  </>
+}
+
+function CandidateList({ candidates, eligible, editable, selected, onToggle }: {
+  candidates: ShortlistCandidate[]
+  eligible: ShortlistCandidate[]
+  editable: boolean
+  selected: string[]
+  onToggle: (id: string) => void
+}) {
+  const [showRejected, setShowRejected] = useState(false)
+  const [visibleLimit, setVisibleLimit] = useState(shortlistPageSize)
+  const ranked = [...(showRejected ? candidates : eligible)].sort(
+    (left, right) => (right.suitability?.total ?? -1) - (left.suitability?.total ?? -1),
+  )
+  const visible = ranked.slice(0, visibleLimit)
+  return <>
+    <div className="planning-actions">
+      <button className="secondary-button" type="button" onClick={() => {
+        setShowRejected(current => !current)
+        setVisibleLimit(shortlistPageSize)
+      }}>{showRejected ? 'Show eligible only' : `Review rejected (${candidates.length - eligible.length})`}</button>
+      <span>Showing {visible.length} of {ranked.length}</span>
+    </div>
+    <div className="shortlist-grid">{visible.map(candidate =>
+      <CandidateCard key={candidate.id} candidate={candidate} editable={editable}
+        selected={selected.includes(candidate.id)} onToggle={() => onToggle(candidate.id)} />)}</div>
+    {visible.length < ranked.length && <button className="secondary-button" type="button"
+      onClick={() => setVisibleLimit(current => current + shortlistPageSize)}>Load more inventory</button>}
+  </>
 }
 
 function requiredCoverage(
   candidates: ShortlistCandidate[],
   eligible: ShortlistCandidate[],
   selectedIds: string[],
+  requiredChannels: string[],
 ) {
   const required = new Set(candidates.flatMap(candidate =>
     candidate.spatialMatch?.requiredRequirementIds ?? []))
   const coverable = new Set(eligible.flatMap(candidate =>
     candidate.spatialMatch?.matchedRequiredRequirementIds ?? []))
-  const selected = new Set(eligible.filter(candidate => selectedIds.includes(candidate.id))
+  const selectedCandidates = eligible.filter(candidate => selectedIds.includes(candidate.id))
+  const selected = new Set(selectedCandidates
     .flatMap(candidate => candidate.spatialMatch?.matchedRequiredRequirementIds ?? []))
+  const requiredMediaChannels = new Set(requiredChannels)
+  const eligibleChannels = new Set(eligible.map(candidate => candidate.channel))
+  const selectedChannels = new Set(selectedCandidates.map(candidate => candidate.channel))
   return {
     unavailableCount: [...required].filter(id => !coverable.has(id)).length,
-    selectedReady: [...required].every(id => selected.has(id)),
+    unavailableChannelCount: [...requiredMediaChannels]
+      .filter(channel => !eligibleChannels.has(channel)).length,
+    selectedReady: [...required].every(id => selected.has(id)) &&
+      [...requiredMediaChannels].every(channel => selectedChannels.has(channel)),
   }
 }
 
@@ -74,31 +135,13 @@ function CandidateCard({ candidate, editable, selected, onToggle }: {
     <div className="shortlist-facts"><span>{rate}</span><span>{eligibility}</span></div>
     {candidate.rejectionDetail && <p className="rejection-copy">{candidate.rejectionDetail}</p>}
     {candidate.rationale && <p className="inventory-rationale">
-      <strong>Inventory Intelligence:</strong> {candidate.rationale}</p>}
+      <strong>Recommendation rationale:</strong> {candidate.rationale}</p>}
     <CommercialDetail candidate={candidate} />
-    <SuitabilityDetail candidate={candidate} />
+    <ShortlistSuitability candidate={candidate} />
     <PlacementDetail candidate={candidate} />
     <AudienceFitDetail candidate={candidate} />
     {candidate.benchmark && <BenchmarkDetail candidate={candidate} />}
   </article>
-}
-
-function SuitabilityDetail({ candidate }: { candidate: ShortlistCandidate }) {
-  const suitability = candidate.suitability
-  const spatial = candidate.spatialMatch
-  if (!suitability) return null
-  return <details className="benchmark-detail"><summary>
-    Suitability {Math.round(suitability.total * 100)}%</summary>
-    <div className="benchmark-facts">
-      <span><strong>{Math.round(suitability.geography * 100)}%</strong> geography</span>
-      <span><strong>{Math.round(suitability.audienceContext * 100)}%</strong> audience</span>
-      <span><strong>{Math.round(suitability.budgetEfficiency * 100)}%</strong> budget efficiency</span>
-      <span><strong>{Math.round(suitability.evidenceQualityFreshness * 100)}%</strong> evidence</span>
-    </div>
-    {spatial?.hasRequirements && <p>{spatial.matchedRequiredRequirementIds.length} of {
-      spatial.requiredRequirementIds.length} required areas matched.</p>}
-    <p>Policy {suitability.policyVersion}</p>
-  </details>
 }
 
 function CommercialDetail({ candidate }: { candidate: ShortlistCandidate }) {
@@ -129,6 +172,7 @@ function PlacementDetail({ candidate }: { candidate: ShortlistCandidate }) {
 function commercialGapLabel(gap: string) {
   if (gap === 'inventory.supplierCommercial.vatStatus') return 'Supplier VAT status is not verified.'
   if (gap === 'inventory.rate.vatTreatment') return 'The rate does not state whether VAT is included.'
+  if (gap === 'inventory.rate.validity') return 'The published rate has no explicit validity period and requires review.'
   return gap
 }
 
@@ -147,7 +191,11 @@ function AudienceFitDetail({ candidate }: { candidate: ShortlistCandidate }) {
     ['Life stage', fit.lifeStageScore],
     ['LSM / SEM', fit.lsmSemScore],
   ] as const
-  if (fit.evidenceGaps.length === 0 && scores.every(([, value]) => value === null)) return null
+  if (fit.evidenceGaps.length === 0 && scores.every(([, value]) => value === null)) {
+    return <details className="benchmark-detail"><summary>Audience evidence</summary>
+      <p>Audience match needs evidence. No comparable target profile has been supplied.</p>
+      <DeliveryMeasurements candidate={candidate} /></details>
+  }
   return <details className="benchmark-detail"><summary>Audience fit</summary>
     {fit.evidenceGaps.length > 0
       ? <div><strong>Evidence required</strong><ul>{fit.evidenceGaps.map(gap =>
@@ -171,10 +219,13 @@ function DeliveryMeasurements({ candidate }: { candidate: ShortlistCandidate }) 
       <li key={gap}>{audienceGapLabel(gap)}</li>)}</ul>
   </div>
   if (fit.deliveryMeasurements.length === 0) return null
-  return <div className="benchmark-facts">{fit.deliveryMeasurements.map(item =>
-    <span key={item.metricType}>
-      <strong>{item.value} {item.unit}</strong> {item.metricType.replaceAll('_', ' ')}
-    </span>)}</div>
+  return <div><p>Published placement measurements; these are not a campaign reach forecast.</p>
+    <div className="benchmark-facts">{fit.deliveryMeasurements.map(item =>
+      <span key={item.metricType}>
+        <strong>{item.value} {item.unit}</strong> {item.metricType.replaceAll('_', ' ')}
+        <small>{[item.measurementSource, item.measurementPeriod, item.universe].filter(Boolean).join(' · ')}</small>
+        {item.limitations && <small>{item.limitations}</small>}
+      </span>)}</div></div>
 }
 
 function audienceGapLabel(gap: string) {

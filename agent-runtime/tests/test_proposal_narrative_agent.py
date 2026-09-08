@@ -1,11 +1,17 @@
 import asyncio
 from copy import deepcopy
+import json
 
 import httpx
 import pytest
 from test_planning_agents import BRIEF_ID, EVIDENCE_ID, invocation
 
+from bedrock_artifact_output import wrap_artifact_output
 from main import DETERMINISTIC_MODE, RUNTIME_MODE_KEY, SERVICE_KEY, app
+from proposal_contracts import (
+    ProposalNarrativeAgentRequest,
+    ProposalNarrativeDraftArtifact,
+)
 
 SERVICE_SECRET = "proposal-test-service-key"
 
@@ -29,7 +35,7 @@ def payload() -> dict:
                 "outcome": "Build qualified response",
                 "budget_minor": 10_000_01,
                 "currency": "ZAR",
-                "channels": ["OOH", "DIGITAL"],
+                "channels": ["OOH", "DOOH", "DIGITAL"],
             }],
         },
     }
@@ -59,10 +65,38 @@ def test_proposal_narrative_preserves_exact_supplied_commercial_facts(
     output = response.json()
     summary = output["artifact"]["executive_summary"]
     assert "ZAR 10,000.01" in summary
-    assert "OOH, DIGITAL" in summary
+    assert "Outdoor advertising, Digital screens, DIGITAL" in summary
+    assert "OOH" not in summary
     assert output["evidence_bindings"][0]["evidence_item_ids"] == [EVIDENCE_ID]
     assert output["usage"]["incremental_cost_minor"] == 0
     assert output["usage"]["tool_calls"] == 0
+
+
+def test_bedrock_proposal_boundary_preserves_governed_facts() -> None:
+    request = ProposalNarrativeAgentRequest.model_validate_json(
+        json.dumps(payload())
+    )
+    provider_artifact = {
+        "executive_summary": (
+            "A persuasive provider narrative that paraphrases every supplied fact."
+        )
+    }
+
+    output = wrap_artifact_output(
+        ProposalNarrativeDraftArtifact,
+        provider_artifact,
+        request,
+    )
+
+    summary = output.artifact.executive_summary
+    assert provider_artifact["executive_summary"] in summary
+    assert f"Approved objective: {request.proposal.brief_objective}" in summary
+    assert (
+        "Launch: Build qualified response | ZAR 10,000.01 | "
+        "channels: Outdoor advertising, Digital screens, DIGITAL"
+    ) in summary
+    assert request.proposal.options[0].channels == ("OOH", "DOOH", "DIGITAL")
+    assert len(summary) <= 5_000
 
 
 def test_proposal_contract_rejects_unknown_or_mismatched_input(

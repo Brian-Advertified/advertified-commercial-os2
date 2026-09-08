@@ -14,7 +14,7 @@ public sealed class HttpSuppliedBriefAgentClient(
     public bool IsAvailable => options.Value.UsesHttp;
 
     private const string Operation = "SUPPLIED_BRIEF_UNDERSTANDING";
-    private const string PromptVersion = "1.1.0";
+    private const string PromptVersion = "1.2.0";
     private const string InputReferenceType = "SuppliedBriefInput";
 
     public async Task<SuppliedBriefUnderstandingView> UnderstandAsync(
@@ -29,9 +29,36 @@ public sealed class HttpSuppliedBriefAgentClient(
             PromptVersion, Operation);
         var payload = new { Operation, Invocation = invocation,
             Source = new { input.SourceTitle, input.SourceContent, SourceHash = sourceHash, input.Clarifications } };
-        var response = await AgentRuntimeHttpSupport.InvokeAsync<SuppliedBriefArtifact>(
-            client, options.Value, MasterDataCodes.AgentTypes.BriefDrafting, payload, [],
-            cancellationToken, Operation);
+        AgentRuntimeResponse<SuppliedBriefArtifact> response;
+        try
+        {
+            response = await AgentRuntimeHttpSupport.InvokeAsync<SuppliedBriefArtifact>(
+                client, options.Value, MasterDataCodes.AgentTypes.BriefDrafting, payload, [],
+                cancellationToken, Operation);
+        }
+        catch (AgentRuntimeRejectedException rejected)
+        {
+            var settings = options.Value;
+            if (!rejected.HasBillableAcceptedUsage ||
+                rejected.Provider != settings.Provider ||
+                rejected.Model != settings.ModelFor(
+                    MasterDataCodes.AgentTypes.BriefDrafting, Operation) ||
+                rejected.Units != rejected.InputTokens + rejected.OutputTokens ||
+                rejected.ToolCalls != 0 ||
+                rejected.IncrementalCostMinor > settings.CostCapFor(
+                    MasterDataCodes.AgentTypes.BriefDrafting))
+            {
+                throw;
+            }
+            var rejectedUsage = new SuppliedBriefAgentUsageView(
+                rejected.Provider!, rejected.Model!, PromptVersion, "NOT_REQUESTED",
+                rejected.ToolCalls!.Value, rejected.IncrementalCostMinor!.Value,
+                rejected.Units!.Value, rejected.CacheStatus, rejected.ProviderRequestId,
+                rejected.InputTokens!.Value, rejected.OutputTokens!.Value,
+                rejected.CostUsdMicros!.Value);
+            throw new SuppliedBriefValidationException(
+                rejectedUsage, rejected.ResponseJson, rejected);
+        }
         var artifact = response.Artifact ?? throw new InvalidOperationException("Brief interpretation is incomplete.");
         var usage = new SuppliedBriefAgentUsageView(response.Usage.Provider, response.Usage.Model, PromptVersion,
             "NOT_REQUESTED", response.Usage.ToolCalls, response.Usage.IncrementalCostMinor,

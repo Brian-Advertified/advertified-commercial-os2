@@ -120,8 +120,10 @@ public sealed partial class InventoryAcceptanceTests
             importer, $"/api/v1/tenants/{TenantId}/inventory-imports/{importId}:execute",
             $"{key}-execute", 1, new { });
         using var extracted = await ReadJsonAsync(execute);
-        Assert.Equal("APPROVED", extracted.RootElement.GetProperty("candidates")[0]
-            .GetProperty("status").GetString());
+        var candidate = extracted.RootElement.GetProperty("candidates")[0];
+        Assert.True(
+            candidate.GetProperty("status").GetString() == "APPROVED",
+            candidate.GetRawText());
         using var publish = await CommandAsync(
             reviewer, $"/api/v1/tenants/{TenantId}/inventory-imports/{importId}:publish",
             $"{key}-publish", 2, new { });

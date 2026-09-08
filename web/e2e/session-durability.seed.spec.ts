@@ -9,8 +9,9 @@ test('seed durable browser session before API restart', async ({ page }) => {
   await page.goto('/sign-in')
   await page.getByRole('button', { name: /Continue to Advertified/ }).click()
   await page.getByRole('button', { name: /Advertified Local/ }).click()
-  await expect(page.getByRole('heading', { name: 'Work dashboard', exact: true }))
-    .toBeVisible()
+  await expect(page.getByRole('heading', {
+    name: /Good (morning|afternoon|evening), Local/,
+  })).toBeVisible()
 
   const response = await page.request.get('/api/v1/session')
   expect(response.status(), await response.text()).toBe(200)

@@ -10,6 +10,7 @@ internal static class StartupConfigurationValidator
 {
     internal static string ValidateAndGetConnectionString(
         WebApplicationBuilder builder,
+        ProcessRoleOptions processRole,
         string? authenticationMode,
         AgentRuntimeOptions agentRuntime,
         InventoryProtectionOptions inventoryProtection,
@@ -20,6 +21,7 @@ internal static class StartupConfigurationValidator
             builder.Environment.IsEnvironment("Test");
         if (!localEnvironment)
         {
+            EnsureProductionProcessRole(processRole);
             EnsureProductionBoundaries(
                 builder.Configuration, authenticationMode, agentRuntime,
                 inventoryProtection, inventoryExtraction, emailAutomation);
@@ -30,6 +32,16 @@ internal static class StartupConfigurationValidator
             ? throw new InvalidOperationException(
                 "The commercial database connection is not configured.")
             : connectionString;
+    }
+
+    private static void EnsureProductionProcessRole(
+        ProcessRoleOptions processRole)
+    {
+        if (processRole.Role == ProcessRoleOptions.CombinedRole)
+        {
+            throw new InvalidOperationException(
+                "Production requires separate API and worker processes.");
+        }
     }
 
     private static void EnsureProductionBoundaries(

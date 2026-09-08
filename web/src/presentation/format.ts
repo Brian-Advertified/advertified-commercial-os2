@@ -1,3 +1,5 @@
+import { mediaLabel } from './media-labels.ts'
+
 const moneyFormatters = new Map<string, Intl.NumberFormat>()
 const currencyFactors = new Map<string, number>()
 const numberFormatters = new Map<string, Intl.NumberFormat>()
@@ -77,6 +79,8 @@ export function formatDateTime(
 }
 
 export function humanizeCode(value: string, titleCase = false): string {
+  const media = mediaLabel(value.trim())
+  if (media) return media
   const words = value.trim().toLowerCase().replaceAll('_', ' ')
   return titleCase
     ? words.replace(/\b\w/g, letter => letter.toUpperCase())

@@ -144,7 +144,7 @@ function AllocationCard({
   }
   return <article className={`media-allocation-card media-tone-${visual.tone}`}>
     <header><div className="media-identity"><MediaTypeIcon channel={allocation.channel} />
-      <div><h3>{visual.label}</h3><small>{allocation.channel}</small></div></div>
+      <div><h3>{visual.label}</h3></div></div>
       {editable && canRemove && <button className="text-action" type="button"
         aria-label={`Remove ${visual.label} from media mix`}
         onClick={onRemove}>Remove</button>}</header>

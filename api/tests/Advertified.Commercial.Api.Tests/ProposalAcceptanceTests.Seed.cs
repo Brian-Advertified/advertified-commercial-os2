@@ -48,8 +48,8 @@ public sealed partial class ProposalAcceptanceTests
             Add(batch, """
                 INSERT INTO commercial.audience_definition_sets (
                     id, tenant_id, brief_version_id, version_no, input_hash, status_code,
-                    created_by, created_at_utc)
-                VALUES ($1, $2, $3, 1, repeat('b', 64), 'APPROVED', $4, $5)
+                    created_by, created_at_utc, approved_by, approved_at_utc)
+                VALUES ($1, $2, $3, 1, repeat('b', 64), 'APPROVED', $4, $5, $4, $5)
                 """, AudienceSetId, TenantId, BriefVersionId, OperatorId, Now);
             Add(batch, """
                 INSERT INTO commercial.inventory_suppliers (

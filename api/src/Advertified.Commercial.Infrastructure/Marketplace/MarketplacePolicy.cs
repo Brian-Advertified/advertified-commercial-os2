@@ -18,6 +18,8 @@ internal static class MarketplacePolicy
         LoadCodes(MasterDataCodes.Channels.Collection);
     private static readonly HashSet<string> ActiveCurrencies =
         LoadCodes(MasterDataCodes.Currencies.Collection);
+    private static readonly HashSet<string> ActiveRateTypes =
+        LoadCodes(MasterDataCodes.RateTypes.Collection);
     private static readonly HashSet<string> ActiveAvailabilityStatuses =
         LoadCodes(MasterDataCodes.AvailabilityStatuses.Collection);
     private static readonly HashSet<string> RfqStatuses =
@@ -36,10 +38,34 @@ internal static class MarketplacePolicy
         {
             throw new ArgumentException("Choose a supported media type.", nameof(query));
         }
+        var rateType = Optional(query.RateType, 100, nameof(query))?.ToUpperInvariant();
+        if (rateType is not null && !ActiveRateTypes.Contains(rateType))
+        {
+            throw new ArgumentException("Choose a supported rate type.", nameof(query));
+        }
+        var currency = Optional(query.Currency, 3, nameof(query))?.ToUpperInvariant();
+        if (currency is not null && !ActiveCurrencies.Contains(currency))
+        {
+            throw new ArgumentException("Choose a supported currency.", nameof(query));
+        }
+        if (query.MinimumAmountMinor is < 0 || query.MaximumAmountMinor is < 0 ||
+            query.MinimumAmountMinor > query.MaximumAmountMinor)
+        {
+            throw new ArgumentException("Choose a valid rate range.", nameof(query));
+        }
         return new MarketplaceSearchFilters(
             Optional(query.Search, MaximumSearchLength, nameof(query)),
             channel,
-            Optional(query.Geography, MaximumGeographyLength, nameof(query)));
+            Optional(query.Geography, MaximumGeographyLength, nameof(query)),
+            Optional(query.Country, MaximumSearchLength, nameof(query)),
+            Optional(query.Province, MaximumSearchLength, nameof(query)),
+            Optional(query.City, MaximumSearchLength, nameof(query)),
+            Optional(query.Supplier, MaximumSearchLength, nameof(query)),
+            Optional(query.Format, MaximumSearchLength, nameof(query)),
+            rateType,
+            query.MinimumAmountMinor,
+            query.MaximumAmountMinor,
+            currency);
     }
 
     internal static int ValidatePageSize(int value) => value is >= 1 and <= 100
@@ -131,7 +157,16 @@ internal static class MarketplacePolicy
 internal sealed record MarketplaceSearchFilters(
     string? Search,
     string? Channel,
-    string? Geography);
+    string? Geography,
+    string? Country,
+    string? Province,
+    string? City,
+    string? Supplier,
+    string? Format,
+    string? RateType,
+    long? MinimumAmountMinor,
+    long? MaximumAmountMinor,
+    string? Currency);
 
 internal sealed record ValidatedMarketplaceResponse(
     string Currency,

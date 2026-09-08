@@ -145,7 +145,8 @@ function assertMutation(route: Route) {
 
 function sessionFixture() {
   return { authenticated: true, antiforgeryToken: 'csrf-booking',
-    expiresAtUtc: '2026-08-30T18:00:00Z' }
+    expiresAtUtc: '2099-08-30T18:00:00Z',
+    signInPath: null, signOutPath: null }
 }
 
 function workspaceFixtures() {

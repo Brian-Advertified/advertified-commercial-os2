@@ -32,8 +32,8 @@ export function InboxMessageDetail({ detail, busy, onRetry, onReconcile }: {
         {automationStatusLabel(run.status)}
       </span></header>
 
-    <div className="ooh-mode-lock"><div><strong>OOH-only campaign</strong>
-      <span>The planning flow is the same as every campaign. This Brief is locked to OOH and DOOH media only.</span></div>
+    <div className="ooh-mode-lock"><div><strong>Outdoor advertising campaign</strong>
+      <span>The planning flow is the same as every campaign. This Brief is locked to outdoor advertising and digital screens only.</span></div>
       <span>Locked</span></div>
 
     <CheckpointProgress checkpoint={run.checkpoint} />

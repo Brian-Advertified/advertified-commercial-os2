@@ -18,6 +18,9 @@ artifacts
 **/obj
 **/node_modules
 **/dist
+api/TestResults
+infrastructure/development/inventory-bootstrap.generated.sql
+data/production/inventory-bootstrap.v1.json
 **/playwright-report
 **/test-results
 **/credentials

@@ -31,6 +31,10 @@ public sealed record AudienceDefinitionSetView(
     string InputHash,
     string Status,
     IReadOnlyList<AudienceDefinitionView> Definitions,
+    Guid CreatedBy,
+    Guid? ApprovedBy,
+    long Version,
+    DateTimeOffset? ApprovedAtUtc,
     DateTimeOffset CreatedAtUtc);
 
 public sealed record MediaRunningPeriodView(

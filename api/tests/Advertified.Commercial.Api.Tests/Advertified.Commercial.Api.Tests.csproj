@@ -33,5 +33,9 @@
       Link="Contracts/advertified-commercial-api.v1.json"
       CopyToOutputDirectory="PreserveNewest" />
     <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <None
+      Include="../../../infrastructure/development/publish-current-inventory-to-marketplace.sql"
+      Link="Fixtures/publish-current-inventory-to-marketplace.sql"
+      CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

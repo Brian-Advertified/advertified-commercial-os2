@@ -119,6 +119,28 @@ public sealed class ProposalReader(
             item.UserId, item.DisplayName, item.Email, item.Role)).ToArray();
     }
 
+    public async Task<IReadOnlyList<ProposalBrandAssetView>> ListBrandAssetsAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        Guid proposalVersionId,
+        CancellationToken cancellationToken)
+    {
+        await RequireAsync(actorId, tenantId,
+            MasterDataReferences.Permissions.ProposalEdit, cancellationToken);
+        await using var transaction = await store.BeginSessionAsync(
+            actorId, tenantId, cancellationToken);
+        var proposal = await store.FindProposalAsync(
+            tenantId, proposalVersionId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Proposal access denied.");
+        var brief = await store.FindPlanningReadyBriefAsync(
+            tenantId, proposal.BriefId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Proposal access denied.");
+        var rows = await store.ListBrandAssetsAsync(
+            tenantId, brief.ClientAccountId, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return rows.Select(ProposalRecordStore.ToBrandAssetView).ToArray();
+    }
+
     public async Task<ProposalDocumentContent> GetDocumentAsync(
         ActorId actorId,
         TenantId tenantId,

@@ -229,6 +229,10 @@
   align-items: center;
   gap: 10px;
 }
+.approved-brief-step-actions > .approved-brief-decision-actions {
+  width: 100%;
+  justify-content: flex-end;
+}
 .approved-brief-blocker {
   max-width: 390px;
   color: #b54708;

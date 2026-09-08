@@ -2,6 +2,7 @@ import type { ProposalOption } from '../api/proposal-schemas'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { mediaVisual } from '../planning/media-visuals'
 import { formatDate, formatMoney } from '../presentation/format'
+import { clientMediaCopy } from '../presentation/media-labels'
 
 export function ProposalOptionCard({ option, selected, decisionMode, busy, onSelect }: {
   option: ProposalOption
@@ -12,8 +13,8 @@ export function ProposalOptionCard({ option, selected, decisionMode, busy, onSel
 }) {
   return <article className={`proposal-option-card ${selected ? 'is-selected' : ''}`}>
     <header><div><span className="proposal-option-number">Option {option.displayOrder}</span>
-      <h2>{option.label}</h2></div><strong>{formatMoney(option.budgetMinor, option.currency)}</strong></header>
-    <p className="proposal-option-outcome">{option.outcome}</p>
+      <h2>{clientMediaCopy(option.label)}</h2></div><strong>{formatMoney(option.budgetMinor, option.currency)}</strong></header>
+    <p className="proposal-option-outcome">{clientMediaCopy(option.outcome)}</p>
     <div className="proposal-option-channels">{option.channels.map(channel =>
       <span key={channel}><MediaTypeIcon channel={channel} />{mediaVisual(channel).label}</span>)}</div>
     <div className="proposal-option-periods">{groupPeriods(option).map(item =>

@@ -12,6 +12,8 @@
   min-height: 22rem;
 }
 
+.advertified-map-legend { position: absolute; bottom: 34px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 8px 12px; background: #fffffff2; color: #344054; border-radius: 6px; font-size: 12px; pointer-events: none; }
+
 .advertified-map-message {
   position: absolute;
   inset: 0;

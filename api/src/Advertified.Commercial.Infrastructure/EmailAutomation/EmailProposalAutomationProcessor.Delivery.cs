@@ -4,6 +4,7 @@ using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Opportunity;
+using Advertified.Commercial.Infrastructure.Proposal;
 
 namespace Advertified.Commercial.Infrastructure.EmailAutomation;
 
@@ -74,7 +75,8 @@ public sealed partial class EmailProposalAutomationProcessor
                 new GenerateProposalCommand(
                     policy.ProposalTitle,
                     [new ProposalOptionInput(
-                        planId, policy.ProposalOptionLabel, understanding.Draft.Objective)],
+                        planId, ProposalMediaLabels.ClientText(policy.ProposalOptionLabel),
+                        understanding.Draft.Objective)],
                     policy.ProposalTerms,
                     expiry),
                 correlationId),

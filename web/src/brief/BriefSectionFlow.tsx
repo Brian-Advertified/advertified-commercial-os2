@@ -28,27 +28,14 @@ export function BriefLocalNavigation({
   </aside>
 }
 
-export function BriefStep({
-  section,
-  active,
-  previous,
-  next,
-  onSelect,
-  copy,
-  children,
-  finalAction,
-}: {
+export function BriefStep({ section, copy, children, finalAction }: {
   section: BriefSectionState
-  active: boolean
-  previous: BriefSectionState | null
-  next: BriefSectionState | null
-  onSelect: (id: BriefSectionId) => void
   copy: string
   children: ReactNode
   finalAction?: ReactNode
 }) {
   return <section className="approved-brief-section" id={`brief-${section.id}`}
-    hidden={!active} tabIndex={-1} aria-labelledby={`brief-${section.id}-title`}>
+    tabIndex={-1} aria-labelledby={`brief-${section.id}-title`}>
     <header><div><h2 id={`brief-${section.id}-title`}>{section.label}</h2>
       <p>{copy}</p></div>
       <span className={section.status === 'complete'
@@ -58,13 +45,8 @@ export function BriefStep({
       </span>
     </header>
     <div className="approved-brief-formgrid">{children}</div>
-    <footer className="approved-brief-step-actions">
-      <div>{previous && <button className="secondary-button" type="button"
-        onClick={() => onSelect(previous.id)}>← Previous: {previous.label}</button>}</div>
-      <div>{next
-        ? <button className="primary-button" type="button"
-            onClick={() => onSelect(next.id)}>Continue to {next.label} →</button>
-        : finalAction}</div>
-    </footer>
+    {finalAction && <footer className="approved-brief-step-actions">
+      <div className="approved-brief-decision-actions">{finalAction}</div>
+    </footer>}
   </section>
 }

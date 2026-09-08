@@ -7,7 +7,7 @@ test('connected catalogue pages, filters and opens a legacy product', async ({ p
   await page.goto('/sign-in')
   await page.getByRole('button', { name: /Continue to Advertified/ }).click()
   await page.getByRole('button', { name: /Advertified Local/ }).click()
-  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Local/ })).toBeVisible()
+  await expect(page).toHaveURL('/home')
 
   await page.goto('/inventory')
   await expect(page.getByRole('heading', { name: 'Media inventory' })).toBeVisible()
@@ -65,6 +65,18 @@ test('connected catalogue pages, filters and opens a legacy product', async ({ p
   await page.goto('/inventory/products/1cd7a0ac-316a-570d-a863-dc87de4b5273')
   await expect(page.locator('#product-title')).toHaveText('M5 Mowbray')
   await expect(page.getByText('Request supplier quote', { exact: true })).toBeVisible()
+})
+
+test('connected marketplace exposes published inventory', async ({ page }) => {
+  await page.goto('/sign-in')
+  await page.getByRole('button', { name: /Continue to Advertified/ }).click()
+  await page.getByRole('button', { name: /Advertified Local/ }).click()
+
+  await page.goto('/marketplace')
+  await expect(page.getByRole('heading', { name: 'Supplier marketplace' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Supply ledger' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'No published supply found' })).toHaveCount(0)
+  await expect(page.locator('.marketplace-table tbody tr').first()).toBeVisible()
 })
 
 function cardLinks(page: import('@playwright/test').Page) {

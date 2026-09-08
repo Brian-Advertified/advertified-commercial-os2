@@ -14,6 +14,7 @@ internal static class DisposablePostgres
         .WithDatabase(database)
         .WithUsername(username)
         .WithPassword(password)
+        .WithTmpfsMount("/var/lib/postgresql/data")
         .Build();
 
     internal static async Task EnableRequiredExtensionsAsync(string connectionString)

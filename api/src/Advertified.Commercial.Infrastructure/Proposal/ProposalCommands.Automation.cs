@@ -30,6 +30,7 @@ public sealed partial class ProposalCommands
         {
             throw new ProposalDocumentRequiredException();
         }
+        await EnsureClientBrandingReadyAsync(proposal, envelope.TenantId, cancellationToken);
         var authorised = await store.DbContext.Database.SqlQuery<bool>($"""
             SELECT EXISTS (
                 SELECT 1

@@ -57,7 +57,7 @@ test('planner edits allocation and timing before approving the plan', async ({ p
 
   await page.getByRole('button', { name: 'Create media mix' }).click()
   await expect(page.getByRole('heading', { name: 'Shape the investment and timing' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Out of Home' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Outdoor advertising', exact: true })).toBeVisible()
   await page.getByRole('button', { name: '+ Add period' }).click()
   await page.getByLabel('Start').fill('2026-09-01')
   await page.getByLabel('End').fill('2026-09-30')
@@ -66,6 +66,10 @@ test('planner edits allocation and timing before approving the plan', async ({ p
   await page.getByRole('button', { name: 'Confirm media mix' }).click()
 
   await page.getByRole('button', { name: 'Build inventory shortlist' }).click()
+  await page.getByText('Buying evidence and gaps', { exact: true }).click()
+  await expect(page.getByText('Cost per relevant audience reached: Needs evidence.', { exact: true })).toBeVisible()
+  await expect(page.getByText('Additional campaign reach: Needs evidence.', { exact: true })).toBeVisible()
+  await expect(page.getByText('Profile matches are not people reached.', { exact: false })).toBeVisible()
   await page.getByText('Market comparison').click()
   await expect(page.getByText('4 comparable sites')).toBeVisible()
   await page.getByLabel('Select Johannesburg OOH Site').check()
@@ -120,7 +124,7 @@ test('full campaign planner can add, rebalance and remove permitted channels', a
   await page.getByLabel('Add media type').selectOption('RADIO')
   await page.getByRole('button', { name: 'Add media type' }).click()
   const ooh = page.locator('.media-allocation-card')
-    .filter({ has: page.getByRole('heading', { name: 'Out of Home' }) })
+    .filter({ has: page.getByRole('heading', { name: 'Outdoor advertising' }) })
   const radio = page.locator('.media-allocation-card')
     .filter({ has: page.getByRole('heading', { name: 'Radio' }) })
   await ooh.getByRole('spinbutton').fill('7000')
@@ -135,12 +139,34 @@ test('full campaign planner can add, rebalance and remove permitted channels', a
   expect(state.mix?.allocations.map(item => item.channel)).toEqual(['OOH'])
 })
 
+test('audience strategy is reviewed and approved with one action', async ({ page }) => {
+  const state: State = {
+    fullCampaign: false, audience: true, audienceApproved: false,
+    mix: null, shortlist: null, plan: null,
+  }
+  await page.addInitScript(id => {
+    sessionStorage.setItem('advertified.workspace', JSON.stringify({ tenantId: id }))
+  }, tenantId)
+  await page.route('**/api/v1/**', route => handleApi(route, state))
+
+  await page.goto(`/stp/${briefVersionId}`)
+  await expect(page.getByRole('heading', { name: 'Audience Strategy' })).toBeVisible()
+  await expect(page.getByText('Human review required')).toBeVisible()
+  await expect(page.getByRole('combobox', { name: 'Planning role' })).toHaveCount(2)
+  await page.getByRole('combobox', { name: 'Planning role' }).nth(1).selectOption('secondary')
+  await page.getByRole('button', { name: 'Approve audience strategy & continue' }).click()
+
+  await expect(page).toHaveURL(`/planning/${briefVersionId}`)
+  await expect(page.getByRole('heading', { name: 'Media Planning Overview' })).toBeVisible()
+  await expect(page.getByRole('combobox', { name: 'Planning role' })).toHaveCount(0)
+})
+
 async function handleApi(route: Route, state: State) {
   const request = route.request()
   const path = new URL(request.url()).pathname
   if (request.method() === 'GET') return read(route, state, path)
   assertMutation(route, isVersioned(path))
-  if (path.includes('audiences') || path.includes('media-mix')) return handleMixCommand(route, state, path)
+  if (path.includes('audience') || path.includes('media-mix')) return handleMixCommand(route, state, path)
   if (path.includes('shortlist')) return handleShortlistCommand(route, state, path)
   if (path.includes('media-plan')) return handlePlanCommand(route, state, path)
   return json(route, { code: 'NOT_FOUND', status: 404 }, 404)
@@ -149,7 +175,7 @@ async function handleApi(route: Route, state: State) {
 async function handleMixCommand(route: Route, state: State, path: string) {
   if (path.endsWith('/audiences:generate')) {
     state.audience = true
-    state.audienceApproved = true
+    state.audienceApproved = false
     return json(route, audience(state))
   }
   if (path.endsWith(`${audienceId}:approve`)) {
@@ -242,17 +268,31 @@ function campaignMode(state: State) {
 }
 
 function audience(state: State) {
+  const status = state.audienceApproved ? 'APPROVED' : 'DRAFT'
   return { id: audienceId, briefVersionId, versionNumber: 1,
     targetAudienceIds: ['cf000000-0000-0000-0000-000000000001'],
     targetingRationale: 'Prioritise local business decision makers in Johannesburg.',
     positioningStatement: 'Present the advertiser as the practical local growth partner.',
-    inputHash: 'a'.repeat(64), status: state.audienceApproved ? 'APPROVED' : 'DRAFT',
-    definitions: [{ id: 'cf000000-0000-0000-0000-000000000001', name: 'Local business decision makers',
-      description: 'Businesses seeking local customer demand.', needState: 'Growth', buyingContext: 'Local purchase',
-      geographies: ['Johannesburg'], language: null, lifeStage: null, lsmSem: null,
-      lsmSemTaxonomy: null, lsmSemTaxonomyVersion: null, lsmSemMandatory: false,
-      classification: 'INFERENCE', exclusions: [], evidenceItemIds: [], confidence: 0.7, status: 'APPROVED' }],
-    createdAtUtc: now }
+    inputHash: 'a'.repeat(64), status,
+    definitions: [
+      { id: 'cf000000-0000-0000-0000-000000000001', name: 'Local business decision makers',
+        description: 'Businesses actively seeking local customer demand.', needState: 'Growth',
+        buyingContext: 'Evaluating a local purchase', geographies: ['Johannesburg'],
+        language: null, lifeStage: null, lsmSem: null, lsmSemTaxonomy: null,
+        lsmSemTaxonomyVersion: null, lsmSemMandatory: false, classification: 'INFERENCE',
+        exclusions: ['Do not infer individual business ownership.'], evidenceItemIds: [],
+        confidence: 0.7, status },
+      { id: 'cf000000-0000-0000-0000-000000000002', name: 'Purchase influencers',
+        description: 'People who may influence the final business purchasing decision.',
+        needState: 'Confidence in the recommendation', buyingContext: 'Advising the buyer',
+        geographies: ['Johannesburg'], language: null, lifeStage: null, lsmSem: null,
+        lsmSemTaxonomy: null, lsmSemTaxonomyVersion: null, lsmSemMandatory: false,
+        classification: 'HYPOTHESIS', exclusions: ['Do not assume authority to purchase.'],
+        evidenceItemIds: [], confidence: 0.45, status },
+    ],
+    createdBy: userId, approvedBy: state.audienceApproved ? userId : null,
+    version: state.audienceApproved ? 2 : 1,
+    approvedAtUtc: state.audienceApproved ? now : null, createdAtUtc: now }
 }
 
 function mix(state: State) {
@@ -272,6 +312,11 @@ function shortlist(state: State) {
       rateId, availabilityId, name: 'Johannesburg OOH Site', channel: 'OOH', geography: 'Johannesburg',
       rateAmountMinor: 100_000, currency: 'ZAR', isEligible: true, rejectionReason: null, rejectionDetail: null,
       score: 88, rationale: 'Eligible after governed hard constraints and local peer review.',
+      suitability: { policyVersion: 'OOH_LOCAL_PEER_V1', geography: 0, audienceContext: 0,
+        objectiveFormat: 0, budgetEfficiency: 0, evidenceQualityFreshness: 1,
+        portfolioCoverageDiversity: 0, total: 0.1, evidenceGaps: [
+          'suitability.objectiveFormatEvidence', 'suitability.comparableTargetExposureCost',
+          'suitability.incrementalReachEvidence'] },
       commercialReadiness: { supplierVatStatus: 'REGISTERED', vatTreatment: 'INCLUSIVE',
         supplierVatNumber: '4000000000', evidenceGaps: [], rateType: state.buyingRateType },
       audienceFit: {

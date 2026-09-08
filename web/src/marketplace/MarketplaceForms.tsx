@@ -1,34 +1,88 @@
 import { useState, type FormEvent } from 'react'
 import type { InventoryProductSummary } from '../api/inventory-schemas'
 import type { MarketplaceListing, MarketplaceRfq } from '../api/marketplace-schemas'
+import type { MarketplaceFilters } from '../api/marketplace-client'
 import { Icon } from '../components/Icon'
 import { masterDataCodes, masterDataDefinitions } from '../generated/master-data-codes'
 import { majorAmountToMinor } from '../presentation/format'
+import { channelLabel } from '../presentation/media-labels'
 
 export function MarketplaceSearchForm({ search }: {
-  search: (filters: { search: string; channel: string; geography: string }) => void
+  search: (filters: MarketplaceFilters) => void
 }) {
-  const [filters, setFilters] = useState({ search: '', channel: '', geography: '' })
+  const [filters, setFilters] = useState({ search: '', channel: '', geography: '',
+    country: '', province: '', city: '', supplier: '', format: '', rateType: '',
+    minimumAmount: '', maximumAmount: '', currency: 'ZAR' })
   function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); search(filters)
+    event.preventDefault()
+    const minimum = optionalMinorAmount(filters.minimumAmount, filters.currency)
+    const maximum = optionalMinorAmount(filters.maximumAmount, filters.currency)
+    search({ search: filters.search, channel: filters.channel, geography: filters.geography,
+      country: filters.country, province: filters.province, city: filters.city,
+      supplier: filters.supplier, format: filters.format, rateType: filters.rateType,
+      minimumAmountMinor: minimum, maximumAmountMinor: maximum,
+      currency: filters.currency })
   }
   return <form className="marketplace-filter-bar" onSubmit={submit} aria-labelledby="market-filter-title">
     <header><span><Icon name="search" /></span><div><p className="eyebrow">Supply filters</p>
       <h2 id="market-filter-title">Find published inventory</h2></div></header>
-    <div className="marketplace-filter-fields">
+    <MarketplaceFilterFields filters={filters} setFilters={setFilters} />
+  </form>
+}
+
+type SearchFormState = {
+  search: string; channel: string; geography: string; country: string; province: string
+  city: string; supplier: string; format: string; rateType: string
+  minimumAmount: string; maximumAmount: string; currency: string
+}
+
+function MarketplaceFilterFields({ filters, setFilters }: {
+  filters: SearchFormState; setFilters: (filters: SearchFormState) => void
+}) {
+  return <div className="marketplace-filter-fields">
       <label className="field-group">Product or supplier<input value={filters.search}
         onChange={(event) => setFilters({ ...filters, search: event.target.value })} /></label>
       <label className="field-group">Channel<select value={filters.channel}
         onChange={(event) => setFilters({ ...filters, channel: event.target.value })}>
         <option value="">All channels</option>
         {masterDataDefinitions.channels.filter(item => item.isActive).map(item =>
-          <option value={item.code} key={item.code}>{item.displayLabel}</option>)}
+          <option value={item.code} key={item.code}>{channelLabel(item.code)}</option>)}
       </select></label>
       <label className="field-group">Geography<input value={filters.geography}
         onChange={(event) => setFilters({ ...filters, geography: event.target.value })} /></label>
+      <label className="field-group">Country<input value={filters.country}
+        onChange={(event) => setFilters({ ...filters, country: event.target.value })}
+        placeholder="e.g. South Africa" /></label>
+      <label className="field-group">Province<input value={filters.province}
+        onChange={(event) => setFilters({ ...filters, province: event.target.value })} /></label>
+      <label className="field-group">City<input value={filters.city}
+        onChange={(event) => setFilters({ ...filters, city: event.target.value })} /></label>
+      <label className="field-group">Supplier<input value={filters.supplier}
+        onChange={(event) => setFilters({ ...filters, supplier: event.target.value })} /></label>
+      <label className="field-group">Format<input value={filters.format}
+        onChange={(event) => setFilters({ ...filters, format: event.target.value })} /></label>
+      <label className="field-group">Rate type<select value={filters.rateType}
+        onChange={(event) => setFilters({ ...filters, rateType: event.target.value })}>
+        <option value="">All rate types</option>
+        {masterDataDefinitions.rateTypes.filter(item => item.isActive).map(item =>
+          <option value={item.code} key={item.code}>{item.displayLabel}</option>)}
+      </select></label>
+      <label className="field-group">Minimum rate<input value={filters.minimumAmount}
+        type="number" min="0" step="any"
+        onChange={(event) => setFilters({ ...filters, minimumAmount: event.target.value })} /></label>
+      <label className="field-group">Maximum rate<input value={filters.maximumAmount}
+        type="number" min="0" step="any"
+        onChange={(event) => setFilters({ ...filters, maximumAmount: event.target.value })} /></label>
+      <label className="field-group">Currency<select value={filters.currency}
+        onChange={(event) => setFilters({ ...filters, currency: event.target.value })}>
+        {masterDataDefinitions.currencies.filter(item => item.isActive).map(item =>
+          <option value={item.code} key={item.code}>{item.displayLabel}</option>)}</select></label>
       <button className="secondary-button">Search marketplace</button>
     </div>
-  </form>
+}
+
+function optionalMinorAmount(value: string, currency: string) {
+  return value === '' ? undefined : majorAmountToMinor(Number(value), currency)
 }
 
 export function PublishProductForm({ products, busy, publish }: {

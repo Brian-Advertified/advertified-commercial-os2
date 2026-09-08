@@ -9,7 +9,7 @@ export const publicRoutes = [
   { path: '/platform', title: 'Campaign intelligence and delivery platform | Advertified', description: 'See how Advertified connects the campaign brief, media intelligence, strategy, proposals and delivery evidence in one guided journey.' },
   { path: '/how-it-works', title: 'How Advertified works', description: 'Follow the guided campaign journey from business goal and media strategy to proposal, coordination, delivery evidence and learning.' },
   { path: '/solutions', title: 'Cross-media advertising solutions | Advertified', description: 'Build the right role for traditional, digital and creator media around your audience, geography, investment and campaign outcome.' },
-  { path: '/solutions/ooh', title: 'OOH and digital screen advertising | Advertified', description: 'Plan a purposeful out-of-home campaign around the locations, audiences and moments that matter.' },
+  { path: '/solutions/ooh', title: 'Billboards and digital screen advertising | Advertified', description: 'Plan outdoor advertising around the locations, audiences and moments that matter.' },
   { path: '/solutions/radio', title: 'Radio advertising | Advertified', description: 'Use radio language, frequency and regional relevance to build familiarity and response.' },
   { path: '/solutions/television', title: 'Television advertising | Advertified', description: 'Use television to combine sight, sound and cultural context in a high-attention campaign role.' },
   { path: '/solutions/print', title: 'Print and newspaper advertising | Advertified', description: 'Use print media to add detail, trusted context and credibility to the campaign.' },

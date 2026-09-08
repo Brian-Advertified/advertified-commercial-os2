@@ -162,7 +162,7 @@ async function completeMeasurement(page: Page) {
 }
 
 async function expectOohCampaignFlow(page: Page) {
-  await expect(page.getByRole('region', { name: 'OOH-only Campaign Flow' }))
+  await expect(page.getByRole('region', { name: 'Outdoor advertising campaign' }))
     .toHaveAttribute('data-campaign-mode', 'OOH_ONLY');
   await expect(page.getByRole('region', { name: 'Full Campaign Flow' })).toHaveCount(0);
 }

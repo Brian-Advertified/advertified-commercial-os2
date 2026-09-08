@@ -8,7 +8,8 @@ import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { MarketplaceSearchForm, PublishProductForm, RfqForm }
   from '../marketplace/MarketplaceForms'
-import { MarketplaceListings, MarketplaceRequests } from '../marketplace/MarketplaceRecords'
+import { MarketplaceListingInspector, MarketplaceListings, MarketplaceRequests }
+  from '../marketplace/MarketplaceRecords'
 import { marketplaceBuyerRoles, marketplaceSupplierRoles, marketplaceViewerRoles }
   from '../marketplace/marketplace-roles'
 import { useMarketplaceData, useMarketplaceListingActions, useMarketplaceRfqActions,
@@ -35,10 +36,11 @@ function MarketplaceWorkspace({ tenantId, canBuy, canSupply }: {
   const { session } = useSession()
   const [tab, setTab] = useState<MarketplaceTab>('supply')
   const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null)
+  const [rfqTarget, setRfqTarget] = useState<MarketplaceListing | null>(null)
   const [selectedRfqId, setSelectedRfqId] = useState<string | null>(null)
   const [responseTarget, setResponseTarget] = useState<MarketplaceRfq | null>(null)
   const data = useMarketplaceData(tenantId, canBuy, canSupply)
-  const runner = useMarketplaceRunner(() => data.load())
+  const runner = useMarketplaceRunner(data.reload)
   const listings = useMarketplaceListingActions(tenantId, session?.antiforgeryToken, runner.run)
   const rfqs = useMarketplaceRfqActions(tenantId, session?.antiforgeryToken, runner.run)
   const error = runner.error ?? data.error
@@ -46,9 +48,9 @@ function MarketplaceWorkspace({ tenantId, canBuy, canSupply }: {
   if (error && !data.listings) return <MessageState title="Marketplace could not be loaded" message={error} />
   if (!data.listings) return <LoadingState label="Loading marketplace" />
   async function createRequest(values: RfqValues) {
-    if (!selectedListing) return
-    await rfqs.create(selectedListing, values)
-    setSelectedListing(null); setTab('requests')
+    if (!rfqTarget) return
+    await rfqs.create(rfqTarget, values)
+    setRfqTarget(null); setSelectedListing(null); setTab('requests')
   }
   async function submitResponse(values: ResponseValues) {
     if (!responseTarget) return
@@ -60,10 +62,13 @@ function MarketplaceWorkspace({ tenantId, canBuy, canSupply }: {
   return <MarketplaceExperience tenantId={tenantId} canBuy={canBuy} canSupply={canSupply}
     listings={data.listings} requests={data.requests} products={data.products} error={error}
     busy={runner.busy} tab={tab} setTab={setTab} selectedListing={selectedListing}
-    setSelectedListing={setSelectedListing} selectedRfqId={selectedRfqId}
+    setSelectedListing={setSelectedListing} rfqTarget={rfqTarget} setRfqTarget={setRfqTarget}
+    selectedRfqId={selectedRfqId}
     selectRequest={selectRequest} responseTarget={responseTarget}
     prepareResponse={(rfq) => { setSelectedRfqId(rfq.id); setResponseTarget(rfq) }}
-    closeResponse={() => setResponseTarget(null)} search={data.load}
+    closeResponse={() => setResponseTarget(null)} search={data.search}
+    next={data.next} previous={data.previous} nextCursor={data.nextCursor}
+    pageNumber={data.pageNumber}
     publish={listings.publish} archive={listings.archive} createRequest={createRequest}
     send={rfqs.send} accept={rfqs.accept} submitResponse={submitResponse} />
 }
@@ -74,9 +79,13 @@ type ExperienceProps = {
   products: ReturnType<typeof useMarketplaceData>['products']; tab: MarketplaceTab
   setTab: (tab: MarketplaceTab) => void; selectedListing: MarketplaceListing | null
   setSelectedListing: (listing: MarketplaceListing | null) => void
+  rfqTarget: MarketplaceListing | null
+  setRfqTarget: (listing: MarketplaceListing | null) => void
   selectedRfqId: string | null; selectRequest: (rfq: MarketplaceRfq) => void
   responseTarget: MarketplaceRfq | null; prepareResponse: (rfq: MarketplaceRfq) => void
-  closeResponse: () => void; search: ReturnType<typeof useMarketplaceData>['load']
+  closeResponse: () => void; search: ReturnType<typeof useMarketplaceData>['search']
+  next: () => Promise<void>; previous: () => Promise<void>
+  nextCursor: string | null; pageNumber: number
   publish: (productId: string, terms: string) => Promise<void>
   archive: (listing: MarketplaceListing) => Promise<void>
   createRequest: (values: RfqValues) => Promise<void>; send: (rfq: MarketplaceRfq) => Promise<void>
@@ -105,16 +114,29 @@ function MarketplaceExperience(props: ExperienceProps) {
 }
 
 function SupplyPanel(props: ExperienceProps) {
-  const { listings, selectedListing } = props
+  const { listings, selectedListing, rfqTarget } = props
   return <div id="marketplace-supply-panel" aria-label="Published supply">
-    <MarketplaceSearchForm search={(filters) => { props.setSelectedListing(null); void props.search(filters) }} />
-    <div className={selectedListing ? 'marketplace-master-detail' : undefined}>
-      <MarketplaceListings listings={listings} tenantId={props.tenantId} canBuy={props.canBuy}
+    <MarketplaceSearchForm search={(filters) => { props.setSelectedListing(null)
+      props.setRfqTarget(null); void props.search(filters) }} />
+    <div className={selectedListing || rfqTarget ? 'marketplace-master-detail' : undefined}>
+      <MarketplaceListings listings={listings} tenantId={props.tenantId}
         canSupply={props.canSupply} selectedId={selectedListing?.id ?? null}
-        request={props.setSelectedListing} archive={(listing) => void props.archive(listing)} />
-      {selectedListing && <RfqForm listing={selectedListing} busy={props.busy}
-        close={() => props.setSelectedListing(null)} create={props.createRequest} />}
+        open={(listing) => { props.setRfqTarget(null); props.setSelectedListing(listing) }}
+        archive={(listing) => void props.archive(listing)} />
+      {rfqTarget && <RfqForm listing={rfqTarget} busy={props.busy}
+        close={() => props.setRfqTarget(null)} create={props.createRequest} />}
+      {!rfqTarget && selectedListing && <MarketplaceListingInspector listing={selectedListing}
+        tenantId={props.tenantId} canBuy={props.canBuy}
+        close={() => props.setSelectedListing(null)}
+        request={(listing) => props.setRfqTarget(listing)} />}
     </div>
+    <nav className="marketplace-pagination" aria-label="Marketplace pages">
+      <button className="secondary-button" type="button" disabled={props.pageNumber === 1}
+        onClick={() => void props.previous()}>Previous</button>
+      <span>Page {props.pageNumber}</span>
+      <button className="secondary-button" type="button" disabled={!props.nextCursor}
+        onClick={() => void props.next()}>Next</button>
+    </nav>
   </div>
 }
 
@@ -132,8 +154,8 @@ function MarketplaceHeader({ tenantId, listings, requests, canBuy, canSupply }: 
     </div><div className="marketplace-access"><span>Workspace access</span>
       <strong>{accessLabel(canBuy, canSupply)}</strong></div></header>
     <dl className="marketplace-metric-strip">
-      <Metric label="Published supply" value={listings.length} detail="Visible listing versions" />
-      <Metric label="Marked available" value={markedAvailable} detail="Published supplier status" />
+      <Metric label="Shown on page" value={listings.length} detail="Current filtered page" />
+      <Metric label="Available on page" value={markedAvailable} detail="Current supplier status" />
       <Metric label="Exchange records" value={canBuy || canSupply ? requests.length : '—'}
         detail={canBuy || canSupply ? 'Retained for this workspace' : 'View-only role'} />
       <Metric label="Needs your action" value={canBuy || canSupply ? needsAction : '—'}

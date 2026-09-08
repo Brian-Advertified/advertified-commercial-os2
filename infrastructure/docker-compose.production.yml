@@ -1,0 +1,115 @@
+name: advertified-os2-production
+
+x-service-hardening: &service-hardening
+  init: true
+  read_only: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+  pull_policy: always
+  logging:
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "5"
+
+x-api-environment: &api-environment
+  ASPNETCORE_ENVIRONMENT: Production
+  Process__Role: Api
+  Authentication__DataProtection__KeysDirectory: /var/lib/advertified/data-protection-keys
+  Authentication__DataProtection__CertificatePath: /run/secrets/data-protection.pfx
+
+services:
+  migrator:
+    image: ${ADVERTIFIED_MIGRATOR_IMAGE:?Set an immutable migrator image digest}
+    profiles:
+      - migration
+    env_file:
+      - ${ADVERTIFIED_API_ENV_FILE:?Set the API environment file path}
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+    networks:
+      - backend
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    command:
+      - --apply
+    restart: "no"
+
+  agent-runtime:
+    <<: *service-hardening
+    image: ${ADVERTIFIED_AGENT_RUNTIME_IMAGE:?Set an immutable agent-runtime image digest}
+    env_file:
+      - ${ADVERTIFIED_AGENT_ENV_FILE:?Set the agent-runtime environment file path}
+    networks:
+      - backend
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    stop_grace_period: 30s
+
+  api:
+    <<: *service-hardening
+    image: ${ADVERTIFIED_API_IMAGE:?Set an immutable API image digest}
+    env_file:
+      - ${ADVERTIFIED_API_ENV_FILE:?Set the API environment file path}
+    environment:
+      <<: *api-environment
+    networks:
+      - backend
+    volumes:
+      - ${ADVERTIFIED_DATA_PROTECTION_KEYS_DIR:?Set the protected key directory}:/var/lib/advertified/data-protection-keys
+      - ${ADVERTIFIED_DATA_PROTECTION_CERT_PATH:?Set the certificate path}:/run/secrets/data-protection.pfx:ro
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    depends_on:
+      agent-runtime:
+        condition: service_healthy
+    stop_grace_period: 30s
+
+  worker:
+    <<: *service-hardening
+    image: ${ADVERTIFIED_API_IMAGE:?Set an immutable API image digest}
+    env_file:
+      - ${ADVERTIFIED_API_ENV_FILE:?Set the API environment file path}
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Process__Role: Worker
+    networks:
+      - backend
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    depends_on:
+      agent-runtime:
+        condition: service_healthy
+    stop_grace_period: 3m
+
+  web:
+    <<: *service-hardening
+    image: ${ADVERTIFIED_WEB_IMAGE:?Set an immutable web image digest}
+    environment:
+      ADVERTIFIED_API_UPSTREAM: http://api:8080
+    networks:
+      - edge
+      - backend
+    ports:
+      - 127.0.0.1:${ADVERTIFIED_WEB_PORT:-8080}:8080
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+      - /config/caddy:rw,noexec,nosuid,size=16m
+      - /data/caddy:rw,noexec,nosuid,size=16m
+    depends_on:
+      api:
+        condition: service_healthy
+    stop_grace_period: 30s
+
+networks:
+  edge:
+  backend:
+    internal: true

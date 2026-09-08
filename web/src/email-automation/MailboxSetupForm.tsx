@@ -87,7 +87,7 @@ function SetupHeading({ editing }: { editing: boolean }) {
     {editing ? 'Mailbox settings' : 'One-time setup'}</p>
     <h2>{editing ? 'Update the proposal mailbox' : 'Connect the proposal mailbox'}</h2>
     <p>Complete requests use the same Brief, STP, planning, inventory and proposal flow. The client is read from each Brief, so no client record is required beforehand.</p></div>
-    <span className="ooh-mode-badge">OOH / DOOH only</span></div>
+    <span className="ooh-mode-badge">Outdoor advertising and digital screens only</span></div>
 }
 
 function AutoSendControl({ enabled, update }: {

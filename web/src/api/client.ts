@@ -41,13 +41,14 @@ const safeMessages: Readonly<Record<string, string>> = {
   PROPOSAL_APPROVAL_BLOCKED: 'Review the proposal choices, pricing and validity before continuing.',
   PROPOSAL_EXPIRED: 'This proposal has expired. Prepare a current version before continuing.',
   PROPOSAL_DOCUMENT_REQUIRED: 'Generate the approved proposal PDF before sharing it.',
+  PROPOSAL_BRANDING_REQUIRED: 'Approve the agency and client brand assets, or record an authorised unbranded decision before continuing.',
   PROPOSAL_DECISION_RECORDED: 'A client decision has already been recorded for this proposal.',
   CAMPAIGN_MODE_REQUIRED: 'Choose out-of-home only or full campaign before planning.',
   CAMPAIGN_MODE_LOCKED: 'This campaign type is locked. Start a new campaign to change it.',
   OOH_SUPPLY_CONFIRMATION_REQUIRED:
     'Confirm current rates and availability, then rebuild the out-of-home shortlist.',
-  INVENTORY_BENCHMARK_UNAVAILABLE: 'There is not enough current comparable OOH data yet.',
-  INBOUND_MAILBOX_NOT_CONFIGURED: 'Connect the OOH proposal mailbox before receiving requests.',
+  INVENTORY_BENCHMARK_UNAVAILABLE: 'There is not enough current comparable outdoor advertising data yet.',
+  INBOUND_MAILBOX_NOT_CONFIGURED: 'Connect the outdoor advertising proposal mailbox before receiving requests.',
   EMAIL_AUTOMATION_NOT_RETRYABLE: 'Only a request that needs review can be checked again.',
   EMAIL_ATTACHMENT_BLOCKED: 'Review the attachment before continuing this request.',
   EMAIL_PAYLOAD_UNAVAILABLE: 'The complete incoming email could not be retrieved.',
@@ -89,7 +90,7 @@ const safeMessages: Readonly<Record<string, string>> = {
   [masterDataCodes.automationFailureReasons.clientNotResolved]:
     'The client could not be identified from the email or mailbox setup.',
   [masterDataCodes.automationFailureReasons.nonOohRequest]:
-    'This request includes media beyond OOH. Start a new full campaign from the beginning.',
+    'This request includes media beyond outdoor advertising. Start a new full campaign from the beginning.',
   [masterDataCodes.automationFailureReasons.incompleteBrief]:
     'The email needs a clear client, objective, audience, geography, dates, budget and VAT status.',
   [masterDataCodes.automationFailureReasons.attachmentReviewRequired]:
@@ -97,7 +98,7 @@ const safeMessages: Readonly<Record<string, string>> = {
   [masterDataCodes.automationFailureReasons.stpUnready]:
     'The segmentation, targeting or positioning evidence is not ready.',
   [masterDataCodes.automationFailureReasons.supplyUnready]:
-    'Confirmed inventory, rates or availability are not ready for every OOH selection.',
+    'Confirmed inventory, rates or availability are not ready for every outdoor advertising selection.',
   [masterDataCodes.automationFailureReasons.planUnready]:
     'The media plan has an unresolved commercial issue.',
   [masterDataCodes.automationFailureReasons.proposalUnready]:

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const stageLabels = ['Strategy & STP', 'Planning', 'Proposals', 'Approvals', 'Measurement', 'Reports']
-const topLevelLabels = ['Home', 'Opportunities', 'Briefs', 'Inventory', 'Marketplace', 'OOH Inbox', 'Bookings', 'Campaigns', 'Tasks', 'Finance']
+const stageLabels = ['Audience Strategy', 'Planning', 'Proposals', 'Approvals', 'Measurement']
+const topLevelLabels = ['Home', 'Opportunities', 'Briefs', 'Inventory', 'Marketplace', 'Media inbox', 'Bookings', 'Campaigns', 'Reporting', 'Tasks', 'Finance']
 
 test('live 3017 uses one Advertified shell across all authenticated modules', async ({ page }) => {
   await page.goto('/sign-in')
@@ -60,7 +60,7 @@ test('live 3017 uses one Advertified shell across all authenticated modules', as
   expect(Math.min(...sizes)).toBeGreaterThanOrEqual(11)
 
   await page.goto('/ooh-inbox')
-  await expect(page.getByRole('region', { name: 'OOH-only Campaign Flow' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Outdoor advertising campaign' })).toBeVisible()
   await expect(page.locator('.approved-sidebar')).toHaveCSS('background-color', 'rgb(255, 255, 255)')
 })
 

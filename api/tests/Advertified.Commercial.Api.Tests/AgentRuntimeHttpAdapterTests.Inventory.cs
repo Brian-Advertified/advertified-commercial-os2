@@ -12,6 +12,14 @@ public sealed partial class AgentRuntimeHttpAdapterTests
     public async Task InventoryWireEvidenceContainsEligibleAndRejectedSuitability()
     {
         var input = InventoryInput(Guid.NewGuid(), Guid.NewGuid());
+        input = input with { Strategy = new InventoryStrategyInput(
+            Guid.NewGuid(), 2, Guid.NewGuid(), 3,
+            "Increase pharmacy visits", "Reach caregivers", "Convenient family care",
+            [new InventoryStrategyAudienceInput(Guid.NewGuid(), "Stay-at-home mothers",
+                "Convenient care", "Purchase occasion requires research", ["Johannesburg"],
+                "HYPOTHESIS", ["Do not infer household income"], [])],
+            [new InventoryStrategyAllocationInput("OOH", 125_000, "Local awareness",
+                [new MediaRunningPeriodView(new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 30))])]) };
         var accepted = input.Candidates[0];
         var rejected = accepted with
         {
@@ -26,6 +34,13 @@ public sealed partial class AgentRuntimeHttpAdapterTests
             var json = await request.Content!.ReadAsStringAsync();
             using var body = JsonDocument.Parse(json);
             var candidates = body.RootElement.GetProperty("inventory").GetProperty("candidates");
+            var strategy = body.RootElement.GetProperty("inventory").GetProperty("strategy");
+            Assert.Equal("HYPOTHESIS", strategy.GetProperty("audiences")[0].GetProperty("classification").GetString());
+            Assert.Equal("2026-09-01", strategy.GetProperty("allocations")[0]
+                .GetProperty("running_periods")[0].GetProperty("start").GetString());
+            var references = body.RootElement.GetProperty("invocation").GetProperty("resource_refs");
+            Assert.Equal(input.Strategy!.AudienceSetId, references[2].GetProperty("resource_id").GetGuid());
+            Assert.Equal(2, references[2].GetProperty("version").GetInt64());
             Assert.Equal(0.82m, candidates[0].GetProperty("suitability").GetProperty("total").GetDecimal());
             Assert.Equal(0, candidates[1].GetProperty("suitability").GetProperty("total").GetDecimal());
             var directory = Path.Combine(Path.GetTempPath(), "advertified-contracts");

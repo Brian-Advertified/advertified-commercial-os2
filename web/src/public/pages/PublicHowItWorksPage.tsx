@@ -144,7 +144,7 @@ function StageVisual({ type }: { type: (typeof stages)[number]['visual'] }) {
       <div className="hiw-inventory-preview" aria-label="Media channels considered together">
         <figure><img src="/assets/media-inventory/television.jpg" alt="" /><figcaption>Television</figcaption></figure>
         <figure><img src="/assets/media-inventory/radio.jpg" alt="" /><figcaption>Radio</figcaption></figure>
-        <figure><img src="/assets/media-inventory/out-of-home.jpg" alt="" /><figcaption>Out of home</figcaption></figure>
+        <figure><img src="/assets/media-inventory/out-of-home.jpg" alt="" /><figcaption>Outdoor advertising</figcaption></figure>
       </div>
     );
   }
@@ -235,7 +235,7 @@ function HowItWorksHero() {
         <div className="hiw-channels" aria-label="Supported media channels">
           <span><Radio size={17} aria-hidden="true" /> Radio</span>
           <span><Tv size={17} aria-hidden="true" /> Television</span>
-          <span><Map size={17} aria-hidden="true" /> Out of home</span>
+          <span><Map size={17} aria-hidden="true" /> Outdoor advertising</span>
           <span><FileCheck2 size={17} aria-hidden="true" /> Print</span>
           <span><Smartphone size={17} aria-hidden="true" /> Digital</span>
           <span><Users size={17} aria-hidden="true" /> Influencer</span>

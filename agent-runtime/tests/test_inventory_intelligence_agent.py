@@ -1,10 +1,13 @@
 import asyncio
+import json
 from copy import deepcopy
 
 import httpx
 import pytest
 
 from main import DETERMINISTIC_MODE, RUNTIME_MODE_KEY, SERVICE_KEY, app
+from planning_contracts import InventoryIntelligenceAgentRequest
+from runtime_execution import _inventory_model_input
 
 SERVICE_SECRET = "inventory-intelligence-test-key"
 BRIEF_ID = "66666666-6666-6666-6666-666666666666"
@@ -89,7 +92,7 @@ def eligible_candidate() -> dict:
         "suitability": suitability(0.9),
         "benchmark": {
             "policy_version": "OOH_LOCAL_PEER_V1",
-            "geography_basis": "RADIUS_5_KM",
+            "geography_basis": "GEOGRAPHY:Johannesburg",
             "cohort_size": 4,
             "median_minor": 166667,
             "percentile": 25,
@@ -185,6 +188,21 @@ def test_inventory_intelligence_preserves_deterministic_rejection(
         "Excluded by governed hard eligibility: "
         "The published rate does not cover the planned period."
     )
+
+
+def test_inventory_model_input_is_compact_and_keeps_governed_selection_facts() -> None:
+    request = InventoryIntelligenceAgentRequest.model_validate_json(
+        json.dumps(payload())
+    )
+
+    model_input = _inventory_model_input(request)
+
+    candidate = model_input["inventory"]["candidates"][0]
+    assert candidate["candidate_id"] == CANDIDATE_ID
+    assert candidate["suitability_total"] == "0.9"
+    assert candidate["benchmark"]["geography_basis"] == "GEOGRAPHY:Johannesburg"
+    assert candidate["audience_fit"]["measurement_source"] == "Fixture audience study"
+    assert "exclusions" not in candidate["benchmark"]
 
 
 def test_inventory_intelligence_requires_exact_resources_and_strict_facts(

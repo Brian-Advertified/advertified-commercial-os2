@@ -53,13 +53,27 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         using var audience = await CommandAsync(
             client, Path($"brief-versions/{BriefVersionId}/audiences:generate"),
             "planning-audience", 1, new { });
-        Assert.Equal("APPROVED", audience.RootElement.GetProperty("status").GetString());
+        Assert.Equal("DRAFT", audience.RootElement.GetProperty("status").GetString());
         Assert.Equal("HYPOTHESIS", audience.RootElement.GetProperty("definitions")[0]
             .GetProperty("classification").GetString());
-        Assert.False(string.IsNullOrWhiteSpace(audience.RootElement
-            .GetProperty("targetingRationale").GetString()));
-        Assert.False(string.IsNullOrWhiteSpace(audience.RootElement
-            .GetProperty("positioningStatement").GetString()));
+        var audienceSetId = audience.RootElement.GetProperty("id").GetGuid();
+        var targetAudienceIds = audience.RootElement.GetProperty("targetAudienceIds")
+            .EnumerateArray().Select(item => item.GetGuid()).ToArray();
+        using var approvedAudience = await CommandAsync(
+            client, Path($"audience-strategies/{audienceSetId}:approve"),
+            "planning-audience-approve", 1, new
+            {
+                targetAudienceIds,
+                targetingRationale = audience.RootElement
+                    .GetProperty("targetingRationale").GetString(),
+                positioningStatement = audience.RootElement
+                    .GetProperty("positioningStatement").GetString(),
+                reason = "The owner reviewed the proposed audience strategy.",
+            });
+        Assert.Equal("APPROVED", approvedAudience.RootElement
+            .GetProperty("status").GetString());
+        Assert.Equal(OperatorId, approvedAudience.RootElement
+            .GetProperty("approvedBy").GetGuid());
         await SeedStructuredAudienceSetAsync(connectionString);
 
         using var mix = await CommandAsync(

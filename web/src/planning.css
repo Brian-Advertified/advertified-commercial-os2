@@ -61,8 +61,8 @@
 .allocation-bar { display: block; height: 100%; min-width: 0.2rem; background: var(--media-accent); }
 
 .media-identity { display: flex; align-items: center; gap: 0.6rem; min-width: 0; color: var(--navy); }
-.media-identity > span,
-.media-identity h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-identity > div { min-width: 0; }
+.media-identity h3 { overflow-wrap: anywhere; }
 .media-identity h3 { margin: 0.05rem 0; font-size: 0.86rem; }
 .media-identity small { color: var(--muted); font-size: 0.75rem; }
 .media-type-icon {
@@ -173,7 +173,7 @@
 .plan-lines { display: grid; border: 1px solid var(--line); }
 .plan-line {
   display: grid;
-  grid-template-columns: minmax(13rem, 1.1fr) minmax(12rem, 1fr) minmax(16rem, 1.2fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(8rem, 0.85fr) minmax(15rem, 1.2fr);
   gap: 0.8rem;
   align-items: center;
   padding: 0.75rem;
@@ -181,8 +181,8 @@
   border-left: 0.2rem solid var(--media-accent);
 }
 .plan-line:last-child { border-bottom: 0; }
-.plan-line-periods { display: grid; gap: 0.2rem; color: var(--muted-strong); font-size: 0.75rem; }
-.plan-line-commercial { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
+.plan-line-periods { min-width: 0; display: grid; gap: 0.2rem; color: var(--muted-strong); font-size: 0.75rem; }
+.plan-line-commercial { min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
 .plan-line-commercial span { color: var(--muted); font-size: 0.75rem; }
 .plan-line-commercial strong { display: block; color: var(--navy); font-size: 0.75rem; }
 .plan-objections { margin-top: 0.8rem; border-top: 1px solid var(--line); }

@@ -90,7 +90,7 @@ def test_provider_policy_keeps_deterministic_zero_cost_and_bounds_bedrock() -> N
     live = ProviderPolicy.model_validate(
         {
             "provider": "bedrock",
-            "model": "us.amazon.nova-lite-v1:0",
+            "model": "amazon.nova-lite-v1:0",
             "temperature": 0,
             "timeout_seconds": 30,
             "max_attempts": 1,
@@ -115,14 +115,14 @@ def test_provider_policy_keeps_deterministic_zero_cost_and_bounds_bedrock() -> N
 def test_bedrock_configuration_is_verified_without_network(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    model = "us.amazon.nova-lite-v1:0"
-    monkeypatch.setenv(REGION_KEY, "af-south-1")
+    model = "amazon.nova-lite-v1:0"
+    monkeypatch.setenv(REGION_KEY, "us-east-1")
     monkeypatch.setenv(ALLOWLIST_KEY, model)
     monkeypatch.setenv(MULTIMODAL_ALLOWLIST_KEY, model)
     monkeypatch.setenv(MAX_TOKENS_KEY, "2048")
     monkeypatch.setenv(
         PRICING_KEY,
-        '{"us.amazon.nova-lite-v1:0":{"input_per_million_usd":"0.10",'
+        '{"amazon.nova-lite-v1:0":{"input_per_million_usd":"0.10",'
         '"output_per_million_usd":"0.40"}}',
     )
     assert bedrock_configuration_ready()

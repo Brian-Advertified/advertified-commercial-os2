@@ -14,9 +14,6 @@ export function SupplierClaimPage() {
     tenantId: z.uuid(), invitationId: z.uuid(),
   }).safeParse(params), [params]);
   const { session, loading } = useSession();
-  const navigate = useNavigate();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const tenantId = route.success ? route.data.tenantId : '';
   const invitationId = route.success ? route.data.invitationId : '';
   const storageKey = route.success ? `advertified:supplier-claim:${invitationId}` : '';
@@ -38,19 +35,26 @@ export function SupplierClaimPage() {
     return <Navigate to={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`} replace />;
   }
 
-  const registrationToken = sessionStorage.getItem(storageKey);
-  if (!registrationToken) {
-    return <MessageState title="Registration token is missing"
-      message="Open the original supplier registration link again. The claim token is not retained outside this browser session." />;
-  }
-  const activeSession = session;
-  const claimToken = registrationToken;
+  return <SupplierClaimExperience tenantId={tenantId} invitationId={invitationId}
+    storageKey={storageKey} antiforgeryToken={session.antiforgeryToken} />;
+}
+
+function SupplierClaimExperience({ tenantId, invitationId, storageKey, antiforgeryToken }: {
+  tenantId: string; invitationId: string; storageKey: string; antiforgeryToken: string;
+}) {
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const claimToken = sessionStorage.getItem(storageKey);
+  if (!claimToken) return <MessageState title="Registration token is missing"
+    message="Open the original supplier registration link again. The claim token is not retained outside this browser session." />;
+  const retainedToken = claimToken;
 
   async function accept() {
     setBusy(true); setError(null);
     try {
       await inventoryApi.acceptSupplierClaimInvitation(
-        tenantId, invitationId, claimToken, activeSession.antiforgeryToken);
+        tenantId, invitationId, retainedToken, antiforgeryToken);
       sessionStorage.removeItem(storageKey);
       notifications.success('Supplier inventory access is now connected to your account.');
       navigate('/workspaces', { replace: true });

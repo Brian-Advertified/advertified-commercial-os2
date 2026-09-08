@@ -1,9 +1,14 @@
+import { lazy, Suspense } from 'react'
 import type { CreateBriefVersion } from '../api/brief-client'
-import { MapboxMap, type MapFeature } from '../components/map/MapboxMap'
+import type { MapFeature } from '../components/map/MapboxMap'
 import { parseGeometry } from '../components/map/geojson'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { humanizeCode } from '../presentation/format'
 import '../brief-intake-map.css'
+import { BriefPlaceEditor } from './BriefPlaceEditor'
+
+const MapboxMap = lazy(() => import('../components/map/MapboxMap')
+  .then(module => ({ default: module.MapboxMap })))
 
 export type BriefSpatialDraft = NonNullable<CreateBriefVersion['spatialRequirements']>[number]
 
@@ -19,6 +24,7 @@ export function BriefSpatialEditor({ values, onChange }: {
     </header>
     <p>Add exact geometry when location, route, catchment or exclusion boundaries are material.
       Route buffers left blank use the visible 500 metre governed default.</p>
+    <BriefPlaceEditor onAdd={value => onChange([...values, value])} />
     {values.length === 0
       ? <p className="review-empty-copy">No exact geometry has been supplied. Planning will retain the Brief's stated geography as text.</p>
       : <>
@@ -35,7 +41,11 @@ function SpatialMapPreview({ values }: { values: BriefSpatialDraft[] }) {
   if (features.length === 0) {
     return <div className="brief-spatial-map-empty">Enter valid EPSG:4326 GeoJSON to preview this geography on the map.</div>
   }
-  return <MapboxMap features={features} ariaLabel="Brief spatial requirements map" />
+  return <Suspense fallback={<div className="brief-spatial-map-empty" role="status">
+    Loading map preview…
+  </div>}>
+    <MapboxMap features={features} ariaLabel="Brief spatial requirements map" />
+  </Suspense>
 }
 
 function mapFeatures(value: BriefSpatialDraft, index: number): MapFeature[] {
@@ -67,7 +77,8 @@ function radiusFeature(value: BriefSpatialDraft, geometry: Record<string, unknow
     id: `brief-spatial-radius-${index}`,
     label: value.label || `Geography ${index + 1}`,
     geometry: circlePolygon(coordinates, value.radiusMetres),
-    properties: { type: 'radius', metres: value.radiusMetres },
+    properties: { type: 'radius', metres: value.radiusMetres,
+      priority: value.priority, verified: value.isVerified ?? false },
   }
 }
 
@@ -109,7 +120,7 @@ function SpatialRequirement({ value, update, remove }: {
   const boundary = value.type === masterDataCodes.spatialRequirementTypes.adminBoundary
   return <fieldset className="brief-spatial-requirement"><legend>{value.label || 'New map requirement'}</legend>
     <label>Geometry type<select value={value.type} onChange={event => update({
-      ...value, type: event.target.value,
+      ...value, type: event.target.value, isVerified: false,
       radiusMetres: event.target.value === masterDataCodes.spatialRequirementTypes.pointRadius
         ? value.radiusMetres ?? 1000 : null,
     })}>{Object.values(masterDataCodes.spatialRequirementTypes).map(code =>
@@ -132,11 +143,13 @@ function SpatialRequirement({ value, update, remove }: {
         onChange={event => update({ ...value,
           coverageThreshold: Number(event.target.value) })} /></label>
     {boundary && <><label>Boundary source<input value={value.boundarySource ?? ''} required
-      onChange={event => update({ ...value, boundarySource: event.target.value })} /></label>
+      onChange={event => update({ ...value, boundarySource: event.target.value, isVerified: false })} /></label>
       <label>Boundary version<input value={value.boundaryVersion ?? ''} required
-        onChange={event => update({ ...value, boundaryVersion: event.target.value })} /></label></>}
+        onChange={event => update({ ...value, boundaryVersion: event.target.value, isVerified: false })} /></label></>}
+    <label>Location source or reference<input value={value.sourceLocator ?? ''}
+      onChange={event => update({ ...value, sourceLocator: event.target.value, isVerified: false })} /></label>
     <label className="spatial-geojson">EPSG:4326 GeoJSON<textarea value={value.geoJson}
-      required rows={5} onChange={event => update({ ...value, geoJson: event.target.value })} /></label>
+      required rows={5} onChange={event => update({ ...value, geoJson: event.target.value, isVerified: false })} /></label>
     <label><input type="checkbox" checked={value.isVerified ?? false}
       onChange={event => update({ ...value, isVerified: event.target.checked })} />
       I verified this geometry against the named source.</label>

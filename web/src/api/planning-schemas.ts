@@ -56,6 +56,10 @@ export const audienceSetSchema = z.object({
   inputHash: z.string(),
   status: z.string(),
   definitions: z.array(audienceDefinitionSchema),
+  createdBy: z.guid(),
+  approvedBy: z.guid().nullable(),
+  version: z.number().int().positive(),
+  approvedAtUtc: z.iso.datetime({ offset: true }).nullable(),
   createdAtUtc: z.iso.datetime({ offset: true }),
 })
 

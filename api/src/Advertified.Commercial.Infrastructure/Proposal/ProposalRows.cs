@@ -22,6 +22,30 @@ internal sealed record ProposalRow(
     string? ApprovalRejectionReason,
     DateTimeOffset? ApprovalRejectedAtUtc,
     Guid? RecipientUserId,
+    string AgencyBrandName,
+    string ClientBrandName,
+    Guid? AgencyBrandAssetId,
+    Guid? ClientBrandAssetId,
+    string? BrandingPrimaryColour,
+    string? BrandingSecondaryColour,
+    Guid? UnbrandedApprovedBy,
+    DateTimeOffset? UnbrandedApprovedAtUtc,
+    string? UnbrandedApprovalReason,
+    long Version,
+    DateTimeOffset CreatedAtUtc);
+
+internal sealed record ProposalBrandAssetRow(
+    Guid Id,
+    Guid? ClientAccountId,
+    string Label,
+    string MediaType,
+    string FileName,
+    string ContentHash,
+    byte[] Content,
+    string SourceReference,
+    Guid UploadedBy,
+    Guid? ApprovedBy,
+    DateTimeOffset? ApprovedAtUtc,
     long Version,
     DateTimeOffset CreatedAtUtc);
 
@@ -68,7 +92,10 @@ internal sealed record PlanningReadyBriefReferenceRow(
     string Objective,
     Guid OwnerUserId,
     long BriefVersion,
-    string EvidenceIdsJson);
+    string EvidenceIdsJson,
+    Guid ClientAccountId,
+    string AgencyBrandName,
+    string ClientBrandName);
 
 internal sealed record ProposalRecipientRow(
     Guid UserId,

@@ -1,4 +1,5 @@
-import { masterDataCodes, masterDataDefinitions } from '../generated/master-data-codes'
+import { masterDataCodes } from '../generated/master-data-codes'
+import { channelLabel } from '../presentation/media-labels'
 
 type ChannelCode = typeof masterDataCodes.channels[keyof typeof masterDataCodes.channels]
 type MediaTone = 'ooh' | 'dooh' | 'radio' | 'tv' | 'print' | 'digital' | 'social' |
@@ -41,10 +42,9 @@ const toneColors: Record<MediaTone, string> = {
 }
 
 export function mediaVisual(channel: string) {
-  const definition = masterDataDefinitions.channels.find((item) => item.code === channel)
   const tone = tones[channel as ChannelCode] ?? 'digital'
   return {
-    label: definition?.displayLabel ?? channel,
+    label: channelLabel(channel),
     tone,
     color: toneColors[tone],
   }

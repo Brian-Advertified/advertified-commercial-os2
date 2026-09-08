@@ -18,7 +18,7 @@ public sealed class InventoryCommercialReadinessTests
             ProductVersionId: Guid.NewGuid(),
             SupplierId: Guid.NewGuid(),
             Name: "Evidence-backed daily placement",
-            Channel: MasterDataCodes.Channels.Digital,
+            Channel: MasterDataCodes.Channels.Social,
             ProductType: MasterDataCodes.InventoryProductTypes.SocialPlacement,
             Geography: "South Africa",
             Latitude: null,
@@ -61,7 +61,7 @@ public sealed class InventoryCommercialReadinessTests
     public void CandidateValidationDoesNotRequireSupplierVatNumber()
     {
         var codes = new InventoryCodeSets(
-            Set(MasterDataCodes.Channels.Digital),
+            Set(MasterDataCodes.Channels.Social),
             Set(MasterDataCodes.InventoryProductTypes.SocialPlacement),
             Set(MasterDataCodes.RateTypes.DayRate),
             Set(MasterDataCodes.Currencies.Zar),
@@ -74,7 +74,7 @@ public sealed class InventoryCommercialReadinessTests
             null, null, null, null, [], [], [], null, null, null, null, 30);
         var values = new InventoryCandidateValues(
             "EWN-DAILY-SOCIAL", "Eyewitness News daily social post",
-            MasterDataCodes.Channels.Digital,
+            MasterDataCodes.Channels.Social,
             MasterDataCodes.InventoryProductTypes.SocialPlacement,
             "Eyewitness News", null, null, null,
             MasterDataCodes.RateTypes.DayRate, MasterDataCodes.Currencies.Zar,
@@ -93,13 +93,13 @@ public sealed class InventoryCommercialReadinessTests
     public void CandidateValidationDoesNotInvalidateVatSilence()
     {
         var codes = new InventoryCodeSets(
-            Set(MasterDataCodes.Channels.Digital),
+            Set(MasterDataCodes.Channels.Social),
             Set(MasterDataCodes.InventoryProductTypes.SocialPlacement),
             Set(MasterDataCodes.RateTypes.DayRate), Set(MasterDataCodes.Currencies.Zar),
             Set(MasterDataCodes.AvailabilityStatuses.Available), Set(), Set(), Set(),
             Set(MasterDataCodes.VatTreatments.Exclusive));
         var values = new InventoryCandidateValues(
-            "SOURCE-1", "Source-priced placement", MasterDataCodes.Channels.Digital,
+            "SOURCE-1", "Source-priced placement", MasterDataCodes.Channels.Social,
             MasterDataCodes.InventoryProductTypes.SocialPlacement, "Website", null, null, null,
             MasterDataCodes.RateTypes.DayRate, MasterDataCodes.Currencies.Zar, 100_000,
             MasterDataCodes.AvailabilityStatuses.Available, null, null, null, null);
@@ -130,7 +130,7 @@ public sealed class InventoryCommercialReadinessTests
     private static PlanningInventoryRow CreateReadyInventory() => new(
         InventoryTenantId: Guid.NewGuid(), MarketplaceListingVersionId: null,
         ProductId: Guid.NewGuid(), ProductVersionId: Guid.NewGuid(), SupplierId: Guid.NewGuid(),
-        Name: "Source-priced placement", Channel: MasterDataCodes.Channels.Digital,
+        Name: "Source-priced placement", Channel: MasterDataCodes.Channels.Social,
         ProductType: MasterDataCodes.InventoryProductTypes.SocialPlacement,
         Geography: "South Africa", Latitude: null, Longitude: null, RateId: Guid.NewGuid(),
         RateType: MasterDataCodes.RateTypes.DayRate, Currency: MasterDataCodes.Currencies.Zar,

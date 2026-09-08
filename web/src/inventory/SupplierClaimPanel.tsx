@@ -31,8 +31,7 @@ export function SupplierClaimPanel({ tenantId, supplierId, token }: {
     setBusy(true); setError(null); setIssued(null);
     try {
       const invitation = await inventoryApi.issueSupplierClaimInvitation(
-        tenantId,
-        supplierId,
+        tenantId, supplierId,
         { email: email.trim(), role: masterDataCodes.roles.supplierUser, validForDays: days },
         lifecycle.version,
         token,
@@ -69,24 +68,36 @@ export function SupplierClaimPanel({ tenantId, supplierId, token }: {
     ? supplierClaimLink(tenantId, issued.id, issued.registrationToken)
     : null;
 
+  return <SupplierClaimAccess lifecycle={lifecycle} active={active} issued={issued}
+    email={email} setEmail={setEmail} days={days} setDays={setDays}
+    busy={busy} error={error} link={link} issue={issue} revoke={revoke} />;
+}
+
+function SupplierClaimAccess(props: {
+  lifecycle: InventorySupplierLifecycle; active: SupplierClaimInvitation[];
+  issued: SupplierClaimInvitation | null; email: string; setEmail: (value: string) => void;
+  days: number; setDays: (value: number) => void; busy: boolean; error: string | null;
+  link: string | null; issue: (event: FormEvent) => Promise<void>;
+  revoke: (invitation: SupplierClaimInvitation) => Promise<void>;
+}) {
   return <section className="inventory-record-section" aria-labelledby="supplier-access-title">
     <p className="eyebrow">Supplier access</p><h2 id="supplier-access-title">Registration and inventory claim</h2>
-    <p>{lifecycle.name} is {humanizeCode(lifecycle.claimStatus)}. Invite the verified supplier contact to sign in and claim only this supplier inventory.</p>
-    {error && <p className="inline-alert" role="alert">{error}</p>}
-    <form className="record-form" onSubmit={(event) => void issue(event)}>
-      <label>Email address<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label>
-      <label>Valid for days<input type="number" min={1} max={30} value={days} onChange={(event) => setDays(Number(event.target.value))} /></label>
-      <button type="submit" disabled={busy || !email.trim()}>Create registration link</button>
+    <p>{props.lifecycle.name} is {humanizeCode(props.lifecycle.claimStatus)}. Invite the verified supplier contact to sign in and claim only this supplier inventory.</p>
+    {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
+    <form className="record-form" onSubmit={(event) => void props.issue(event)}>
+      <label>Email address<input type="email" required value={props.email} onChange={(event) => props.setEmail(event.target.value)} /></label>
+      <label>Valid for days<input type="number" min={1} max={30} value={props.days} onChange={(event) => props.setDays(Number(event.target.value))} /></label>
+      <button type="submit" disabled={props.busy || !props.email.trim()}>Create registration link</button>
     </form>
-    {link && <div className="detail-card"><strong>Registration link</strong>
-      <p>Send this link to {issued?.invitedEmail}. The claim token is kept in the URL fragment so it is not sent to the web server.</p>
-      <input readOnly value={link} aria-label="Supplier registration link" />
-      <button type="button" onClick={() => void navigator.clipboard.writeText(link)}>Copy link</button>
+    {props.link && <div className="detail-card"><strong>Registration link</strong>
+      <p>Send this link to {props.issued?.invitedEmail}. The claim token is kept in the URL fragment so it is not sent to the web server.</p>
+      <input readOnly value={props.link} aria-label="Supplier registration link" />
+      <button type="button" onClick={() => void navigator.clipboard.writeText(props.link!)}>Copy link</button>
     </div>}
-    {active.length > 0 && <div><h3>Active invitations</h3>{active.map((invitation) =>
+    {props.active.length > 0 && <div><h3>Active invitations</h3>{props.active.map((invitation) =>
       <article className="detail-card" key={invitation.id}><strong>{invitation.invitedEmail}</strong>
         <p>Expires {formatDateTime(invitation.expiresAtUtc)}</p>
-        <button type="button" disabled={busy} onClick={() => void revoke(invitation)}>Revoke</button>
+        <button type="button" disabled={props.busy} onClick={() => void props.revoke(invitation)}>Revoke</button>
       </article>)}</div>}
   </section>;
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.35.0",
-  "effectiveFrom": "2026-09-07",
+  "registryVersion": "2.37.0",
+  "effectiveFrom": "2026-09-08",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
     "channels": [
@@ -2669,6 +2669,130 @@
         "displayLabel": "Mobile Placement",
         "isActive": true,
         "sortOrder": 150
+      },
+      {
+        "code": "PAID_SEARCH_AD",
+        "displayLabel": "Paid Search Ad",
+        "isActive": true,
+        "sortOrder": 160
+      },
+      {
+        "code": "PROGRAMMATIC_DISPLAY_AD",
+        "displayLabel": "Programmatic Display Ad",
+        "isActive": true,
+        "sortOrder": 170
+      },
+      {
+        "code": "PERFORMANCE_MAX_CAMPAIGN",
+        "displayLabel": "Performance Max Campaign",
+        "isActive": true,
+        "sortOrder": 180
+      },
+      {
+        "code": "ONLINE_VIDEO_AD",
+        "displayLabel": "Online Video Ad",
+        "isActive": true,
+        "sortOrder": 190
+      },
+      {
+        "code": "PAID_SOCIAL_AD",
+        "displayLabel": "Paid Social Ad",
+        "isActive": true,
+        "sortOrder": 200
+      }
+    ],
+    "digitalAdPlatforms": [
+      {
+        "code": "GOOGLE_ADS",
+        "displayLabel": "Google Ads",
+        "isActive": true,
+        "sortOrder": 10
+      },
+      {
+        "code": "YOUTUBE_ADS",
+        "displayLabel": "YouTube Ads",
+        "isActive": true,
+        "sortOrder": 20
+      },
+      {
+        "code": "META_ADS",
+        "displayLabel": "Meta Ads",
+        "isActive": true,
+        "sortOrder": 30
+      }
+    ],
+    "digitalBuyingModels": [
+      {
+        "code": "AUCTION",
+        "displayLabel": "Auction",
+        "isActive": true,
+        "sortOrder": 10,
+        "metadata": {
+          "requiresEstimateRange": true,
+          "fixedRateProhibited": true
+        }
+      }
+    ],
+    "digitalAdFormats": [
+      {
+        "code": "SEARCH_TEXT",
+        "displayLabel": "Search Text",
+        "isActive": true,
+        "sortOrder": 10
+      },
+      {
+        "code": "RESPONSIVE_DISPLAY",
+        "displayLabel": "Responsive Display",
+        "isActive": true,
+        "sortOrder": 20
+      },
+      {
+        "code": "PERFORMANCE_MAX",
+        "displayLabel": "Performance Max",
+        "isActive": true,
+        "sortOrder": 30
+      },
+      {
+        "code": "SKIPPABLE_IN_STREAM",
+        "displayLabel": "Skippable In-stream",
+        "isActive": true,
+        "sortOrder": 40
+      },
+      {
+        "code": "NON_SKIPPABLE_IN_STREAM",
+        "displayLabel": "Non-skippable In-stream",
+        "isActive": true,
+        "sortOrder": 50
+      },
+      {
+        "code": "BUMPER",
+        "displayLabel": "Bumper",
+        "isActive": true,
+        "sortOrder": 60
+      },
+      {
+        "code": "FACEBOOK_FEED",
+        "displayLabel": "Facebook Feed",
+        "isActive": true,
+        "sortOrder": 70
+      },
+      {
+        "code": "INSTAGRAM_FEED",
+        "displayLabel": "Instagram Feed",
+        "isActive": true,
+        "sortOrder": 80
+      },
+      {
+        "code": "INSTAGRAM_STORY",
+        "displayLabel": "Instagram Story",
+        "isActive": true,
+        "sortOrder": 90
+      },
+      {
+        "code": "INSTAGRAM_REEL",
+        "displayLabel": "Instagram Reel",
+        "isActive": true,
+        "sortOrder": 100
       }
     ],
     "inventoryImportStepTypes": [
@@ -2973,6 +3097,12 @@
         "displayLabel": "Benchmark Evidence Insufficient",
         "isActive": true,
         "sortOrder": 20
+      },
+      {
+        "code": "COMMERCIAL_EVIDENCE_INCOMPLETE",
+        "displayLabel": "Commercial Evidence Incomplete",
+        "isActive": true,
+        "sortOrder": 30
       }
     ],
     "benchmarkExclusionReasons": [
@@ -3059,7 +3189,7 @@
       {
         "code": "INVENTORY_SUITABILITY_OOH_V1",
         "displayLabel": "OOH Inventory Suitability v1",
-        "isActive": true,
+        "isActive": false,
         "sortOrder": 30,
         "metadata": {
           "automatedSelectionEnabled": true,
@@ -3081,6 +3211,41 @@
           ],
           "defaultRouteBufferMetres": 500,
           "defaultCoverageThreshold": 0.5
+        }
+      },
+      {
+        "code": "INVENTORY_SUITABILITY_OOH_V2",
+        "displayLabel": "Evidence-based inventory screening v2",
+        "isActive": true,
+        "sortOrder": 40,
+        "metadata": {
+          "automatedSelectionEnabled": true,
+          "maximumAutomatedClientValueMinor": 50000000,
+          "weights": {
+            "geography": 0.3,
+            "audienceContext": 0.25,
+            "objectiveFormat": 0.15,
+            "budgetEfficiency": 0.15,
+            "evidenceQualityFreshness": 0.1,
+            "portfolioCoverageDiversity": 0.05
+          },
+          "tieBreaks": [
+            "criticalEvidenceCompleteness",
+            "rateFreshness",
+            "targetCoverage",
+            "clientCost",
+            "inventoryId"
+          ],
+          "defaultRouteBufferMetres": 500,
+          "defaultCoverageThreshold": 0.5,
+          "missingComponentTreatment": "UNSCORED_WITH_EVIDENCE_GAP",
+          "automatedSelectionRequiresCurrentPolicy": true,
+          "automatedSelectionRequiresCompleteEvidence": true,
+          "unscoredComponents": [
+            "objectiveFormat",
+            "budgetEfficiency",
+            "portfolioCoverageDiversity"
+          ]
         }
       }
     ],

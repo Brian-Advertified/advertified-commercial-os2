@@ -8,6 +8,7 @@ internal static class InventoryEligibilityEvaluator
     internal static EligibilityResult Evaluate(
         PlanningInventoryRow inventory,
         IReadOnlyList<string> geographies,
+        IReadOnlyList<string> constraints,
         IReadOnlyDictionary<string, MediaAllocationView> allocations,
         string currency,
         PlanningPolicy policy,
@@ -19,7 +20,10 @@ internal static class InventoryEligibilityEvaluator
             return Rejected(MasterDataCodes.RejectionReasons.IneligibleFormat,
                 "The channel is not present in the approved media mix.");
         }
+        var briefConstraint = BriefInventoryConstraintEvaluator.Evaluate(inventory, constraints);
+        if (briefConstraint is not null) return briefConstraint;
         if (!hasStructuredSpatialRequirements &&
+            RequiresInventoryGeographyMatch(inventory.Channel) &&
             (geographies.Count == 0 ||
              !geographies.Any(item => Matches(item, inventory.Geography))))
         {
@@ -59,7 +63,11 @@ internal static class InventoryEligibilityEvaluator
         return new EligibilityResult(true, null, null, null);
     }
 
+    private static bool RequiresInventoryGeographyMatch(string channel) =>
+        channel != MasterDataCodes.Channels.Social;
+
     private static bool Matches(string requested, string available) =>
+        requested.Contains("South Africa", StringComparison.OrdinalIgnoreCase) ||
         available.Contains(requested, StringComparison.OrdinalIgnoreCase) ||
         requested.Contains(available, StringComparison.OrdinalIgnoreCase);
 

@@ -29,7 +29,8 @@ public sealed class MarketplaceReader(
             actorId, tenantId, cancellationToken);
         var supplierScope = await supplierAccess.ResolveSupplierScopeAsync(actorId, tenantId, cancellationToken);
         var rows = await SearchListingRowsAsync(
-            filters, cursor, pageSize + 1, supplierScope, cancellationToken);
+            filters, cursor, pageSize + 1, supplierScope,
+            timeProvider.GetUtcNow(), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         var page = rows.Take(pageSize).ToArray();
         var next = rows.Count > pageSize
@@ -94,35 +95,51 @@ public sealed class MarketplaceReader(
 
     private Task<List<MarketplaceListingRow>> SearchListingRowsAsync(
         MarketplaceSearchFilters filters, MarketplaceCursorValue? cursor, int take,
-        Guid[]? supplierScope,
+        Guid[]? supplierScope, DateTimeOffset now,
         CancellationToken cancellationToken)
     {
+        const string currentSupply = """
+            WHERE listing.status_code = {12}
+              AND ({16}::uuid[] IS NULL OR version.supplier_id = ANY({16}))
+              AND ({0}::text IS NULL OR version.product_name ILIKE '%' || {0} || '%'
+                   OR version.supplier_name ILIKE '%' || {0} || '%')
+              AND ({1}::text IS NULL OR version.channel_code = {1})
+              AND ({2}::text IS NULL OR version.geography ILIKE '%' || {2} || '%')
+              AND ({3}::text IS NULL OR version.geography ILIKE '%' || {3} || '%'
+                   OR version.spatial_json ->> 'country' ILIKE '%' || {3} || '%'
+                   OR version.spatial_json ->> 'countryCode' ILIKE '%' || {3} || '%')
+              AND ({4}::text IS NULL OR version.geography ILIKE '%' || {4} || '%'
+                   OR version.spatial_json ->> 'province' ILIKE '%' || {4} || '%')
+              AND ({5}::text IS NULL OR version.geography ILIKE '%' || {5} || '%'
+                   OR version.spatial_json ->> 'city' ILIKE '%' || {5} || '%'
+                   OR version.spatial_json ->> 'municipality' ILIKE '%' || {5} || '%')
+              AND ({6}::text IS NULL OR version.supplier_name ILIKE '%' || {6} || '%')
+              AND ({7}::text IS NULL OR version.product_type_code ILIKE '%' || {7} || '%'
+                   OR version.deliverable_json ->> 'format' ILIKE '%' || {7} || '%')
+              AND ({8}::text IS NULL OR version.rate_type_code = {8})
+              AND ({9}::bigint IS NULL OR version.amount_minor >= {9})
+              AND ({10}::bigint IS NULL OR version.amount_minor <= {10})
+              AND ({11}::text IS NULL OR version.currency_code = {11})
+              AND (version.rate_effective_from IS NULL OR version.rate_effective_from <= {14})
+              AND (version.rate_effective_to IS NULL OR version.rate_effective_to >= {14})
+              AND version.availability_code <> {13}
+              AND (version.availability_valid_until_utc IS NULL
+                   OR version.availability_valid_until_utc >= {15})
+            """;
         var suffix = cursor is null
-            ? """
-                WHERE listing.status_code = {3}
-                  AND ({5}::uuid[] IS NULL OR version.supplier_id = ANY({5}))
-                  AND ({0}::text IS NULL OR version.product_name ILIKE '%' || {0} || '%'
-                       OR version.supplier_name ILIKE '%' || {0} || '%')
-                  AND ({1}::text IS NULL OR version.channel_code = {1})
-                  AND ({2}::text IS NULL OR version.geography ILIKE '%' || {2} || '%')
-                ORDER BY listing.updated_at_utc DESC, listing.id DESC LIMIT {4}
-                """
-            : """
-                WHERE listing.status_code = {3}
-                  AND ({7}::uuid[] IS NULL OR version.supplier_id = ANY({7}))
-                  AND ({0}::text IS NULL OR version.product_name ILIKE '%' || {0} || '%'
-                       OR version.supplier_name ILIKE '%' || {0} || '%')
-                  AND ({1}::text IS NULL OR version.channel_code = {1})
-                  AND ({2}::text IS NULL OR version.geography ILIKE '%' || {2} || '%')
-                  AND (listing.updated_at_utc, listing.id) < ({4}, {5})
-                ORDER BY listing.updated_at_utc DESC, listing.id DESC LIMIT {6}
-                """;
-        var args = cursor is null
-            ? new object?[] { filters.Search, filters.Channel, filters.Geography,
-                MasterDataCodes.MarketplaceListingStatuses.Published, take, supplierScope }
-            : [filters.Search, filters.Channel, filters.Geography,
-                MasterDataCodes.MarketplaceListingStatuses.Published,
-                cursor.UpdatedAtUtc, cursor.Id, take, supplierScope];
+            ? currentSupply + " ORDER BY listing.updated_at_utc DESC, listing.id DESC LIMIT {17}"
+            : currentSupply + " AND (listing.updated_at_utc, listing.id) < ({17}, {18})" +
+              " ORDER BY listing.updated_at_utc DESC, listing.id DESC LIMIT {19}";
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        object?[] common = [filters.Search, filters.Channel, filters.Geography,
+            filters.Country, filters.Province, filters.City, filters.Supplier, filters.Format,
+            filters.RateType, filters.MinimumAmountMinor, filters.MaximumAmountMinor,
+            filters.Currency, MasterDataCodes.MarketplaceListingStatuses.Published,
+            MasterDataCodes.AvailabilityStatuses.Unavailable, today, now,
+            supplierScope];
+        object?[] args = cursor is null
+            ? [.. common, take]
+            : [.. common, cursor.UpdatedAtUtc, cursor.Id, take];
         return store.DbContext.Database.SqlQuery<MarketplaceListingRow>(
             FormattableStringFactory.Create(
                 MarketplaceRecordStore.ListingSelect + Environment.NewLine + suffix, args))

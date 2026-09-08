@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { humanMessage } from '../api/client'
 import { inventoryApi } from '../api/inventory-client'
 import type { InventoryProductSummary } from '../api/inventory-schemas'
-import { marketplaceApi } from '../api/marketplace-client'
+import { marketplaceApi, type MarketplaceFilters } from '../api/marketplace-client'
 import type { MarketplaceListing, MarketplaceRfq } from '../api/marketplace-schemas'
 import { notifications } from '../notifications/notifications'
 
@@ -18,37 +18,64 @@ export function useMarketplaceData(
   const [requests, setRequests] = useState<MarketplaceRfq[]>([])
   const [products, setProducts] = useState<InventoryProductSummary[]>([])
   const [error, setError] = useState<string | null>(null)
-  const load = useCallback(async (filters = {}) => {
+  const [filters, setFilters] = useState<MarketplaceFilters>({})
+  const [cursor, setCursor] = useState<string | undefined>()
+  const [cursorHistory, setCursorHistory] = useState<Array<string | undefined>>([])
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const loadPage = useCallback(async (
+    requestedFilters: MarketplaceFilters, requestedCursor?: string,
+  ) => {
     try {
       const [listingPage, rfqPage, inventoryPage] = await fetchWorkspaceData(
-        tenantId, canBuy, canSupply, filters)
+        tenantId, canBuy, canSupply, requestedFilters, requestedCursor)
       setListings(listingPage.items)
+      setNextCursor(listingPage.nextCursor)
       setRequests(rfqPage?.items ?? [])
       setProducts(inventoryPage?.items ?? [])
       setError(null)
     } catch (failure) { setError(humanMessage(failure)) }
   }, [canBuy, canSupply, tenantId])
+  const search = useCallback(async (requestedFilters: MarketplaceFilters) => {
+    setFilters(requestedFilters); setCursor(undefined); setCursorHistory([])
+    await loadPage(requestedFilters)
+  }, [loadPage])
+  const next = useCallback(async () => {
+    if (!nextCursor) return
+    setCursorHistory(previous => [...previous, cursor])
+    setCursor(nextCursor)
+    await loadPage(filters, nextCursor)
+  }, [cursor, filters, loadPage, nextCursor])
+  const previous = useCallback(async () => {
+    if (cursorHistory.length === 0) return
+    const prior = cursorHistory[cursorHistory.length - 1]
+    setCursorHistory(previousCursors => previousCursors.slice(0, -1))
+    setCursor(prior)
+    await loadPage(filters, prior)
+  }, [cursorHistory, filters, loadPage])
+  const reload = useCallback(() => loadPage(filters, cursor), [cursor, filters, loadPage])
   useEffect(() => {
     let active = true
-    void fetchWorkspaceData(tenantId, canBuy, canSupply, {}).then(
+    void fetchWorkspaceData(tenantId, canBuy, canSupply, {}, undefined).then(
       ([listingPage, rfqPage, inventoryPage]) => {
         if (!active) return
         setListings(listingPage.items); setRequests(rfqPage?.items ?? [])
-        setProducts(inventoryPage?.items ?? []); setError(null)
+        setProducts(inventoryPage?.items ?? []); setNextCursor(listingPage.nextCursor)
+        setError(null)
       },
       (failure: unknown) => { if (active) setError(humanMessage(failure)) },
     )
     return () => { active = false }
   }, [canBuy, canSupply, tenantId])
-  return { listings, requests, products, error, load }
+  return { listings, requests, products, error, search, next, previous, reload,
+    nextCursor, pageNumber: cursorHistory.length + 1 }
 }
 
 function fetchWorkspaceData(
   tenantId: string, canBuy: boolean, canSupply: boolean,
-  filters: { search?: string; channel?: string; geography?: string },
+  filters: MarketplaceFilters, cursor?: string,
 ) {
   return Promise.all([
-    marketplaceApi.search(tenantId, filters),
+    marketplaceApi.search(tenantId, filters, cursor),
     canBuy || canSupply ? marketplaceApi.listRfqs(tenantId) : Promise.resolve(null),
     canSupply ? inventoryApi.search(tenantId, {}) : Promise.resolve(null),
   ])

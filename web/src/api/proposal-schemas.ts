@@ -74,6 +74,34 @@ export const proposalRecipientSchema = z.object({
 
 export const proposalApproverSchema = proposalRecipientSchema
 
+export const proposalBrandAssetSchema = z.object({
+  id: z.guid(),
+  clientAccountId: z.guid().nullable(),
+  label: requiredText,
+  mediaType: z.literal('image/jpeg'),
+  fileName: requiredText,
+  contentHash: requiredText,
+  sourceReference: requiredText,
+  uploadedBy: z.guid(),
+  approvedBy: z.guid().nullable(),
+  approvedAtUtc: z.iso.datetime({ offset: true }).nullable(),
+  version: z.number().int().positive(),
+  createdAtUtc: z.iso.datetime({ offset: true }),
+}).strict()
+
+const proposalBrandingSchema = z.object({
+  status: z.enum(['OUTSTANDING', 'BRANDING_READY', 'UNBRANDED_AUTHORISED']),
+  agencyName: requiredText,
+  clientBrandName: requiredText,
+  primaryColour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable(),
+  secondaryColour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable(),
+  agencyAsset: proposalBrandAssetSchema.nullable(),
+  clientAsset: proposalBrandAssetSchema.nullable(),
+  unbrandedApprovedBy: z.guid().nullable(),
+  unbrandedApprovedAtUtc: z.iso.datetime({ offset: true }).nullable(),
+  unbrandedApprovalReason: z.string().nullable(),
+}).strict()
+
 export const proposalOptionSchema = z.object({
   id: z.guid(),
   label: requiredText,
@@ -158,6 +186,7 @@ export const proposalSchema = z.object({
   approvalRejectedAtUtc: z.iso.datetime({ offset: true }).nullable(),
   inventoryReviewStatus: requiredText,
   inventoryImpacts: z.array(proposalInventoryImpactSchema),
+  branding: proposalBrandingSchema,
   version: z.number().int().positive(),
   createdAtUtc: z.iso.datetime({ offset: true }),
 }).strict()
@@ -197,6 +226,7 @@ export type ProposalSummary = z.infer<typeof proposalSummarySchema>
 export type ApprovedPlanChoice = z.infer<typeof approvedPlanChoiceSchema>
 export type ProposalRecipient = z.infer<typeof proposalRecipientSchema>
 export type ProposalApprover = z.infer<typeof proposalApproverSchema>
+export type ProposalBrandAsset = z.infer<typeof proposalBrandAssetSchema>
 export type ProposalOption = z.infer<typeof proposalOptionSchema>
 export type Proposal = z.infer<typeof proposalSchema>
 export type ProposalDraftInput = z.infer<typeof proposalDraftInputSchema>

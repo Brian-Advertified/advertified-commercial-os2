@@ -3,11 +3,21 @@ import json
 
 from bedrock_multimodal import request_content
 from bedrock_schema import source_bound_schema
-from supplied_brief_contracts import SuppliedBriefRequest
+from bedrock_supplied_brief_output import (
+    supplied_brief_schema,
+    wrap_supplied_brief_output,
+)
+from supplied_brief_contracts import SuppliedBriefArtifact, SuppliedBriefRequest
 from supplied_brief_model_input import (
     HISTORY_LOCATOR,
     PRIMARY_LOCATOR,
     build_model_input,
+)
+from supplied_brief_service import (
+    _canonical_excerpt,
+    _exact_budget,
+    canonicalize_grounding,
+    validate_grounding,
 )
 
 
@@ -131,3 +141,165 @@ def test_output_schema_offers_only_present_source_locators() -> None:
         "clarification:budget",
     ]
     assert HISTORY_LOCATOR not in allowed
+
+
+def test_citation_canonicalizer_restores_one_exact_source_line() -> None:
+    source = (
+        "Objective: Build premium awareness.\n"
+        "Media: OOH and DOOH only. Use only digital large-format sites."
+    )
+
+    assert _canonical_excerpt(
+        source,
+        "media ooh and dooh only use only digital large format sites",
+    ) == "Media: OOH and DOOH only. Use only digital large-format sites."
+
+
+def test_citation_canonicalizer_rejects_paraphrase_or_ambiguous_match() -> None:
+    assert _canonical_excerpt(
+        "Media: Use OOH.\nMedia: Use OOH in Gauteng.",
+        "Media use OOH",
+    ) is None
+    assert _canonical_excerpt(
+        "Objective: Build premium awareness.",
+        "Grow high-value brand salience.",
+    ) is None
+
+
+def test_exact_budget_converts_major_units_to_minor_units() -> None:
+    request = supplied_request(
+        "Budget: ZAR 500,000 excluding VAT is a certification assumption."
+    )
+    request = request.model_copy(update={
+        "source": request.source.model_copy(update={"clarifications": ()}),
+    })
+
+    assert _exact_budget(request) == ("ZAR", 50_000_000)
+
+
+def test_supplied_brief_model_returns_only_artifact_and_runtime_wraps_it() -> None:
+    payload = {
+        "source_hash": "0" * 64,
+        "client_name": "Jameson Select",
+        "title": "Jameson Select high-SEM digital OOH preview",
+        "campaign_mode": "OOH_ONLY",
+        "campaign_mode_confidence": 1,
+        "requires_human_clarification": False,
+        "campaign_mode_rationale": "The source permits only OOH and DOOH.",
+        "draft": {
+            "business_problem": "Build premium awareness.",
+            "objective": "Build premium awareness in high-SEM areas.",
+            "audiences": ["Legal-drinking-age adults"],
+            "geographies": ["Sandton"],
+            "timing": "15 August 2026 to 30 September 2026.",
+            "budget_minor": 50_000_000,
+            "budget_unknown": False,
+            "currency": "ZAR",
+            "vat_status": "Excluding VAT",
+            "fees_minor": None,
+            "media_requirements": ["OOH and DOOH only"],
+            "constraints": ["Do not use 3 x 6 sites"],
+            "measurement": ["Proof of flight"],
+            "facts": [],
+            "unknowns": [],
+            "assumptions": [],
+            "conflicts": [],
+        },
+        "questions": [],
+        "evidence": [{
+            "field_path": "mediaRequirements",
+            "kind": "SUPPLIED_CLAIM",
+            "excerpt": "Media: OOH and DOOH only.",
+            "confidence": 1,
+            "source_locator": PRIMARY_LOCATOR,
+        }],
+    }
+
+    schema = json.loads(supplied_brief_schema())
+    assert "source_hash" in schema["properties"]
+    assert "artifact" not in schema["properties"]
+
+    output = wrap_supplied_brief_output(
+        SuppliedBriefArtifact,
+        {"artifact": payload},
+    )
+    assert output.schema_version == "1.0.0"
+    assert output.status == "REVIEW_REQUIRED"
+    assert output.artifact == SuppliedBriefArtifact.model_validate_json(
+        json.dumps(payload)
+    )
+    assert output.evidence_bindings == ()
+    assert output.suggested_next_action.command_code == "ReviewSuppliedBrief"
+
+
+def _campaign_mode_payload(request: SuppliedBriefRequest, source: str) -> dict:
+    return {
+        "source_hash": request.source.source_hash,
+        "client_name": "Jameson Select",
+        "title": "Jameson Select high-SEM digital OOH preview",
+        "campaign_mode": None,
+        "campaign_mode_confidence": 0,
+        "requires_human_clarification": False,
+        "campaign_mode_rationale": "The source permits only OOH and DOOH.",
+        "draft": {
+            "business_problem": "Build premium awareness.",
+            "objective": "Build premium awareness in high-SEM areas.",
+            "audiences": ["Legal-drinking-age adults"],
+            "geographies": ["Sandton"],
+            "timing": "Mid August to September.",
+            "budget_minor": 6_000_000,
+            "budget_unknown": False,
+            "currency": "ZAR",
+            "vat_status": "Excluding VAT",
+            "fees_minor": None,
+            "media_requirements": ["OOH and DOOH only"],
+            "constraints": ["Use only digital large-format sites"],
+            "measurement": ["Proof of flight"],
+            "facts": [],
+            "unknowns": [],
+            "assumptions": [],
+            "conflicts": [],
+        },
+        "questions": [],
+        "evidence": [
+            {
+                "field_path": "mediaRequirements",
+                "kind": "SUPPLIED_CLAIM",
+                "excerpt": source,
+                "confidence": 1,
+                "source_locator": PRIMARY_LOCATOR,
+            },
+        ],
+    }
+
+
+def test_campaign_mode_reuses_exact_compatible_media_requirement_citation() -> None:
+    source = "Media: OOH and DOOH only. Use only digital large-format sites."
+    request = supplied_request(source)
+    payload = _campaign_mode_payload(request, source)
+    payload["draft"]["constraints"] = []
+    payload["evidence"].append({
+        "field_path": "facts",
+        "kind": "SUPPLIED_CLAIM",
+        "excerpt": "This wording does not exist in the supplied Brief.",
+        "confidence": 1,
+        "source_locator": PRIMARY_LOCATOR,
+    })
+    output = wrap_supplied_brief_output(SuppliedBriefArtifact, payload)
+
+    repaired = canonicalize_grounding(request, output)
+
+    campaign_mode = next(
+        item for item in repaired.artifact.evidence
+        if item.field_path == "campaignMode"
+    )
+    assert repaired.artifact.campaign_mode == "OOH_ONLY"
+    assert campaign_mode.excerpt == source
+    assert campaign_mode.source_locator == PRIMARY_LOCATOR
+    assert all(item.field_path != "facts" for item in repaired.artifact.evidence)
+    assert repaired.artifact.questions == ()
+    assert repaired.artifact.requires_human_clarification is False
+    assert repaired.artifact.draft.budget_minor == 6_000_000
+    assert repaired.artifact.draft.vat_status is None
+    assert repaired.artifact.draft.constraints == (source,)
+    validate_grounding(request, repaired)

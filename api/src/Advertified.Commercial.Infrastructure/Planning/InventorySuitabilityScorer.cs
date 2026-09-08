@@ -7,23 +7,13 @@ internal static class InventorySuitabilityScorer
     internal static PreparedShortlistCandidate[] Score(
         IReadOnlyList<PreparedShortlistCandidate> candidates,
         PlanningPolicy policy)
-    {
-        var eligible = candidates.Where(item => item.Eligibility.IsEligible).ToArray();
-        var portfolioCounts = eligible
-            .GroupBy(item => $"{item.Inventory.Channel}|{item.Inventory.Geography}",
-                StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.Count(),
-                StringComparer.OrdinalIgnoreCase);
-        return candidates.Select(candidate => ScoreCandidate(
-            candidate, portfolioCounts, policy)).ToArray();
-    }
+        => candidates.Select(candidate => ScoreCandidate(candidate, policy)).ToArray();
 
     internal static InventorySuitabilityView Empty(PlanningPolicy policy) => new(
         policy.SuitabilityPolicyVersion, 0m, 0m, 0m, 0m, 0m, 0m, 0m, []);
 
     private static PreparedShortlistCandidate ScoreCandidate(
         PreparedShortlistCandidate candidate,
-        Dictionary<string, int> portfolioCounts,
         PlanningPolicy policy)
     {
         if (!candidate.Eligibility.IsEligible)
@@ -37,14 +27,15 @@ internal static class InventorySuitabilityScorer
             candidate.AudienceFit.LanguageScore,
             candidate.AudienceFit.LifeStageScore,
             candidate.AudienceFit.LsmSemScore);
-        var objectiveFormat = candidate.Allocation is null ? 0m : 1m;
-        var budget = BudgetEfficiency(candidate);
+        // Eligibility and an allocated channel do not establish creative suitability.
+        // A listed unit rate cannot establish cost per target person reached, and
+        // catalogue density cannot establish incremental campaign reach. Until those
+        // comparisons are evidenced, zero means unscored, identified by the gaps below.
+        const decimal objectiveFormat = 0m;
+        const decimal budget = 0m;
         var readiness = InventoryCommercialReadiness.Evaluate(candidate.Inventory);
         var evidence = EvidenceQuality(candidate, readiness);
-        var key = $"{candidate.Inventory.Channel}|{candidate.Inventory.Geography}";
-        var diversity = portfolioCounts.TryGetValue(key, out var count)
-            ? decimal.Divide(1m, count)
-            : 0m;
+        const decimal diversity = 0m;
         var weights = policy.SuitabilityWeights;
         var total = geography * weights.Geography +
             audience * weights.AudienceContext +
@@ -55,6 +46,11 @@ internal static class InventorySuitabilityScorer
         var gaps = candidate.AudienceFit.EvidenceGaps
             .Concat(candidate.SpatialMatch.EvidenceGaps)
             .Concat(readiness.EvidenceGaps)
+            .Concat([
+                "suitability.objectiveFormatEvidence",
+                "suitability.comparableTargetExposureCost",
+                "suitability.incrementalReachEvidence",
+            ])
             .Distinct(StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)
             .ToArray();
@@ -67,19 +63,6 @@ internal static class InventorySuitabilityScorer
             Eligibility = candidate.Eligibility with { Score = suitability.Total },
             Suitability = suitability,
         };
-    }
-
-    private static decimal BudgetEfficiency(PreparedShortlistCandidate candidate)
-    {
-        if (candidate.Allocation is null || candidate.Allocation.BudgetMinor <= 0 ||
-            !candidate.Inventory.RateAmountMinor.HasValue)
-        {
-            return 0m;
-        }
-        var ratio = decimal.Divide(
-            candidate.Inventory.RateAmountMinor.Value,
-            candidate.Allocation.BudgetMinor);
-        return Math.Clamp(1m - ratio, 0m, 1m);
     }
 
     private static decimal EvidenceQuality(

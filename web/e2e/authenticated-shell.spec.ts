@@ -21,7 +21,7 @@ test.beforeEach(async ({ page }) => {
 
 test('authenticated workspace and profile journey remains truthful', async ({ page }) => {
   await signInAndChooseWorkspace(page)
-  await expect(page.getByRole('heading', { name: 'Good morning, Alex 👋', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^Good (morning|afternoon|evening), Alex 👋$/u })).toBeVisible()
   await expect(page.getByText('Restricted')).toHaveCount(0)
 
   const skipLink = page.getByRole('link', { name: 'Skip to main content' })
@@ -64,9 +64,10 @@ test('sidebar contains only real top-level work areas and workflow progress is n
     ['Briefs', '/briefs'],
     ['Inventory', '/inventory'],
     ['Marketplace', '/marketplace'],
-    ['OOH Inbox', '/ooh-inbox'],
+    ['Media inbox', '/ooh-inbox'],
     ['Bookings', '/bookings'],
     ['Campaigns', '/campaigns'],
+    ['Reporting', '/measurement'],
     ['Tasks', '/tasks'],
     ['Finance', '/funding'],
     ['Settings', '/admin/commercial'],
@@ -76,15 +77,20 @@ test('sidebar contains only real top-level work areas and workflow progress is n
     await expect(page.getByRole('link', { name: label, exact: true })).toHaveAttribute('href', path)
   }
 
-  for (const stage of ['Strategy & STP', 'Planning', 'Proposals', 'Approvals', 'Measurement', 'Reports']) {
+  for (const stage of ['Audience Strategy', 'Planning', 'Proposals', 'Approvals', 'Measurement']) {
     await expect(page.getByRole('link', { name: stage, exact: true })).toHaveCount(0)
   }
+
+  await page.getByRole('link', { name: 'Reporting', exact: true }).click()
+  await expect(page).toHaveURL(/\/measurement$/)
+  await expect(page.getByRole('navigation', { name: 'Reporting views' })
+    .getByRole('link', { name: 'Reports', exact: true })).toHaveAttribute('href', '/reports')
 
   await page.getByRole('link', { name: 'Briefs', exact: true }).click()
   await expect(page).toHaveURL(/\/briefs$/)
   await expect(page.getByRole('heading', { name: 'Briefs', exact: true })).toBeVisible()
 
-  await page.getByRole('link', { name: '+ New Brief', exact: true }).click()
+  await page.getByRole('link', { name: 'Create new Brief', exact: true }).click()
   await expect(page).toHaveURL(/\/briefs\/new$/)
   const flow = page.getByRole('region', { name: 'Campaign Flow' })
   await expect(flow).toBeVisible()

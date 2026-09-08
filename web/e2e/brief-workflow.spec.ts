@@ -1,4 +1,5 @@
 import { expect, test, type Route } from '@playwright/test'
+import { addVerifiedPlace } from './brief-place-fixture'
 
 const tenantId = 'b1000000-0000-0000-0000-000000000001'
 const userId = 'b2000000-0000-0000-0000-000000000001'
@@ -16,7 +17,7 @@ type State = {
   interpretationId?: string
 }
 
-test('a reviewed supplied Brief proceeds to Strategy and STP', async ({ page }) => {
+test('a reviewed supplied Brief proceeds to Audience Strategy', async ({ page }) => {
   const state: State = {
     status: 'DRAFT', version: 1, source: '', campaignMode: 'OOH_ONLY',
   }
@@ -34,19 +35,26 @@ test('a reviewed supplied Brief proceeds to Strategy and STP', async ({ page }) 
   await expect(page.getByRole('heading', {
     name: 'Confirm only what could not be established',
   })).toBeVisible()
-  await page.getByRole('radio', { name: /OOH and DOOH only/ }).check()
+  await page.getByRole('radio', { name: /Outdoor advertising and digital screens only/ }).check()
   await page.getByRole('button', { name: 'Review the completed Brief' }).click()
 
   await expect(page.getByRole('heading', {
     name: 'Confirm what Advertified understood before planning begins.',
   })).toBeVisible()
+  await addVerifiedPlace(page)
+  const submittedVersion = page.waitForRequest(request =>
+    request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/versions'))
   await page.getByRole('button', { name: 'Approve Brief and start planning' }).click()
+  const submitted = (await submittedVersion).postDataJSON().spatialRequirements[0]
+  expect(submitted.radiusMetres).toBe(500)
+  expect(submitted.sourceLocator).toBe('fixture:corrected-branch')
+  expect(submitted.isVerified).toBe(true)
 
   await expect(page).toHaveURL(new RegExp(`/stp/${versionId}$`))
-  await expect(page.getByRole('heading', { name: 'Strategy & STP' })).toBeVisible()
-  await expect(page.getByRole('region', { name: 'OOH-only Campaign Flow' }))
+  await expect(page.getByRole('heading', { name: 'Audience Strategy' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Outdoor advertising campaign' }))
     .toHaveAttribute('data-campaign-mode', 'OOH_ONLY')
-  await expect(page.getByRole('button', { name: 'Generate Strategy & STP' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Discover candidate audiences' })).toBeVisible()
 })
 
 test('Brief sections show progress and provide a governed continuation', async ({ page }) => {
@@ -63,7 +71,7 @@ test('Brief sections show progress and provide a governed continuation', async (
 
   await page.goto(`/briefs/${briefId}#brief-objectives`)
   await expect(page.getByRole('heading', { name: 'Review Campaign Brief' })).toBeVisible()
-  await expect(page.getByRole('region', { name: 'OOH-only Campaign Flow' }))
+  await expect(page.getByRole('region', { name: 'Outdoor advertising campaign' }))
     .toHaveAttribute('data-campaign-mode', 'OOH_ONLY')
   await expect(page.getByText(
     'Client One · December enquiry Brief · Version 1', { exact: true },
@@ -81,19 +89,19 @@ test('Brief sections show progress and provide a governed continuation', async (
   expect(copyBox?.width).toBeGreaterThan(40)
   expect((copyBox?.x ?? 0) + (copyBox?.width ?? 0)).toBeLessThanOrEqual(stateBox?.x ?? 0)
 
-  await page.getByRole('button', { name: 'Continue to Audience →' }).click()
+  await expect(page.getByRole('button', { name: /Continue to/ })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Audience', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: /Audience Complete/ }).click()
   await expect(page).toHaveURL(new RegExp('#brief-audience$'))
-  await expect(page.getByRole('heading', { name: 'Audience' })).toBeVisible()
 
   await page.getByRole('link', { name: /Attachments Complete/ }).click()
   await page.getByText('View original source', { exact: true }).click()
   await expect(page.getByText(state.source, { exact: true })).toBeVisible()
 
-  await page.getByRole('link', { name: /Review & Submit Needs attention/ }).click()
   await expect(page.getByRole('heading', { name: 'Review & Submit' })).toBeVisible()
   await page.getByRole('button', { name: 'Approve Brief and continue' }).click()
-  await expect(page.getByRole('link', { name: 'Next: Strategy & STP →' })).toBeVisible()
-  await page.getByRole('link', { name: 'Next: Strategy & STP →' }).click()
+  await expect(page.getByRole('link', { name: 'Next: Audience Strategy →' })).toBeVisible()
+  await page.getByRole('link', { name: 'Next: Audience Strategy →' }).click()
   await expect(page).toHaveURL(new RegExp(`/stp/${versionId}$`))
 })
 
@@ -148,7 +156,7 @@ test('a Full Campaign Brief keeps its persisted mode on the same lifecycle rail'
   const rail = page.getByRole('region', { name: 'Full Campaign Flow' })
   await expect(rail).toBeVisible()
   await expect(rail).toHaveAttribute('data-campaign-mode', 'FULL_CAMPAIGN')
-  await expect(page.getByRole('region', { name: 'OOH-only Campaign Flow' })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Outdoor advertising campaign' })).toHaveCount(0)
 })
 
 async function handleApi(route: Route, state: State) {

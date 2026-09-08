@@ -29,13 +29,18 @@ public sealed partial class ProposalRecordStore(GovernanceDbContext dbContext)
         dbContext.Database.SqlQuery<PlanningReadyBriefReferenceRow>($"""
             SELECT brief.id AS "BriefId", version.id AS "BriefVersionId",
                 version.objective AS "Objective", brief.owner_user_id AS "OwnerUserId",
-                version.version AS "BriefVersion",
+                version.version AS "BriefVersion", brief.client_account_id AS "ClientAccountId",
+                tenant.trading_name AS "AgencyBrandName",
+                client.trading_name AS "ClientBrandName",
                 COALESCE((SELECT jsonb_agg(binding.evidence_item_id ORDER BY binding.evidence_item_id)
                     FROM commercial.brief_version_evidence_items binding
                     WHERE binding.tenant_id = version.tenant_id
                       AND binding.brief_version_id = version.id), '[]'::jsonb)::text
                     AS "EvidenceIdsJson"
             FROM commercial.campaign_briefs brief
+            JOIN commercial.tenants tenant ON tenant.id = brief.tenant_id
+            JOIN commercial.client_accounts client
+              ON client.tenant_id = brief.tenant_id AND client.id = brief.client_account_id
             JOIN commercial.brief_versions version
               ON version.tenant_id = brief.tenant_id AND version.id = COALESCE(brief.ready_version_id, brief.approved_version_id)
             WHERE brief.tenant_id = {tenantId.Value} AND brief.id = {briefId}
@@ -60,6 +65,15 @@ public sealed partial class ProposalRecordStore(GovernanceDbContext dbContext)
                 proposal.approval_rejection_reason AS "ApprovalRejectionReason",
                 proposal.approval_rejected_at_utc AS "ApprovalRejectedAtUtc",
                 proposal.recipient_user_id AS "RecipientUserId",
+                proposal.agency_brand_name AS "AgencyBrandName",
+                proposal.client_brand_name AS "ClientBrandName",
+                proposal.agency_brand_asset_id AS "AgencyBrandAssetId",
+                proposal.client_brand_asset_id AS "ClientBrandAssetId",
+                proposal.branding_primary_colour AS "BrandingPrimaryColour",
+                proposal.branding_secondary_colour AS "BrandingSecondaryColour",
+                proposal.unbranded_approved_by AS "UnbrandedApprovedBy",
+                proposal.unbranded_approved_at_utc AS "UnbrandedApprovedAtUtc",
+                proposal.unbranded_approval_reason AS "UnbrandedApprovalReason",
                 proposal.version AS "Version", proposal.created_at_utc AS "CreatedAtUtc"
             FROM commercial.proposal_versions proposal
             WHERE proposal.tenant_id = {tenantId.Value}
@@ -90,6 +104,15 @@ public sealed partial class ProposalRecordStore(GovernanceDbContext dbContext)
                 approval_rejection_reason AS "ApprovalRejectionReason",
                 approval_rejected_at_utc AS "ApprovalRejectedAtUtc",
                 recipient_user_id AS "RecipientUserId",
+                agency_brand_name AS "AgencyBrandName",
+                client_brand_name AS "ClientBrandName",
+                agency_brand_asset_id AS "AgencyBrandAssetId",
+                client_brand_asset_id AS "ClientBrandAssetId",
+                branding_primary_colour AS "BrandingPrimaryColour",
+                branding_secondary_colour AS "BrandingSecondaryColour",
+                unbranded_approved_by AS "UnbrandedApprovedBy",
+                unbranded_approved_at_utc AS "UnbrandedApprovedAtUtc",
+                unbranded_approval_reason AS "UnbrandedApprovalReason",
                 version AS "Version", created_at_utc AS "CreatedAtUtc"
             FROM commercial.proposal_versions
             WHERE tenant_id = {tenantId.Value} AND id = {proposalVersionId}
@@ -185,6 +208,38 @@ public sealed partial class ProposalRecordStore(GovernanceDbContext dbContext)
               AND run.delivery_accepted_at_utc IS NOT NULL
               AND run.delivery_provider_id IS NOT NULL
               AND mailbox.owner_user_id = {actorId}
+            """).SingleOrDefaultAsync(cancellationToken);
+
+    internal Task<List<ProposalBrandAssetRow>> ListBrandAssetsAsync(
+        TenantId tenantId,
+        Guid clientAccountId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<ProposalBrandAssetRow>($"""
+            SELECT id AS "Id", client_account_id AS "ClientAccountId",
+                label AS "Label", media_type AS "MediaType", file_name AS "FileName",
+                content_hash AS "ContentHash", content AS "Content",
+                source_reference AS "SourceReference", uploaded_by AS "UploadedBy",
+                approved_by AS "ApprovedBy", approved_at_utc AS "ApprovedAtUtc",
+                version AS "Version", created_at_utc AS "CreatedAtUtc"
+            FROM commercial.workspace_brand_assets
+            WHERE tenant_id = {tenantId.Value}
+              AND (client_account_id IS NULL OR client_account_id = {clientAccountId})
+            ORDER BY client_account_id NULLS FIRST, created_at_utc DESC, id
+            """).ToListAsync(cancellationToken);
+
+    internal Task<ProposalBrandAssetRow?> FindBrandAssetAsync(
+        TenantId tenantId,
+        Guid assetId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<ProposalBrandAssetRow>($"""
+            SELECT id AS "Id", client_account_id AS "ClientAccountId",
+                label AS "Label", media_type AS "MediaType", file_name AS "FileName",
+                content_hash AS "ContentHash", content AS "Content",
+                source_reference AS "SourceReference", uploaded_by AS "UploadedBy",
+                approved_by AS "ApprovedBy", approved_at_utc AS "ApprovedAtUtc",
+                version AS "Version", created_at_utc AS "CreatedAtUtc"
+            FROM commercial.workspace_brand_assets
+            WHERE tenant_id = {tenantId.Value} AND id = {assetId}
             """).SingleOrDefaultAsync(cancellationToken);
 
     internal Task<ProposalRecipientRow?> FindRecipientAsync(

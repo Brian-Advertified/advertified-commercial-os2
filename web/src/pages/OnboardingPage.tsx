@@ -100,27 +100,58 @@ function IntakeCard({ item, busy, provision, reject, resolve }: {
   const validReason = reason.trim().length >= 5;
 
   return <article className="detail-card onboarding-request-card">
-    <header><div><span className="operations-state-label">{humanizeCode(item.typeCode, true)}</span>
-      <h3>{item.organisation}</h3><p>{item.name} · {item.email}</p></div>
-      <small>{formatDateTime(item.createdAtUtc)}</small></header>
+    <IntakeSummary item={item} />
+    {registration && <ProvisionFields legalName={legalName} setLegalName={setLegalName}
+      tradingName={tradingName} setTradingName={setTradingName} website={website}
+      setWebsite={setWebsite} vatNumber={vatNumber} setVatNumber={setVatNumber}
+      requireMfa={requireMfa} setRequireMfa={setRequireMfa} />}
+    <label>Decision reason<textarea value={reason} maxLength={1000} onChange={(event) => setReason(event.target.value)} /></label>
+    <IntakeActions registration={registration} busy={busy} validReason={validReason}
+      legalName={legalName} tradingName={tradingName} website={website} vatNumber={vatNumber}
+      requireMfa={requireMfa} reason={reason} provision={provision} reject={reject} resolve={resolve} />
+  </article>;
+}
+
+function IntakeSummary({ item }: { item: PublicIntake }) {
+  return <><header><div><span className="operations-state-label">{humanizeCode(item.typeCode, true)}</span>
+    <h3>{item.organisation}</h3><p>{item.name} · {item.email}</p></div>
+    <small>{formatDateTime(item.createdAtUtc)}</small></header>
     {item.phone && <p><strong>Phone:</strong> {item.phone}</p>}
     {item.relationship && <p><strong>Relationship:</strong> {item.relationship}</p>}
-    {item.message && <p><strong>Context:</strong> {item.message}</p>}
-    {registration && <div className="onboarding-provision-fields">
-      <label>Legal name<input value={legalName} onChange={(event) => setLegalName(event.target.value)} /></label>
-      <label>Trading name<input value={tradingName} onChange={(event) => setTradingName(event.target.value)} /></label>
-      <label>Website<input value={website} onChange={(event) => setWebsite(event.target.value)} /></label>
-      <label>VAT number<input value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} /></label>
-      <label className="checkbox-row"><input type="checkbox" checked={requireMfa} onChange={(event) => setRequireMfa(event.target.checked)} /> Require MFA</label>
-    </div>}
-    <label>Decision reason<textarea value={reason} maxLength={1000} onChange={(event) => setReason(event.target.value)} /></label>
-    <div className="action-row">
-      {registration ? <>
-        <button type="button" disabled={busy || !validReason || !legalName.trim() || !tradingName.trim()}
-          onClick={() => void provision({ legalName, tradingName, website: website.trim() || null,
-            vatNumber: vatNumber.trim() || null, requireMfa, reason })}>Provision workspace</button>
-        <button type="button" disabled={busy || !validReason} onClick={() => void reject(reason)}>Reject registration</button>
-      </> : <button type="button" disabled={busy || !validReason} onClick={() => void resolve(reason)}>Mark enquiry resolved</button>}
-    </div>
-  </article>;
+    {item.message && <p><strong>Context:</strong> {item.message}</p>}</>;
+}
+
+function ProvisionFields(props: {
+  legalName: string; setLegalName: (value: string) => void;
+  tradingName: string; setTradingName: (value: string) => void;
+  website: string; setWebsite: (value: string) => void;
+  vatNumber: string; setVatNumber: (value: string) => void;
+  requireMfa: boolean; setRequireMfa: (value: boolean) => void;
+}) {
+  return <div className="onboarding-provision-fields">
+    <label>Legal name<input value={props.legalName} onChange={(event) => props.setLegalName(event.target.value)} /></label>
+    <label>Trading name<input value={props.tradingName} onChange={(event) => props.setTradingName(event.target.value)} /></label>
+    <label>Website<input value={props.website} onChange={(event) => props.setWebsite(event.target.value)} /></label>
+    <label>VAT number<input value={props.vatNumber} onChange={(event) => props.setVatNumber(event.target.value)} /></label>
+    <label className="checkbox-row"><input type="checkbox" checked={props.requireMfa}
+      onChange={(event) => props.setRequireMfa(event.target.checked)} /> Require MFA</label>
+  </div>;
+}
+
+function IntakeActions(props: {
+  registration: boolean; busy: boolean; validReason: boolean; legalName: string;
+  tradingName: string; website: string; vatNumber: string; requireMfa: boolean; reason: string;
+  provision: (values: { legalName: string; tradingName: string; website: string | null; vatNumber: string | null; requireMfa: boolean; reason: string }) => Promise<void>;
+  reject: (reason: string) => Promise<void>; resolve: (reason: string) => Promise<void>;
+}) {
+  if (!props.registration) return <div className="action-row"><button type="button"
+    disabled={props.busy || !props.validReason} onClick={() => void props.resolve(props.reason)}>
+    Mark enquiry resolved</button></div>;
+  const disabled = props.busy || !props.validReason || !props.legalName.trim() || !props.tradingName.trim();
+  return <div className="action-row"><button type="button" disabled={disabled}
+    onClick={() => void props.provision({ legalName: props.legalName, tradingName: props.tradingName,
+      website: props.website.trim() || null, vatNumber: props.vatNumber.trim() || null,
+      requireMfa: props.requireMfa, reason: props.reason })}>Provision workspace</button>
+    <button type="button" disabled={props.busy || !props.validReason}
+      onClick={() => void props.reject(props.reason)}>Reject registration</button></div>;
 }

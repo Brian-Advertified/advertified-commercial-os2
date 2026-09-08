@@ -74,16 +74,12 @@ type BriefScreenProps = {
 
 type BriefStepResolver = (id: BriefSectionId) => {
   section: BriefSectionState
-  active: boolean
-  previous: BriefSectionState | null
-  next: BriefSectionState | null
-  onSelect: (id: BriefSectionId) => void
 }
 
 function BriefScreen(props: BriefScreenProps) {
   const flow = useBriefSectionFlow()
   const view = briefPresentation(props)
-  const step = createStepResolver(view.sections, flow.activeId, flow.goTo)
+  const step = createStepResolver(view.sections)
   return <>
     <header className="approved-brief-page-title">
       <div><Link className="text-action" to="/briefs">← Briefs</Link>
@@ -159,7 +155,7 @@ function BriefGovernanceSteps(props: BriefScreenProps & {
 }) {
   return <>
     <BriefStep {...props.step('media')}
-      copy="Confirm the immutable media scope before Strategy & STP.">
+      copy="Confirm the immutable media scope before audience discovery.">
       <Field label="Campaign type" value={props.campaignType} />
       <Field label="Decision source" value={props.modeSource} />
       <Field label="Decision rationale"
@@ -226,7 +222,7 @@ function BriefFinalAction(props: BriefScreenProps & { readyForApproval: boolean 
       onClick={() => void props.onConfirm()}>
       {briefDecisionLabel(props.version.status, props.busy)}</button>}
     {props.approved && <Link className="primary-button" to={`/stp/${props.version.id}`}>
-      Next: Strategy & STP →</Link>}
+      Next: Audience Strategy →</Link>}
     {!props.allowed && !props.approved && <span className="approved-brief-blocker">
       Awaiting an authorised Brief approver.</span>}
   </div>
@@ -261,22 +257,8 @@ function briefPresentation(props: BriefScreenProps) {
   }
 }
 
-function createStepResolver(
-  sections: BriefSectionState[],
-  activeId: BriefSectionId,
-  onSelect: (id: BriefSectionId) => void,
-): BriefStepResolver {
-  const activeIndex = Math.max(0, sections.findIndex(item => item.id === activeId))
-  return (id) => {
-    const index = sections.findIndex(item => item.id === id)
-    return {
-      section: sections[index],
-      active: activeIndex === index,
-      previous: sections[index - 1] ?? null,
-      next: sections[index + 1] ?? null,
-      onSelect,
-    }
-  }
+function createStepResolver(sections: BriefSectionState[]): BriefStepResolver {
+  return (id) => ({ section: sections.find(item => item.id === id)! })
 }
 
 function briefBudget(version: BriefVersion) {
@@ -288,7 +270,7 @@ function briefBudget(version: BriefVersion) {
 
 function campaignTypeLabel(campaignMode: CampaignMode | null) {
   if (campaignMode?.mode === masterDataCodes.campaignModes.oohOnly) {
-    return 'OOH / DOOH only'
+    return 'Outdoor advertising and digital screens only'
   }
   if (campaignMode?.mode === masterDataCodes.campaignModes.fullCampaign) {
     return 'Full campaign'

@@ -47,9 +47,10 @@ const destinations: readonly Destination[] = [
   { to: '/briefs', label: 'Briefs', icon: 'brief' },
   { to: '/inventory', label: 'Inventory', icon: 'inventory' },
   { to: '/marketplace', label: 'Marketplace', icon: 'marketplace' },
-  { to: '/ooh-inbox', label: 'OOH Inbox', icon: 'inbox', roles: oohInboxRoles },
+  { to: '/ooh-inbox', label: 'Media inbox', icon: 'inbox', roles: oohInboxRoles },
   { to: '/bookings', label: 'Bookings', icon: 'reservation' },
   { to: '/campaigns', label: 'Campaigns', icon: 'plan' },
+  { to: '/measurement', label: 'Reporting', icon: 'chart' },
   { to: '/tasks', label: 'Tasks', icon: 'tasks' },
   { to: '/funding', label: 'Finance', icon: 'money' },
   { to: '/admin/onboarding', label: 'Onboarding', icon: 'tasks', roles: platformAdminRoles },
@@ -58,7 +59,7 @@ const destinations: readonly Destination[] = [
 
 const exactNavigation: Readonly<Record<string, readonly string[]>> = {
   Home: ['/home'],
-  'OOH Inbox': ['/ooh-inbox'],
+  'Media inbox': ['/ooh-inbox'],
   Tasks: ['/tasks', '/approvals'],
 }
 
@@ -68,9 +69,9 @@ const prefixNavigation: Readonly<Record<string, readonly string[]>> = {
   Inventory: ['/inventory'],
   Marketplace: ['/marketplace'],
   Bookings: ['/bookings'],
-  Campaigns: [
-    '/campaigns', '/creative-assets/', '/delivery-proofs/',
-    '/performance-evidence/', '/measurement-reports/',
+  Campaigns: ['/campaigns', '/creative-assets/', '/delivery-proofs/'],
+  Reporting: [
+    '/measurement', '/reports', '/performance-evidence/', '/measurement-reports/',
   ],
   Finance: ['/funding'],
   Onboarding: ['/admin/onboarding'],
@@ -166,7 +167,7 @@ function GlobalTopbar({ workspace, user, notificationCount, onSignOut }: {
       <NavLink className="approved-icon-button" to="/notifications" aria-label="Notifications"><Icon name="bell" />{notificationCount > 0 && <i>{notificationCount}</i>}</NavLink>
       {workspace && oohInboxRoles.has(workspace.roleCode) && <NavLink
         className="approved-icon-button" to="/ooh-inbox" aria-label="Messages"
-        title="Open OOH proposal inbox"><Icon name="inbox" /></NavLink>}
+        title="Open outdoor advertising proposal inbox"><Icon name="inbox" /></NavLink>}
       <NavLink className="approved-icon-button" to="/faq" aria-label="Help"
         title="Open Advertified help">?</NavLink>
       <NavLink className="approved-user-chip" to="/profile" aria-label={`${displayName} profile`}><span>{initial}</span>

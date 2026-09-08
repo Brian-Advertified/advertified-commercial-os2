@@ -81,6 +81,7 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
                 version.status_code AS "Status", version.objective AS "Objective",
                 version.audiences_json::text AS "AudiencesJson",
                 version.geographies_json::text AS "GeographiesJson",
+                version.constraints_json::text AS "ConstraintsJson",
                 version.budget_minor AS "BudgetMinor",
                 version.budget_unknown AS "BudgetUnknown",
                 version.currency_code AS "Currency", version.vat_status_code AS "VatStatus",
@@ -203,7 +204,9 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
                 target_audience_ids_json::text AS "TargetAudienceIdsJson",
                 targeting_rationale AS "TargetingRationale",
                 positioning_statement AS "PositioningStatement", input_hash AS "InputHash",
-                status_code AS "Status", created_at_utc AS "CreatedAtUtc"
+                status_code AS "Status", created_by AS "CreatedBy",
+                approved_by AS "ApprovedBy", version AS "Version",
+                approved_at_utc AS "ApprovedAtUtc", created_at_utc AS "CreatedAtUtc"
             FROM commercial.audience_definition_sets
             WHERE tenant_id = {tenantId.Value} AND brief_version_id = {briefVersionId}
             ORDER BY version_no DESC LIMIT 1
@@ -222,7 +225,9 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
                 target_audience_ids_json::text AS "TargetAudienceIdsJson",
                 targeting_rationale AS "TargetingRationale",
                 positioning_statement AS "PositioningStatement", input_hash AS "InputHash",
-                status_code AS "Status", created_at_utc AS "CreatedAtUtc"
+                status_code AS "Status", created_by AS "CreatedBy",
+                approved_by AS "ApprovedBy", version AS "Version",
+                approved_at_utc AS "ApprovedAtUtc", created_at_utc AS "CreatedAtUtc"
             FROM commercial.audience_definition_sets
             WHERE tenant_id = {tenantId.Value} AND id = {audienceSetId}
             """).ToListAsync(cancellationToken);

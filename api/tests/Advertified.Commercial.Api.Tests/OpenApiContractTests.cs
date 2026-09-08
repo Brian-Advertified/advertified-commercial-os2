@@ -175,6 +175,8 @@ public sealed class OpenApiContractTests
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/brief-versions/{briefVersionId}/audiences:generate"]!["post"]);
         Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/audience-strategies/{audienceSetId}:approve"]!["post"]);
+        Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/briefs/{briefId}/approved-plans"]!["get"]);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/briefs/{briefId}/proposals:generate"]!["post"]);

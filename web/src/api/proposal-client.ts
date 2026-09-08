@@ -1,14 +1,16 @@
-import type { ZodType } from 'zod'
+import { z, type ZodType } from 'zod'
 import { request } from './client'
 import {
   approvedPlanChoicesSchema,
   proposalApproversSchema,
+  proposalBrandAssetSchema,
   proposalRecipientsSchema,
   proposalSchema,
   proposalSummariesSchema,
   type ApprovedPlanChoice,
   type Proposal,
   type ProposalApprover,
+  type ProposalBrandAsset,
   type ProposalDraftInput,
   type ProposalOption,
   type ProposalRecipient,
@@ -70,6 +72,73 @@ export const proposalApi = {
       `/api/v1/tenants/${tenantId}/proposal-approvers`,
       proposalApproversSchema,
     )).data
+  },
+
+  async listBrandAssets(tenantId: string, proposalId: string): Promise<ProposalBrandAsset[]> {
+    return (await request(
+      `/api/v1/tenants/${tenantId}/proposal-versions/${proposalId}/brand-assets`,
+      z.array(proposalBrandAssetSchema),
+    )).data
+  },
+
+  async uploadBrandAsset(
+    tenantId: string,
+    proposalId: string,
+    input: { clientAsset: boolean; label: string; sourceReference: string; document: File },
+    token: string,
+  ): Promise<ProposalBrandAsset> {
+    const body = new FormData()
+    body.append('clientAsset', String(input.clientAsset))
+    body.append('label', input.label)
+    body.append('sourceReference', input.sourceReference)
+    body.append('document', input.document)
+    return (await request(
+      `/api/v1/tenants/${tenantId}/proposal-versions/${proposalId}/brand-assets`,
+      proposalBrandAssetSchema,
+      { method: 'POST', body },
+      { antiforgeryToken: token, idempotencyKey: crypto.randomUUID() },
+    )).data
+  },
+
+  approveBrandAsset(
+    tenantId: string,
+    asset: ProposalBrandAsset,
+    token: string,
+  ): Promise<ProposalBrandAsset> {
+    return mutate(
+      `/api/v1/tenants/${tenantId}/proposal-brand-assets/${asset.id}:approve`,
+      proposalBrandAssetSchema,
+      {}, token, asset.version,
+    )
+  },
+
+  configureBranding(
+    tenantId: string,
+    proposal: Proposal,
+    input: {
+      agencyBrandAssetId: string | null
+      clientBrandAssetId: string | null
+      primaryColour: string | null
+      secondaryColour: string | null
+    },
+    token: string,
+  ): Promise<Proposal> {
+    return mutate(
+      `/api/v1/tenants/${tenantId}/proposal-versions/${proposal.id}:configure-branding`,
+      proposalSchema, input, token, proposal.version,
+    )
+  },
+
+  approveUnbranded(
+    tenantId: string,
+    proposal: Proposal,
+    reason: string,
+    token: string,
+  ): Promise<Proposal> {
+    return mutate(
+      `/api/v1/tenants/${tenantId}/proposal-versions/${proposal.id}:approve-unbranded`,
+      proposalSchema, { reason }, token, proposal.version,
+    )
   },
 
   async get(tenantId: string, proposalId: string): Promise<Proposal> {

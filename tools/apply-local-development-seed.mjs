@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const containerName = 'advertified-os2-dev-postgres-1'
@@ -38,7 +39,19 @@ if (!allowed) {
   )
 }
 
-const sql = readFileSync(seedPath, 'utf8')
+const seedDirectory = dirname(seedPath)
+const sql = readFileSync(seedPath, 'utf8').replace(
+  /^\\ir\s+([^\r\n]+)\r?$/gm,
+  (_line, requestedPath) => {
+    const includePath = resolve(seedDirectory, requestedPath.trim())
+    const includeRelative = relative(seedDirectory, includePath)
+    if (includeRelative.startsWith('..') || isAbsolute(includeRelative)) {
+      throw new Error('Refusing to load a seed include outside the development directory.')
+    }
+
+    return readFileSync(includePath, 'utf8')
+  },
+)
 const apply = spawnSync('docker', [
   'exec',
   '--user', 'postgres',
@@ -59,6 +72,7 @@ if (apply.status !== 0) {
   fail('The local development seed failed safely.', apply)
 }
 
+process.stdout.write(apply.stdout)
 process.stdout.write(
   'Applied the idempotent local development workspace and proposal prerequisites.\n',
 )

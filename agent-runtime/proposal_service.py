@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from media_presentation import channel_labels
 from contracts import (
     AgentOutputEnvelope,
     EvidenceBinding,
@@ -20,7 +21,7 @@ def propose_narrative(
 ) -> AgentOutputEnvelope[ProposalNarrativeDraftArtifact]:
     options = " ".join(
         f"{item.label} invests {_money(item.budget_minor, item.currency)} across "
-        f"{', '.join(item.channels)} to {_lower_first(item.outcome)}."
+        f"{channel_labels(item.channels)} to {_lower_first(item.outcome)}."
         for item in request.proposal.options
     )
     artifact = ProposalNarrativeDraftArtifact(

@@ -58,15 +58,16 @@ public sealed partial class PlanningCommands
                 target_audience_ids_json, targeting_rationale,
                 positioning_statement, input_hash, agent_provider_code, agent_model_code,
                 agent_incremental_cost_minor, agent_provider_request_id,
-                status_code, created_by, created_at_utc)
+                status_code, created_by, version, created_at_utc)
             VALUES ({id}, {envelope.TenantId.Value}, {briefVersionId}, {versionNumber},
                 {targetAudienceIdsJson}::jsonb, {targetingRationale},
                 {positioningStatement}, {inputHash}, {proposal.Provider}, {proposal.Model},
                 {proposal.IncrementalCostMinor}, {proposal.ProviderRequestId},
-                {MasterDataCodes.LifecycleStatuses.Approved}, {envelope.ActorId.Value}, {now})
+                {MasterDataCodes.LifecycleStatuses.Draft}, {envelope.ActorId.Value}, 1, {now})
             """, cancellationToken);
         await PlanningAudiencePersistence.InsertAsync(
-            store.DbContext, envelope.TenantId, id, audienceRecords, cancellationToken);
+            store.DbContext, envelope.TenantId, id, audienceRecords,
+            MasterDataCodes.LifecycleStatuses.Draft, cancellationToken);
         var row = await store.FindLatestAudienceAsync(
             envelope.TenantId, briefVersionId, cancellationToken)
             ?? throw new InvalidOperationException("The audience set was not persisted.");

@@ -54,7 +54,8 @@ public sealed partial class PlanningRecordStore
             set.Id, set.BriefVersionId, set.VersionNumber,
             Read<Guid[]>(set.TargetAudienceIdsJson),
             set.TargetingRationale, set.PositioningStatement,
-            set.InputHash, set.Status, definitions, set.CreatedAtUtc);
+            set.InputHash, set.Status, definitions, set.CreatedBy,
+            set.ApprovedBy, set.Version, set.ApprovedAtUtc, set.CreatedAtUtc);
     }
 
     internal static MediaMixVersionView BuildMixView(MediaMixRow row) => new(

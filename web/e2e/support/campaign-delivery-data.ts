@@ -1,3 +1,5 @@
+import { authorisedUnbrandedFixture } from './proposal-branding-fixture';
+import { proposalSchema } from '../../src/api/proposal-schemas';
 import {
   creativeWorkspaceFixture,
   deliveryProofFixture,
@@ -36,7 +38,7 @@ export function fundingWorkspaceFixture(state: DeliveryFixtureState) {
 }
 
 export function campaignFlowProposalFixture() {
-  return {
+  return proposalSchema.parse({
     id: deliveryIds.proposal,
     briefId: deliveryIds.brief,
     briefVersionId: deliveryIds.briefVersion,
@@ -83,9 +85,10 @@ export function campaignFlowProposalFixture() {
     approvalRejectedAtUtc: null,
     inventoryReviewStatus: 'CURRENT',
     inventoryImpacts: [],
+    branding: authorisedUnbrandedFixture(deliveryIds.user, deliveryNow),
     version: 4,
     createdAtUtc: deliveryNow,
-  };
+  });
 }
 
 export function campaignFlowPlanningFixture() {

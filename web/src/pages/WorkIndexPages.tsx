@@ -10,6 +10,7 @@ import { planningApi } from '../api/planning-client'
 import type { PlanningSummary } from '../api/planning-schemas'
 import type { CampaignBriefSummary, HumanTask } from '../api/schemas'
 import { useWorkspace } from '../auth/workspace-state'
+import { BriefsWorkspace } from '../brief/BriefsWorkspace'
 import { Icon, type IconName } from '../components/Icon'
 import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
@@ -40,21 +41,15 @@ const loadTasks = async (tenantId: string): Promise<TaskListState> => ({
 })
 
 export function BriefsIndexPage() {
-  return <BriefData>{briefs => <WorkspaceIndex title="Briefs"
-    subtitle="Campaign requirements structured from the original client request."
-    action={<Link className="primary-button" to="/briefs/new">+ New Brief</Link>}>
-    {briefs.length === 0 ? <Empty label="No Briefs yet" /> : briefs.map(brief =>
-      <IndexRow key={brief.id} icon="brief" title={brief.title} meta={`${brief.clientName} · ${humanizeCode(brief.status, true)}`}
-        updated={brief.updatedAtUtc} to={`/briefs/${brief.id}`} />)}
-  </WorkspaceIndex>}</BriefData>
+  return <BriefData>{briefs => <BriefsWorkspace briefs={briefs} />}</BriefData>
 }
 
 export function StrategyStpIndexPage() {
   return <BriefData>{briefs => {
     const ready = briefs.filter(item => item.approvedVersionId || item.readyVersionId)
-    return <WorkspaceIndex title="Strategy & STP"
+    return <WorkspaceIndex title="Audience Strategy"
       subtitle="Segmentation, targeting and positioning for approved campaign Briefs.">
-      {ready.length === 0 ? <Empty label="No Brief is ready for Strategy & STP" /> : ready.map(brief => {
+      {ready.length === 0 ? <Empty label="No Brief is ready for Audience Strategy" /> : ready.map(brief => {
         const versionId = brief.approvedVersionId ?? brief.readyVersionId!
         return <IndexRow key={brief.id} icon="users" title={brief.title}
           meta={`${brief.clientName} · Brief ${humanizeCode(brief.status, true)}`}
@@ -168,25 +163,23 @@ function useTenantLoad<T>(load: (tenantId: string) => Promise<T>) {
   const [loadedTenantId, setLoadedTenantId] = useState<string | undefined>()
   const tenantId = selected?.tenantId
   useEffect(() => {
-    setValue(null)
-    setError(null)
-    setLoadedTenantId(tenantId)
-    if (!tenantId) {
-      setLoading(false)
-      return
-    }
-    setLoading(true)
+    if (!tenantId) return
     let active = true
     void load(tenantId).then(result => {
-      if (active) setValue(result)
+      if (active) {
+        setValue(result); setError(null); setLoadedTenantId(tenantId); setLoading(false)
+      }
     })
-      .catch((failure: unknown) => { if (active) setError(humanMessage(failure)) })
-      .finally(() => { if (active) setLoading(false) })
+      .catch((failure: unknown) => {
+        if (active) {
+          setValue(null); setError(humanMessage(failure)); setLoadedTenantId(tenantId); setLoading(false)
+        }
+      })
     return () => { active = false }
   }, [tenantId, load])
   return useMemo(
     () => ({ selected,
-      loading: workspaceLoading || loading || loadedTenantId !== tenantId,
+      loading: workspaceLoading || Boolean(tenantId && (loading || loadedTenantId !== tenantId)),
       value: loadedTenantId === tenantId ? value : null,
       error: loadedTenantId === tenantId ? error : null }),
     [selected, workspaceLoading, loading, loadedTenantId, tenantId, value, error],

@@ -7,6 +7,7 @@ import type {
 } from '../api/email-automation-schemas'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { formatMoney, humanizeCode } from '../presentation/format'
+import { clientMediaCopy } from '../presentation/media-labels'
 
 type OohCampaignWorkspaceProps = {
   detail: InboundEmailDetail
@@ -21,12 +22,12 @@ export function OohCampaignWorkspace(props: OohCampaignWorkspaceProps) {
   const view = oohCampaignView(props.brief, props.planning, props.detail)
   return <section className="approved-ooh-campaign ooh-message-detail" aria-labelledby="ooh-campaign-title">
     <header className="approved-ooh-campaign-header"><div>
-      <h2 id="ooh-campaign-title">Inbound OOH Brief</h2>
+      <h2 id="ooh-campaign-title">Inbound outdoor advertising Brief</h2>
       <span className="approved-live-pill">● Live</span>
-      <span className="approved-waiting-pill">OOH-only campaign</span>
+      <span className="approved-waiting-pill">Outdoor advertising campaign</span>
     </div><button type="button" aria-label="Close">×</button></header>
     <div className="approved-ooh-received"><span>▣</span><div>
-      <strong>New OOH request received</strong>
+      <strong>New outdoor advertising request received</strong>
       <small>From {props.detail.email.senderName ?? props.detail.email.senderEmail} ·
         {props.detail.email.subject}</small>
     </div></div>
@@ -72,7 +73,7 @@ function OohShortlist({ detail, shortlist, selected, total }: {
 }) {
   return <article className="approved-ooh-shortlist">
     <header><div><h3>AI Shortlist</h3>
-      <small>Top OOH inventory options based on the approved requirement.</small></div>
+      <small>Top outdoor advertising inventory options based on the approved requirement.</small></div>
       <div><button className="secondary-button" type="button" disabled>↻ Recalculate</button>
         {detail.run.briefVersionId && <Link className="secondary-button"
           to={`/planning/${detail.run.briefVersionId}`}>Edit Criteria</Link>}</div>
@@ -141,7 +142,7 @@ function OohReviewActions(props: OohCampaignWorkspaceProps & { needsReview: bool
   const action = reviewAction(props.detail)
   if (!action) return null
   return <section className="approved-ooh-review-actions" role="status">
-    <div><h3>{action.title}</h3><p>{action.detail}</p>
+    <div><h3>{action.title}</h3><p>{clientMediaCopy(action.detail)}</p>
       {action.marker && <strong>{action.marker}</strong>}</div>
     {action.button && <button className="primary-button" type="button"
       disabled={props.busy} onClick={() => void action.run(props)}>
@@ -163,7 +164,7 @@ function reviewAction(detail: InboundEmailDetail): OohReviewAction | null {
   if (failure === masterDataCodes.automationFailureReasons.nonOohRequest) {
     return { title: 'Nothing was sent',
       detail: detail.run.failureMessage ??
-        'This request includes media beyond OOH. Start a new full campaign instead.',
+        'This request includes media beyond outdoor advertising. Start a new full campaign instead.',
       run: async () => undefined }
   }
   if (failure === masterDataCodes.automationFailureReasons.deliveryAmbiguous) {
@@ -258,7 +259,7 @@ function budgetFact(version: CampaignBrief['versions'][number]) {
 
 function campaignModeFact(planning: PlanningWorkspace | null) {
   if (planning?.campaignMode?.mode === masterDataCodes.campaignModes.oohOnly) {
-    return 'OOH / DOOH only'
+    return 'Outdoor advertising and digital screens only'
   }
   if (planning?.campaignMode?.mode === masterDataCodes.campaignModes.fullCampaign) {
     return 'Full campaign'

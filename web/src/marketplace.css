@@ -158,6 +158,9 @@
 }
 
 .marketplace-filter-fields .secondary-button { white-space: nowrap; }
+.marketplace-pagination { margin-top: 0.8rem; display: flex; align-items: center;
+  justify-content: flex-end; gap: 0.7rem; }
+.marketplace-pagination span { color: var(--muted); font-size: 0.78rem; font-weight: 700; }
 .marketplace-filter-bar .field-group,
 .marketplace-publish .field-group,
 .marketplace-action-form .field-group { color: var(--muted-strong); font-size: 0.75rem; font-weight: 750; }

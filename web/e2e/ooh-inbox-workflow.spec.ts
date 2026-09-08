@@ -47,7 +47,7 @@ test('operator connects one mailbox and monitors automatic OOH proposals', async
   await page.goto('/ooh-inbox')
   await expect(page).toHaveURL(/\/ooh-inbox$/)
   await expect(page.getByRole('heading', { name: 'Proposal inbox' })).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByText('OOH / DOOH only')).toBeVisible()
+  await expect(page.getByText('Outdoor advertising and digital screens only', { exact: true })).toBeVisible()
   await page.getByLabel('Mailbox address').fill('ooh@advertified.com')
   await page.getByLabel('Allowed sender domains').fill('client.example')
   await page.getByLabel('Send complete proposals automatically').check()
@@ -56,13 +56,14 @@ test('operator connects one mailbox and monitors automatic OOH proposals', async
   await expect(page.getByText('ooh@advertified.com', { exact: true })).toBeVisible()
   await expect(page.getByText('Automatic sending on')).toBeVisible()
   await expect(page.getByText('The proposal was sent automatically')).toBeVisible()
-  await expect(page.getByText('OOH-only campaign', { exact: true })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Outdoor advertising campaign', exact: true }))
+    .toHaveAttribute('data-campaign-mode', 'OOH_ONLY')
   await expect(page.getByText(/cannot be widened later/i)).toBeVisible()
 
   await page.getByRole('button', { name: /Radio requested with OOH/ }).click()
   await expect(page.getByRole('heading', { name: 'Nothing was sent' })).toBeVisible()
   await expect(page.getByRole('status').getByText(
-    'This request includes media beyond OOH. Start a new full campaign instead.',
+    'This request includes media beyond Outdoor advertising. Start a new full campaign instead.',
     { exact: true },
   )).toBeVisible()
   await expect(page.getByRole('link', { name: 'Open proposal' })).toHaveCount(0)

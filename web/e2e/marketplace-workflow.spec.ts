@@ -8,10 +8,32 @@ const listingVersionId = 'f3000000-0000-0000-0000-000000000002'
 const rfqId = 'f4000000-0000-0000-0000-000000000001'
 const now = '2026-08-30T10:00:00Z'
 
-type State = { rfq: ReturnType<typeof rfqFixture> | null }
+type State = { rfq: ReturnType<typeof rfqFixture> | null; listingRequests: string[]; roleCode?: string }
+
+for (const roleCode of ['advertiser_admin', 'supplier_user', 'influencer_rep']) {
+  test(`${roleCode} can inspect supply without buyer or foreign-owner actions`, async ({ page }) => {
+    const state: State = { rfq: null, listingRequests: [], roleCode }
+    const mutations: string[] = []
+    await page.addInitScript(tenantId => {
+      sessionStorage.setItem('advertified.workspace', JSON.stringify({ tenantId }))
+    }, buyerTenantId)
+    await page.route('**/api/v1/**', async route => {
+      if (route.request().method() !== 'GET') mutations.push(route.request().url())
+      await handleApi(route, state)
+    })
+    await page.goto('/marketplace')
+    await page.getByRole('button', { name: 'View details' }).click()
+    await expect(page.getByRole('heading', { name: 'N1 Highway Digital Billboard' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Request availability' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Archive listing' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Publish supply' }))
+      .toHaveCount(roleCode === 'advertiser_admin' ? 0 : 1)
+    expect(mutations).toEqual([])
+  })
+}
 
 test('buyer creates and explicitly sends a marketplace request', async ({ page }) => {
-  const state: State = { rfq: null }
+  const state: State = { rfq: null, listingRequests: [] }
   await page.addInitScript((tenantId) => {
     sessionStorage.setItem('advertified.workspace', JSON.stringify({ tenantId }))
   }, buyerTenantId)
@@ -24,6 +46,9 @@ test('buyer creates and explicitly sends a marketplace request', async ({ page }
   await expect(page.getByRole('cell', {
     name: /N1 Highway Digital Billboard/,
   })).toBeVisible()
+  await page.getByRole('button', { name: 'View details' }).click()
+  await expect(page.getByRole('heading', { name: 'N1 Highway Digital Billboard' })).toBeVisible()
+  await expect(page.getByText('Subject to human-approved booking.')).toBeVisible()
   await page.getByRole('button', { name: 'Request availability' }).click()
   await page.getByLabel('Request subject').fill('September Johannesburg launch')
   await page.getByLabel('Start date').fill('2026-09-15')
@@ -37,16 +62,41 @@ test('buyer creates and explicitly sends a marketplace request', async ({ page }
   await expect(page.getByText('No booking was created.')).toHaveCount(0)
 })
 
+test('buyer filters and pages through published marketplace supply', async ({ page }) => {
+  const state: State = { rfq: null, listingRequests: [] }
+  await page.addInitScript((tenantId) => {
+    sessionStorage.setItem('advertified.workspace', JSON.stringify({ tenantId }))
+  }, buyerTenantId)
+  await page.route('**/api/v1/**', async (route) => handleApi(route, state))
+
+  await page.goto('/marketplace')
+  await page.getByLabel('Supplier', { exact: true }).fill('Verified Outdoor')
+  await page.getByLabel('City').fill('Johannesburg')
+  await page.getByLabel('Rate type').selectOption('MONTH_RATE')
+  await page.getByLabel('Maximum rate').fill('15000')
+  await page.getByRole('button', { name: 'Search marketplace' }).click()
+
+  await expect.poll(() => state.listingRequests.length).toBeGreaterThanOrEqual(2)
+  const filtered = new URL(state.listingRequests.at(-1)!)
+  expect(filtered.searchParams.get('supplier')).toBe('Verified Outdoor')
+  expect(filtered.searchParams.get('city')).toBe('Johannesburg')
+  expect(filtered.searchParams.get('rateType')).toBe('MONTH_RATE')
+  expect(filtered.searchParams.get('maximumAmountMinor')).toBe('1500000')
+  expect(filtered.searchParams.get('currency')).toBe('ZAR')
+
+  await page.getByRole('button', { name: 'Next' }).click()
+  await expect(page.getByText('Page 2')).toBeVisible()
+  expect(new URL(state.listingRequests.at(-1)!).searchParams.get('cursor')).toBe('cursor-two')
+  await page.getByRole('button', { name: 'Previous' }).click()
+  await expect(page.getByText('Page 1')).toBeVisible()
+})
+
 async function handleApi(route: Route, state: State) {
   const request = route.request()
-  const path = new URL(request.url()).pathname
+  const url = new URL(request.url())
+  const path = url.pathname
   if (request.method() === 'GET') {
-    if (path === '/api/v1/session') return json(route, sessionFixture())
-    if (path === '/api/v1/workspaces') return json(route, [workspaceFixture()])
-    if (path.endsWith('/marketplace-listings')) return json(route,
-      { items: [listingFixture()], nextCursor: null })
-    if (path.endsWith('/marketplace-rfqs')) return json(route,
-      { items: state.rfq ? [state.rfq] : [], nextCursor: null })
+    return handleRead(route, state, url)
   }
   if (request.method() === 'POST') {
     assertMutation(route)
@@ -61,6 +111,22 @@ async function handleApi(route: Route, state: State) {
       return json(route, state.rfq)
     }
   }
+  return json(route, { code: 'NOT_FOUND', status: 404 }, 404)
+}
+
+function handleRead(route: Route, state: State, url: URL) {
+  const path = url.pathname
+  if (path === '/api/v1/session') return json(route, sessionFixture())
+  if (path === '/api/v1/workspaces') return json(route, [workspaceFixture(state.roleCode)])
+  if (path.endsWith('/inventory-products')) return json(route,
+    { items: [], nextCursor: null, maximumSourceBytes: 67108864 })
+  if (path.endsWith('/marketplace-listings')) {
+    state.listingRequests.push(url.toString())
+    return json(route, { items: [listingFixture()],
+      nextCursor: url.searchParams.has('cursor') ? null : 'cursor-two' })
+  }
+  if (path.endsWith('/marketplace-rfqs')) return json(route,
+    { items: state.rfq ? [state.rfq] : [], nextCursor: null })
   return json(route, { code: 'NOT_FOUND', status: 404 }, 404)
 }
 
@@ -98,13 +164,14 @@ function assertMutation(route: Route) {
 
 function sessionFixture() {
   return { authenticated: true, antiforgeryToken: 'csrf-marketplace',
-    expiresAtUtc: '2026-08-30T18:00:00Z' }
+    expiresAtUtc: '2099-08-30T18:00:00Z',
+    signInPath: null, signOutPath: null }
 }
 
-function workspaceFixture() {
+function workspaceFixture(roleCode = 'agency_admin') {
   return { membershipId: 'f6000000-0000-0000-0000-000000000001',
     tenantId: buyerTenantId, name: 'Buyer Agency', slug: 'buyer-agency',
-    roleCode: 'agency_admin', version: 1 }
+    roleCode, version: 1 }
 }
 
 async function json(route: Route, body: unknown, status = 200) {

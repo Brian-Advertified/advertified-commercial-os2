@@ -23,9 +23,18 @@ public sealed partial class ProposalCommands
         {
             throw new InvalidLifecycleTransitionException();
         }
+        await EnsureClientBrandingReadyAsync(proposal, envelope.TenantId, cancellationToken);
         await inventoryReadiness.EnsureProposalPlansCurrentAsync(envelope.TenantId, proposalVersionId, cancellationToken);
         var view = await store.BuildViewAsync(envelope.TenantId, proposal, cancellationToken);
-        var rendered = ProposalPdfRenderer.Render(view);
+        var agencyLogo = proposal.AgencyBrandAssetId.HasValue
+            ? (await store.FindBrandAssetAsync(envelope.TenantId,
+                proposal.AgencyBrandAssetId.Value, cancellationToken))?.Content
+            : null;
+        var clientLogo = proposal.ClientBrandAssetId.HasValue
+            ? (await store.FindBrandAssetAsync(envelope.TenantId,
+                proposal.ClientBrandAssetId.Value, cancellationToken))?.Content
+            : null;
+        var rendered = ProposalPdfRenderer.Render(view, agencyLogo, clientLogo);
         var documentId = Guid.NewGuid();
         var now = timeProvider.GetUtcNow();
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
@@ -57,6 +66,7 @@ public sealed partial class ProposalCommands
         {
             throw new ProposalDocumentRequiredException();
         }
+        await EnsureClientBrandingReadyAsync(proposal, envelope.TenantId, cancellationToken);
         await inventoryReadiness.EnsureProposalPlansCurrentAsync(envelope.TenantId, proposalVersionId, cancellationToken);
         var recipient = await store.FindRecipientAsync(
             envelope.TenantId, envelope.Command.RecipientUserId, cancellationToken)

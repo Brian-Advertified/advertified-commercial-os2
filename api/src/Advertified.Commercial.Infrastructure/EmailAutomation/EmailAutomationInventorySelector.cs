@@ -36,6 +36,8 @@ public sealed class EmailAutomationInventorySelector(
             item => item.Channel, StringComparer.Ordinal);
         var currentEligibleIds = shortlist.Candidates
             .Where(item => item.IsEligible && AudienceEvidenceReady(item.AudienceFit))
+            .Where(item => item.Suitability is { EvidenceGaps.Count: 0 })
+            .Where(item => item.Suitability!.PolicyVersion == planningPolicy.SuitabilityPolicyVersion)
             .Where(item => allocations.TryGetValue(item.Channel, out var allocation) &&
                 CurrentAndAvailable(item, allocation, inventoryByVersion))
             .Select(item => item.Id)
@@ -118,8 +120,12 @@ public sealed class EmailAutomationInventorySelector(
         }
     }
 
-    private static bool AudienceEvidenceReady(InventoryAudienceFitView fit) =>
-        !fit.LsmSemMandatory || fit.LsmSemScore is > 0;
+    internal static bool AudienceEvidenceReady(InventoryAudienceFitView fit) =>
+        fit.EvidenceGaps.Count == 0 &&
+        fit.LanguageScore is null or > 0 &&
+        fit.LifeStageScore is null or > 0 &&
+        fit.LsmSemScore is null or > 0 &&
+        (!fit.LsmSemMandatory || fit.LsmSemScore is > 0);
 
     private static bool CurrentAndAvailable(
         InventoryShortlistCandidateView candidate,

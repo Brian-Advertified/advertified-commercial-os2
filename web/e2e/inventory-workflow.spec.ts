@@ -110,6 +110,7 @@ async function handleRead(route: Route, state: State, path: string) {
   if (path.endsWith(`/inventory-imports/${importId}`)) return json(route, inventoryImportSchema.parse(importFixture(state)))
   if (path.endsWith(`/inventory-products/${productId}/benchmark`)) return json(route, benchmarkFixture())
   if (path.endsWith(`/inventory-products/${productId}`)) return json(route, inventoryProductSchema.parse(productFixture()))
+  if (path.endsWith('/inventory-product-suppliers')) return json(route, ['City Media'])
   if (path.endsWith('/inventory-products')) return json(route, {
     items: state.published ? [productSummary()] : [], nextCursor: null,
     maximumSourceBytes: 104857600,

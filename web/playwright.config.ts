@@ -5,7 +5,10 @@ const testOrigin = `http://127.0.0.1:${testPort}`
 
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: '**/*.connected.spec.ts',
+  testIgnore: [
+    '**/*.connected.spec.ts',
+    '**/session-durability.*.spec.ts',
+  ],
   fullyParallel: false,
   forbidOnly: true,
   retries: 0,

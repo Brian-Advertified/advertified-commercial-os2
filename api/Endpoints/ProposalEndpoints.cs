@@ -35,6 +35,27 @@ public static class ProposalEndpoints
         group.MapGet("/proposals/{proposalVersionId:guid}", GetAsync)
             .WithName("GetProposal").Produces<ProposalVersionView>()
             .WithQueryProblems();
+        group.MapGet("/proposal-versions/{proposalVersionId:guid}/brand-assets", ListBrandAssetsAsync)
+            .WithName("ListProposalBrandAssets")
+            .Produces<IReadOnlyList<ProposalBrandAssetView>>()
+            .WithQueryProblems();
+        group.MapPost("/proposal-versions/{proposalVersionId:guid}/brand-assets", UploadBrandAssetAsync)
+            .WithName("UploadProposalBrandAsset")
+            .Accepts<ProposalBrandAssetForm>("multipart/form-data")
+            .Produces<ProposalBrandAssetView>(StatusCodes.Status201Created)
+            .WithCommandProblems(requiresVersion: false);
+        group.MapPost("/proposal-brand-assets/{assetId:guid}:approve", ApproveBrandAssetAsync)
+            .WithName("ApproveProposalBrandAsset")
+            .Produces<ProposalBrandAssetView>()
+            .WithCommandProblems(requiresVersion: true);
+        group.MapPost("/proposal-versions/{proposalVersionId:guid}:configure-branding", ConfigureBrandingAsync)
+            .WithName("ConfigureProposalBranding")
+            .Produces<ProposalVersionView>()
+            .WithCommandProblems(requiresVersion: true);
+        group.MapPost("/proposal-versions/{proposalVersionId:guid}:approve-unbranded", ApproveUnbrandedAsync)
+            .WithName("ApproveUnbrandedProposal")
+            .Produces<ProposalVersionView>()
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/proposal-versions/{proposalVersionId:guid}:update", UpdateAsync)
             .WithName("UpdateProposal").Produces<ProposalVersionView>()
             .WithCommandProblems(requiresVersion: true);
@@ -123,6 +144,56 @@ public static class ProposalEndpoints
             (envelope, token) => commands.RenderAsync(proposalVersionId, envelope, token),
             cancellationToken);
 
+    private static async Task<IResult> UploadBrandAssetAsync(
+        Guid tenantId, Guid proposalVersionId, HttpContext context, ICurrentIdentity identity,
+        IProposalCommands commands, TimeProvider clock,
+        CancellationToken cancellationToken)
+    {
+        var form = await context.Request.ReadFormAsync(cancellationToken);
+        var file = form.Files.GetFile("document")
+            ?? throw new BadHttpRequestException("A JPEG brand asset is required.");
+        await using var stream = file.OpenReadStream();
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer, cancellationToken);
+        if (!bool.TryParse(form["clientAsset"].ToString(), out var clientAsset))
+            throw new BadHttpRequestException("Choose agency or client branding.");
+        var command = new UploadProposalBrandAssetCommand(
+            proposalVersionId, clientAsset, form["label"].ToString(),
+            form["sourceReference"].ToString(),
+            new ProposalBrandDocument(file.FileName, file.ContentType, buffer.ToArray()));
+        return await CommandEndpointExecutor.ExecuteAsync(
+            tenantId, command, context, identity, clock, requireVersion: false,
+            (envelope, token) => commands.UploadBrandAssetAsync(envelope, token),
+            result => Results.Created(
+                $"/api/v1/tenants/{tenantId}/proposal-brand-assets/{result.Data.Id}",
+                result.Data), cancellationToken);
+    }
+
+    private static Task<IResult> ApproveBrandAssetAsync(
+        Guid tenantId, Guid assetId, ApproveProposalBrandAssetCommand command,
+        HttpContext context, ICurrentIdentity identity, IProposalCommands commands,
+        TimeProvider clock, CancellationToken cancellationToken) =>
+        CommandEndpointExecutor.ExecuteAsync(
+            tenantId, command, context, identity, clock, requireVersion: true,
+            (envelope, token) => commands.ApproveBrandAssetAsync(assetId, envelope, token),
+            result => Results.Ok(result.Data), cancellationToken);
+
+    private static Task<IResult> ConfigureBrandingAsync(
+        Guid tenantId, Guid proposalVersionId, ConfigureProposalBrandingCommand command,
+        HttpContext context, ICurrentIdentity identity, IProposalCommands commands,
+        TimeProvider clock, CancellationToken cancellationToken) => ExecuteAsync(
+            tenantId, command, context, identity, clock, true,
+            (envelope, token) => commands.ConfigureBrandingAsync(
+                proposalVersionId, envelope, token), cancellationToken);
+
+    private static Task<IResult> ApproveUnbrandedAsync(
+        Guid tenantId, Guid proposalVersionId, ApproveUnbrandedProposalCommand command,
+        HttpContext context, ICurrentIdentity identity, IProposalCommands commands,
+        TimeProvider clock, CancellationToken cancellationToken) => ExecuteAsync(
+            tenantId, command, context, identity, clock, true,
+            (envelope, token) => commands.ApproveUnbrandedAsync(
+                proposalVersionId, envelope, token), cancellationToken);
+
     private static Task<IResult> ShareAsync(
         Guid tenantId, Guid proposalVersionId, ShareProposalCommand command,
         HttpContext context, ICurrentIdentity identity, IProposalCommands commands,
@@ -184,6 +255,12 @@ public static class ProposalEndpoints
         Results.Ok(await reader.GetAsync(
             identity.ActorId, new TenantId(tenantId), proposalVersionId, cancellationToken));
 
+    private static async Task<IResult> ListBrandAssetsAsync(
+        Guid tenantId, Guid proposalVersionId, ICurrentIdentity identity,
+        IProposalReader reader, CancellationToken cancellationToken) =>
+        Results.Ok(await reader.ListBrandAssetsAsync(
+            identity.ActorId, new TenantId(tenantId), proposalVersionId, cancellationToken));
+
     private static async Task<IResult> ListApprovedPlansAsync(
         Guid tenantId, Guid briefId, ICurrentIdentity identity,
         IProposalReader reader, CancellationToken cancellationToken) =>
@@ -213,3 +290,9 @@ public static class ProposalEndpoints
             tenantId, command, context, identity, clock,
             requireVersion, execute, cancellationToken);
 }
+
+public sealed record ProposalBrandAssetForm(
+    Guid? ClientAccountId,
+    string Label,
+    string SourceReference,
+    IFormFile Document);

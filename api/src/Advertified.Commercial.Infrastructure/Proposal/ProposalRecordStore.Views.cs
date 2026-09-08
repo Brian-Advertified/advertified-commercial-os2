@@ -19,6 +19,13 @@ public sealed partial class ProposalRecordStore
         var decision = await FindDecisionAsync(tenantId, proposal.Id, cancellationToken);
         var impacts = await ListInventoryImpactsAsync(
             tenantId, proposal.Id, cancellationToken);
+        var agencyAsset = proposal.AgencyBrandAssetId.HasValue
+            ? await FindBrandAssetAsync(tenantId, proposal.AgencyBrandAssetId.Value, cancellationToken)
+            : null;
+        var clientAsset = proposal.ClientBrandAssetId.HasValue
+            ? await FindBrandAssetAsync(tenantId, proposal.ClientBrandAssetId.Value, cancellationToken)
+            : null;
+        var branding = BuildBrandingView(proposal, agencyAsset, clientAsset);
         return new ProposalVersionView(
             proposal.Id, proposal.BriefId, proposal.BriefVersionId, proposal.VersionNumber,
             proposal.Title, proposal.ExecutiveSummary, proposal.Terms, proposal.ExpiryAtUtc,
@@ -36,9 +43,34 @@ public sealed partial class ProposalRecordStore
             proposal.ApprovalAssigneeUserId, proposal.ApprovalRequestedBy,
             proposal.ApprovalRequestedAtUtc, proposal.ApprovalRejectedBy,
             proposal.ApprovalRejectionReason, proposal.ApprovalRejectedAtUtc,
-            proposal.InventoryReviewStatus, impacts,
+            proposal.InventoryReviewStatus, impacts, branding,
             proposal.Version, proposal.CreatedAtUtc);
     }
+
+    internal static ProposalBrandingView BuildBrandingView(
+        ProposalRow proposal,
+        ProposalBrandAssetRow? agencyAsset,
+        ProposalBrandAssetRow? clientAsset)
+    {
+        var status = agencyAsset?.ApprovedAtUtc is not null &&
+            clientAsset?.ApprovedAtUtc is not null
+                ? ProposalBrandingStatuses.Ready
+                : proposal.UnbrandedApprovedAtUtc is not null
+                    ? ProposalBrandingStatuses.UnbrandedApproved
+                    : ProposalBrandingStatuses.Outstanding;
+        return new ProposalBrandingView(
+            status, proposal.AgencyBrandName, proposal.ClientBrandName,
+            proposal.BrandingPrimaryColour, proposal.BrandingSecondaryColour,
+            agencyAsset is null ? null : ToBrandAssetView(agencyAsset),
+            clientAsset is null ? null : ToBrandAssetView(clientAsset),
+            proposal.UnbrandedApprovedBy, proposal.UnbrandedApprovedAtUtc,
+            proposal.UnbrandedApprovalReason);
+    }
+
+    internal static ProposalBrandAssetView ToBrandAssetView(ProposalBrandAssetRow row) => new(
+        row.Id, row.ClientAccountId, row.Label, row.MediaType, row.FileName,
+        row.ContentHash, row.SourceReference, row.UploadedBy, row.ApprovedBy,
+        row.ApprovedAtUtc, row.Version, row.CreatedAtUtc);
 
     private static ProposalOptionView ToOptionView(ProposalOptionRow row)
     {

@@ -10,7 +10,7 @@ export interface ChannelDefinition {
 
 export const channels: readonly ChannelDefinition[] = [
   {
-    slug: 'ooh', name: 'Out-of-home and digital screens', shortName: 'Out of home',
+    slug: 'ooh', name: 'Outdoor advertising and digital screens', shortName: 'Outdoor advertising',
     eyebrow: 'Be seen where the market moves',
     introduction: 'Build visible presence around the places your audience lives, travels, shops and works—with each location chosen for a clear campaign role.',
     roles: ['Own priority locations', 'Reach people close to retail or commuter moments', 'Create high-impact launch visibility'],

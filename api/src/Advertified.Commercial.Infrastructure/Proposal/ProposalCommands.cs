@@ -7,6 +7,7 @@ using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Advertified.Commercial.Infrastructure.Planning;
 using Advertified.Commercial.Infrastructure.EmailAutomation;
+using Advertified.Commercial.Application.Inventory;
 using Microsoft.Extensions.Options;
 
 namespace Advertified.Commercial.Infrastructure.Proposal;
@@ -19,6 +20,7 @@ public sealed partial class ProposalCommands(
     IProposalNarrativeClient narrativeClient,
     ProposalInventoryReadiness inventoryReadiness,
     DurableProposalEmailDelivery emailDelivery,
+    IInventoryMalwareScanner malwareScanner,
     IOptions<EmailAutomationOptions> emailOptions,
     ProposalPolicy proposalPolicy,
     TimeProvider timeProvider) : IProposalCommands
@@ -55,6 +57,35 @@ public sealed partial class ProposalCommands(
         CancellationToken cancellationToken) => DispatchAsync(
             envelope, MasterDataReferences.Permissions.ProposalApprove,
             token => RejectApprovalOutcomeAsync(
+                proposalVersionId, envelope, token), cancellationToken);
+
+    public Task<CommandResult<ProposalBrandAssetView>> UploadBrandAssetAsync(
+        CommandEnvelope<UploadProposalBrandAssetCommand> envelope,
+        CancellationToken cancellationToken) => DispatchBrandAssetAsync(
+            envelope, MasterDataReferences.Permissions.ProposalEdit,
+            token => UploadBrandAssetOutcomeAsync(envelope, token), cancellationToken);
+
+    public Task<CommandResult<ProposalBrandAssetView>> ApproveBrandAssetAsync(
+        Guid assetId,
+        CommandEnvelope<ApproveProposalBrandAssetCommand> envelope,
+        CancellationToken cancellationToken) => DispatchBrandAssetAsync(
+            envelope, MasterDataReferences.Permissions.ProposalApprove,
+            token => ApproveBrandAssetOutcomeAsync(assetId, envelope, token), cancellationToken);
+
+    public Task<CommandResult<ProposalVersionView>> ConfigureBrandingAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<ConfigureProposalBrandingCommand> envelope,
+        CancellationToken cancellationToken) => DispatchAsync(
+            envelope, MasterDataReferences.Permissions.ProposalEdit,
+            token => ConfigureBrandingOutcomeAsync(
+                proposalVersionId, envelope, token), cancellationToken);
+
+    public Task<CommandResult<ProposalVersionView>> ApproveUnbrandedAsync(
+        Guid proposalVersionId,
+        CommandEnvelope<ApproveUnbrandedProposalCommand> envelope,
+        CancellationToken cancellationToken) => DispatchAsync(
+            envelope, MasterDataReferences.Permissions.ProposalApprove,
+            token => ApproveUnbrandedOutcomeAsync(
                 proposalVersionId, envelope, token), cancellationToken);
 
     public Task<CommandResult<ProposalVersionView>> RenderAsync(
@@ -111,5 +142,17 @@ public sealed partial class ProposalCommands(
         var receipt = await dispatcher.DispatchAsync(
             envelope, permission, execute, cancellationToken);
         return CommandOutcomeFactory.ToResult<ProposalVersionView>(receipt);
+    }
+
+    private async Task<CommandResult<ProposalBrandAssetView>> DispatchBrandAssetAsync<TCommand>(
+        CommandEnvelope<TCommand> envelope,
+        PermissionCode permission,
+        Func<CancellationToken, Task<CommandOutcome>> execute,
+        CancellationToken cancellationToken)
+        where TCommand : notnull
+    {
+        var receipt = await dispatcher.DispatchAsync(
+            envelope, permission, execute, cancellationToken);
+        return CommandOutcomeFactory.ToResult<ProposalBrandAssetView>(receipt);
     }
 }

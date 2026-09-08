@@ -8,15 +8,21 @@ from typing import TypeVar
 from pydantic import BaseModel, ValidationError
 
 from bedrock_failure import BedrockProviderError
+from bedrock_artifact_output import artifact_schema, wrap_artifact_output
 from bedrock_enrichment_output import (
     enrichment_schema,
     wrap_enrichment_output,
 )
 from bedrock_schema import source_bound_schema
+from bedrock_supplied_brief_output import (
+    supplied_brief_schema,
+    wrap_supplied_brief_output,
+)
 from bedrock_transcription_output import (
     transcription_schema,
     wrap_transcription_output,
 )
+from supplied_brief_contracts import SuppliedBriefArtifact, SuppliedBriefRequest
 from contracts import (
     AgentInvocationEnvelope,
     AgentOutputEnvelope,
@@ -36,14 +42,13 @@ def output_schema(
     transcription: bool,
 ) -> str:
     schema = (
-        transcription_schema()
+        supplied_brief_schema()
+        if isinstance(request, SuppliedBriefRequest)
+        else transcription_schema()
         if transcription
         else enrichment_schema()
         if semantic
-        else json.dumps(
-            generated_type.model_json_schema(),
-            separators=(",", ":"),
-        )
+        else artifact_schema(artifact_type)
     )
     return source_bound_schema(schema, request)
 
@@ -54,9 +59,10 @@ def decode_generated_output(
     generated_type,
     semantic: bool,
     transcription: bool,
-    invocation: AgentInvocationEnvelope,
+    request: BaseModel,
     usage: ProviderUsage,
 ):
+    invocation = request.invocation  # type: ignore[attr-defined]
     payload = _decode_payload(response, usage)
     generated = _validate_typed_output(
         payload,
@@ -64,6 +70,7 @@ def decode_generated_output(
         generated_type,
         semantic,
         transcription,
+        request,
         usage,
     )
     try:
@@ -100,21 +107,34 @@ def _validate_typed_output(
     generated_type,
     semantic: bool,
     transcription: bool,
+    request: BaseModel,
     usage: ProviderUsage,
 ):
     try:
+        if artifact_type is SuppliedBriefArtifact:
+            return wrap_supplied_brief_output(artifact_type, payload)
         if transcription:
             return wrap_transcription_output(artifact_type, payload)
         return (
             wrap_enrichment_output(artifact_type, payload)
             if semantic
-            else generated_type.model_validate_json(
-                json.dumps(payload, separators=(",", ":")),
+            else wrap_artifact_output(
+                artifact_type,
+                payload,
+                request,
             )
         )
     except ValidationError as error:
+        details = "; ".join(
+            ".".join(str(part) for part in item["loc"]) + ":" + item["type"]
+            for item in error.errors(
+                include_input=False,
+                include_context=False,
+            )[:12]
+        )
         raise BedrockProviderError(
-            "Bedrock output failed the typed contract.",
+            "Bedrock output failed the typed contract"
+            + (f" ({details})." if details else "."),
             stage="TYPED_CONTRACT",
             acceptance="ACCEPTED",
             usage=usage,

@@ -3,11 +3,12 @@ import { Icon } from '../components/Icon'
 import { masterDataCodes, masterDataDefinitions } from '../generated/master-data-codes'
 import { formatDate, formatDateTime, formatMoney, humanizeCode } from '../presentation/format'
 import { ResponseForm } from './MarketplaceForms'
+import { mediaLabel } from '../presentation/media-labels'
 import type { ResponseValues } from './useMarketplaceWorkspace'
 
 type ListingsProps = {
-  listings: MarketplaceListing[]; tenantId: string; canBuy: boolean; canSupply: boolean
-  selectedId: string | null; request: (listing: MarketplaceListing) => void
+  listings: MarketplaceListing[]; tenantId: string; canSupply: boolean
+  selectedId: string | null; open: (listing: MarketplaceListing) => void
   archive: (listing: MarketplaceListing) => void
 }
 
@@ -24,16 +25,16 @@ export function MarketplaceListings(props: ListingsProps) {
         <th className="marketplace-secondary-column">Geography</th><th>Current rate</th>
         <th>Availability</th><th><span className="sr-only">Action</span></th></tr></thead>
       <tbody>{visible.map(listing => <ListingRow key={listing.id} listing={listing}
-        tenantId={props.tenantId} canBuy={props.canBuy} canSupply={props.canSupply}
-        selected={listing.id === props.selectedId} request={props.request}
+        tenantId={props.tenantId} canSupply={props.canSupply}
+        selected={listing.id === props.selectedId} open={props.open}
         archive={props.archive} />)}</tbody>
     </table></div>
   </section>
 }
 
-function ListingRow({ listing, tenantId, canBuy, canSupply, selected, request, archive }: {
-  listing: MarketplaceListing; tenantId: string; canBuy: boolean; canSupply: boolean
-  selected: boolean; request: (listing: MarketplaceListing) => void
+function ListingRow({ listing, tenantId, canSupply, selected, open, archive }: {
+  listing: MarketplaceListing; tenantId: string; canSupply: boolean
+  selected: boolean; open: (listing: MarketplaceListing) => void
   archive: (listing: MarketplaceListing) => void
 }) {
   const version = listing.currentVersion
@@ -49,11 +50,44 @@ function ListingRow({ listing, tenantId, canBuy, canSupply, selected, request, a
       <small>{humanizeCode(version.rateType, true)}</small></td>
     <td><span className="marketplace-availability">{masterLabel(
       masterDataDefinitions.availabilityStatuses, version.availability)}</span></td>
-    <td className="marketplace-row-action">{canBuy && !owned && <button className="text-action"
-      type="button" onClick={() => request(listing)}>Request availability</button>}
+    <td className="marketplace-row-action"><button className="text-action"
+      type="button" onClick={() => open(listing)}>View details</button>
       {canSupply && owned && <button className="text-action" type="button"
         onClick={() => archive(listing)}>Archive listing</button>}</td>
   </tr>
+}
+
+export function MarketplaceListingInspector({ listing, tenantId, canBuy, close, request }: {
+  listing: MarketplaceListing; tenantId: string; canBuy: boolean
+  close: () => void; request: (listing: MarketplaceListing) => void
+}) {
+  const version = listing.currentVersion
+  if (!version) return null
+  const canRequest = canBuy && listing.supplierTenantId !== tenantId
+  return <aside className="marketplace-inspector" aria-labelledby="marketplace-listing-title">
+    <header><div><p className="eyebrow">Published listing</p>
+      <h2 id="marketplace-listing-title">{version.productName}</h2>
+      <p>{version.supplierName}</p></div>
+      <button className="text-action" type="button" onClick={close}>Close</button></header>
+    <dl className="marketplace-inspector-facts">
+      <Fact label="Channel" value={masterLabel(masterDataDefinitions.channels, version.channel)} />
+      <Fact label="Format" value={humanizeCode(version.productType, true)} />
+      <Fact label="Geography" value={version.geography} />
+      <Fact label="Current rate" value={formatMoney(version.amountMinor, version.currency)} />
+      <Fact label="Rate basis" value={humanizeCode(version.rateType, true)} />
+      <Fact label="Availability" value={masterLabel(
+        masterDataDefinitions.availabilityStatuses, version.availability)} />
+      <Fact label="Availability valid until" value={version.availabilityValidUntilUtc
+        ? formatDateTime(version.availabilityValidUntilUtc) : 'No expiry supplied'} />
+      <Fact label="Published" value={formatDateTime(version.publishedAtUtc)} />
+    </dl>
+    <section className="marketplace-response"><strong>Published terms</strong>
+      <p>{version.terms}</p></section>
+    <footer className="marketplace-inspector-actions"><p><Icon name="shield" />This is the exact
+      current published version. A request creates a separate reviewed exchange.</p>
+      {canRequest && <div><button className="primary-button" type="button"
+        onClick={() => request(listing)}>Request availability</button></div>}</footer>
+  </aside>
 }
 
 type RequestsProps = {
@@ -182,7 +216,7 @@ function Fact({ label, value }: { label: string; value: string }) {
 }
 
 function masterLabel(items: ReadonlyArray<{ code: string; displayLabel: string }>, code: string) {
-  return items.find(item => item.code === code)?.displayLabel ?? humanizeCode(code, true)
+  return mediaLabel(code) ?? items.find(item => item.code === code)?.displayLabel ?? humanizeCode(code, true)
 }
 
 function rfqStatusLabel(code: string) {

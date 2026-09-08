@@ -1,0 +1,15 @@
+export const placeCopy = {
+  title: 'Find placements near a place',
+  introduction: 'Add a specific shop, branch or landmark and the distance around it. Planning checks inventory against this area.',
+  limitation: 'Place-name lookup is not connected yet. Supply coordinates from a location source you can verify; a shop name alone cannot establish its location.',
+  name: 'Place or branch name',
+  nameHint: 'For example, the exact Clicks or Dis-Chem branch',
+  latitude: 'Latitude',
+  longitude: 'Longitude',
+  radius: 'Distance around this place (metres)',
+  source: 'Location source or reference',
+  sourceHint: 'Source link or reference identifying this exact branch',
+  add: 'Add place for review',
+  added: 'Place added. Verify its position and source in the geography requirements below.',
+  invalid: 'Supply a place name, source reference, valid latitude and longitude, and a distance greater than zero.',
+}

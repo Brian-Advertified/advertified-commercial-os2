@@ -50,9 +50,9 @@ function OohInboxContent({ inbox }: { inbox: InboxState }) {
   return <section className="ooh-inbox-page" aria-labelledby="ooh-inbox-title">
     <header className="ooh-inbox-hero"><div><p className="eyebrow eyebrow-light">Email to proposal</p>
       <h1 id="ooh-inbox-title">Proposal inbox</h1>
-      <p>When this tenant opts in, complete OOH requests can move through Brief interpretation, STP, media planning, verified inventory, proposal approval and PDF delivery to addresses that pass provider and mailbox checks. Anything unclear or unsafe is held for review.</p></div>
+      <p>When this tenant opts in, complete outdoor advertising requests can move through Brief interpretation, STP, media planning, verified inventory, proposal approval and PDF delivery to addresses that pass provider and mailbox checks. Anything unclear or unsafe is held for review.</p></div>
       <div className="ooh-hero-lock"><strong>One campaign flow</strong>
-        <span>OOH follows the same stages as a full campaign. This inbox only permits OOH and DOOH media, and that choice cannot be widened later.</span></div></header>
+        <span>Outdoor advertising follows the same stages as a full campaign. This inbox only permits outdoor advertising and digital screens, and that choice cannot be widened later.</span></div></header>
     {inbox.error && <p className="inline-alert" role="alert">{inbox.error}</p>}
     {!inbox.mailbox || inbox.editing
       ? <MailboxSetupForm key={inbox.mailbox?.version ?? 'new'}

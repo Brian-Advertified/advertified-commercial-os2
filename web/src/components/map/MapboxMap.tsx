@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import mapboxgl, { type GeoJSONSource, type GeoJSONSourceSpecification } from 'mapbox-gl'
+import mapboxgl, { type ExpressionSpecification, type GeoJSONSource, type GeoJSONSourceSpecification } from 'mapbox-gl'
+import { masterDataCodes } from '../../generated/master-data-codes'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import './mapbox-map.css'
 import { validateGeometry } from './geojson'
@@ -8,6 +9,10 @@ type Position = [number, number]
 type GeoJsonObject = Record<string, unknown>
 type MapGeoJsonData = Exclude<GeoJSONSourceSpecification['data'], string>
 type MapStatus = 'loading' | 'ready' | 'token-missing' | 'failed'
+const spatialColor: ExpressionSpecification = ['case',
+  ['!=', ['get', 'verified'], true], '#b7791f',
+  ['==', ['get', 'priority'], masterDataCodes.spatialRequirementPriorities.excluded], '#b42318',
+  '#6038f5']
 
 export type MapFeature = {
   id?: string
@@ -25,6 +30,9 @@ export function MapboxMap({ features, ariaLabel = 'Campaign geography map' }: {
   const { containerRef, status } = useAdvertifiedMap(token, data)
   return <section className="advertified-map" aria-label={ariaLabel}>
     <div className="advertified-map-canvas" ref={containerRef} />
+    {status === 'ready' && <div className="advertified-map-legend">
+      <span>Amber: needs verification</span><span>Purple: verified area</span>
+      <span>Red: verified exclusion</span></div>}
     {status === 'loading' && <MapMessage>Loading campaign map…</MapMessage>}
     {status === 'token-missing' && <MapMessage>
       Map preview is unavailable. You can continue using the geography fields.
@@ -50,15 +58,18 @@ function useAdvertifiedMap(token: string, data: MapGeoJsonData) {
 
   useEffect(() => {
     if (!token || !containerRef.current) return
+    let active = true
+    const updateStatus = (next: MapStatus) => { if (active) setStatus(next) }
     let map: mapboxgl.Map
     try {
-      map = createMap(containerRef.current, token, () => dataRef.current, setStatus)
+      map = createMap(containerRef.current, token, () => dataRef.current, updateStatus)
     } catch {
-      setStatus('failed')
-      return
+      queueMicrotask(() => updateStatus('failed'))
+      return () => { active = false }
     }
     mapRef.current = map
     return () => {
+      active = false
       map.remove()
       mapRef.current = null
     }
@@ -108,12 +119,14 @@ function MapMessage({ children }: { children: ReactNode }) {
 
 function featureCollection(features: MapFeature[]) {
   const budget = { remainingPoints: 20_000 }
-  const validFeatures = features.slice(0, 100).flatMap((feature, index) => {
+  // A Brief admits 100 requirements; each point-radius contributes a point and an overlay.
+  const validFeatures = features.slice(0, 200).flatMap((feature, index) => {
     const geometry = validateGeometry(feature.geometry, budget)
     return geometry ? [{
       type: 'Feature' as const,
       id: feature.id ?? `spatial-${index}`,
-      properties: { label: feature.label ?? '' },
+      properties: { label: feature.label ?? '', verified: feature.properties?.verified === true,
+        priority: feature.properties?.priority ?? null },
       geometry,
     }] : []
   })
@@ -130,18 +143,18 @@ function ensureSpatialLayers(map: mapboxgl.Map, data: MapGeoJsonData) {
   addLayer(map, 'advertified-spatial-fill', {
     id: 'advertified-spatial-fill', type: 'fill', source: 'advertified-spatial',
     filter: ['==', ['geometry-type'], 'Polygon'],
-    paint: { 'fill-color': '#6038f5', 'fill-opacity': 0.14 },
+    paint: { 'fill-color': spatialColor, 'fill-opacity': 0.14 },
   })
   addLayer(map, 'advertified-spatial-line', {
     id: 'advertified-spatial-line', type: 'line', source: 'advertified-spatial',
     filter: ['in', ['geometry-type'], ['literal', ['LineString', 'Polygon']]],
-    paint: { 'line-color': '#6038f5', 'line-width': 3 },
+    paint: { 'line-color': spatialColor, 'line-width': 3 },
   })
   addLayer(map, 'advertified-spatial-point', {
     id: 'advertified-spatial-point', type: 'circle', source: 'advertified-spatial',
     filter: ['==', ['geometry-type'], 'Point'],
     paint: {
-      'circle-radius': 7, 'circle-color': '#6038f5',
+      'circle-radius': 7, 'circle-color': spatialColor,
       'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2,
     },
   })

@@ -1,10 +1,19 @@
 import asyncio
+import json
 from copy import deepcopy
 
 import httpx
 import pytest
 
+from bedrock_artifact_output import artifact_schema, wrap_artifact_output
 from main import DETERMINISTIC_MODE, RUNTIME_MODE_KEY, SERVICE_KEY, app
+from planning_contracts import (
+    AudienceAgentRequest,
+    AudienceDefinitionSetArtifact,
+    MediaMixDraftArtifact,
+    MediaPlanningAgentRequest,
+)
+from planning_service import canonicalize_audiences, propose_audiences
 
 SERVICE_SECRET = "planning-test-service-key"
 BRIEF_ID = "66666666-6666-6666-6666-666666666666"
@@ -93,7 +102,9 @@ def test_audience_proposal_is_evidence_bound_without_sensitive_inference(
 
     assert response.status_code == 200, response.text
     output = response.json()
-    audience = output["artifact"]["audiences"][0]
+    audiences = output["artifact"]["audiences"]
+    audience = audiences[0]
+    assert [item["name"] for item in audiences] == planning()["audiences"]
     assert audience["classification"] == "INFERENCE"
     assert audience["evidence_item_ids"] == [EVIDENCE_ID]
     assert audience["language"] is None
@@ -101,6 +112,34 @@ def test_audience_proposal_is_evidence_bound_without_sensitive_inference(
     assert audience["lsm_sem"] is None
     assert output["usage"]["incremental_cost_minor"] == 0
     assert output["usage"]["tool_calls"] == 0
+
+
+@pytest.mark.parametrize("names", [
+    ["Stay-at-home mothers"],
+    ["Affluent consumers"],
+    ["Parents", "Caregivers", "Teachers", "Parents"],
+    [f"Supplied audience {index}" for index in range(8)],
+])
+def test_fallback_preserves_supplied_audiences_without_fabricated_discovery(names) -> None:
+    body = payload("audience")
+    body["planning"]["audiences"] = names
+    request = AudienceAgentRequest.model_validate_json(json.dumps(body))
+
+    output = canonicalize_audiences(request, propose_audiences(request))
+
+    assert [item.name for item in output.artifact.audiences] == list(dict.fromkeys(names))
+    assert all(item.language is None and item.life_stage is None
+               and item.lsm_sem is None for item in output.artifact.audiences)
+    assert all("intent are not supplied" in item.buying_context
+               for item in output.artifact.audiences)
+    assert all(item.need_state != request.planning.objective
+               for item in output.artifact.audiences)
+    assert {item.field_path for item in output.unknowns} == {
+        "artifact.audiences.buying_context",
+        "artifact.audiences.media_evidence",
+        "artifact.audiences.structured_evidence",
+    }
+    assert canonicalize_audiences(request, output).unknowns == output.unknowns
 
 
 def test_media_mix_uses_allowed_channels_and_exact_budget(
@@ -114,6 +153,108 @@ def test_media_mix_uses_allowed_channels_and_exact_budget(
     assert {item["channel"] for item in allocations} <= {"RADIO", "OOH", "DIGITAL"}
     assert len({item["channel"] for item in allocations}) == len(allocations)
     assert sum(item["budget_minor"] for item in allocations) == 10_000_01
+
+
+def test_bedrock_media_mix_reconciles_provider_weights_to_exact_budget() -> None:
+    request = MediaPlanningAgentRequest.model_validate_json(
+        json.dumps(payload("media_planning"))
+    )
+    provider_artifact = {
+        "allocations": [
+            {"channel": "DIGITAL", "budget_minor": 400_000,
+             "role": "Primary response channel"},
+            {"channel": "OOH", "budget_minor": 200_000,
+             "role": "Physical awareness"},
+            {"channel": "RADIO", "budget_minor": 299_999,
+             "role": "Broad frequency"},
+        ],
+        "assumptions": ["Human review required."],
+    }
+
+    output = wrap_artifact_output(
+        MediaMixDraftArtifact,
+        provider_artifact,
+        request,
+    )
+
+    allocations = output.artifact.allocations
+    assert sum(item.budget_minor for item in allocations) == 10_000_01
+    assert all(item.budget_minor > 0 for item in allocations)
+    assert [item.channel for item in allocations] == [
+        "DIGITAL", "OOH", "RADIO",
+    ]
+
+
+def test_bedrock_audience_boundary_accepts_only_artifact_and_adds_evidence_binding() -> None:
+    request = AudienceAgentRequest.model_validate_json(
+        json.dumps(payload("audience"))
+    )
+    deterministic = propose_audiences(request)
+    schema = json.loads(artifact_schema(AudienceDefinitionSetArtifact))
+
+    assert "audiences" in schema["properties"]
+    assert "artifact" not in schema["properties"]
+
+    provider_artifact = deterministic.artifact.model_dump(mode="json")
+    provider_artifact["audiences"][0].update({
+        "classification": "Primary Audience",
+        "geographies": ["Mars"],
+        "language": "Invented",
+        "evidence_item_ids": [],
+        "is_target": False,
+    })
+    output = wrap_artifact_output(
+        AudienceDefinitionSetArtifact,
+        provider_artifact,
+        request,
+    )
+
+    audience = output.artifact.audiences[0]
+    assert audience.classification == "INFERENCE"
+    assert audience.geographies == request.planning.geographies
+    assert audience.language is None
+    assert audience.evidence_item_ids == (
+        request.invocation.approved_evidence_item_ids
+    )
+    assert audience.is_target is False
+    assert output.status == "COMPLETED"
+    assert output.evidence_bindings[0].field_path == "artifact.audiences"
+    assert output.evidence_bindings[0].evidence_item_ids == (
+        request.invocation.approved_evidence_item_ids
+    )
+
+
+def test_audience_canonicalizer_removes_unsupported_structured_facts() -> None:
+    request = AudienceAgentRequest.model_validate_json(
+        json.dumps(payload("audience"))
+    )
+    provider_output = propose_audiences(request)
+    audience = provider_output.artifact.audiences[0].model_copy(update={
+        "geographies": ("Mars",),
+        "language": "Invented",
+        "life_stage": "Invented",
+        "lsm_sem": "10",
+        "lsm_sem_taxonomy": None,
+        "classification": "FACT",
+        "evidence_item_ids": (),
+        "is_target": False,
+    })
+    provider_output = provider_output.model_copy(update={
+        "artifact": provider_output.artifact.model_copy(update={
+            "audiences": (audience,),
+        }),
+    })
+
+    output = canonicalize_audiences(request, provider_output)
+    repaired = output.artifact.audiences[0]
+
+    assert repaired.geographies == request.planning.geographies
+    assert repaired.language is None
+    assert repaired.life_stage is None
+    assert repaired.lsm_sem is None
+    assert repaired.classification == "INFERENCE"
+    assert repaired.evidence_item_ids == request.invocation.approved_evidence_item_ids
+    assert repaired.is_target is False
 
 
 def test_planning_contract_rejects_route_mismatch_and_unknown_fields(

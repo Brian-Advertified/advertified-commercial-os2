@@ -10,12 +10,13 @@ from typing import Any
 from inventory_ai_cost_ledger import query_json
 
 AI_TABLE_TOKENS = (
-    "agent", "semantic", "inference", "ai_run", "model_run",
+    "agent", "semantic", "inference", "ai_run", "ai_usage", "model_run",
     "runtime", "execution",
 )
 ACTUAL_COST_KEYS = (
     "actualcostusdmicros", "costusdmicros", "actualcostmicros",
-    "actualcostminor", "costminor",
+    "incrementalcostusdmicros", "actualcostminor", "incrementalcostminor",
+    "costminor",
 )
 COMMITTED_COST_KEYS = (
     "committedcostusdmicros", "maximumcostusdmicros",
@@ -107,7 +108,7 @@ def delta(
                 prior.committed_usd_micros if prior else 0
             ),
         )
-        if not actual_delta and not committed_delta and prior:
+        if not actual_delta and not committed_delta:
             continue
         actual += actual_delta
         committed += committed_delta
@@ -165,7 +166,7 @@ def normalize_row(
         ) or table),
         model_id=text(first(
             normalized,
-            "modelid", "providermodel", "model",
+            "modelid", "modelcode", "providermodel", "model",
         )),
         actual_usd_micros=actual,
         committed_usd_micros=max(actual, committed),

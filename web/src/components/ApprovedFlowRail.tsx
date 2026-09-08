@@ -6,7 +6,7 @@ type Step = { label: string; icon: IconName }
 
 const campaignSteps: readonly Step[] = [
   { label: 'Brief', icon: 'brief' },
-  { label: 'Strategy & STP', icon: 'target' },
+  { label: 'Audience Strategy', icon: 'target' },
   { label: 'Media Plan', icon: 'plan' },
   { label: 'Proposal', icon: 'proposal' },
   { label: 'Client Decision', icon: 'shield' },
@@ -51,8 +51,8 @@ export function ApprovedFlowRail({ pathname, campaignFlow }: {
 function campaignPresentation(flow: CampaignFlowResolution) {
   if (flow.status === 'resolved' &&
       flow.mode === masterDataCodes.campaignModes.oohOnly) {
-    return { title: 'OOH-only Campaign Flow',
-      subtitle: 'OOH and DOOH only · One governed campaign lifecycle',
+    return { title: 'Outdoor advertising campaign',
+      subtitle: 'Outdoor advertising and digital screens only · One governed campaign lifecycle',
       tone: 'green' as const, mode: flow.mode }
   }
   if (flow.status === 'resolved' &&

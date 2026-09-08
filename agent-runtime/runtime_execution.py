@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Callable
 
 from fastapi import HTTPException
 from pydantic import BaseModel, ValidationError
 
 from agent_registry import AgentCode
+from audience_candidates import DISCOVERY_INSTRUCTION
 from bedrock_provider import (
     BEDROCK_MODE,
     BedrockProviderError,
@@ -17,6 +19,7 @@ from bedrock_provider import (
 from creative_contracts import CreativeAgentRequest, CreativeConceptSetArtifact
 from creative_service import generate_creative_concepts
 from inventory_processing_control import ensure_inventory_processing
+from inventory_strategy import INTERPRETATION_INSTRUCTION
 from inventory_semantic_contracts import (
     InventorySemanticAgentRequest,
     InventorySemanticExtractionArtifact,
@@ -38,6 +41,7 @@ from measurement_contracts import (
     MeasurementInterpretationArtifact,
 )
 from measurement_service import interpret_measurement
+from media_presentation import CLIENT_WORDING_INSTRUCTION
 from opportunity_contracts import (
     BriefDraftArtifact,
     BusinessInterpretationArtifact,
@@ -56,6 +60,7 @@ from planning_contracts import (
     MediaPlanningAgentRequest,
 )
 from planning_service import (
+    canonicalize_audiences,
     interpret_inventory,
     propose_audiences,
     propose_media_mix,
@@ -68,9 +73,12 @@ from proposal_service import propose_narrative
 from supplied_brief_contracts import OPERATION as SUPPLIED_BRIEF, SuppliedBriefRequest, SuppliedBriefArtifact
 from supplied_brief_model_input import build_model_input as build_brief_model_input
 from supplied_brief_service import (
-    INSTRUCTION as SUPPLIED_BRIEF_INSTRUCTION, unavailable_fixture,
-    validate_source as validate_brief_source, validate_grounding as validate_brief_grounding,
+    INSTRUCTION as SUPPLIED_BRIEF_INSTRUCTION, canonicalize_grounding as canonicalize_brief_grounding,
+    unavailable_fixture, validate_source as validate_brief_source,
+    validate_grounding as validate_brief_grounding,
 )
+
+logger = logging.getLogger(__name__)
 
 DETERMINISTIC_MODE = "deterministic"
 
@@ -97,8 +105,10 @@ ENRICHMENT_INSTRUCTION = (
     "DERIVED_POLICY. For channel and product_type, normalized_value must be one "
     "exact code from governed_codes. For description, raw_value must be a "
     "verbatim source excerpt and normalized_value may be concise searchable copy "
-    "that does not add facts. Streaming and YouTube inventory may classify as "
-    "DIGITAL when the source supports it. Never infer FLAT_RATE or any rate_type. "
+    "that does not add facts. YouTube inventory classifies as SOCIAL and "
+    "SOCIAL_PLACEMENT; Google Search and Display inventory classify as DIGITAL "
+    "and DIGITAL_PLACEMENT when the source supports it. Never infer FLAT_RATE "
+    "or any rate_type. "
     "Never add dates. Omit a field when evidence is insufficient. Account for "
     "every attached image by citing it or listing its locator in "
     "omitted_source_locators. Return only the requested artifact; deterministic "
@@ -133,19 +143,14 @@ INSTRUCTIONS: dict[AgentCode, str] = {
         "Draft the canonical campaign brief proposal without inventing missing "
         "facts."
     ),
-    AgentCode.AUDIENCE: (
-        "Propose evidence-labelled audience definitions and positioning."
-    ),
+    AgentCode.AUDIENCE: DISCOVERY_INSTRUCTION,
     AgentCode.MEDIA_PLANNING: (
         "Propose a budget-reconciled media mix using only the allowed channels."
     ),
-    AgentCode.INVENTORY_INTELLIGENCE: (
-        "Explain supplied deterministic inventory eligibility and benchmark "
-        "facts without changing them."
-    ),
+    AgentCode.INVENTORY_INTELLIGENCE: INTERPRETATION_INSTRUCTION,
     AgentCode.PROPOSAL_NARRATIVE: (
         "Draft proposal wording that preserves every supplied commercial fact "
-        "exactly."
+        "exactly. " + CLIENT_WORDING_INSTRUCTION
     ),
     AgentCode.CREATIVE: (
         "Propose creative territories using only rights-cleared assets and "
@@ -207,6 +212,8 @@ def _grounded_bedrock_output(agent_code, request, artifact_type, instruction):
         model_input = (
             build_brief_model_input(request)
             if isinstance(request, SuppliedBriefRequest)
+            else _inventory_model_input(request)
+            if isinstance(request, InventoryIntelligenceAgentRequest)
             else None
         )
         output = generate_with_bedrock(
@@ -216,6 +223,10 @@ def _grounded_bedrock_output(agent_code, request, artifact_type, instruction):
             instruction,
             model_input=model_input,
         )
+        if isinstance(request, SuppliedBriefRequest):
+            output = canonicalize_brief_grounding(request, output)
+        elif isinstance(request, AudienceAgentRequest):
+            output = canonicalize_audiences(request, output)
         try:
             _validate_operation_output(request, output)
         except ValueError as error:
@@ -230,11 +241,63 @@ def _grounded_bedrock_output(agent_code, request, artifact_type, instruction):
                 ),
             ) from error
     except BedrockProviderError as error:
+        logger.warning(
+            "Bedrock provider rejected output: stage=%s acceptance=%s message=%s",
+            error.stage,
+            error.acceptance,
+            str(error),
+        )
         raise HTTPException(
             status_code=503,
             detail=error.detail(),
         ) from error
     return output
+
+
+def _inventory_model_input(request: InventoryIntelligenceAgentRequest) -> dict:
+    return {
+        "inventory": {
+            "brief_version_id": str(request.inventory.brief_version_id),
+            "shortlist_version_id": str(request.inventory.shortlist_version_id),
+            "strategy": request.inventory.strategy.model_dump(mode="json")
+            if request.inventory.strategy else None,
+            "candidates": [
+                _compact_inventory_candidate(candidate)
+                for candidate in request.inventory.candidates
+            ],
+        },
+    }
+
+
+def _compact_inventory_candidate(candidate) -> dict:
+    raw = candidate.model_dump(mode="json")
+    benchmark = raw["benchmark"]
+    return {
+        "candidate_id": raw["candidate_id"],
+        "name": raw["name"],
+        "channel": raw["channel"],
+        "geography": raw["geography"],
+        "rate_amount_minor": raw["rate_amount_minor"],
+        "currency": raw["currency"],
+        "is_eligible": raw["is_eligible"],
+        "rejection_reason": raw["rejection_reason"],
+        "rejection_detail": raw["rejection_detail"],
+        "score": raw["score"],
+        "suitability_total": raw["suitability"]["total"],
+        "suitability": raw["suitability"],
+        "audience_fit": raw["audience_fit"],
+        "benchmark": None if benchmark is None else {
+            key: benchmark[key]
+            for key in (
+                "geography_basis",
+                "cohort_size",
+                "median_minor",
+                "percentile",
+                "position",
+                "confidence",
+            )
+        },
+    }
 
 
 def implemented_agents() -> set[AgentCode]:
@@ -284,10 +347,7 @@ def _inventory_contract_types(body: bytes):
     return InventoryIntelligenceAgentRequest, InventoryShortlistDraftArtifact, interpret_inventory
 
 
-def _validate_operation_output(
-    request: BaseModel,
-    output: BaseModel,
-) -> None:
+def _validate_operation_output(request: BaseModel, output: BaseModel) -> None:
     if isinstance(request, InventorySemanticAgentRequest):
         validate_semantic_grounding(
             request,
@@ -311,12 +371,18 @@ def _validate(model_type, body: bytes):
     try:
         return model_type.model_validate_json(body)
     except ValidationError as error:
+        details = error.errors(
+            include_input=False,
+            include_context=False,
+        )
+        safe_locations = "; ".join(
+            ".".join(str(part) for part in item["loc"]) + ":" + item["type"]
+            for item in details[:20]
+        )
+        logger.warning("Agent request failed typed validation: %s", safe_locations)
         raise HTTPException(
             status_code=422,
-            detail=error.errors(
-                include_input=False,
-                include_context=False,
-            ),
+            detail=details,
         ) from error
 
 

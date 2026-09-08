@@ -3,6 +3,7 @@ using System.Net;
 using System.Text.Json;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Application.Proposal;
+using Advertified.Commercial.Application.Measurement;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.MasterData;
@@ -83,6 +84,8 @@ public sealed partial class MarketplaceAcceptanceTests
                 services.AddScoped<IProposalNarrativeClient>(_ =>
                     new ProposalNarrativeFixture(
                         ProposalPolicy.Load()));
+                services.RemoveAll<IMeasurementAgentClient>();
+                services.AddScoped<IMeasurementAgentClient, MeasurementAgentFixture>();
             });
         });
 

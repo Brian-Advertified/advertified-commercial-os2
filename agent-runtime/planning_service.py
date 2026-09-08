@@ -15,6 +15,8 @@ from contracts import (
     SuggestedNextAction,
     UnknownItem,
 )
+from audience_candidates import audience_research_unknowns, candidate_audience_names
+from inventory_strategy import strategy_unknowns
 from master_data_codes import EvidenceClassifications
 from planning_contracts import (
     AudienceAgentRequest,
@@ -31,6 +33,40 @@ from planning_contracts import (
 )
 
 
+def canonicalize_audiences(request: AudienceAgentRequest, output):
+    """Enforce approved audience facts while retaining provider-authored wording."""
+    artifact = output.artifact
+    if artifact is None:
+        return output
+    approved = request.invocation.approved_evidence_item_ids
+    classification = (
+        EvidenceClassifications.INFERENCE.value
+        if approved else EvidenceClassifications.HYPOTHESIS.value
+    )
+    allowed_geographies = set(request.planning.geographies)
+    audiences = tuple(
+        item.model_copy(update={
+            "geographies": tuple(
+                value for value in item.geographies
+                if value in allowed_geographies
+            ) or request.planning.geographies,
+            "language": None,
+            "life_stage": None,
+            "lsm_sem": None,
+            "lsm_sem_taxonomy": None,
+            "lsm_sem_taxonomy_version": None,
+            "lsm_sem_mandatory": False,
+            "classification": classification,
+            "evidence_item_ids": approved,
+        })
+        for item in artifact.audiences
+    )
+    return output.model_copy(update={
+        "artifact": artifact.model_copy(update={"audiences": audiences}),
+        "unknowns": audience_research_unknowns(output.unknowns),
+    })
+
+
 def propose_audiences(
     request: AudienceAgentRequest,
 ) -> AgentOutputEnvelope[AudienceDefinitionSetArtifact]:
@@ -39,11 +75,18 @@ def propose_audiences(
         EvidenceClassifications.INFERENCE.value
         if evidence_ids else EvidenceClassifications.HYPOTHESIS.value
     )
+    candidate_names = candidate_audience_names(request)
     audiences = tuple(
-        _audience(request, name, classification, evidence_ids)
-        for name in request.planning.audiences
+        _audience(
+            request,
+            name,
+            classification,
+            evidence_ids,
+            is_target=True,
+        )
+        for name in candidate_names
     )
-    names = ", ".join(item.name for item in audiences)
+    names = ", ".join(item.name for item in audiences if item.is_target)
     markets = ", ".join(request.planning.geographies)
     artifact = AudienceDefinitionSetArtifact(
         audiences=audiences,
@@ -52,8 +95,8 @@ def propose_audiences(
             "those audiences and markets for the stated objective."
         ),
         positioning_statement=(
-            f"For {names}, position the advertised offer as a credible route to "
-            f"{request.planning.objective.lower()}."
+            f"Positioning for {names} requires a validated consumer need and product "
+            "proposition; the campaign objective alone does not establish either."
         ),
     )
     return AgentOutputEnvelope(
@@ -61,11 +104,7 @@ def propose_audiences(
         status=OutputStatus.COMPLETED,
         artifact=artifact,
         evidence_bindings=_bindings(evidence_ids, "artifact.audiences"),
-        unknowns=(UnknownItem(
-            field_path="artifact.audiences.buying_context",
-            question="Which buying contexts should planning validate?",
-            is_blocking=False,
-        ),),
+        unknowns=audience_research_unknowns(),
         assumptions=(),
         confidence=(ConfidenceAssessment(
             field_path="artifact.audiences",
@@ -150,14 +189,14 @@ def interpret_inventory(
         status=OutputStatus.COMPLETED,
         artifact=InventoryShortlistDraftArtifact(interpretations=interpretations),
         evidence_bindings=(),
-        unknowns=(UnknownItem(
+        unknowns=strategy_unknowns(request.inventory.strategy) + ((UnknownItem(
             field_path="artifact.interpretations",
             question=(
                 "A deterministic comparative benchmark is unavailable for one or more "
                 "eligible candidates."
             ),
             is_blocking=False,
-        ),) if unbenchmarked else (),
+        ),) if unbenchmarked else ()),
         assumptions=(),
         confidence=(ConfidenceAssessment(
             field_path="artifact.interpretations",
@@ -288,12 +327,20 @@ def _audience(
     name: str,
     classification: str,
     evidence_ids: tuple[UUID, ...],
+    *,
+    is_target: bool,
 ) -> AudienceDefinition:
     return AudienceDefinition(
         name=name,
-        description=f"People described by the approved Brief as {name}.",
-        need_state=request.planning.objective,
-        buying_context="Buying context is not supplied and remains a planning question.",
+        description=(
+            f"An audience supplied in the approved Brief: {name}. "
+            "Human validation is required before media planning."
+        ),
+        need_state="Consumer need is not supplied; validate it separately from the campaign objective.",
+        buying_context=(
+            "Purchase occasion, decision-making role and intent are not supplied; "
+            "validate them before using this audience to justify a media purchase."
+        ),
         geographies=request.planning.geographies,
         language=None,
         life_stage=None,
@@ -304,8 +351,11 @@ def _audience(
         classification=classification,
         exclusions=("Do not infer sensitive individual attributes.",),
         evidence_item_ids=evidence_ids,
-        confidence=Decimal("0.70") if evidence_ids else Decimal("0.45"),
-        is_target=True,
+        confidence=(
+            Decimal("0.70") if evidence_ids
+            else Decimal("0.45")
+        ),
+        is_target=is_target,
     )
 
 

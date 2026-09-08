@@ -218,7 +218,7 @@ function runFixture(kind: string) {
   return { id: crypto.randomUUID(), opportunityId, runKind: kind, status: 'QUEUED', currentStep: null,
     attempts: 0, errorCode: null, recoveryAction: null, incrementalCostMinor: 0, version: 1, updatedAtUtc: now }
 }
-function sessionFixture() { return { authenticated: true, antiforgeryToken: 'csrf-opportunity', expiresAtUtc: '2026-08-29T20:00:00Z' } }
+function sessionFixture() { return { authenticated: true, antiforgeryToken: 'csrf-opportunity', expiresAtUtc: '2099-08-29T20:00:00Z', signInPath: null, signOutPath: null } }
 function workspaceFixture() { return { membershipId: '99300000-0000-0000-0000-000000000001', tenantId, name: 'Northstar Agency', slug: 'northstar', roleCode: 'platform_admin', version: 1 } }
 function safeProblem(code: string) { return { title: 'Denied', status: 403, code, correlationId: crypto.randomUUID() } }
 function assertCommandHeaders(route: Route) {

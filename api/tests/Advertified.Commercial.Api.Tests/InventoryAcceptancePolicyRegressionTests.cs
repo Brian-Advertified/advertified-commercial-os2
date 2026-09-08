@@ -17,7 +17,8 @@ public sealed class InventoryAcceptancePolicyRegressionTests
         Set(MasterDataCodes.RateTypes.FlatRate),
         Set(MasterDataCodes.Currencies.Zar),
         Set(MasterDataCodes.AvailabilityStatuses.PlanningAvailable),
-        Set(), Set(), Set(), Set());
+        Set(), Set(), Set(),
+        Set(MasterDataCodes.VatTreatments.Exclusive));
 
     [Fact]
     public void CompletePythonLineageCanPassAcceptance()

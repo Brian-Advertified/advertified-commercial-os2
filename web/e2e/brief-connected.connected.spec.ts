@@ -23,23 +23,25 @@ test('connected clear Brief reaches OOH planning without a fake approval', async
   await page.getByRole('button', { name: 'Approve Brief and start planning' }).click()
 
   await expect(page).toHaveURL(/\/stp\/[0-9a-f-]{36}$/, { timeout: 30_000 })
-  await expect(page.getByRole('heading', { name: 'Strategy & STP' })).toBeVisible()
-  await expect(page.getByRole('region', { name: 'OOH-only Campaign Flow' }))
+  await expect(page.getByRole('heading', { name: 'Audience Strategy' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Outdoor advertising campaign' }))
     .toHaveAttribute('data-campaign-mode', 'OOH_ONLY')
   await expect(page.getByRole('button', { name: /Approve Brief/ })).toHaveCount(0)
 
   await page.getByRole('link', { name: /Back to Brief/ }).click()
   await expect(page.getByText('Approved', { exact: true })).toBeVisible()
-  await expect(page.getByLabel('Campaign type')).toHaveValue('OOH / DOOH only')
+  await expect(page.getByLabel('Campaign type')).toHaveValue('Outdoor advertising and digital screens only')
   await expect(page.getByLabel('Decision source')).toHaveValue('Supplied Brief Evidence')
-  await expect(page.getByRole('region', { name: 'OOH-only Campaign Flow' }))
+  await expect(page.getByRole('region', { name: 'Outdoor advertising campaign' }))
     .toHaveAttribute('data-campaign-mode', 'OOH_ONLY')
 
   const briefUrl = page.url().split('#')[0]
   await page.goto(`${briefUrl}#brief-objectives`)
   await expect(page.getByRole('heading', { name: 'Objectives', exact: true }))
     .toBeVisible()
-  await page.getByRole('button', { name: 'Continue to Audience →' }).click()
+  await expect(page.getByRole('button', { name: /Continue to/ })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Audience', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: /Audience Complete/ }).click()
   await expect(page).toHaveURL(/#brief-audience$/)
   expect(failedApiResponses).toEqual([])
 })
@@ -72,8 +74,8 @@ test('connected persisted Brief rail follows its canonical campaign mode', async
   await signIn(page)
   await page.goto(`/briefs/${briefId}#brief-review`)
   if (expectedMode === 'OOH_ONLY') {
-    await expect(page.getByLabel('Campaign type')).toHaveValue('OOH / DOOH only')
-    await expect(page.getByRole('region', { name: 'OOH-only Campaign Flow' }))
+    await expect(page.getByLabel('Campaign type')).toHaveValue('Outdoor advertising and digital screens only')
+    await expect(page.getByRole('region', { name: 'Outdoor advertising campaign' }))
       .toHaveAttribute('data-campaign-mode', expectedMode)
     await expect(page.getByRole('region', { name: 'Full Campaign Flow' })).toHaveCount(0)
     return

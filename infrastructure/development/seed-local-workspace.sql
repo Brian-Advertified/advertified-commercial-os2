@@ -20,10 +20,15 @@ INSERT INTO commercial.users (
 )
 VALUES (
     '10000000-0000-0000-0000-000000000001',
-    'developer@advertified.local', 'Local Planner', NULL, 'ACTIVE', false,
+    'developer@advertified.local', 'Brian', NULL, 'ACTIVE', false,
     clock_timestamp(), 1, clock_timestamp(), clock_timestamp()
 )
 ON CONFLICT (id) DO NOTHING;
+
+UPDATE commercial.users
+SET display_name = 'Brian', updated_at_utc = clock_timestamp()
+WHERE id = '10000000-0000-0000-0000-000000000001'
+  AND email = 'developer@advertified.local';
 
 -- Isolated local workspace for confidential inventory extraction certification. The source
 -- corpus remains outside the repository; every extracted candidate still requires human review.
@@ -150,6 +155,34 @@ SET current_version_id = '10000000-0000-0000-0000-000000000007',
     updated_at_utc = clock_timestamp()
 WHERE tenant_id = '10000000-0000-0000-0000-000000000002'
   AND current_version_id IS NULL;
+
+-- User-approved South African commercial defaults. Policy versions remain immutable;
+-- this second version safely advances only the original local seed policy.
+INSERT INTO commercial.commercial_policy_versions (
+    id, tenant_id, policy_id, version_number,
+    markup_basis_points, management_fee_basis_points, commission_basis_points,
+    vat_status_code, vat_rate_basis_points, prices_include_vat,
+    currency_code, booking_approval_threshold_minor, allow_self_approval,
+    created_by, created_at_utc)
+SELECT
+    '10000000-0000-0000-0000-000000000008',
+    '10000000-0000-0000-0000-000000000002',
+    policy.id, 2, 1000, 0, 500, 'REGISTERED', 1500, false,
+    'ZAR', 100000000, true,
+    '10000000-0000-0000-0000-000000000001', clock_timestamp()
+FROM commercial.commercial_policies policy
+WHERE policy.tenant_id = '10000000-0000-0000-0000-000000000002'
+  AND policy.current_version_id = '10000000-0000-0000-0000-000000000007'
+  AND NOT EXISTS (
+      SELECT 1 FROM commercial.commercial_policy_versions version
+      WHERE version.id = '10000000-0000-0000-0000-000000000008');
+
+UPDATE commercial.commercial_policies
+SET current_version_id = '10000000-0000-0000-0000-000000000008',
+    version = version + 1,
+    updated_at_utc = clock_timestamp()
+WHERE tenant_id = '10000000-0000-0000-0000-000000000002'
+  AND current_version_id = '10000000-0000-0000-0000-000000000007';
 
 -- Governed local proposal prerequisite. These records are deliberately named Local Demo,
 -- remain confined to the development Compose database, and retain supplier/import/candidate
@@ -344,5 +377,6 @@ VALUES
 )
 ON CONFLICT (id) DO NOTHING;
 
--- Load the physically reviewed source corpus after the local identities and demo rows exist.
+-- Load the physically reviewed source corpus and its buyer-visible marketplace projection.
 \ir inventory-bootstrap.generated.sql
+\ir publish-current-inventory-to-marketplace.sql

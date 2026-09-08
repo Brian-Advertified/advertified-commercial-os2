@@ -6,6 +6,7 @@ import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { masterDataCodes, masterDataDefinitions } from '../generated/master-data-codes'
 import { formatDateTime, formatMiB, humanizeCode } from '../presentation/format'
 import { inventoryArtwork, inventoryIdentityLabel } from './inventoryArtwork'
+import { channelLabel } from '../presentation/media-labels'
 
 export type InventoryFilters = {
   search: string
@@ -23,7 +24,7 @@ export function InventoryCatalogueHeader({ items }: { items: InventoryProductSum
   return <header className="approved-catalogue-hero"><div><p className="eyebrow">Published Inventory Catalogue</p>
     <h1 id="inventory-title">Media inventory</h1><p>Search published, source-linked media products by supplier, channel and geography.</p></div>
     <dl><Snapshot label="Inventory" value={items.length} /><Snapshot label="Verified" value={verified} />
-      <Snapshot label="Suppliers" value={suppliers} /><Snapshot label="OOH / DOOH" value={ooh} /></dl></header>
+      <Snapshot label="Suppliers" value={suppliers} /><Snapshot label="Outdoor advertising and digital screens" value={ooh} /></dl></header>
 }
 
 function Snapshot({ label, value }: { label: string; value: number }) {
@@ -48,7 +49,7 @@ export function InventorySearchForm({ filters, suppliers, setFilters, search }: 
     <select aria-label="Channel" value={filters.channel}
       onChange={event => setFilters({ ...filters, channel: event.target.value })}>
       <option value="">Channel · All</option>{masterDataDefinitions.channels.filter(item => item.isActive).map(item =>
-        <option value={item.code} key={item.code}>{item.displayLabel}</option>)}</select>
+        <option value={item.code} key={item.code}>{channelLabel(item.code)}</option>)}</select>
     <input aria-label="Geography" value={filters.geography} maxLength={500}
       onChange={event => setFilters({ ...filters, geography: event.target.value })} placeholder="Geography · All regions" />
     <button className="primary-button" type="submit">Update results</button>

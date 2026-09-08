@@ -253,20 +253,26 @@ public sealed partial class MarketplaceAcceptanceTests
         var proposalId = generated.RootElement.GetProperty("id").GetGuid();
         var optionId = generated.RootElement.GetProperty("options")[0]
             .GetProperty("id").GetGuid();
+        using var unbranded = await CommandAsync(
+            buyer, BuyerTenantId, $"proposal-versions/{proposalId}:approve-unbranded",
+            "booking-proposal-unbranded", 1,
+            new { reason = "No brand assets supplied; buyer authorises the neutral proposal layout." });
+        Assert.Equal("UNBRANDED_AUTHORISED",
+            unbranded.RootElement.GetProperty("branding").GetProperty("status").GetString());
         using var approved = await CommandAsync(
             buyer, BuyerTenantId, $"proposal-versions/{proposalId}:approve",
-            "booking-proposal-approve", 1,
+            "booking-proposal-approve", 2,
             new { reason = "Exact plan and commercial wording reviewed." });
         using var rendered = await CommandAsync(
             buyer, BuyerTenantId, $"proposal-versions/{proposalId}:render",
-            "booking-proposal-render", 2, new { });
+            "booking-proposal-render", 3, new { });
         using var shared = await CommandAsync(
             buyer, BuyerTenantId, $"proposal-versions/{proposalId}:share",
-            "booking-proposal-share", 3,
+            "booking-proposal-share", 4,
             new { recipientUserId = ClientUserId, reason = "Send for client decision." });
         using var selected = await CommandAsync(
             client, BuyerTenantId, $"proposal-versions/{proposalId}:select-option",
-            "booking-proposal-select", 4,
+            "booking-proposal-select", 5,
             new { optionId, reason = "Client selects this exact option." });
         Assert.Equal("SELECTED", selected.RootElement.GetProperty("status").GetString());
         return new SelectedProposalFixture(proposalId, optionId);

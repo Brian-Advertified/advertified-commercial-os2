@@ -311,6 +311,11 @@ public sealed class HumanSafeExceptionHandler(
                 "Proposal document required",
                 "Approve and render the current proposal before sharing it with the client.",
                 "PROPOSAL_DOCUMENT_REQUIRED"),
+            ProposalBrandingRequiredException => new(
+                StatusCodes.Status409Conflict,
+                "Proposal branding is not ready",
+                "Approve both agency and client brand assets, or record an authorised unbranded decision before continuing.",
+                "PROPOSAL_BRANDING_REQUIRED"),
             ProposalExpiredException => new(
                 StatusCodes.Status409Conflict,
                 "Proposal expired",

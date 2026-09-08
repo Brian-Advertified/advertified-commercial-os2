@@ -10,6 +10,7 @@ export const bookingBuyerRoles = new Set<string>([
 export const bookingSupplierRoles = new Set<string>([
   masterDataCodes.roles.platformAdmin,
   masterDataCodes.roles.inventoryOps,
+  masterDataCodes.roles.supplierAdmin,
   masterDataCodes.roles.supplierUser,
   masterDataCodes.roles.influencerRep,
 ])

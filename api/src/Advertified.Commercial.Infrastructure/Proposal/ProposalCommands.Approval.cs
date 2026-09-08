@@ -78,6 +78,7 @@ public sealed partial class ProposalCommands
         var (proposal, brief) = await LoadApprovalContextAsync(
             proposalVersionId, envelope.TenantId, cancellationToken);
         EnsureProposalInventoryCurrent(proposal);
+        await EnsureClientBrandingReadyAsync(proposal, envelope.TenantId, cancellationToken);
         if (proposal.ExpiryAtUtc <= timeProvider.GetUtcNow())
         {
             throw new InvalidLifecycleTransitionException();

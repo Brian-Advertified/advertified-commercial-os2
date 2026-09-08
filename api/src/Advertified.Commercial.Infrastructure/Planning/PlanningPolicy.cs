@@ -37,7 +37,7 @@ public sealed record PlanningPolicy(
         var selection = RequireItem(
             registry,
             MasterDataCodes.PlanningPolicies.Collection,
-            MasterDataCodes.PlanningPolicies.InventorySuitabilityOohV1);
+            MasterDataCodes.PlanningPolicies.InventorySuitabilityOohV2);
         using var benchmarkMetadata = JsonDocument.Parse(benchmark.MetadataJson);
         using var vatMetadata = JsonDocument.Parse(vat.MetadataJson);
         using var selectionMetadata = JsonDocument.Parse(selection.MetadataJson);

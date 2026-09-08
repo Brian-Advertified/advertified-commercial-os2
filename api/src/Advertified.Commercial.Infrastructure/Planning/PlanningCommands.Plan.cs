@@ -37,7 +37,8 @@ public sealed partial class PlanningCommands
             throw new InvalidLifecycleTransitionException();
         }
         if (selected.Any(item => item.CommercialReadiness is null ||
-                item.CommercialReadiness.EvidenceGaps.Count > 0))
+                item.CommercialReadiness.EvidenceGaps.Any(
+                    gap => gap != InventoryCommercialReadiness.RateValidityGap)))
         {
             throw new PlanningApprovalBlockedException();
         }
@@ -276,6 +277,16 @@ public sealed partial class PlanningCommands
         string supplyConfidence)
     {
         var objections = new List<CriticObjection>();
+        if (selected.Any(item => item.CommercialReadiness?.EvidenceGaps.Contains(
+                InventoryCommercialReadiness.RateValidityGap) == true))
+        {
+            objections.Add(new CriticObjection(
+                MasterDataCodes.PlanningObjectionTypes.CommercialEvidenceIncomplete,
+                MasterDataCodes.CriticSeverities.Material,
+                "commercial",
+                "At least one selected line has no explicit published rate-validity period.",
+                "Confirm the supplier rate for the campaign period or accept the dated commercial risk."));
+        }
         if (supplyConfidence != MasterDataCodes.SupplyConfidenceStatuses.Confirmed)
         {
             objections.Add(new CriticObjection(

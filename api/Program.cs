@@ -26,6 +26,7 @@ using Advertified.Commercial.Application.Marketplace;
 using Advertified.Commercial.Application.Measurement;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Application.Proposal;
+using Advertified.Commercial.Application.Reporting;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Foundation;
 using Advertified.Commercial.Infrastructure.Funding;
@@ -47,6 +48,7 @@ using Advertified.Commercial.Infrastructure.Marketplace;
 using Advertified.Commercial.Infrastructure.Measurement;
 using Advertified.Commercial.Infrastructure.Planning;
 using Advertified.Commercial.Infrastructure.Proposal;
+using Advertified.Commercial.Infrastructure.Reporting;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
@@ -63,6 +65,7 @@ builder.WebHost.ConfigureKestrel(options =>
         InventoryProtectionOptions.MaximumSupportedSourceBytes + 1_048_576;
 });
 var processRole = builder.AddAdvertifiedProcessRole();
+builder.AddAdvertifiedDataProtection(processRole);
 var authenticationMode = builder.Configuration["Authentication:Mode"];
 var agentRuntime = builder.Configuration
     .GetSection(AgentRuntimeOptions.SectionName)
@@ -76,9 +79,9 @@ var inventoryExtraction = builder.Configuration
 var emailAutomation = builder.Configuration
     .GetSection(EmailAutomationOptions.SectionName)
     .Get<EmailAutomationOptions>() ?? new EmailAutomationOptions();
-
 var connectionString = StartupConfigurationValidator.ValidateAndGetConnectionString(
     builder,
+    processRole,
     authenticationMode,
     agentRuntime,
     inventoryProtection,
@@ -122,11 +125,9 @@ builder.Services.AddScoped<IDeliveryProofCommands, DeliveryProofCommands>();
 builder.Services.AddScoped<PerformanceEvidenceRecordStore>();
 builder.Services.AddScoped<IPerformanceEvidenceReader, PerformanceEvidenceReader>();
 builder.Services.AddScoped<IPerformanceEvidenceCommands, PerformanceEvidenceCommands>();
-builder.Services.AddScoped<MeasurementReportRecordStore>();
-builder.Services.AddScoped<IMeasurementReportReader, MeasurementReportReader>();
+builder.Services.AddScoped<MeasurementReportRecordStore>(); builder.Services.AddScoped<IMeasurementReportReader, MeasurementReportReader>();
 builder.Services.AddScoped<IMeasurementReportCommands, MeasurementReportCommands>();
-builder.Services.AddScoped<FundingRecordStore>();
-builder.Services.AddScoped<IFundingReader, FundingReader>();
+builder.Services.AddScoped<FundingRecordStore>(); builder.Services.AddScoped<IFundingReader, FundingReader>();
 builder.Services.AddScoped<IFundingCommands, FundingCommands>();
 builder.Services.AddScoped<IIdentityFoundationCommands, IdentityFoundationCommands>();
 builder.Services.AddScoped<IBusinessFoundationCommands, BusinessFoundationCommands>();
@@ -165,6 +166,7 @@ builder.Services.AddScoped<InventoryRetainedProjectionProcessor>();
 builder.Services.AddScoped<InventoryExtractionAttemptProcessor>();
 builder.Services.AddScoped<IInventoryReader, InventoryReader>();
 builder.Services.AddScoped<IInventoryCommands, InventoryCommands>();
+builder.Services.AddScoped<IPublicInventorySummaryReader, PublicInventorySummaryReader>();
 builder.Services.AddSingleton(InventoryDuplicatePolicy.Load());
 builder.AddInventoryEmbeddings();
 builder.Services.AddScoped<MarketplaceRecordStore>();
@@ -176,11 +178,11 @@ builder.Services.AddScoped<IInventoryBenchmarkReader, InventoryBenchmarkReader>(
 builder.Services.AddSingleton(PlanningPolicy.Load());
 builder.Services.AddSingleton(CampaignModePolicy.Load());
 builder.Services.AddScoped<IPlanningCommands, PlanningCommands>();
-builder.Services.AddScoped<ProposalRecordStore>();
-builder.Services.AddSingleton(ProposalPolicy.Load());
+builder.Services.AddScoped<ProposalRecordStore>(); builder.Services.AddSingleton(ProposalPolicy.Load());
 builder.Services.AddScoped<IProposalReader, ProposalReader>();
 builder.Services.AddScoped<IProposalCommands, ProposalCommands>();
 builder.Services.AddScoped<ProposalInventoryReadiness>();
+builder.Services.AddScoped<OperationalReportingStore>(); builder.Services.AddScoped<IOperationalReportingReader, OperationalReportingReader>();
 builder.AddEmailAutomation(emailAutomation);
 builder.AddCommercialWorkers(processRole);
 builder.AddInventoryExtraction(inventoryExtraction);
@@ -370,6 +372,7 @@ if (processRole.RunsApi)
     app.MapAgentOperationsEndpoints();
     app.MapIdentityEndpoints();
     app.MapPublicIntakeEndpoints();
+    app.MapPublicInventoryEndpoints();
     app.MapFoundationEndpoints();
     app.MapOpportunityEndpoints();
     app.MapBriefEndpoints();
@@ -386,13 +389,12 @@ if (processRole.RunsApi)
     app.MapMarketplaceEndpoints();
     app.MapPlanningEndpoints();
     app.MapProposalEndpoints();
+    app.MapReportingEndpoints();
     app.MapEmailAutomationEndpoints();
 }
 else
 {
     app.MapWorkerHealthEndpoints();
 }
-
 app.Run();
-
 public partial class Program;

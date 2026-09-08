@@ -2,9 +2,10 @@ import type { SuppliedBriefUnderstanding } from '../api/brief-understanding-sche
 import type { IconName } from '../components/Icon'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { formatMoney, humanizeCode } from '../presentation/format'
+import { mediaContent } from '../presentation/media-labels'
 
 export function campaignModeLabel(value: string | null) {
-  if (value === masterDataCodes.campaignModes.oohOnly) return 'OOH and DOOH only'
+  if (value === masterDataCodes.campaignModes.oohOnly) return mediaContent.outdoorOnly
   if (value === masterDataCodes.campaignModes.fullCampaign) return 'Full campaign'
   return 'Media scope needs confirmation'
 }

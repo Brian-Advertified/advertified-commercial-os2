@@ -279,5 +279,5 @@ function sentActionCopy(hasRecipient: boolean) {
     ? { title: 'Waiting for the client decision',
         detail: 'The assigned client approver can select one route or decline the proposal.' }
     : { title: 'Record the verified client reply',
-        detail: 'OOH email delivery is complete. Retain the reply reference before recording the client choice.' }
+        detail: 'outdoor advertising email delivery is complete. Retain the reply reference before recording the client choice.' }
 }

@@ -58,6 +58,7 @@
 .proposal-navigation a:hover { color: var(--navy); background: var(--surface-strong); border-bottom-color: var(--electric); }
 #proposal-details,
 #proposal-options,
+#proposal-branding,
 #proposal-action,
 #proposal-funding { scroll-margin-top: 7rem; }
 
@@ -160,6 +161,16 @@
 .proposal-share-control { display: flex; align-items: end; gap: 0.55rem; }
 .proposal-share-control label { display: grid; gap: 0.25rem; color: var(--muted); font-size: 0.75rem; }
 .proposal-share-control select { min-width: 16rem; padding: 0.55rem; color: var(--navy); background: var(--canvas); border: 1px solid var(--line-strong); border-radius: 0.25rem; }
+.proposal-branding-editor { display: grid; gap: 0.8rem; }
+.proposal-branding-editor .proposal-options-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: 0.3rem; overflow: hidden; }
+.proposal-branding-editor .proposal-option-card { gap: 0.65rem; }
+.proposal-branding-editor .proposal-option-card h3 { margin: 0; color: var(--navy); font-size: 0.9rem; }
+.proposal-branding-editor label { display: grid; gap: 0.25rem; color: var(--muted-strong); font-size: 0.72rem; font-weight: 750; }
+.proposal-branding-editor :is(input, select, textarea) { width: 100%; min-height: 2.35rem; padding: 0.48rem 0.55rem; color: var(--navy); background: var(--white); border: 1px solid var(--line-strong); border-radius: 0.25rem; font: inherit; font-size: 0.75rem; }
+.proposal-branding-editor textarea { min-height: 4.4rem; resize: vertical; }
+.proposal-branding-editor input[type="file"] { padding: 0.35rem; }
+.proposal-branding-editor > .proposal-share-control { padding: 0.75rem; background: var(--surface-subtle); border: 1px solid var(--line); border-radius: 0.3rem; }
+.proposal-branding-editor > .proposal-share-control label { flex: 1; }
 .proposal-document-link { white-space: nowrap; }
 
 .proposal-client-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.8rem; }

@@ -11,7 +11,6 @@ import {
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from '../../routing/router';
 import { getPublicInventorySummary, type PublicInventorySummary } from '../api/publicInventory';
-import { MediaInventoryPartnersStrip } from '../components/MediaInventoryPartnersStrip';
 import { ProductPreview } from '../components/ProductPreview';
 import { getPublicInventoryChannelPresentation } from '../data/publicInventoryChannels';
 
@@ -24,7 +23,6 @@ export function PublicHomePage() {
   const inventory = usePublicInventory();
   return <>
     <HomeHero />
-    <MediaInventoryPartnersStrip />
     <InventoryProof inventory={inventory} />
     <ParticipantSection />
   </>;

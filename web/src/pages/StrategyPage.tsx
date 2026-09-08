@@ -48,7 +48,7 @@ function StrategyWorkspace({ strategy }: { strategy: Strategy }) {
   return <section className="approved-strategy-page" aria-labelledby="strategy-title">
     <div className="approved-strategy-pagebar"><Link className="text-action" to={`/opportunities/${strategy.opportunityId}`}>← Opportunity</Link>
       <span className="approved-ai-validated">✦ AI researched · human validation required</span></div>
-    <header className="approved-strategy-header"><div><p className="eyebrow">Strategy & STP</p>
+    <header className="approved-strategy-header"><div><p className="eyebrow">Commercial strategy</p>
       <h1 id="strategy-title">Campaign strategy</h1><p>{artifact.diagnosis}</p></div>
       <span className={`approved-strategy-status ${unresolved.length ? 'needs-review' : ''}`}>{humanizeCode(strategy.status, true)}</span></header>
     <ExperienceSignals title="Strategy intelligence" signals={strategySignals(artifact, unresolved.length)} />

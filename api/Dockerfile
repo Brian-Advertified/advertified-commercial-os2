@@ -32,12 +32,13 @@ RUN dotnet publish api/src/Advertified.Commercial.DatabaseMigrator/Advertified.C
 # are mounted; database/container integration fixtures require separate authorization.
 FROM build AS tests
 COPY shared/ shared/
+COPY infrastructure/development/publish-current-inventory-to-marketplace.sql infrastructure/development/
 COPY ["AGENTS.md", "ADVERTIFIED.md", "./"]
 ARG TEST_FILTER
 RUN test -n "$TEST_FILTER"
 RUN dotnet restore api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj --locked-mode
 RUN dotnet test api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj \
-    --configuration Release --no-restore --filter "$TEST_FILTER" --verbosity normal
+    --configuration Release --no-restore --filter "$TEST_FILTER" --verbosity minimal
 
 # Export actual adapter payloads for offline validation by the Python contracts.
 FROM scratch AS contract-evidence

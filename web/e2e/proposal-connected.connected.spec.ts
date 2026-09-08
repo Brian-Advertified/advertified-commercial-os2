@@ -95,13 +95,14 @@ async function createClearBrief(
   await expect(page).toHaveURL(/\/stp\/[0-9a-f-]{36}$/, {
     timeout: 30_000,
   })
-  await expect(page.getByRole('heading', { name: 'Strategy & STP' }))
+  await expect(page.getByRole('heading', { name: 'Audience Strategy' }))
     .toBeVisible()
 }
 
 async function prepareApprovedPlan(page: import('@playwright/test').Page) {
-  await page.getByRole('button', { name: 'Generate Strategy & STP' }).click()
-  await expect(page.getByRole('heading', { name: 'Who we will reach' })).toBeVisible()
+  await page.getByRole('button', { name: 'Discover candidate audiences' }).click()
+  await expect(page.getByRole('heading', { name: 'Choose the audiences the plan should prioritise' })).toBeVisible()
+  await page.getByRole('button', { name: 'Approve audience strategy & continue' }).click()
   await page.getByRole('link', { name: /Next: Media Planning/ }).click()
   await expect(page.getByRole('heading', { name: 'Media Planning Overview' })).toBeVisible()
 

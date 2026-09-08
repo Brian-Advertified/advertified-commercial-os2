@@ -35,6 +35,15 @@ public sealed record MarketplaceSearchQuery(
     string? Search,
     string? Channel,
     string? Geography,
+    string? Country,
+    string? Province,
+    string? City,
+    string? Supplier,
+    string? Format,
+    string? RateType,
+    long? MinimumAmountMinor,
+    long? MaximumAmountMinor,
+    string? Currency,
     int PageSize,
     string? Cursor);
 

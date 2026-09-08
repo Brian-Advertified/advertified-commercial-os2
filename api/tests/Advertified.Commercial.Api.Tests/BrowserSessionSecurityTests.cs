@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Advertified.Commercial.Api.Startup;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Infrastructure.Identity;
 using Microsoft.AspNetCore.Builder;
@@ -147,6 +148,34 @@ public sealed class BrowserSessionSecurityTests
         using var otherResponse = await client.SendAsync(otherClient);
         await AssertProblemAsync(
             otherResponse, HttpStatusCode.Forbidden, "CSRF_VALIDATION_FAILED");
+    }
+
+    [Fact]
+    public void ProductionRequiresPersistentProtectedBrowserKeys()
+    {
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Production");
+            builder.UseSetting("Process:Role", ProcessRoleOptions.ApiRole);
+        });
+
+        var exception = Assert.Throws<InvalidOperationException>(factory.CreateClient);
+        Assert.Contains("data-protection keys", exception.ToString(),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ProductionRejectsCombinedProcessRole()
+    {
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            ConfigureClosedProduction(builder);
+            builder.UseSetting("Process:Role", ProcessRoleOptions.CombinedRole);
+        });
+
+        var exception = Assert.Throws<InvalidOperationException>(factory.CreateClient);
+        Assert.Contains("separate API and worker", exception.ToString(),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

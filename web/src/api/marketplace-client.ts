@@ -27,15 +27,24 @@ async function command<T>(
 const tenantPath = (tenantId: string, suffix: string) =>
   `/api/v1/tenants/${tenantId}/${suffix}`
 
+export type MarketplaceFilters = {
+  search?: string; channel?: string; geography?: string; country?: string
+  province?: string; city?: string; supplier?: string; format?: string
+  rateType?: string; minimumAmountMinor?: number; maximumAmountMinor?: number
+  currency?: string
+}
+
 export const marketplaceApi = {
   async search(
     tenantId: string,
-    filters: { search?: string; channel?: string; geography?: string },
+    filters: MarketplaceFilters,
+    cursor?: string,
   ): Promise<MarketplaceListingPage> {
     const query = new URLSearchParams({ pageSize: '24' })
-    if (filters.search) query.set('search', filters.search)
-    if (filters.channel) query.set('channel', filters.channel)
-    if (filters.geography) query.set('geography', filters.geography)
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') query.set(key, String(value))
+    })
+    if (cursor) query.set('cursor', cursor)
     return (await request(
       `${tenantPath(tenantId, 'marketplace-listings')}?${query}`,
       marketplaceListingPageSchema,

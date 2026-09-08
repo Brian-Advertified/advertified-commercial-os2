@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Npgsql;
 using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
@@ -71,11 +72,32 @@ public sealed partial class ProposalAcceptanceTests
             });
         Assert.Equal(2, updated.RootElement.GetProperty("version").GetInt64());
 
+        using (var blocked = await RawCommandAsync(
+            agency,
+            Path($"proposal-versions/{proposalId}:approve"),
+            "proposal-approve-branding-blocked",
+            2,
+            new { reason = "Commercial wording and plan bindings reviewed." }))
+        {
+            await AssertProblemAsync(blocked, HttpStatusCode.Conflict, "PROPOSAL_BRANDING_REQUIRED");
+        }
+
+        using var unbranded = await CommandAsync(
+            agency,
+            Path($"proposal-versions/{proposalId}:approve-unbranded"),
+            "proposal-unbranded-approval",
+            2,
+            new { reason = "Client logos have not been supplied; use the neutral agency-safe layout." });
+        Assert.Equal("UNBRANDED_AUTHORISED",
+            unbranded.RootElement.GetProperty("branding").GetProperty("status").GetString());
+        Assert.Equal("DRAFT", unbranded.RootElement.GetProperty("status").GetString());
+        await AssertUnbrandedUpdateEventAsync(connectionString, proposalId);
+
         using var approved = await CommandAsync(
             agency,
             Path($"proposal-versions/{proposalId}:approve"),
             "proposal-approve",
-            2,
+            3,
             new { reason = "Commercial wording and plan bindings reviewed." });
         Assert.Equal("APPROVED", approved.RootElement.GetProperty("status").GetString());
 
@@ -83,7 +105,7 @@ public sealed partial class ProposalAcceptanceTests
             agency,
             Path($"proposal-versions/{proposalId}:render"),
             "proposal-render",
-            3,
+            4,
             new { });
         var document = rendered.RootElement.GetProperty("document");
         var documentId = document.GetProperty("id").GetGuid();
@@ -95,17 +117,34 @@ public sealed partial class ProposalAcceptanceTests
             Assert.Equal(HttpStatusCode.OK, pdf.StatusCode);
             Assert.Equal("application/pdf", pdf.Content.Headers.ContentType?.MediaType);
             var bytes = await pdf.Content.ReadAsByteArrayAsync();
-            Assert.StartsWith("%PDF-", System.Text.Encoding.ASCII.GetString(bytes, 0, 5));
+            var pdfText = System.Text.Encoding.ASCII.GetString(bytes);
+            Assert.StartsWith("%PDF-", pdfText);
+            Assert.Contains("Proposal Agency", pdfText, StringComparison.Ordinal);
+            Assert.Contains("PROPOSAL FOR Proposal Client", pdfText, StringComparison.Ordinal);
+            Assert.Contains("Unbranded proposal authorised", pdfText, StringComparison.Ordinal);
+            Assert.Contains("Confidential proposal", pdfText, StringComparison.Ordinal);
         }
 
         using var shared = await CommandAsync(
             agency,
             Path($"proposal-versions/{proposalId}:share"),
             "proposal-share",
-            4,
+            5,
             new { recipientUserId = ClientUserId, reason = "Share for the first client decision." });
         Assert.Equal("SENT", shared.RootElement.GetProperty("status").GetString());
         Assert.Equal(ClientUserId, shared.RootElement.GetProperty("recipientUserId").GetGuid());
+
+        using (var reporting = JsonDocument.Parse(
+            await agency.GetStringAsync(Path("reporting/operations"))))
+        {
+            var metrics = reporting.RootElement.GetProperty("metrics");
+            Assert.Equal(1, metrics.GetProperty("proposals").GetInt32());
+            Assert.Equal(3, metrics.GetProperty("approvedPlans").GetInt32());
+            Assert.Equal(3, metrics.GetProperty("selectedInventory").GetInt32());
+            Assert.Equal(3, reporting.RootElement.GetProperty("channelSpend").GetArrayLength());
+            Assert.Equal(0, reporting.RootElement.GetProperty("commercialTotals")
+                .GetProperty("clientTotalMinor").GetInt64());
+        }
 
         using (var denied = await other.GetAsync(Path($"proposals/{proposalId}")))
         {
@@ -115,7 +154,7 @@ public sealed partial class ProposalAcceptanceTests
             other,
             Path($"proposal-versions/{proposalId}:select-option"),
             "proposal-other-select",
-            5,
+            6,
             new { optionId = options[0].optionId, reason = "Not assigned." }))
         {
             await AssertProblemAsync(deniedDecision, HttpStatusCode.Forbidden, "TENANT_FORBIDDEN");
@@ -128,7 +167,7 @@ public sealed partial class ProposalAcceptanceTests
             client,
             Path($"proposal-versions/{proposalId}:select-option"),
             "proposal-client-select",
-            5,
+            6,
             new { optionId = options[2].optionId, reason = "Digital response best matches the campaign objective." });
         Assert.Equal("SELECTED", selected.RootElement.GetProperty("status").GetString());
         Assert.Equal(options[2].optionId,
@@ -138,9 +177,29 @@ public sealed partial class ProposalAcceptanceTests
             client,
             Path($"proposal-versions/{proposalId}:decline"),
             "proposal-client-decline-after-select",
-            6,
+            7,
             new { reason = "Attempted second decision." });
         await AssertProblemAsync(repeated, HttpStatusCode.Forbidden, "TENANT_FORBIDDEN");
+    }
+
+    private static async Task AssertUnbrandedUpdateEventAsync(
+        string connectionString, Guid proposalId)
+    {
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand("""
+            SELECT
+              EXISTS(SELECT 1 FROM commercial.outbox_messages
+                WHERE aggregate_id = @proposalId AND aggregate_version = 3
+                  AND event_type_code = 'ProposalUpdated'),
+              EXISTS(SELECT 1 FROM commercial.outbox_messages
+                WHERE aggregate_id = @proposalId AND event_type_code = 'ProposalApproved')
+            """, connection);
+        command.Parameters.AddWithValue("proposalId", proposalId);
+        await using var reader = await command.ExecuteReaderAsync();
+        Assert.True(await reader.ReadAsync());
+        Assert.True(reader.GetBoolean(0));
+        Assert.False(reader.GetBoolean(1));
     }
 
     [Fact]

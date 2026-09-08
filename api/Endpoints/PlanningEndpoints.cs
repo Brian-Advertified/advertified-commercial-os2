@@ -29,6 +29,10 @@ public static class PlanningEndpoints
             .WithName("GenerateAudiences").Produces<AudienceDefinitionSetView>()
             .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
             .WithCommandProblems(requiresVersion: false);
+        group.MapPost("/audience-strategies/{audienceSetId:guid}:approve",
+                ApproveAudienceStrategyAsync)
+            .WithName("ApproveAudienceStrategy").Produces<AudienceDefinitionSetView>()
+            .WithCommandProblems(requiresVersion: true);
         group.MapPost("/brief-versions/{briefVersionId:guid}/media-mixes:generate",
                 GenerateMixAsync)
             .WithName("GenerateMediaMix").Produces<MediaMixVersionView>()
@@ -87,7 +91,7 @@ public static class PlanningEndpoints
         var view = await reader.GetWorkspaceAsync(
             identity.ActorId, new TenantId(tenantId), briefVersionId, cancellationToken);
         var version = view.MediaPlan?.Version ?? view.Shortlist?.Version ??
-            view.MediaMix?.Version ?? 1;
+            view.MediaMix?.Version ?? view.Audience?.Version ?? 1;
         CommandEnvelopeFactory.SetEntityHeaders(context, version);
         return Results.Ok(view);
     }
@@ -121,6 +125,14 @@ public static class PlanningEndpoints
             tenantId, command, context, identity, clock,
             (envelope, token) => commands.GenerateAudiencesAsync(
                 briefVersionId, envelope, token), cancellationToken);
+
+    private static Task<IResult> ApproveAudienceStrategyAsync(
+        Guid tenantId, Guid audienceSetId, ApproveAudienceStrategyCommand command,
+        HttpContext context, ICurrentIdentity identity, IPlanningCommands commands,
+        TimeProvider clock, CancellationToken cancellationToken) => ExecuteMutationAsync(
+            tenantId, command, context, identity, clock,
+            (envelope, token) => commands.ApproveAudienceStrategyAsync(
+                audienceSetId, envelope, token), cancellationToken);
 
     private static Task<IResult> GenerateMixAsync(
         Guid tenantId, Guid briefVersionId, GenerateMediaMixCommand command,

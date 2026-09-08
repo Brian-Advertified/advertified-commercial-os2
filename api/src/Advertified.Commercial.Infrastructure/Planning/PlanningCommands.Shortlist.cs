@@ -12,13 +12,6 @@ namespace Advertified.Commercial.Infrastructure.Planning;
 
 public sealed partial class PlanningCommands
 {
-    private static readonly string[] ShortlistAssumptions =
-    [
-        "Hard eligibility is evaluated before governed suitability scoring.",
-        "Inventory is planning-available unless an overlapping exception or confirmed booking conflict exists.",
-        "Suitability uses the versioned OOH policy and sponsored placement never changes rank.",
-    ];
-
     private async Task<CommandOutcome> GenerateShortlistOutcomeAsync(
         Guid briefVersionId,
         CommandEnvelope<GenerateShortlistCommand> envelope,
@@ -66,12 +59,15 @@ public sealed partial class PlanningCommands
             envelope.TenantId, briefVersionId, inventory, cancellationToken);
         var prepared = PrepareCandidates(
             inventory, allocations, Read<string[]>(brief.GeographiesJson),
-            mix.Currency, targets, spatialMatches, inputHash, now);
+            Read<string[]>(brief.ConstraintsJson), mix.Currency, targets,
+            spatialMatches, inputHash, now);
         prepared = InventorySuitabilityScorer.Score(prepared, planningPolicy);
         prepared = await AttachBenchmarksAsync(
             envelope.TenantId, prepared, inventory, cancellationToken);
         prepared = await AttachInventoryInterpretationsAsync(
-            brief, envelope, id, prepared, cancellationToken);
+            brief, envelope, id, prepared,
+            BuildInventoryStrategy(brief, mix, audience, targets, allocations.Values),
+            cancellationToken);
         await PlanningShortlistPersistence.InsertCandidatesAsync(
             store.DbContext, envelope.TenantId, id, briefVersionId,
             planningPolicy.BenchmarkVersion, now, prepared, cancellationToken);
@@ -96,7 +92,7 @@ public sealed partial class PlanningCommands
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        var assumptionsJson = Write(ShortlistAssumptions);
+        var assumptionsJson = Write(PlanningShortlistDefaults.Assumptions);
         return store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.inventory_shortlist_versions (
                 id, tenant_id, brief_version_id, mix_version_id, version_no,
@@ -111,6 +107,7 @@ public sealed partial class PlanningCommands
         IReadOnlyList<PlanningInventoryRow> inventory,
         Dictionary<string, MediaAllocationView> allocations,
         IReadOnlyList<string> geographies,
+        IReadOnlyList<string> constraints,
         string currency,
         IReadOnlyList<AudienceDefinitionView> targets,
         IReadOnlyDictionary<PlanningInventoryKey, InventorySpatialMatchView> spatialMatches,
@@ -124,7 +121,7 @@ public sealed partial class PlanningCommands
                 item.ProductVersionId);
             var spatialMatch = spatialMatches[key];
             var eligibility = InventoryEligibilityEvaluator.Evaluate(
-                item, geographies, allocations, currency, planningPolicy,
+                item, geographies, constraints, allocations, currency, planningPolicy,
                 spatialMatch.HasRequirements);
             eligibility = PlanningSpatialMatcher.ApplyEligibility(
                 eligibility, spatialMatch);
@@ -164,25 +161,62 @@ public sealed partial class PlanningCommands
         CommandEnvelope<GenerateShortlistCommand> envelope,
         Guid shortlistId,
         PreparedShortlistCandidate[] candidates,
+        InventoryStrategyInput strategy,
         CancellationToken cancellationToken)
     {
+        const int maximumAgentCandidates = 5;
+        var agentCandidates = candidates
+            .Where(item => item.Eligibility.IsEligible)
+            .OrderByDescending(item => item.Suitability.Total)
+            .ThenBy(item => item.Id)
+            .Take(maximumAgentCandidates)
+            .ToArray();
+        if (agentCandidates.Length == 0)
+        {
+            return candidates.Select(AttachDeterministicInterpretation).ToArray();
+        }
         var proposal = await planningAgent.InterpretInventoryAsync(
             new InventoryIntelligenceInput(
                 BuildBriefInput(brief, envelope),
                 shortlistId,
                 1,
-                candidates.Select(ToInventoryIntelligenceInput).ToArray()),
+                agentCandidates.Select(ToInventoryIntelligenceInput).ToArray(), strategy),
             cancellationToken);
         var interpretations = proposal.Interpretations;
         var returnedIds = interpretations.Select(item => item.CandidateId).ToArray();
         if (proposal.IncrementalCostMinor < 0 ||
-            interpretations.Count != candidates.Length ||
+            interpretations.Count != agentCandidates.Length ||
             returnedIds.Distinct().Count() != returnedIds.Length ||
-            !returnedIds.ToHashSet().SetEquals(candidates.Select(item => item.Id)))
+            !returnedIds.ToHashSet().SetEquals(agentCandidates.Select(item => item.Id)))
         {
             throw new InvalidOperationException(
-                "The Inventory Intelligence proposal changed the governed candidate set.");
+                "The Inventory Intelligence proposal changed the governed candidate sample.");
         }
+        await PersistInventoryAgentUsageAsync(
+            envelope, shortlistId, proposal, cancellationToken);
+        var byCandidate = interpretations.ToDictionary(item => item.CandidateId);
+        return candidates.Select(candidate =>
+        {
+            if (!byCandidate.TryGetValue(candidate.Id, out var interpretation))
+            {
+                return AttachDeterministicInterpretation(candidate);
+            }
+            return candidate with
+            {
+                Rationale = OpportunityCommandSupport.Required(
+                    interpretation.Rationale,
+                    1_000,
+                    nameof(InventoryCandidateInterpretationProposal.Rationale)),
+            };
+        }).ToArray();
+    }
+
+    private async Task PersistInventoryAgentUsageAsync(
+        CommandEnvelope<GenerateShortlistCommand> envelope,
+        Guid shortlistId,
+        InventoryIntelligenceAgentProposal proposal,
+        CancellationToken cancellationToken)
+    {
         var updated = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.inventory_shortlist_versions
             SET agent_provider_code = {proposal.Provider},
@@ -196,45 +230,28 @@ public sealed partial class PlanningCommands
             throw new InvalidOperationException(
                 "The Inventory Intelligence usage lineage could not be persisted.");
         }
-        var byCandidate = interpretations.ToDictionary(item => item.CandidateId);
-        return candidates.Select(candidate => candidate with
-        {
-            Rationale = OpportunityCommandSupport.Required(
-                byCandidate[candidate.Id].Rationale,
-                1_000,
-                nameof(InventoryCandidateInterpretationProposal.Rationale)),
-        }).ToArray();
     }
 
-    private InventoryIntelligenceCandidateInput ToInventoryIntelligenceInput(
+    private static PreparedShortlistCandidate AttachDeterministicInterpretation(
         PreparedShortlistCandidate candidate)
     {
-        var benchmark = candidate.Benchmark;
-        return new InventoryIntelligenceCandidateInput(
-            candidate.Id,
-            candidate.Inventory.ProductVersionId,
-            candidate.Inventory.Name,
-            candidate.Inventory.Channel,
-            candidate.Inventory.Geography,
-            candidate.Inventory.RateAmountMinor,
-            candidate.Inventory.Currency,
-            candidate.Eligibility.IsEligible,
-            candidate.Eligibility.RejectionReason,
-            candidate.Eligibility.RejectionDetail,
-            candidate.Eligibility.Score,
-            candidate.AudienceFit,
-            candidate.Suitability,
-            benchmark is null
-                ? null
-                : new InventoryBenchmarkInput(
-                    planningPolicy.BenchmarkVersion,
-                    benchmark.GeographyBasis,
-                    benchmark.Statistics.CohortSize,
-                    benchmark.Statistics.MedianMinor,
-                    benchmark.Statistics.Percentile,
-                    benchmark.Position,
-                    benchmark.Confidence,
-                    benchmark.Exclusions));
+        if (candidate.Eligibility.IsEligible)
+        {
+            return candidate with
+            {
+                Rationale =
+                    $"Eligible after governed hard constraints. Governed suitability is " +
+                    $"{candidate.Suitability.Total:P0}. The visible published rate and " +
+                    "benchmark remain subject to human shortlist selection.",
+            };
+        }
+        const string prefix = "Excluded by governed hard eligibility: ";
+        var detail = candidate.Eligibility.RejectionDetail ??
+            candidate.Eligibility.RejectionReason ?? "The inventory item is not eligible.";
+        var bounded = detail.Length <= 1_000 - prefix.Length
+            ? detail
+            : detail[..(1_000 - prefix.Length)];
+        return candidate with { Rationale = prefix + bounded };
     }
 
     private async Task<List<PlanningSpatialPeerRow>> LoadSpatialPeersAsync(
@@ -278,7 +295,18 @@ public sealed partial class PlanningCommands
         {
             throw new InvalidLifecycleTransitionException();
         }
-        EnsureSpatialCoverage(current.Candidates.Where(item => requested.Contains(item.Id)));
+        var selected = current.Candidates
+            .Where(item => requested.Contains(item.Id))
+            .ToArray();
+        var mix = await store.FindMixAsync(
+            envelope.TenantId, shortlist.MixVersionId, cancellationToken)
+            ?? throw new InvalidLifecycleTransitionException();
+        var requiredChannels = Read<MediaAllocationView[]>(mix.AllocationsJson)
+            .Where(item => item.BudgetMinor > 0)
+            .Select(item => item.Channel);
+        PlanningSelectionCoverage.EnsureChannels(
+            selected.Select(item => item.Channel), requiredChannels);
+        PlanningSelectionCoverage.EnsureSpatial(selected);
         var now = timeProvider.GetUtcNow();
         await PlanningShortlistPersistence.InsertSelectionsAsync(
             store.DbContext, envelope.TenantId, eligibleIds, requested,
@@ -312,22 +340,6 @@ public sealed partial class PlanningCommands
         }
     }
 
-    private static void EnsureSpatialCoverage(
-        IEnumerable<InventoryShortlistCandidateView> selected)
-    {
-        var candidates = selected.ToArray();
-        var required = candidates.SelectMany(item =>
-                item.SpatialMatch?.RequiredRequirementIds ?? [])
-            .ToHashSet();
-        var covered = candidates.SelectMany(item =>
-                item.SpatialMatch?.MatchedRequiredRequirementIds ?? [])
-            .ToHashSet();
-        if (!required.IsSubsetOf(covered))
-        {
-            throw new InvalidLifecycleTransitionException();
-        }
-    }
-
     private async Task ApproveShortlistAsync(
         CommandEnvelope<SelectShortlistCommand> envelope,
         Guid shortlistVersionId,
@@ -356,29 +368,4 @@ public sealed partial class PlanningCommands
             ? normalized
             : throw new ArgumentException("The selection reason is too long.");
     }
-}
-
-internal static partial class PlanningHash
-{
-    internal static string ForShortlist(
-        MediaMixRow mix,
-        AudienceDefinitionSetView audience,
-        IReadOnlyList<PlanningInventoryRow> inventory) => OpportunityCommandSupport.Hash(
-            $"{mix.Id:N}|{mix.Version}|{mix.InputHash}|{audience.Id:N}|" +
-            $"{audience.VersionNumber}|{audience.InputHash}|" + string.Join('|',
-                audience.Definitions.OrderBy(item => item.Id).Select(item =>
-                    $"{item.Id:N}:{item.Language}:{item.LifeStage}:{item.LsmSem}:" +
-                    $"{item.LsmSemTaxonomy}:{item.LsmSemTaxonomyVersion}:" +
-                    $"{string.Join(',', item.EvidenceItemIds.Order())}")) + "|" +
-            string.Join('|', inventory.Select(item =>
-                $"{item.InventoryTenantId:N}:{item.MarketplaceListingVersionId:N}:" +
-                $"{item.ProductVersionId:N}:{item.RateId:N}:{item.AvailabilityId:N}:" +
-                $"{item.AudienceProfileJson}")));
-
-    internal static string ForInventory(PlanningInventoryRow item, string shortlistHash) =>
-        OpportunityCommandSupport.Hash(
-            $"{shortlistHash}|{item.InventoryTenantId:N}|" +
-            $"{item.MarketplaceListingVersionId:N}|{item.ProductVersionId:N}|{item.RateId:N}|" +
-            $"{item.AvailabilityId:N}|{item.RateAmountMinor}|{item.Currency}|" +
-            $"{item.AudienceProfileJson}");
 }

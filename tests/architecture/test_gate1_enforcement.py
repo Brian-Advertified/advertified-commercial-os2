@@ -63,8 +63,9 @@ def test_governed_document_boundary_matches_repository_policy() -> None:
     markdown = {
         path.relative_to(REPO_ROOT).as_posix()
         for path in REPO_ROOT.rglob("*.md")
-        if not {".git", "node_modules", ".artifacts", ".pytest_cache", "test-results"}
-        .intersection(path.parts)
+        if not {
+            ".git", "node_modules", ".artifacts", ".pytest_cache", "test-results", "tmp",
+        }.intersection(path.parts)
     }
 
     assert markdown == {"ADVERTIFIED.md", "AGENTS.md"}

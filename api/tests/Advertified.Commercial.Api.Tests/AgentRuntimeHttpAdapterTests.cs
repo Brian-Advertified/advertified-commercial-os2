@@ -136,6 +136,12 @@ public sealed partial class AgentRuntimeHttpAdapterTests
                 stage = "GROUNDING_VALIDATION",
                 usage = new
                 {
+                    provider = "bedrock",
+                    model = "amazon.nova-lite-v1:0",
+                    units = 10_073,
+                    tool_calls = 0,
+                    incremental_cost_minor = 1,
+                    cache_status = "LIVE",
                     provider_request_id = "request-123",
                     input_tokens = 8_667,
                     output_tokens = 1_406,
@@ -158,6 +164,8 @@ public sealed partial class AgentRuntimeHttpAdapterTests
         Assert.Equal("GROUNDING_VALIDATION", rejected.Stage);
         Assert.Equal("request-123", rejected.ProviderRequestId);
         Assert.Equal(858, rejected.CostUsdMicros);
+        Assert.Equal(1, rejected.IncrementalCostMinor);
+        Assert.True(rejected.HasBillableAcceptedUsage);
     }
 
     [Theory]
@@ -192,7 +200,7 @@ public sealed partial class AgentRuntimeHttpAdapterTests
             {
                 name = "Furniture buyers",
                 description = "People described by the approved Brief as furniture buyers.",
-                need_state = "Increase enquiries",
+                need_state = "Not supplied; requires research.",
                 buying_context = "Not supplied.",
                 geographies = new[] { "Gauteng" },
                 language = (string?)null,

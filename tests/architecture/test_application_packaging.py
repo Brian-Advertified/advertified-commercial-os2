@@ -264,3 +264,99 @@ def test_ci_runs_a_pinned_blocking_secret_scan_and_retains_the_report() -> None:
     assert "--redact" in workflow
     assert "--report-path /out/gitleaks.json" in workflow
     assert "source-secret-scan-${{ github.sha }}" in workflow
+
+
+def test_local_seed_projects_reviewed_inventory_into_marketplace() -> None:
+    seed = read("infrastructure/development/seed-local-workspace.sql")
+    projection = read(
+        "infrastructure/development/publish-current-inventory-to-marketplace.sql"
+    )
+
+    inventory_include = "\\ir inventory-bootstrap.generated.sql"
+    marketplace_include = "\\ir publish-current-inventory-to-marketplace.sql"
+    assert inventory_include in seed
+    assert marketplace_include in seed
+    assert seed.index(inventory_include) < seed.index(marketplace_include)
+    assert "ON CONFLICT (supplier_tenant_id, product_id) DO NOTHING" in projection
+    assert "product_version.published_at_utc IS NOT NULL" in projection
+    assert "availability.availability_code <> 'UNAVAILABLE'" in projection
+    assert "availability.valid_until_utc >= clock_timestamp()" in projection
+    assert "ORDER BY availability.observed_at_utc DESC NULLS LAST" in projection
+    assert "rate.effective_to >= CURRENT_DATE" in projection
+    assert "INSERT INTO commercial.marketplace_listing_versions" in projection
+    assert "status_code = 'PUBLISHED'" in projection
+    assert "status_code = 'ARCHIVED'" in projection
+
+    runner = read("tools/apply-local-development-seed.mjs")
+    assert "includeRelative.startsWith('..')" in runner
+    assert "readFileSync(includePath, 'utf8')" in runner
+
+
+def test_production_stack_is_hardened_and_manual_inventory_is_fail_closed() -> None:
+    compose = read("infrastructure/docker-compose.production.yml")
+    environment = read("infrastructure/env.production.example")
+    startup = read("api/Startup/StartupConfigurationValidator.cs")
+    data_protection = read(
+        "api/Startup/BrowserDataProtectionRegistration.cs"
+    )
+
+    assert compose.splitlines()[0] == "name: advertified-os2-production"
+    assert "build:" not in compose
+    assert "latest" not in compose
+    assert compose.count("Process__Role: Api") == 1
+    assert compose.count("Process__Role: Worker") == 1
+    assert "Process__Role: Combined" not in compose
+    assert "internal: true" in compose
+    assert "no-new-privileges:true" in compose
+    assert "cap_drop:" in compose
+    assert "read_only: true" in compose
+    assert "127.0.0.1:${ADVERTIFIED_WEB_PORT:-8080}:8080" in compose
+    assert all(
+        f"ADVERTIFIED_{name}_IMAGE" in compose
+        for name in ("API", "MIGRATOR", "AGENT_RUNTIME", "WEB")
+    )
+    assert "@sha256:" in environment
+    assert "InventoryProcessing__Paused=true" in environment
+    assert "ADVERTIFIED_INVENTORY_PROCESSING_PAUSED=true" in environment
+    assert "Production requires separate API and worker processes." in startup
+    assert "PersistKeysToFileSystem" in data_protection
+    assert "ProtectKeysWithCertificate" in data_protection
+
+    validator = read("tools/validate-production-configuration.ps1")
+    assert "@sha256:[0-9a-f]{64}" in validator
+    assert "Assert-AdvertifiedNoDevelopmentValue" in validator
+    assert '"InventoryProcessing__Paused" "true"' in validator
+    assert "docker compose --env-file" in validator
+
+    workflow = read(".github/workflows/ci.yml")
+    assert "docker-compose.production.yml config --quiet" in workflow
+
+
+def test_worker_role_has_one_canonical_durable_dispatch_path() -> None:
+    registration = read("api/Startup/WorkerRegistration.cs")
+    program = read("api/Program.cs")
+    outbox_registration = read("api/Startup/OutboxDispatchRegistration.cs")
+    worker = read("api/Background/CommercialWorkerService.cs")
+
+    assert "if (!processRole.RunsWorkers)" in registration
+    assert "AddHostedService<CommercialWorkerService>()" in registration
+    assert "AddHostedService<InventoryExtractionDispatcher>()" in registration
+    assert "processRole.RunsWorkers" in program
+    assert "AddHostedService<OpportunityRunDispatcher>()" in program
+    assert "configured.Mode == OutboxDispatchOptions.DeterministicMode" in outbox_registration
+    assert "ShouldProcessOutbox" in worker
+    assert "settings.Mode == OutboxDispatchOptions.DeterministicMode" in worker
+
+
+def test_browser_session_restart_checks_are_isolated_and_repeatable() -> None:
+    default_config = read("web/playwright.config.ts")
+    package = read("web/package.json")
+    runner = read("tools/run-browser-session-durability.ps1")
+
+    assert "**/session-durability.*.spec.ts" in default_config
+    assert "test:e2e:session-durability" in package
+    assert "session-durability.seed.spec.ts" in runner
+    assert "session-durability.verify.spec.ts" in runner
+    assert "session-durability.revoked.spec.ts" in runner
+    assert runner.count("Restart-CommercialApi") == 3
+    assert "/health/ready" in runner

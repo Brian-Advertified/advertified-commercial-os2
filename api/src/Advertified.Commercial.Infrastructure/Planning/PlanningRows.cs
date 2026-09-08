@@ -22,6 +22,7 @@ internal sealed record PlanningBriefRow(
     string Objective,
     string AudiencesJson,
     string GeographiesJson,
+    string ConstraintsJson,
     long? BudgetMinor,
     bool BudgetUnknown,
     string? Currency,
@@ -50,6 +51,10 @@ internal sealed record AudienceSetRow(
     string PositioningStatement,
     string InputHash,
     string Status,
+    Guid CreatedBy,
+    Guid? ApprovedBy,
+    long Version,
+    DateTimeOffset? ApprovedAtUtc,
     DateTimeOffset CreatedAtUtc);
 
 internal sealed record AudienceDefinitionRow(

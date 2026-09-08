@@ -15,12 +15,24 @@ internal sealed class PlanningAgentFixture : IPlanningAgentClient
         var classification = input.EvidenceItemIds.Count > 0
             ? MasterDataCodes.EvidenceClassifications.Inference
             : MasterDataCodes.EvidenceClassifications.Hypothesis;
-        var audiences = input.Audiences.Select((name, index) =>
+        var candidateNames = input.Audiences.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var primaryName = candidateNames.FirstOrDefault() ?? "Audience requiring clarification";
+        if (candidateNames.Count < 2)
+        {
+            candidateNames.Add($"High-intent {primaryName}");
+        }
+        if (candidateNames.Count < 3)
+        {
+            candidateNames.Add($"Adjacent {primaryName} requiring validation");
+        }
+        var audiences = candidateNames.Take(6).Select((name, index) =>
             new AudienceDefinitionProposal(
                 name,
-                $"People described by the approved Brief as {name}.",
+                $"Candidate segment derived from the approved Brief context: {name}.",
                 input.Objective,
-                "Buying context is not supplied and remains a planning question.",
+                index < 2
+                    ? "People actively considering action related to the campaign objective."
+                    : "The relationship to the buying decision must be validated.",
                 input.Geographies,
                 null,
                 null,
@@ -31,7 +43,7 @@ internal sealed class PlanningAgentFixture : IPlanningAgentClient
                 ["Do not infer sensitive individual attributes."],
                 input.EvidenceItemIds,
                 input.EvidenceItemIds.Count > 0 ? 0.70m : 0.45m,
-                true)).ToArray();
+                index < 2)).ToArray();
         var audienceNames = audiences.Select(item => item.Name).ToArray();
         var targetingRationale = audienceNames.Length == 0
             ? "No target segment was supplied; audience clarification is required."

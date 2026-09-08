@@ -52,12 +52,17 @@ public static class MarketplaceEndpoints
 
     private static async Task<IResult> SearchListingsAsync(
         Guid tenantId, string? search, string? channel, string? geography,
+        string? country, string? province, string? city, string? supplier, string? format,
+        string? rateType, long? minimumAmountMinor, long? maximumAmountMinor,
+        string? currency,
         int? pageSize, string? cursor, ICurrentIdentity identity,
         IMarketplaceReader reader, CancellationToken cancellationToken) =>
         Results.Ok(await reader.SearchListingsAsync(
             identity.ActorId, new TenantId(tenantId),
             new MarketplaceSearchQuery(
-                search, channel, geography, pageSize ?? 25, cursor),
+                search, channel, geography, country, province, city, supplier, format,
+                rateType, minimumAmountMinor, maximumAmountMinor, currency,
+                pageSize ?? 25, cursor),
             cancellationToken));
 
     private static async Task<IResult> GetListingAsync(

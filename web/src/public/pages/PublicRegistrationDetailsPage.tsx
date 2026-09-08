@@ -34,6 +34,7 @@ export function PublicRegistrationDetailsPage({ type }: { type: RegistrationType
             <ul>
               {reviewSteps.map((step) => <li key={step}><CheckCircle2 aria-hidden="true" /> {step}</li>)}
             </ul>
+            <a className="btn secondary" href={`mailto:ad@advertified.com?subject=${encodeURIComponent(`${content.title} assistance`)}`}>Email Advertified</a>
             <Link className="btn secondary" href="/sign-in">Already registered? Log in</Link>
           </aside>
         </div>

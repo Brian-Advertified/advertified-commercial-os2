@@ -60,13 +60,15 @@ public sealed partial class ProposalCommands
                 id, tenant_id, brief_id, brief_version_id, version_no, title,
                 executive_summary, terms, expiry_at_utc, status_code, input_hash,
                 agent_provider_code, agent_model_code, agent_incremental_cost_minor,
-                agent_provider_request_id, created_by, version, created_at_utc)
+                agent_provider_request_id, created_by, agency_brand_name,
+                client_brand_name, version, created_at_utc)
             VALUES ({proposalId}, {envelope.TenantId.Value}, {briefId}, {brief.BriefVersionId},
                 {versionNumber}, {title}, {narrative.ExecutiveSummary}, {terms},
                 {envelope.Command.ExpiryAtUtc}, {MasterDataCodes.LifecycleStatuses.Draft},
                 {inputHash}, {narrative.Provider}, {narrative.Model},
                 {narrative.IncrementalCostMinor}, {narrative.ProviderRequestId},
-                {envelope.ActorId.Value}, 1, {now})
+                {envelope.ActorId.Value}, {brief.AgencyBrandName},
+                {brief.ClientBrandName}, 1, {now})
             """, cancellationToken);
         await ProposalOptionPersistence.InsertAsync(
             store.DbContext, envelope.TenantId, proposalId, inputs, cancellationToken);

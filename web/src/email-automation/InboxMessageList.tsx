@@ -10,12 +10,12 @@ export function InboxMessageList({ messages, selectedId, busy, onSelect }: {
   onSelect: (id: string) => void
 }) {
   if (messages.length === 0) {
-    return <article className="ooh-inbox-empty"><div className="ooh-empty-mark">OOH</div>
+    return <article className="ooh-inbox-empty"><div className="ooh-empty-mark" aria-hidden="true">✉</div>
       <h2>No proposal emails yet</h2>
       <p>New messages to the connected mailbox will appear here as they move through STP, media planning and proposal delivery.</p>
     </article>
   }
-  return <div className="ooh-message-list" aria-label="OOH proposal emails">
+  return <div className="ooh-message-list" aria-label="outdoor advertising proposal emails">
     {messages.map((message) => <button type="button" key={message.id}
       className={`ooh-message-card ${selectedId === message.id ? 'is-selected' : ''}`}
       disabled={busy}

@@ -44,6 +44,20 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             "full-audience",
             1,
             new { });
+        var audienceSetId = audience.RootElement.GetProperty("id").GetGuid();
+        using var approvedAudience = await CommandAsync(
+            client,
+            Path($"audience-strategies/{audienceSetId}:approve"),
+            "full-audience-approve",
+            1,
+            new
+            {
+                targetAudienceIds = audience.RootElement.GetProperty("targetAudienceIds")
+                    .EnumerateArray().Select(item => item.GetGuid()).ToArray(),
+                targetingRationale = audience.RootElement.GetProperty("targetingRationale").GetString(),
+                positioningStatement = audience.RootElement.GetProperty("positioningStatement").GetString(),
+                reason = "The owner reviewed the full-campaign audience strategy.",
+            });
         using var mix = await CommandAsync(
             client,
             Path($"brief-versions/{FullBriefVersionId}/media-mixes:generate"),

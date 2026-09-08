@@ -6,6 +6,7 @@ using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.MasterData;
+using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -50,9 +51,14 @@ public sealed partial class OpportunityAcceptanceTests
             builder.UseSetting("Authentication:DevelopmentIdentity:UserId", userId.ToString());
             builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", userId.ToString());
             builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
-            builder.UseSetting("AgentRuntime:Mode", "Disabled");
+            builder.UseSetting(
+                "AgentRuntime:Mode",
+                enableRuntime
+                    ? AgentRuntimeOptions.HttpDeterministicMode
+                    : AgentRuntimeOptions.DisabledMode);
             if (enableRuntime)
             {
+                builder.UseSetting("AgentRuntime:ServiceKey", "opportunity-test-only");
                 builder.UseSetting("Process:Role", ProcessRoleOptions.CombinedRole);
                 builder.UseSetting(
                     "ConnectionStrings:WorkerSchedulerDatabase", connectionString);

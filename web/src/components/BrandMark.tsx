@@ -11,10 +11,7 @@ export function BrandMark() {
         className="brand-logo"
       />
       <span className="brand-tagline" aria-label={tagline}>
-        <span className="brand-tagline-track" aria-hidden="true">
-          <span>{tagline}</span>
-          <span>{tagline}</span>
-        </span>
+        <span className="brand-tagline-track" aria-hidden="true">{tagline}</span>
       </span>
     </div>
   )

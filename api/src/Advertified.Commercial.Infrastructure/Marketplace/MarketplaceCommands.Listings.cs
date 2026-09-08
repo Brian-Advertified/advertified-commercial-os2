@@ -176,6 +176,8 @@ public sealed partial class MarketplaceCommands
         if (snapshot.Availability == MasterDataCodes.AvailabilityStatuses.Unavailable ||
             snapshot.AvailabilityObservedAtUtc.HasValue &&
             snapshot.AvailabilityObservedAtUtc.Value > now ||
+            snapshot.AvailabilityValidUntilUtc.HasValue &&
+            snapshot.AvailabilityValidUntilUtc.Value < now ||
             snapshot.RateEffectiveFrom.HasValue && snapshot.RateEffectiveFrom.Value > today ||
             snapshot.RateEffectiveTo.HasValue && snapshot.RateEffectiveTo.Value < today)
         {

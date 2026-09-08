@@ -1,6 +1,7 @@
 using Advertified.Commercial.Application.EmailAutomation;
 using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Infrastructure.Proposal;
 
 namespace Advertified.Commercial.Infrastructure.EmailAutomation;
 
@@ -69,7 +70,7 @@ public sealed partial class EmailProposalAutomationProcessor
         return new ProposalEmailDelivery(
             context.ReplyToEmail,
             sender,
-            string.Concat(policy.EmailSubjectPrefix, " ", proposal.Title),
+            string.Concat(ProposalMediaLabels.ClientText(policy.EmailSubjectPrefix), " ", proposal.Title),
             policy.EmailBody,
             content.FileName,
             content.MediaType,

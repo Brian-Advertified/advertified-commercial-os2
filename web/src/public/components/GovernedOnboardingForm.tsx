@@ -62,45 +62,50 @@ export function GovernedOnboardingForm({ type, organisationLabel, relationshipLa
     }
   };
 
-  if (state === 'success') {
-    return <article className="registration-details__form">
-      <CheckCircle2 aria-hidden="true" />
-      <span className="eyebrow">REQUEST RECEIVED</span>
-      <h2>Registration is under review.</h2>
-      <p>{status}</p>
-    </article>;
-  }
+  return <OnboardingFormView type={type} organisationLabel={organisationLabel}
+    relationshipLabel={relationshipLabel} values={values} errors={errors} state={state}
+    status={status} update={update} submit={submit} />;
+}
 
-  return (
-    <article className="registration-details__form">
-      <header className="registration-details__heading">
-        <span className="eyebrow">GOVERNED ONBOARDING</span>
-        <h2>Request the right Advertified access.</h2>
-        <p>Submitting this form creates a review request only. No workspace or private access is created until Advertified verifies it.</p>
-      </header>
-      <form className="contact-form public-contact-form" onSubmit={(event) => void submit(event)} noValidate>
-        <Field label="Your name" name="name" value={values.name} error={errors.name} onChange={(value) => update('name', value)} />
-        <Field label="Business email" name="email" type="email" value={values.email} error={errors.email} onChange={(value) => update('email', value)} />
-        <Field label="Mobile number" name="phone" value={values.phone} error={errors.phone} onChange={(value) => update('phone', value)} />
-        <Field label={organisationLabel} name="organisation" value={values.organisation} error={errors.organisation} onChange={(value) => update('organisation', value)} />
-        <Field label="Website or public profile" name="website" type="url" value={values.website} error={errors.website} onChange={(value) => update('website', value)} />
-        <label className="full public-form-wide" htmlFor={`registration-${type}-relationship`}>
-          <span>{relationshipLabel}</span>
-          <textarea id={`registration-${type}-relationship`} value={values.relationship} onChange={(event) => update('relationship', event.target.value)} aria-invalid={Boolean(errors.relationship)} />
-          {errors.relationship && <small className="public-field-error">{errors.relationship}</small>}
-        </label>
-        <label className="full public-form-wide" htmlFor={`registration-${type}-message`}>
-          <span>Anything else we should know?</span>
-          <textarea id={`registration-${type}-message`} value={values.message} onChange={(event) => update('message', event.target.value)} aria-invalid={Boolean(errors.message)} />
-          {errors.message && <small className="public-field-error">{errors.message}</small>}
-        </label>
-        {status && <div className="public-form-status public-form-wide" role="status">{status}</div>}
-        <button className="btn primary large full public-form-wide" type="submit" disabled={state === 'pending'}>
-          {state === 'pending' ? 'Submitting request…' : 'Submit registration request'}
-        </button>
-      </form>
-    </article>
-  );
+function OnboardingFormView(props: {
+  type: RegistrationType; organisationLabel: string; relationshipLabel: string;
+  values: Values; errors: Errors; state: FormState; status: string;
+  update: (field: keyof Values, value: string) => void;
+  submit: (event: FormEvent) => Promise<void>;
+}) {
+  if (props.state === 'success') return <article className="registration-details__form">
+    <CheckCircle2 aria-hidden="true" /><span className="eyebrow">REQUEST RECEIVED</span>
+    <h2>Registration is under review.</h2><p>{props.status}</p>
+  </article>;
+  const { values, errors, update } = props;
+  return <article className="registration-details__form">
+    <header className="registration-details__heading">
+      <span className="eyebrow">GOVERNED ONBOARDING</span>
+      <h2>Request the right Advertified access.</h2>
+      <p>Submitting this form creates a review request only. No account, membership or campaign access is created automatically.</p>
+    </header>
+    <form className="contact-form public-contact-form" onSubmit={(event) => void props.submit(event)} noValidate>
+      <Field label="Your name" name="name" value={values.name} error={errors.name} onChange={(value) => update('name', value)} />
+      <Field label="Business email" name="email" type="email" value={values.email} error={errors.email} onChange={(value) => update('email', value)} />
+      <Field label="Mobile number" name="phone" value={values.phone} error={errors.phone} onChange={(value) => update('phone', value)} />
+      <Field label={props.organisationLabel} name="organisation" value={values.organisation} error={errors.organisation} onChange={(value) => update('organisation', value)} />
+      <Field label="Website or public profile" name="website" type="url" value={values.website} error={errors.website} onChange={(value) => update('website', value)} />
+      <label className="full public-form-wide" htmlFor={`registration-${props.type}-relationship`}>
+        <span>{props.relationshipLabel}</span>
+        <textarea id={`registration-${props.type}-relationship`} value={values.relationship} onChange={(event) => update('relationship', event.target.value)} aria-invalid={Boolean(errors.relationship)} />
+        {errors.relationship && <small className="public-field-error">{errors.relationship}</small>}
+      </label>
+      <label className="full public-form-wide" htmlFor={`registration-${props.type}-message`}>
+        <span>Anything else we should know?</span>
+        <textarea id={`registration-${props.type}-message`} value={values.message} onChange={(event) => update('message', event.target.value)} aria-invalid={Boolean(errors.message)} />
+        {errors.message && <small className="public-field-error">{errors.message}</small>}
+      </label>
+      {props.status && <div className="public-form-status public-form-wide" role="status">{props.status}</div>}
+      <button className="btn primary large full public-form-wide" type="submit" disabled={props.state === 'pending'}>
+        {props.state === 'pending' ? 'Submitting request…' : 'Submit registration request'}
+      </button>
+    </form>
+  </article>;
 }
 
 function Field({ label, name, type = 'text', value, error, onChange }: {

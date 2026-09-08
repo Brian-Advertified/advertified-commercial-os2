@@ -78,11 +78,11 @@ function PlanningWorkspaceContent(props: PlanningContext & {
   const shortlist = currentShortlist(workspace, mix)
   const plan = currentPlan(workspace, mix)
   return <section aria-labelledby="planning-title" className="planning-page approved-media-planning-page">
-    <Link className="text-action back-link" to={`/stp/${workspace.briefVersionId}`}>← Back to Strategy & STP</Link>
+    <Link className="text-action back-link" to={`/stp/${workspace.briefVersionId}`}>← Back to Audience Strategy</Link>
     <header className="approved-media-planning-header"><div><p className="eyebrow">Integrated plan across all selected channels</p>
       <h1 id="planning-title">Media Planning Overview</h1>
       <p>Allocate investment, select eligible supply and reconcile the client-ready media plan.</p></div>
-      <span className="status-chip status-positive">{workspace.campaignMode?.mode === masterDataCodes.campaignModes.oohOnly ? 'OOH / DOOH only' : 'Full campaign'}</span></header>
+      <span className="status-chip status-positive">{workspace.campaignMode?.mode === masterDataCodes.campaignModes.oohOnly ? 'Outdoor advertising and digital screens only' : 'Full campaign'}</span></header>
     <ExperienceSignals title="Planning intelligence" signals={planningSignals(workspace, mix, shortlist, plan)} />
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
     {mix && <ApprovedPlanningOverview mix={mix} plan={plan} />}
@@ -165,7 +165,10 @@ function ShortlistStage(props: PlanningContext & {
     onAction={() => props.act(() => planningApi.generateShortlist(
       props.tenantId, props.briefVersionId, props.token))} />
   return <ShortlistPanel key={`${props.shortlist.id}-${props.shortlist.version}`}
-    shortlist={props.shortlist} busy={props.busy}
+    shortlist={props.shortlist}
+    requiredChannels={props.mix.allocations
+      .filter(item => item.budgetMinor > 0).map(item => item.channel)}
+    busy={props.busy}
     onConfirm={(selectedIds) => props.act(() => planningApi.selectShortlist(
       props.tenantId, props.shortlist!, selectedIds, props.token))} />
 }
@@ -223,7 +226,7 @@ function planningSignals(workspace: PlanningWorkspace, mix: MediaMix | null, sho
 function campaignScopeSignal(workspace: PlanningWorkspace): ExperienceSignal {
   const oohOnly = workspace.campaignMode?.mode === masterDataCodes.campaignModes.oohOnly
   return {
-    label: 'Campaign scope', value: oohOnly ? 'OOH / DOOH' : 'Full campaign', icon: 'target', tone: 'violet',
+    label: 'Campaign scope', value: oohOnly ? 'Outdoor advertising and digital screens' : 'Full campaign', icon: 'target', tone: 'violet',
     detail: workspace.campaignMode?.isLocked ? 'The media scope is locked to this Brief lineage.' : 'The current media scope is not yet locked.',
     why: workspace.campaignMode?.reason || 'This mode is the persisted campaign-mode decision for the current Brief version.',
   }

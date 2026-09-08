@@ -5,6 +5,7 @@ import { measurementIndexApi, type IndexPage } from '../api/measurement-index-cl
 import { useWorkspace } from '../auth/workspace-state'
 import { LoadingState, MessageState } from '../components/PageState'
 import { formatDateTime, humanizeCode } from '../presentation/format'
+import { OperationalReporting } from '../reporting/OperationalReporting'
 
 export function MeasurementIndexPage() {
   return <PagedIndex title="Measurement" load={measurementIndexApi.campaigns}>
@@ -15,7 +16,22 @@ export function MeasurementIndexPage() {
 }
 
 export function ReportsIndexPage() {
-  return <PagedIndex title="Reports" load={measurementIndexApi.reports}>
+  const { selected, loading } = useWorkspace()
+  if (loading) return <LoadingState />
+  if (!selected) return <MessageState title="Reports" message="Select a workspace to continue." />
+  return <section className="approved-work-index" aria-label="Reports">
+    <header className="approved-work-index-header"><h1>Operational and commercial reporting</h1>
+      <nav className="approved-reporting-tabs" aria-label="Reporting views">
+        <Link to="/measurement">Campaign measurement</Link><Link to="/reports">Operations</Link>
+      </nav></header>
+    <OperationalReporting tenantId={selected.tenantId} />
+    <h2>Approved measurement reports</h2>
+    <MeasurementReportIndex />
+  </section>
+}
+
+function MeasurementReportIndex() {
+  return <PagedIndex title="Measurement reports" load={measurementIndexApi.reports}>
     {report => <SummaryRow title={`${report.campaignTitle} · Report ${report.versionNumber}`}
       updated={report.updatedAtUtc} to={`/measurement-reports/${report.id}`}
       meta={`${humanizeCode(report.status, true)} · ${report.evidenceCount} evidence source(s)`} />}
@@ -62,7 +78,13 @@ function IndexResults<T extends { id: string }>({ title, page, error, cursor, on
   onRetry: () => void; onNavigate: (cursor: string | null) => void; children: (item: T) => ReactNode
 }) {
   return <section className="approved-work-index" aria-label={title}>
-    <header className="approved-work-index-header"><h1>{title}</h1></header>
+    <header className="approved-work-index-header">
+      <h1>{title}</h1>
+      <nav className="approved-reporting-tabs" aria-label="Reporting views">
+        <Link to="/measurement">Campaign measurement</Link>
+        <Link to="/reports">Reports</Link>
+      </nav>
+    </header>
     {error && <><MessageState title={`${title} could not be opened`} message={error} />
       <button type="button" onClick={onRetry}>Retry</button></>}
     <div className="approved-work-index-list">

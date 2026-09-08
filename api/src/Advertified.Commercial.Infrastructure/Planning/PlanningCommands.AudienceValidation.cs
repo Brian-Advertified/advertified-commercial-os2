@@ -10,6 +10,13 @@ internal static class PlanningAudienceProposalValidator
         IReadOnlyList<string> geographies,
         IReadOnlyList<Guid> evidenceItemIds)
     {
+        if (audiences.Count is < 1 or > 20 ||
+            audiences.Select(item => item.Name.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase).Count() != audiences.Count)
+        {
+            throw new InvalidOperationException(
+                "Audience discovery must return one to twenty distinct candidate segments.");
+        }
         var allowedGeographies = geographies.ToHashSet(StringComparer.Ordinal);
         var allowedEvidence = evidenceItemIds.ToHashSet();
         foreach (var audience in audiences)

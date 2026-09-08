@@ -1,0 +1,176 @@
+"""Generate production SQL from the manually reviewed canonical inventory seed."""
+from __future__ import annotations
+
+import argparse
+import json
+import uuid
+from pathlib import Path
+
+import generate_inventory_development_seed as inventory_seed
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+MARKETPLACE_PROJECTION = (
+    REPO_ROOT
+    / "infrastructure"
+    / "development"
+    / "publish-current-inventory-to-marketplace.sql"
+)
+LOCAL_TENANT_ID = "10000000-0000-0000-0000-000000000002"
+LOCAL_ACTOR_ID = "10000000-0000-0000-0000-000000000001"
+
+
+def parse_uuid(value: str) -> str:
+    return str(uuid.UUID(value))
+
+
+def confirm_seed(seed: dict, expected_checksum: str) -> str:
+    actual = inventory_seed.canonical_hash(seed)
+    if actual != expected_checksum.lower():
+        raise ValueError(
+            "The reviewed inventory seed checksum does not match confirmation."
+        )
+    return actual
+
+
+def configure_identity(
+    tenant_id: str,
+    creator_id: str,
+    reviewer_id: str,
+) -> None:
+    if len({tenant_id, creator_id, reviewer_id}) != 3:
+        raise ValueError("Tenant, creator and reviewer identities must be distinct.")
+    inventory_seed.TENANT_ID = tenant_id
+    inventory_seed.CREATOR_ID = creator_id
+    inventory_seed.REVIEWER_ID = reviewer_id
+    inventory_seed.NAMESPACE = uuid.uuid5(
+        inventory_seed.NAMESPACE,
+        f"production-tenant:{tenant_id}",
+    )
+
+
+def marketplace_sql(tenant_id: str, creator_id: str) -> str:
+    source = MARKETPLACE_PROJECTION.read_text(encoding="utf-8")
+    return (
+        source.replace(LOCAL_TENANT_ID, tenant_id)
+        .replace(LOCAL_ACTOR_ID, creator_id)
+        .replace(
+            "-- This seed owns its transaction and explicit local tenant/actor session.",
+            "-- This seed owns its transaction and explicit production tenant/actor session.",
+        )
+    )
+
+
+def combine_seed_sql(bootstrap: str, projection: str) -> str:
+    bootstrap_end = bootstrap.rstrip()
+    projection_start = "\\set ON_ERROR_STOP on\nBEGIN;\n"
+    if not bootstrap_end.endswith("COMMIT;") or not projection.startswith(
+        projection_start
+    ):
+        raise ValueError("Inventory seed transaction boundaries are invalid.")
+    return (
+        bootstrap_end[: -len("COMMIT;")].rstrip()
+        + "\n\n"
+        + projection.removeprefix(projection_start)
+    )
+
+
+def rollback_sql(
+    payload: dict,
+    tenant_id: str,
+    creator_id: str,
+    checksum: str,
+    codes: dict[str, str],
+) -> str:
+    products = json.dumps(
+        [item["productId"] for item in payload["records"] if item["publicationEligible"]],
+        separators=(",", ":"),
+    )
+    return f"""-- Non-destructive rollback for manually reviewed inventory seed {checksum}.
+\\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL app.current_tenant_id = '{tenant_id}';
+SET LOCAL app.current_actor_id = '{creator_id}';
+CREATE TEMP TABLE inventory_seed_rollback_products (id uuid) ON COMMIT DROP;
+INSERT INTO inventory_seed_rollback_products
+SELECT value::uuid FROM jsonb_array_elements_text(
+    $products$${products}$products$::jsonb);
+
+UPDATE commercial.marketplace_listings listing
+SET status_code = '{codes["archived"]}',
+    archived_reason = 'Manual production inventory seed rollback.',
+    version = listing.version + 1,
+    updated_at_utc = clock_timestamp()
+WHERE listing.supplier_tenant_id = current_setting('app.current_tenant_id')::uuid
+  AND listing.product_id IN (SELECT id FROM inventory_seed_rollback_products)
+  AND listing.status_code <> '{codes["archived"]}';
+
+UPDATE commercial.inventory_products product
+SET status_code = '{codes["inactive"]}',
+    expired_at_utc = COALESCE(product.expired_at_utc, clock_timestamp()),
+    version = product.version + 1,
+    updated_at_utc = clock_timestamp()
+WHERE product.tenant_id = current_setting('app.current_tenant_id')::uuid
+  AND product.id IN (SELECT id FROM inventory_seed_rollback_products)
+  AND product.status_code <> '{codes["inactive"]}';
+
+COMMIT;
+"""
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("seed", type=Path)
+    parser.add_argument("output", type=Path)
+    parser.add_argument("rollback_output", type=Path)
+    parser.add_argument("--tenant-id", required=True, type=parse_uuid)
+    parser.add_argument("--creator-id", required=True, type=parse_uuid)
+    parser.add_argument("--reviewer-id", required=True, type=parse_uuid)
+    parser.add_argument("--confirm-manual-review-checksum", required=True)
+    args = parser.parse_args()
+
+    seed = json.loads(args.seed.read_text(encoding="utf-8"))
+    checksum = confirm_seed(seed, args.confirm_manual_review_checksum)
+    configure_identity(args.tenant_id, args.creator_id, args.reviewer_id)
+    payload = inventory_seed.enrich(seed)
+    codes = inventory_seed.governed_codes()
+    bootstrap = inventory_seed.generate(
+        payload,
+        codes,
+    ).replace(
+        "Generated by tools/generate_inventory_development_seed.py. Do not edit.",
+        (
+            "Generated from the manually reviewed production seed. Do not edit.\n"
+            f"-- Canonical seed SHA-256: {checksum}"
+        ),
+        1,
+    )
+
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(
+        combine_seed_sql(
+            bootstrap,
+            marketplace_sql(args.tenant_id, args.creator_id),
+        ),
+        encoding="utf-8",
+        newline="\n",
+    )
+    args.rollback_output.parent.mkdir(parents=True, exist_ok=True)
+    args.rollback_output.write_text(
+        rollback_sql(
+            payload,
+            args.tenant_id,
+            args.creator_id,
+            checksum,
+            codes,
+        ),
+        encoding="utf-8",
+        newline="\n",
+    )
+    print(args.output)
+    print(args.rollback_output)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

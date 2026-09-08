@@ -73,6 +73,20 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             "reconcile-audience",
             1,
             new { });
+        var audienceSetId = audience.RootElement.GetProperty("id").GetGuid();
+        using var approvedAudience = await CommandAsync(
+            client,
+            Path($"audience-strategies/{audienceSetId}:approve"),
+            "reconcile-audience-approve",
+            1,
+            new
+            {
+                targetAudienceIds = audience.RootElement.GetProperty("targetAudienceIds")
+                    .EnumerateArray().Select(item => item.GetGuid()).ToArray(),
+                targetingRationale = audience.RootElement.GetProperty("targetingRationale").GetString(),
+                positioningStatement = audience.RootElement.GetProperty("positioningStatement").GetString(),
+                reason = "The owner reviewed the audience strategy.",
+            });
         using var mix = await CommandAsync(
             client,
             Path($"brief-versions/{BriefVersionId}/media-mixes:generate"),

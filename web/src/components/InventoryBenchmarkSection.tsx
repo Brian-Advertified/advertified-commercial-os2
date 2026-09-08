@@ -26,7 +26,7 @@ export function InventoryBenchmarkSection({ tenantId, productId, channel }: {
         if (!active) return
         setMessage(failure instanceof ApiFailure &&
           failure.code === 'INVENTORY_BENCHMARK_UNAVAILABLE'
-          ? 'There is not enough current comparable OOH data to position this placement yet.'
+          ? 'There is not enough current comparable outdoor advertising data to position this placement yet.'
           : humanMessage(failure))
       })
     return () => { active = false }

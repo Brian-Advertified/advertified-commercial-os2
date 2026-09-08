@@ -1,4 +1,5 @@
 using Advertified.Commercial.Application.Planning;
+using Advertified.Commercial.Domain.MasterData;
 
 namespace Advertified.Commercial.Infrastructure.EmailAutomation;
 
@@ -16,6 +17,10 @@ public sealed class StpReadinessEvaluator : IStpReadinessEvaluator
         }
 
         var reasons = new List<string>();
+        if (strategy.Status != MasterDataCodes.LifecycleStatuses.Approved)
+        {
+            reasons.Add("The audience strategy has not been approved by a human reviewer.");
+        }
         if (strategy.Definitions.Count == 0)
         {
             reasons.Add("No audience segment was produced.");

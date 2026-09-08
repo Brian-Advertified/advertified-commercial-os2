@@ -7,6 +7,8 @@ namespace Advertified.Commercial.Infrastructure.Planning;
 
 internal static class InventoryCommercialReadiness
 {
+    internal const string RateValidityGap = "inventory.rate.validity";
+
     private static readonly JsonSerializerOptions StoredJson =
         new(JsonSerializerDefaults.Web);
 
@@ -23,7 +25,7 @@ internal static class InventoryCommercialReadiness
         }
         if (!value.EffectiveFrom.HasValue || !value.EffectiveTo.HasValue)
         {
-            gaps.Add("inventory.rate.validity");
+            gaps.Add(RateValidityGap);
         }
         if (value.RateType == MasterDataCodes.RateTypes.UnspecifiedPeriodRate)
         {

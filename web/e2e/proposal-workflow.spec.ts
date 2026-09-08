@@ -1,4 +1,6 @@
 import { expect, test, type Route } from '@playwright/test'
+import { authorisedUnbrandedFixture } from './support/proposal-branding-fixture'
+import { proposalSchema } from '../src/api/proposal-schemas'
 
 const tenantId = '91000000-0000-0000-0000-000000000001'
 const agencyUserId = '92000000-0000-0000-0000-000000000001'
@@ -102,7 +104,7 @@ test('Rapid OOH operator records the verified external client reply', async ({ p
   await page.route('**/api/v1/**', route => handleApi(route, state))
 
   await page.goto(`/proposals/${proposalId}`)
-  await expect(page.getByRole('region', { name: 'OOH-only Campaign Flow' }))
+  await expect(page.getByRole('region', { name: 'Outdoor advertising campaign' }))
     .toHaveAttribute('data-campaign-mode', 'OOH_ONLY')
   await expect(page.getByRole('heading', { name: 'Record the verified client reply' }))
     .toBeVisible()
@@ -132,6 +134,7 @@ function initialState(): State {
 
 async function handleApi(route: Route, state: State) {
   const path = new URL(route.request().url()).pathname
+  if (route.request().method() === 'GET' && path.endsWith('/brand-assets')) return json(route, [])
   if (route.request().method() === 'GET') return handleRead(route, state, path)
   assertMutation(route, requiresVersion(path))
   return handleWrite(route, state, path)
@@ -235,7 +238,7 @@ async function selectOption(route: Route, state: State) {
 }
 
 function proposalFixture(state: State) {
-  return {
+  return proposalSchema.parse({
     id: proposalId, briefId, briefVersionId, versionNumber: 1,
     title: state.title, executiveSummary: state.summary, terms: state.terms,
     expiryAtUtc: state.expiryAtUtc, status: state.status,
@@ -255,8 +258,11 @@ function proposalFixture(state: State) {
     approvalRejectedBy: null,
     approvalRejectionReason: null,
     approvalRejectedAtUtc: null,
+    inventoryReviewStatus: 'CURRENT',
+    inventoryImpacts: [],
+    branding: authorisedUnbrandedFixture(agencyUserId, now),
     version: state.version, createdAtUtc: now,
-  }
+  })
 }
 
 function planningFixture(mode: State['campaignMode']) {
@@ -352,7 +358,7 @@ function assertMutation(route: Route, versioned: boolean) {
 }
 
 function sessionFixture() {
-  return { authenticated: true, antiforgeryToken: 'csrf-proposal', expiresAtUtc: '2026-08-30T02:00:00Z', signInPath: null, signOutPath: null }
+  return { authenticated: true, antiforgeryToken: 'csrf-proposal', expiresAtUtc: '2099-08-30T02:00:00Z', signInPath: null, signOutPath: null }
 }
 
 function workspaceFixture(role: Role) {

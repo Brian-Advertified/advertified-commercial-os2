@@ -45,6 +45,16 @@ public sealed class InventoryPurchasePersistenceTests
         using var mode = await Command(client, brief + "/campaign-mode:select", new SelectCampaignModeCommand(
             MasterDataCodes.CampaignModes.OohOnly, MasterDataCodes.CampaignModeDecisionSources.HumanSelection, 1m, "Synthetic scope"));
         using var audience = await Command(client, brief + "/audiences:generate", new { });
+        var audienceSetId = audience.RootElement.GetProperty("id").GetGuid();
+        using var approvedAudience = await Command(client,
+            $"{prefix}/audience-strategies/{audienceSetId}:approve", new
+            {
+                targetAudienceIds = audience.RootElement.GetProperty("targetAudienceIds")
+                    .EnumerateArray().Select(item => item.GetGuid()).ToArray(),
+                targetingRationale = audience.RootElement.GetProperty("targetingRationale").GetString(),
+                positioningStatement = audience.RootElement.GetProperty("positioningStatement").GetString(),
+                reason = "Human reviewed the generated audience strategy.",
+            });
         using var mix = await Command(client, brief + "/media-mixes:generate", new { });
         var mixPath = $"{prefix}/media-mix-versions/{mix.RootElement.GetProperty("id").GetGuid()}";
         var purchase = new InventoryPurchaseQuantity(CanonicalPlanningAcceptanceTests.TenantId,

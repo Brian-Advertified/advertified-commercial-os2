@@ -39,6 +39,14 @@ public sealed partial class PlanningCommands(
             token => GenerateAudiencesOutcomeAsync(briefVersionId, envelope, token),
             CommandOutcomeFactory.ToResult<AudienceDefinitionSetView>, cancellationToken);
 
+    public Task<CommandResult<AudienceDefinitionSetView>> ApproveAudienceStrategyAsync(
+        Guid audienceSetId,
+        CommandEnvelope<ApproveAudienceStrategyCommand> envelope,
+        CancellationToken cancellationToken) => DispatchAsync(
+            envelope, MasterDataReferences.Permissions.PlanApprove,
+            token => ApproveAudienceStrategyOutcomeAsync(audienceSetId, envelope, token),
+            CommandOutcomeFactory.ToResult<AudienceDefinitionSetView>, cancellationToken);
+
     public Task<CommandResult<MediaMixVersionView>> GenerateMediaMixAsync(
         Guid briefVersionId,
         CommandEnvelope<GenerateMediaMixCommand> envelope,

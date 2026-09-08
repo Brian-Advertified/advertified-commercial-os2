@@ -9,6 +9,7 @@ import {
   planningSummariesSchema,
   planningWorkspaceSchema,
   shortlistSchema,
+  type AudienceSet,
   type MediaAllocation,
   type MediaMix,
   type MediaPlan,
@@ -86,6 +87,22 @@ export const planningApi = {
     return create(
       `/api/v1/tenants/${tenantId}/brief-versions/${briefVersionId}/audiences:generate`,
       audienceSetSchema, token)
+  },
+
+  approveAudience(
+    tenantId: string,
+    audience: AudienceSet,
+    targetAudienceIds: string[],
+    targetingRationale: string,
+    positioningStatement: string,
+    token: string,
+  ) {
+    return mutate(
+      `/api/v1/tenants/${tenantId}/audience-strategies/${audience.id}:approve`,
+      audienceSetSchema,
+      { targetAudienceIds, targetingRationale, positioningStatement,
+        reason: 'Audience strategy reviewed and approved for media planning.' },
+      token, audience.version)
   },
 
   generateMix(tenantId: string, briefVersionId: string, token: string): Promise<MediaMix> {

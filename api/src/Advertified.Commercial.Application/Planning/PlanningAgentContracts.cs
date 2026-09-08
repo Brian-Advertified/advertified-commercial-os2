@@ -48,7 +48,24 @@ public sealed record InventoryIntelligenceInput(
     PlanningBriefInput Brief,
     Guid ShortlistVersionId,
     long ShortlistVersion,
-    IReadOnlyList<InventoryIntelligenceCandidateInput> Candidates);
+    IReadOnlyList<InventoryIntelligenceCandidateInput> Candidates,
+    InventoryStrategyInput? Strategy = null);
+
+public sealed record InventoryStrategyAudienceInput(
+    Guid Id, string Name, string NeedState, string BuyingContext,
+    IReadOnlyList<string> Geographies, string Classification,
+    IReadOnlyList<string> Exclusions, IReadOnlyList<Guid> EvidenceItemIds);
+
+public sealed record InventoryStrategyAllocationInput(
+    string Channel, long BudgetMinor, string Role,
+    IReadOnlyList<MediaRunningPeriodView> RunningPeriods);
+
+public sealed record InventoryStrategyInput(
+    Guid AudienceSetId, long AudienceSetVersion,
+    Guid MediaMixVersionId, long MediaMixVersion,
+    string Objective, string TargetingRationale, string PositioningStatement,
+    IReadOnlyList<InventoryStrategyAudienceInput> Audiences,
+    IReadOnlyList<InventoryStrategyAllocationInput> Allocations);
 
 public sealed record AudienceDefinitionProposal(
     string Name,

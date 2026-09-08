@@ -18,8 +18,14 @@ internal static class PlanningAudiencePersistence
         TenantId tenantId,
         Guid setId,
         IReadOnlyList<PlannedAudienceRecord> audiences,
+        string status,
         CancellationToken cancellationToken)
     {
+        if (status is not (MasterDataCodes.LifecycleStatuses.Draft or
+                MasterDataCodes.LifecycleStatuses.Approved))
+        {
+            throw new ArgumentException("The audience lifecycle status is invalid.", nameof(status));
+        }
         if (audiences.Count is 0 or > MaximumAudiences)
         {
             throw new InvalidOperationException(
@@ -57,7 +63,7 @@ internal static class PlanningAudiencePersistence
                 value."lsmSemMandatory",
                 value."classification",
                 value."exclusionsJson"::jsonb, value."evidenceItemIdsJson"::jsonb,
-                value."confidence", {MasterDataCodes.LifecycleStatuses.Approved}
+                value."confidence", {status}
             FROM jsonb_to_recordset({payload}::jsonb) AS value(
                 "id" uuid, "name" text, "description" text, "needState" text,
                 "buyingContext" text, "geographiesJson" text, "language" text,

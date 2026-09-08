@@ -29,6 +29,7 @@ public sealed partial class HttpPlanningAgentClient
                     "InventoryShortlistVersion",
                     input.ShortlistVersionId,
                     input.ShortlistVersion),
+                .. StrategyReferences(input.Strategy),
             ],
             brief.EvidenceItemIds,
             RuntimeSettings);
@@ -37,7 +38,7 @@ public sealed partial class HttpPlanningAgentClient
             new InventoryIntelligenceContext(
                 brief.BriefVersionId,
                 input.ShortlistVersionId,
-                input.Candidates.Select(ToRuntimeCandidate).ToArray()));
+                input.Candidates.Select(ToRuntimeCandidate).ToArray(), input.Strategy));
         var output =
             await AgentRuntimeHttpSupport.InvokeAsync<InventoryShortlistArtifact>(
                 RuntimeHttpClient,
@@ -96,6 +97,12 @@ public sealed partial class HttpPlanningAgentClient
             }
         }
     }
+
+    private static AgentResourceReference[] StrategyReferences(InventoryStrategyInput? strategy) =>
+        strategy is null ? [] : [
+            new("AudienceDefinitionSet", strategy.AudienceSetId, strategy.AudienceSetVersion),
+            new("MediaMixVersion", strategy.MediaMixVersionId, strategy.MediaMixVersion),
+        ];
 
     private static InventoryCandidateInterpretationProposal[] ValidateInventoryArtifact(
         InventoryShortlistArtifact artifact,
@@ -182,7 +189,8 @@ public sealed partial class HttpPlanningAgentClient
     private sealed record InventoryIntelligenceContext(
         Guid BriefVersionId,
         Guid ShortlistVersionId,
-        IReadOnlyList<InventoryCandidateContext> Candidates);
+        IReadOnlyList<InventoryCandidateContext> Candidates,
+        InventoryStrategyInput? Strategy);
 
     private sealed record InventoryCandidateContext(
         Guid CandidateId,
