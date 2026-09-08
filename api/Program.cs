@@ -92,7 +92,7 @@ builder.Services.AddDbContext<GovernanceDbContext>(
     options => options.UseNpgsql(connectionString));
 builder.Services.AddSingleton<AiMonthlyBudgetStore>(); builder.Services.AddTransient<AiMonthlyBudgetHandler>();
 builder.AddOutboxDispatch();
-builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton(TimeProvider.System).AddPlaceDiscovery(builder.Configuration);
 builder.Services.AddScoped<IBrowserSessionStore, PostgresBrowserSessionStore>();
 builder.Services.AddScoped<AgentOperationsStore>();
 builder.Services.AddScoped<IAgentOperationsReader, AgentOperationsReader>();

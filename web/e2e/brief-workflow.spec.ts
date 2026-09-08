@@ -1,5 +1,6 @@
 import { expect, test, type Route } from '@playwright/test'
 import { addVerifiedPlace } from './brief-place-fixture'
+import { addAudienceResearch, assertAudienceResearch } from './support/brief-audience-research-fixture'
 
 const tenantId = 'b1000000-0000-0000-0000-000000000001'
 const userId = 'b2000000-0000-0000-0000-000000000001'
@@ -42,10 +43,13 @@ test('a reviewed supplied Brief proceeds to Audience Strategy', async ({ page })
     name: 'Confirm what Advertified understood before planning begins.',
   })).toBeVisible()
   await addVerifiedPlace(page)
+  await addAudienceResearch(page)
   const submittedVersion = page.waitForRequest(request =>
     request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/versions'))
   await page.getByRole('button', { name: 'Approve Brief and start planning' }).click()
-  const submitted = (await submittedVersion).postDataJSON().spatialRequirements[0]
+  const versionBody = (await submittedVersion).postDataJSON()
+  assertAudienceResearch(versionBody.audienceResearch)
+  const submitted = versionBody.spatialRequirements[0]
   expect(submitted.radiusMetres).toBe(500)
   expect(submitted.sourceLocator).toBe('fixture:corrected-branch')
   expect(submitted.isVerified).toBe(true)

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { placeCopy } from '../content/place-copy'
 import { placeRequirement, type PlaceInput } from './place-requirement'
 import type { BriefSpatialDraft } from './BriefSpatialEditor'
+import { BriefPlaceSearch } from './BriefPlaceSearch'
+import { BriefMappedPlaceSearch } from './BriefMappedPlaceSearch'
 
 const emptyPlace: PlaceInput = { name: '', latitude: '', longitude: '', radius: '', source: '' }
 
@@ -22,6 +24,8 @@ export function BriefPlaceEditor({ onAdd }: { onAdd: (value: BriefSpatialDraft) 
   return <section className="brief-place-editor" aria-label={placeCopy.title}>
     <h3>{placeCopy.title}</h3><p>{placeCopy.introduction}</p>
     <p className="brief-place-note">{placeCopy.limitation}</p>
+    <BriefMappedPlaceSearch onSelect={value => { setInput(current => ({ ...current, ...value })); setMessage('') }} />
+    <BriefPlaceSearch onSelect={value => { setInput(current => ({ ...current, ...value })); setMessage('') }} />
     <div className="brief-place-fields">
       <label>{placeCopy.name}<input value={input.name} maxLength={500}
         placeholder={placeCopy.nameHint} onChange={event => update('name', event.target.value)} /></label>

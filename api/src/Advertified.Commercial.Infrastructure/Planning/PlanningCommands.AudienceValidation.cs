@@ -8,7 +8,8 @@ internal static class PlanningAudienceProposalValidator
     internal static void Validate(
         IReadOnlyList<AudienceDefinitionProposal> audiences,
         IReadOnlyList<string> geographies,
-        IReadOnlyList<Guid> evidenceItemIds)
+        IReadOnlyList<Guid> evidenceItemIds,
+        IReadOnlyList<AudienceEvidenceFact>? structuredEvidence = null)
     {
         if (audiences.Count is < 1 or > 20 ||
             audiences.Select(item => item.Name.Trim())
@@ -28,7 +29,7 @@ internal static class PlanningAudienceProposalValidator
                 audience.EvidenceItemIds.Any(item => !allowedEvidence.Contains(item)) ||
                 audience.Confidence is < 0 or > 1 ||
                 !IsAudienceClassification(audience.Classification) ||
-                !HasValidStructuredAudience(audience))
+                !HasValidStructuredAudience(audience, structuredEvidence ?? []))
             {
                 throw new InvalidOperationException(
                     "The audience proposal contains unsupported facts.");
@@ -49,11 +50,14 @@ internal static class PlanningAudienceProposalValidator
         OptionalAudienceText(audience.LsmSemTaxonomyVersion, 100);
     }
 
-    private static bool HasValidStructuredAudience(AudienceDefinitionProposal audience)
+    private static bool HasValidStructuredAudience(AudienceDefinitionProposal audience,
+        IReadOnlyList<AudienceEvidenceFact> evidence)
     {
         var hasStructuredValue = audience.Language is not null ||
             audience.LifeStage is not null || audience.LsmSem is not null;
-        var evidenceBacked = audience.EvidenceItemIds.Count > 0 &&
+        var evidenceBacked = (audience.EvidenceItemIds.Count > 0 || evidence.Any(item =>
+            item.BriefVersionId.HasValue && string.Equals(item.AudienceName,
+                audience.Name, StringComparison.OrdinalIgnoreCase))) &&
             audience.Classification is not MasterDataCodes.EvidenceClassifications.Hypothesis;
         var hasLsmSem = !string.IsNullOrWhiteSpace(audience.LsmSem);
         var hasTaxonomy = !string.IsNullOrWhiteSpace(audience.LsmSemTaxonomy) &&

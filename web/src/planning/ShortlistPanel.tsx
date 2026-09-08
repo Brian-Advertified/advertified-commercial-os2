@@ -5,6 +5,7 @@ import { masterDataCodes } from '../generated/master-data-codes'
 import { formatMoney } from '../presentation/format'
 import { mediaVisual } from './media-visuals'
 import { ShortlistSuitability } from './ShortlistSuitability'
+import { CampaignCombinations } from './CampaignCombinations'
 
 const shortlistPageSize = 24
 
@@ -33,6 +34,7 @@ export function ShortlistPanel({ shortlist, requiredChannels, busy, onConfirm }:
         disabled={busy || selected.length === 0 || !coverage.selectedReady}
         onClick={() => void onConfirm(selected)}>Confirm selected inventory</button>}</div>
     <CoverageAlerts coverage={coverage} selectedCount={selected.length} />
+    <CampaignCombinations shortlist={shortlist} editable={editable} busy={busy} onChoose={setSelected} />
     <CandidateList candidates={shortlist.candidates} eligible={eligible}
       editable={editable} selected={selected} onToggle={toggle} />
   </section>

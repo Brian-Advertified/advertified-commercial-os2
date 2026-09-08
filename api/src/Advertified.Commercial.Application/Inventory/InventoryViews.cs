@@ -286,6 +286,9 @@ public sealed record InventorySearchQuery(
 
 public interface IInventoryReader
 {
+    Task<IReadOnlyList<InventoryPlaceView>> SearchPlacesAsync(
+        ActorId actorId, TenantId tenantId, string search, CancellationToken cancellationToken);
+
     Task<InventoryImportSourceContent> GetImportSourceAsync(ActorId actorId, TenantId tenantId,
         Guid importId, CancellationToken cancellationToken);
 

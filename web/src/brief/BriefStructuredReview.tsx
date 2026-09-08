@@ -25,6 +25,12 @@ function StructuredBriefPanel({ version }: { version: BriefVersion }) {
       <LedgerRow label="Business problem" value={textValue(version.businessProblem)} />
       <LedgerRow label="Campaign objective" value={textValue(version.objective)} />
       <LedgerRow label="Audience direction" value={<ListValue values={version.audiences} />} />
+      <LedgerRow label="Supplied audience research" value={<ul>{version.audienceResearch.map((item, index) =>
+        <li key={index}><strong>{item.audienceName}</strong> · {item.sourceLocator} · {item.measurementPeriod}
+          <p>{item.sourceExcerpt}</p><small>{item.methodology}</small>
+          <p>{[item.language, item.lifeStage, item.lsmSem, item.lsmSemTaxonomy,
+            item.lsmSemTaxonomyVersion, item.needState, item.buyingContext,
+            item.messageContext, item.momentContext].filter(Boolean).join(' · ')}</p></li>)}</ul>} />
       <LedgerRow label="Geography" value={<ListValue values={version.geographies} />} />
       <LedgerRow label="Budget" value={budgetLabel(version)} />
       <LedgerRow label="Timing" value={textValue(version.timing)} />

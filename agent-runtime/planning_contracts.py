@@ -10,6 +10,8 @@ from pydantic import Field, NonNegativeInt, model_validator
 
 from contracts import AgentInvocationEnvelope, ContractModel, StableCode
 from inventory_strategy_contracts import InventoryStrategyContext
+from audience_evidence import AudienceEvidenceFact
+from buy_assessment_contracts import InventoryBuyAssessmentFacts
 
 
 class PlanningBriefContext(ContractModel):
@@ -17,6 +19,7 @@ class PlanningBriefContext(ContractModel):
     objective: Annotated[str, Field(min_length=1, max_length=4_000)]
     audiences: Annotated[tuple[str, ...], Field(min_length=1, max_length=20)]
     geographies: Annotated[tuple[str, ...], Field(min_length=1, max_length=50)]
+    audience_evidence: tuple[AudienceEvidenceFact, ...] | None = None
 
 
 class AudienceAgentRequest(ContractModel):
@@ -88,6 +91,7 @@ class InventoryAudienceFitFacts(ContractModel):
 
 
 class InventorySuitabilityFacts(ContractModel):
+    buy_assessment: InventoryBuyAssessmentFacts | None = None
     policy_version: StableCode
     geography: Annotated[Decimal, Field(ge=0, le=1)]
     audience_context: Annotated[Decimal, Field(ge=0, le=1)]

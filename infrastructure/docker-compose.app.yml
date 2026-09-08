@@ -107,6 +107,11 @@ services:
       InventoryProtection__ClamAvPort: "3310"
       InventoryExtraction__Mode: Deterministic
       InventoryProcessing__Paused: "true"
+      # Owner accepted the public service policy for this single-instance dev app, 2026-09-08.
+      # Do not copy this activation into production or a multi-replica deployment.
+      PlaceDiscovery__Enabled: "true"
+      PlaceDiscovery__PublicServicePolicyAccepted: "true"
+      PlaceDiscovery__UserAgent: Advertified-Commercial-OS2-Development/1.0
       WorkerDispatch__InventoryExtractionMaxConcurrency: "1"
       InventoryEmbedding__Mode: Deterministic
       AgentRuntime__Mode: HttpDeterministic

@@ -130,7 +130,8 @@ public sealed record InventorySuitabilityView(
     decimal EvidenceQualityFreshness,
     decimal PortfolioCoverageDiversity,
     decimal Total,
-    IReadOnlyList<string> EvidenceGaps);
+    IReadOnlyList<string> EvidenceGaps,
+    InventoryBuyAssessmentView? BuyAssessment = null);
 
 public sealed record InventoryShortlistCandidateView(
     Guid Id,
@@ -172,7 +173,8 @@ public sealed record InventoryShortlistVersionView(
     IReadOnlyList<string> Assumptions,
     IReadOnlyList<InventoryShortlistCandidateView> Candidates,
     long Version,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    CampaignCombinationsView? CampaignCombinations = null);
 
 public sealed record PlanObjectionView(
     string Code,

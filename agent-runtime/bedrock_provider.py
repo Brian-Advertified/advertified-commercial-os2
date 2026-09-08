@@ -139,6 +139,7 @@ def _invoke_bedrock(
     system = [{"text": _system_prompt(
         agent_code, instruction, schema_json
     )}]
+    tool_config = structured_output_tool(schema_json)
     try:
         client, messages = _request_context(
             request,
@@ -146,7 +147,7 @@ def _invoke_bedrock(
             policy,
         )
         input_tokens = _input_token_count(
-            client, policy.model, system, messages
+            client, policy.model, system, messages, tool_config
         )
         max_tokens = _bounded_output_tokens(
             input_tokens, policy.cost_cap_minor, pricing
@@ -156,7 +157,7 @@ def _invoke_bedrock(
             agent_code,
             invocation,
             policy.model,
-            schema_json,
+            tool_config,
             system,
             messages,
             max_tokens,
@@ -195,9 +196,9 @@ def _model_payload(
     return request.model_dump(mode="json", exclude={"invocation"})
 
 
-def _input_token_count(client, model: str, system, messages) -> int:
-    counted = count_input_tokens(client, model, system, messages)
-    return counted or conservative_input_token_estimate(system, messages)
+def _input_token_count(client, model: str, system, messages, tool_config) -> int:
+    counted = count_input_tokens(client, model, system, messages, tool_config)
+    return counted or conservative_input_token_estimate(system, messages, tool_config)
 
 
 def _converse(
@@ -205,7 +206,7 @@ def _converse(
     agent_code: AgentCode,
     invocation: AgentInvocationEnvelope,
     model: str,
-    schema_json: str,
+    tool_config: dict[str, object],
     system,
     messages,
     max_tokens: int,
@@ -218,7 +219,7 @@ def _converse(
             "maxTokens": max_tokens,
             "temperature": 0,
         },
-        toolConfig=structured_output_tool(schema_json),
+        toolConfig=tool_config,
         requestMetadata={
             "advertified_agent": agent_code.value,
             "advertified_run": str(invocation.run_id),

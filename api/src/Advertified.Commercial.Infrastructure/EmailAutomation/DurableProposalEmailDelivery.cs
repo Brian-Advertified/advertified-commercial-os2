@@ -38,6 +38,8 @@ public sealed class DurableProposalEmailDelivery(
         }
         catch (EmailDeliveryFailedException) { throw; }
         catch (EmailDeliveryAcceptanceUnknownException) { throw; }
+        // A cancelled host leaves the durable intent intact; recovery may reconcile, never resend.
+        catch (OperationCanceledException) { throw; }
         catch (Exception exception)
         {
             // Neither cancellation nor a transport exception proves non-acceptance.

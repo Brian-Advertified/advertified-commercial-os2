@@ -1,0 +1,6 @@
+.buy-assessment { margin-block: 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: 0.75rem; }
+.buy-assessment h4 { margin: 0.75rem 0 0.4rem; }
+.buy-assessment-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 0.8rem; }
+.buy-assessment-facts > div { min-width: 0; }
+.buy-assessment-facts dt { font-size: 0.8rem; opacity: 0.75; }
+.buy-assessment-facts dd { margin: 0.3rem 0 0; font-weight: 600; overflow-wrap: anywhere; }

@@ -4,6 +4,9 @@ import { opportunityApi } from '../api/opportunity-client'
 import { opportunityCodes } from '../api/opportunity-constants'
 import type { OpportunityDetail } from '../api/schemas'
 import { useSession } from '../auth/session-state'
+import { AudienceSourceFields } from './AudienceSourceFields'
+import { audienceSourceValues } from './audience-source-values'
+import { masterDataCodes } from '../generated/master-data-codes'
 
 type Props = { detail: OpportunityDetail; tenantId: string; reload: () => Promise<void> }
 type Runner = { busy: string | null; run: (label: string, action: () => Promise<unknown>) => Promise<void> }
@@ -80,6 +83,7 @@ function SourceForm({ detail, tenantId, token, runner }: ControlProps) {
   return <form className="operations-source-form" onSubmit={submit}>
     <label className="field-group">Source title<input name="title" required /></label>
     <label className="field-group">Supplied source text<textarea name="content" required /></label>
+    <AudienceSourceFields />
     <Identifier label="Evidence reviewer user ID" value={reviewerId} setValue={setReviewerId} />
     <ActionButton label="Register source" runner={runner} disabled={!reviewerId} />
   </form>
@@ -91,6 +95,7 @@ function sourcePayload(
   content: string,
   reviewerUserId: string,
 ) {
+  const audience = audienceSourceValues(values)
   return {
     opportunityId: detail.opportunity.id,
     type: opportunityCodes.sourceType.suppliedText,
@@ -100,8 +105,9 @@ function sourcePayload(
     content,
     reviewerUserId,
     claims: [{
-      locator: 'supplied:web:claim-1', claimType: opportunityCodes.claimType.businessContext,
-      structuredValueJson: JSON.stringify({ statement: content }), excerpt: content, confidence: 1,
+      locator: 'supplied:web:claim-1', claimType: audience.audienceName
+        ? masterDataCodes.evidenceClaimTypes.customerGroup : opportunityCodes.claimType.businessContext,
+      structuredValueJson: JSON.stringify({ statement: content, ...audience }), excerpt: content, confidence: 1,
     }],
   }
 }

@@ -61,7 +61,7 @@ public sealed partial class PlanningCommands
             inventory, allocations, Read<string[]>(brief.GeographiesJson),
             Read<string[]>(brief.ConstraintsJson), mix.Currency, targets,
             spatialMatches, inputHash, now);
-        prepared = InventorySuitabilityScorer.Score(prepared, planningPolicy);
+        prepared = InventorySuitabilityScorer.Score(prepared, planningPolicy, targets);
         prepared = await AttachBenchmarksAsync(
             envelope.TenantId, prepared, inventory, cancellationToken);
         prepared = await AttachInventoryInterpretationsAsync(

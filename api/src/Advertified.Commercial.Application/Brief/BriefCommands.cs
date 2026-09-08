@@ -65,7 +65,8 @@ public sealed record CreateBriefVersionCommand(
     IReadOnlyList<BriefAssumptionInput> Assumptions,
     IReadOnlyList<BriefConflictInput> Conflicts,
     IReadOnlyList<Guid> EvidenceItemIds,
-    IReadOnlyList<BriefSpatialRequirementInput>? SpatialRequirements = null);
+    IReadOnlyList<BriefSpatialRequirementInput>? SpatialRequirements = null,
+    IReadOnlyList<BriefAudienceResearch>? AudienceResearch = null);
 
 public sealed record SubmitBriefVersionCommand(
     Guid? ConfirmerUserId,

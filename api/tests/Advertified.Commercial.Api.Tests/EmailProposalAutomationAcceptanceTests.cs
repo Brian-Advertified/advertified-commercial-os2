@@ -20,7 +20,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
 
     [Fact]
     [Trait("Category", "Migration")]
-    public async Task ConfiguredOohInboxCreatesStpPlanPdfAndSendsWithoutUserInput()
+    public async Task ConfiguredInboxRequiresHumanAudienceAndBrandingReviewBeforeSending()
     {
         await using var postgres = CreatePostgres();
         await postgres.StartAsync();
@@ -46,9 +46,12 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         using var receipt = await SendWebhookAsync(
             client, "event-ooh-001", "email-ooh-001");
         var inboundEmailId = receipt.RootElement.GetProperty("inboundEmailId").GetGuid();
+        Assert.Equal("REVIEW_REQUIRED", receipt.RootElement.GetProperty("status").GetString());
+        Assert.Empty(provider.Deliveries);
+        await CompleteEmailHumanReviewsAsync(client, inboundEmailId);
         using var detail = await GetJsonAsync(client, Path(
             $"email-automation/messages/{inboundEmailId}"));
-        Assert.True(receipt.RootElement.GetProperty("status").GetString() == "SENT",
+        Assert.True(detail.RootElement.GetProperty("run").GetProperty("status").GetString() == "SENT",
             detail.RootElement.GetRawText());
         Assert.False(receipt.RootElement.GetProperty("duplicate").GetBoolean());
         var automationRunId = receipt.RootElement.GetProperty("automationRunId").GetGuid();
@@ -160,7 +163,8 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             incompleteRun.GetProperty("version").GetInt64(),
             AudienceFieldPath,
             "Local business decision makers");
-        Assert.Equal("SENT", corrected.RootElement.GetProperty("status").GetString());
+        Assert.Equal("REVIEW_REQUIRED", corrected.RootElement.GetProperty("status").GetString());
+        await CompleteEmailHumanReviewsAsync(client, incompleteId);
         Assert.Equal(2, provider.Deliveries.Count);
     }
 
@@ -222,7 +226,8 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             MasterDataCodes.CommercialActions.EmailAutomationStarted,
             MasterDataCodes.CommercialActions.EmailAutomationSent,
         });
-        Assert.Equal(2L, (long)(await audit.ExecuteScalarAsync())!);
+        // Initial processing, two explicit human-review resumptions, and one send.
+        Assert.Equal(4L, (long)(await audit.ExecuteScalarAsync())!);
 
         await using var outbox = new NpgsqlCommand(
             "SELECT count(*) FROM commercial.outbox_messages " +
@@ -238,7 +243,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             MasterDataCodes.CommercialEventTypes.EmailProposalAutomationStarted,
             MasterDataCodes.CommercialEventTypes.EmailProposalAutomationSent,
         });
-        Assert.Equal(2L, (long)(await outbox.ExecuteScalarAsync())!);
+        Assert.Equal(4L, (long)(await outbox.ExecuteScalarAsync())!);
     }
 
     private static RetrievedInboundEmail CreateEmail(

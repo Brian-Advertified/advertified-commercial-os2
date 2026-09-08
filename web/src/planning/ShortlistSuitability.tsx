@@ -1,5 +1,6 @@
 import type { ShortlistCandidate } from '../api/planning-schemas'
 import { suitabilityContent } from './suitability-content'
+import { InventoryBuyAssessment } from './InventoryBuyAssessment'
 
 export function ShortlistSuitability({ candidate }: { candidate: ShortlistCandidate }) {
   const score = candidate.suitability
@@ -10,6 +11,7 @@ export function ShortlistSuitability({ candidate }: { candidate: ShortlistCandid
     .some(value => value !== null) && audience.evidenceGaps.length === 0
   return <details className="benchmark-detail"><summary>{suitabilityContent.title}</summary>
     <p>{suitabilityContent.explanation}</p>
+    {score.buyAssessment && <InventoryBuyAssessment assessment={score.buyAssessment} />}
     <div className="benchmark-facts">
       <EvidenceFact label="Geographic requirement match" value={score.geography}
         known={!!spatial?.hasRequirements && spatial.evidenceGaps.length === 0} />

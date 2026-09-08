@@ -55,8 +55,8 @@ public sealed class PlanningReader(
         var audience = audienceRow is null ? null : await store.BuildAudienceViewAsync(
             tenantId, audienceRow, cancellationToken);
         var mix = mixRow is null ? null : PlanningRecordStore.BuildMixView(mixRow);
-        var shortlist = shortlistRow is null ? null : await store.BuildShortlistViewAsync(
-            tenantId, shortlistRow, cancellationToken);
+        var shortlist = shortlistRow is null ? null : ProjectShortlistForViewer(
+            await store.BuildShortlistViewAsync(tenantId, shortlistRow, cancellationToken), advertiserViewer);
         var plan = planRow is null ? null : ProjectPlanForViewer(
             await store.BuildPlanViewAsync(tenantId, planRow, cancellationToken),
             advertiserViewer);
@@ -119,4 +119,19 @@ public sealed class PlanningReader(
                 Objections = Array.Empty<PlanObjectionView>(),
             }
             : plan;
+
+    private static InventoryShortlistVersionView ProjectShortlistForViewer(
+        InventoryShortlistVersionView shortlist, bool advertiserViewer) => advertiserViewer
+            ? shortlist with
+            {
+                CampaignCombinations = null,
+                Candidates = shortlist.Candidates.Select(candidate => candidate with
+                {
+                    Suitability = candidate.Suitability is null ? null : candidate.Suitability with
+                    {
+                        BuyAssessment = null,
+                    },
+                }).ToArray(),
+            }
+            : shortlist;
 }

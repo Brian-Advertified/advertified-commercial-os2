@@ -114,11 +114,15 @@ public sealed partial class PlanningRecordStore
               AND candidate.shortlist_version_id = {shortlist.Id}
             ORDER BY candidate.is_eligible DESC, candidate.score DESC NULLS LAST, candidate.id
             """).ToListAsync(cancellationToken);
+        var candidates = rows.Select(ToCandidateView).ToArray();
+        var mix = await FindMixAsync(tenantId, shortlist.MixVersionId, cancellationToken)
+            ?? throw new InvalidOperationException("The shortlist media mix is unavailable.");
         return new InventoryShortlistVersionView(
             shortlist.Id, shortlist.BriefVersionId, shortlist.MixVersionId,
             shortlist.VersionNumber, shortlist.InputHash, shortlist.Status,
-            Read<string[]>(shortlist.AssumptionsJson), rows.Select(ToCandidateView).ToArray(),
-            shortlist.Version, shortlist.CreatedAtUtc);
+            Read<string[]>(shortlist.AssumptionsJson), candidates,
+            shortlist.Version, shortlist.CreatedAtUtc,
+            CampaignCombinationAssessment.Evaluate(candidates, BuildMixView(mix)));
     }
 
     internal async Task<MediaPlanVersionView> BuildPlanViewAsync(

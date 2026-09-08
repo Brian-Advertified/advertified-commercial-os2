@@ -1,5 +1,4 @@
 using Npgsql;
-using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
 
@@ -35,12 +34,13 @@ public sealed partial class CanonicalPlanningAcceptanceTests
                 budget_unknown, currency_code, vat_status_code, fees_minor,
                 constraints_json, measurement_json, facts_json, unknowns_json,
                 assumptions_json, conflicts_json, evidence_bindings_json, status_code,
-                created_by, approved_by, approved_at_utc, version, created_at_utc)
+                created_by, approved_by, approved_at_utc, version, created_at_utc, audience_research_json)
             VALUES ($1, $2, $3, $4, 1, 'Create qualified local demand',
                 'Increase qualified enquiries', '["Local business decision makers"]',
                 '["Johannesburg"]', 'September 2026', $7, false, 'ZAR',
                 'REGISTERED', 5000, '[]', '[]', '["Owner supplied objective"]',
-                '[]', '[]', '[]', '[]', 'APPROVED', $5, $5, $6, 1, $6)
+                '[]', '[]', '[]', '[]', 'APPROVED', $5, $5, $6, 1, $6,
+                '[{"audience_name":"Local business decision makers","source_locator":"fixture:approved-aggregate-study","source_excerpt":"Synthetic study supports this audience profile.","measurement_period":"2026 Q2","methodology":"Synthetic weighted aggregate survey; test only","language":"English","life_stage":"Business decision makers","lsm_sem":"SEM 8-10","lsm_sem_taxonomy":"TGI SEM","lsm_sem_taxonomy_version":"2026","need_state":"Compare office furnishing lifecycle costs","buying_context":"Business purchase decision"}]')
             """, BriefVersionId, TenantId, BriefId, BriefSourceId, OperatorId, Now,
             briefBudgetMinor);
         AddCommand(batch,
@@ -201,44 +201,6 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         await batch.ExecuteNonQueryAsync();
     }
 
-    private static async Task SeedStructuredAudienceSetAsync(string connectionString)
-    {
-        var audienceSetId = Guid.Parse("7b000000-0000-0000-0000-000000000001");
-        var definitionId = Guid.Parse("7b000000-0000-0000-0000-000000000002");
-        await using var connection = new NpgsqlConnection(connectionString);
-        await connection.OpenAsync();
-        await using var batch = new NpgsqlBatch(connection);
-        AddCommand(batch,
-            """
-            INSERT INTO commercial.audience_definition_sets (
-                id, tenant_id, brief_version_id, version_no,
-                target_audience_ids_json, targeting_rationale,
-                positioning_statement, input_hash, agent_provider_code,
-                agent_model_code, agent_incremental_cost_minor,
-                status_code, created_by, approved_by, approved_at_utc, version, created_at_utc)
-            VALUES ($1, $2, $3, 3, jsonb_build_array($4::uuid),
-                'Fixture target backed by a supplied aggregate study.',
-                'Reach the approved structured target without individual inference.',
-                repeat('c', 64), 'deterministic', 'fixture-v1', 0,
-                'APPROVED', $5, $5, $6, 1, $6)
-            """, audienceSetId, TenantId, BriefVersionId, definitionId, OperatorId,
-            Now.AddSeconds(1));
-        AddCommand(batch,
-            """
-            INSERT INTO commercial.audience_definitions (
-                id, tenant_id, audience_set_id, name, description, need_state,
-                buying_context, geography_json, language, life_stage, lsm_sem,
-                lsm_sem_taxonomy, lsm_sem_taxonomy_version, classification_code,
-                exclusions_json, evidence_item_ids_json, confidence, status_code)
-            VALUES ($1, $2, $3, 'Local business decision makers',
-                'Aggregate audience described by the approved fixture evidence.',
-                'Increase qualified enquiries', 'Business purchase decision',
-                '["Johannesburg"]', 'English', 'Business decision makers', 'SEM 8-10',
-                'TGI SEM', '2026', 'FACT', '[]', jsonb_build_array($4::uuid),
-                0.9, 'APPROVED')
-            """, definitionId, TenantId, audienceSetId, BriefSourceId);
-        Assert.Equal(2, await batch.ExecuteNonQueryAsync());
-    }
 
     private static void AddCommand(NpgsqlBatch batch, string sql, params object[] parameters)
     {

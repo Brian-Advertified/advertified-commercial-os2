@@ -46,7 +46,7 @@ internal static class BriefPersistence
                 budget_minor, budget_unknown, currency_code, vat_status_code, fees_minor,
                 constraints_json, measurement_json, facts_json, unknowns_json,
                 assumptions_json, conflicts_json, evidence_bindings_json, status_code,
-                created_by, version, created_at_utc)
+                created_by, version, created_at_utc, audience_research_json)
             VALUES (
                 {write.Id}, {write.TenantId.Value}, {write.BriefId}, {write.BaseVersionId},
                 {write.SourceId}, {write.VersionNumber}, {value.BusinessProblem},
@@ -61,7 +61,8 @@ internal static class BriefPersistence
                 {BriefCommandSupport.Json(value.Assumptions)}::jsonb,
                 {BriefCommandSupport.Json(value.Conflicts)}::jsonb,
                 {write.EvidenceBindingsJson}::jsonb, {write.Status}, {write.CreatedBy},
-                {write.Version}, {write.CreatedAtUtc})
+                {write.Version}, {write.CreatedAtUtc},
+                {BriefCommandSupport.Json(command.AudienceResearch ?? [])}::jsonb)
             """, cancellationToken);
     }
 

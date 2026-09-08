@@ -38,12 +38,21 @@ public sealed partial class EmailProposalAutomationProcessor
         var proposal = await GetOrCreateProposalAsync(
             tenantId, owner, run, briefId, planId, understanding, expiry,
             correlationId, cancellationToken);
+        run = await store.UpdateRunAsync(tenantId, owner, context.InboundEmailId,
+            current => current with { ProposalVersionId = proposal.Id,
+                UpdatedAtUtc = timeProvider.GetUtcNow() }, cancellationToken);
+        if (proposal.Branding.Status == ProposalBrandingStatuses.Outstanding)
+            throw ReviewRequired(MasterDataCodes.AutomationFailureReasons.ProposalUnready,
+                "A human must approve the proposal branding or authorise an unbranded document before delivery.");
         proposal = await EnsureApprovedProposalAsync(
             tenantId, owner, run, planId, proposal, correlationId, cancellationToken);
         run = await RecordProposalCheckpointAsync(
             context, proposal.Id, owner, cancellationToken);
-        var document = await GetOrRenderDocumentAsync(
+        proposal = await GetOrRenderDocumentAsync(
             tenantId, owner, run, proposal, correlationId, cancellationToken);
+        var document = proposal.Document ?? throw ReviewRequired(
+            MasterDataCodes.AutomationFailureReasons.ProposalUnready,
+            "The approved proposal could not be rendered.");
         run = await RecordDocumentCheckpointAsync(
             context, document.Id, owner, cancellationToken);
         return await BeginDeliveryAsync(
@@ -153,7 +162,7 @@ public sealed partial class EmailProposalAutomationProcessor
             },
             cancellationToken);
 
-    private async Task<ProposalDocumentView> GetOrRenderDocumentAsync(
+    private async Task<ProposalVersionView> GetOrRenderDocumentAsync(
         TenantId tenantId,
         ActorId owner,
         EmailAutomationRunRow run,
@@ -176,9 +185,7 @@ public sealed partial class EmailProposalAutomationProcessor
                     proposal.Version, new RenderProposalCommand(), correlationId),
                 cancellationToken)).Data;
         }
-        return proposal.Document ?? throw ReviewRequired(
-            MasterDataCodes.AutomationFailureReasons.ProposalUnready,
-            "The approved proposal could not be rendered.");
+        return proposal;
     }
 
     private Task<EmailAutomationRunRow> RecordDocumentCheckpointAsync(

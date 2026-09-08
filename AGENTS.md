@@ -27,7 +27,7 @@ Do not skip gate order or report a gate delivered without its acceptance evidenc
 
 Never commit, push, merge, deploy, mutate cloud resources, use production data, or contact an external party unless the repository owner explicitly requests that exact action. Local non-production builds, tests, and Docker operations are permitted when required by an authorised task.
 
-Live or paid AI/provider calls are forbidden during redevelopment. `AWS_BEDROCK_ENABLED` and equivalent provider switches default to false. Tests must use deterministic local fixtures or fakes. Never broaden a permission, budget, audience, tenant scope, or commercial action to get past a blocker.
+The owner authorised live AI/provider calls for the current planner-intelligence work on 2026-09-08, with an aggregate AI spending ceiling of US$5 for this work (not per agent, request or day). Before any paid AI invocation, enforce a shared remaining-budget check that includes in-flight reservations and conservative maximum request cost; if cost cannot be bounded, do not invoke. This does not authorise research subscriptions, commercial commitments or unrestricted background processing. Provider switches remain disabled by default and are enabled deliberately only for authorised work. Tests must use deterministic local fixtures or fakes. Never broaden a permission, budget, audience, tenant scope, or commercial action to get past a blocker.
 
 ## 3. Locked technology and ownership boundaries
 
@@ -133,7 +133,7 @@ A task is done only when:
 - code, tests, and docs agree;
 - affected builds and tests pass;
 - boundaries and line limits pass;
-- no live provider or production resource was used;
+- any live-provider use is explicitly authorised, bounded and evidenced; no unauthorised production resource was used;
 - security and tenant implications were checked;
 - migrations are forward-safe and tested when data changes;
 - the diff contains no unrelated changes or secrets;

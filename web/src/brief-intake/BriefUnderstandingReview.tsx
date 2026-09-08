@@ -10,6 +10,8 @@ import {
   understandingTaxLabel,
 } from './brief-intake-presentation'
 import { BriefSpatialEditor, type BriefSpatialDraft } from './BriefSpatialEditor'
+import { AudienceResearchEditor } from './AudienceResearchEditor'
+import type { AudienceResearch } from '../api/audience-research-schema'
 
 export function BriefUnderstandingReview({
   understanding,
@@ -19,6 +21,7 @@ export function BriefUnderstandingReview({
   onCorrectMode,
   spatialRequirements,
   onSpatialRequirementsChange,
+  audienceResearch, onAudienceResearchChange,
 }: {
   understanding: SuppliedBriefUnderstanding
   busy: boolean
@@ -27,6 +30,8 @@ export function BriefUnderstandingReview({
   onCorrectMode: () => void
   spatialRequirements: BriefSpatialDraft[]
   onSpatialRequirementsChange: (values: BriefSpatialDraft[]) => void
+  audienceResearch: AudienceResearch[]
+  onAudienceResearchChange: (values: AudienceResearch[]) => void
 }) {
   return <div className="brief-understanding-review">
     <UnderstandingReviewHero understanding={understanding} />
@@ -34,6 +39,8 @@ export function BriefUnderstandingReview({
     <BriefSpatialEditor values={spatialRequirements}
       onChange={onSpatialRequirementsChange} />
     <KnowledgePanel understanding={understanding} />
+    <AudienceResearchEditor audiences={understanding.draft.audiences} values={audienceResearch}
+      onChange={onAudienceResearchChange} />
     <ApprovalBar busy={busy} onApprove={onApprove} onEdit={onEdit}
       onCorrectMode={onCorrectMode} />
   </div>

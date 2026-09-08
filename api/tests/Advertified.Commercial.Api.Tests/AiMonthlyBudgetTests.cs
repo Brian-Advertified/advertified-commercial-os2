@@ -11,7 +11,7 @@ public sealed class AiMonthlyBudgetTests
 
     [Fact]
     [Trait("Category", "Migration")]
-    public async Task LedgerIsGlobalHardCappedIdempotentAndMonthly()
+    public async Task LedgerIsGlobalHardCappedOneShotAndDoesNotResetMonthly()
     {
         await using var postgres = DisposablePostgres.Create(
             "advertified_ai_monthly_budget",
@@ -30,7 +30,7 @@ public sealed class AiMonthlyBudgetTests
         var firstStep = Guid.NewGuid();
         Assert.True(await ReserveAsync(connectionString, Month,
             firstRun, firstStep, Guid.NewGuid(), 3_000_000));
-        Assert.True(await ReserveAsync(connectionString, Month,
+        Assert.False(await ReserveAsync(connectionString, Month,
             firstRun, firstStep, await TenantAsync(connectionString,
                 Month, firstRun, firstStep), 3_000_000));
         Assert.False(await ReserveAsync(connectionString, Month,
@@ -40,7 +40,7 @@ public sealed class AiMonthlyBudgetTests
         Assert.Equal(5_000_000, await ReadAsync(connectionString, Month));
         Assert.False(await ReserveAsync(connectionString, Month,
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 1));
-        Assert.True(await ReserveAsync(connectionString, Month.AddMonths(1),
+        Assert.False(await ReserveAsync(connectionString, Month.AddMonths(1),
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 5_000_000));
     }
 
@@ -68,7 +68,14 @@ public sealed class AiMonthlyBudgetTests
             connectionString, Month, run, step, 1_000_001));
         Assert.True(await CompleteAsync(
             connectionString, Month, run, step, 125_000));
-        Assert.Equal(125_000, await ReadAsync(connectionString, Month));
+        Assert.Equal(1_000_000, await ReadAsync(connectionString, Month));
+        Assert.False(await CompleteAsync(connectionString, Month, run, step, 0));
+        Assert.Equal(1_000_000, await ReadAsync(connectionString, Month.AddMonths(1)));
+        Assert.False(await ReserveAsync(connectionString, Month.AddMonths(1), run, step, Guid.NewGuid(), 1_000_000));
+        Assert.False(await ReserveAsync(connectionString, Month, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 4_000_001));
+        var claims = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => ReserveAsync(
+            connectionString, Month, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 1_000_000)));
+        Assert.Equal(4, claims.Count(accepted => accepted));
     }
 
     private static async Task<bool> ReserveAsync(

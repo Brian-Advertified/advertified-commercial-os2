@@ -153,18 +153,15 @@ def test_generic_model_payload_excludes_internal_invocation_envelope() -> None:
     }
 
 
+def unsupported_token_count_error() -> ClientError:
+    return ClientError({"Error": {"Code": "ValidationException",
+        "Message": "The provided model doesn't support counting tokens."}}, "CountTokens")
+
+
 def test_unsupported_free_token_count_uses_conservative_local_estimate() -> None:
     class UnsupportedClient:
         def count_tokens(self, **_):
-            raise ClientError(
-                {
-                    "Error": {
-                        "Code": "ValidationException",
-                        "Message": "The provided model doesn't support counting tokens.",
-                    },
-                },
-                "CountTokens",
-            )
+            raise unsupported_token_count_error()
 
     system = [{"text": "system"}]
     messages = [

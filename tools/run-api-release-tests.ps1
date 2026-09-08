@@ -55,6 +55,6 @@ finally {
         & docker image rm $validationImage *> $null
     }
     if (-not $SkipBuild) {
-        & docker builder prune --force --keep-storage $validationCacheBudget *> $null
+        & docker builder prune --force --max-used-space $validationCacheBudget --reserved-space 256MB *> $null
     }
 }

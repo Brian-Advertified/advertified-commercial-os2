@@ -16,6 +16,7 @@ from contracts import (
     UnknownItem,
 )
 from audience_candidates import audience_research_unknowns, candidate_audience_names
+from audience_evidence import grounded_audience
 from inventory_strategy import strategy_unknowns
 from master_data_codes import EvidenceClassifications
 from planning_contracts import (
@@ -45,7 +46,7 @@ def canonicalize_audiences(request: AudienceAgentRequest, output):
     )
     allowed_geographies = set(request.planning.geographies)
     audiences = tuple(
-        item.model_copy(update={
+        grounded_audience(request, item.model_copy(update={
             "geographies": tuple(
                 value for value in item.geographies
                 if value in allowed_geographies
@@ -58,7 +59,7 @@ def canonicalize_audiences(request: AudienceAgentRequest, output):
             "lsm_sem_mandatory": False,
             "classification": classification,
             "evidence_item_ids": approved,
-        })
+        }))
         for item in artifact.audiences
     )
     return output.model_copy(update={
@@ -77,13 +78,13 @@ def propose_audiences(
     )
     candidate_names = candidate_audience_names(request)
     audiences = tuple(
-        _audience(
+        grounded_audience(request, _audience(
             request,
             name,
             classification,
             evidence_ids,
             is_target=True,
-        )
+        ))
         for name in candidate_names
     )
     names = ", ".join(item.name for item in audiences if item.is_target)

@@ -54,7 +54,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             client, Path($"brief-versions/{BriefVersionId}/audiences:generate"),
             "planning-audience", 1, new { });
         Assert.Equal("DRAFT", audience.RootElement.GetProperty("status").GetString());
-        Assert.Equal("HYPOTHESIS", audience.RootElement.GetProperty("definitions")[0]
+        Assert.Equal("INFERENCE", audience.RootElement.GetProperty("definitions")[0]
             .GetProperty("classification").GetString());
         var audienceSetId = audience.RootElement.GetProperty("id").GetGuid();
         var targetAudienceIds = audience.RootElement.GetProperty("targetAudienceIds")
@@ -74,7 +74,11 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             .GetProperty("status").GetString());
         Assert.Equal(OperatorId, approvedAudience.RootElement
             .GetProperty("approvedBy").GetGuid());
-        await SeedStructuredAudienceSetAsync(connectionString);
+        var researchAudience = approvedAudience.RootElement.GetProperty("definitions");
+        Assert.Equal(1, researchAudience.GetArrayLength());
+        Assert.Equal("English", researchAudience[0].GetProperty("language").GetString());
+        Assert.Equal("SEM 8-10", researchAudience[0].GetProperty("lsmSem").GetString());
+        Assert.Equal("Compare office furnishing lifecycle costs", researchAudience[0].GetProperty("needState").GetString());
 
         using var mix = await CommandAsync(
             client, Path($"brief-versions/{BriefVersionId}/media-mixes:generate"),
@@ -188,7 +192,18 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         var confirmed = candidates.EnumerateArray().Single(item =>
             item.GetProperty("isEligible").GetBoolean() &&
             item.GetProperty("rateAmountMinor").GetInt64() == 100_000);
-        Assert.Equal(0.8725m, confirmed.GetProperty("score").GetDecimal());
+        // V2 credits geography (1 × .30), supplied audience shares
+        // ((.8 + .6 + .7) / 3 × .25), and commercial evidence (1 × .10).
+        // Allocation, cheap unit price and catalogue density prove no strategic fit.
+        Assert.Equal(.30m + (.8m + .6m + .7m) / 3m * .25m + .10m,
+            confirmed.GetProperty("score").GetDecimal());
+        var suitability = confirmed.GetProperty("suitability");
+        Assert.Equal("INVENTORY_SUITABILITY_OOH_V2", suitability.GetProperty("policyVersion").GetString());
+        foreach (var component in new[] { "objectiveFormat", "budgetEfficiency", "portfolioCoverageDiversity" })
+            Assert.Equal(0m, suitability.GetProperty(component).GetDecimal());
+        foreach (var gap in new[] { "suitability.objectiveFormatEvidence",
+            "suitability.comparableTargetExposureCost", "suitability.incrementalReachEvidence" })
+            Assert.Contains(suitability.GetProperty("evidenceGaps").EnumerateArray(), item => item.GetString() == gap);
         Assert.Empty(confirmed.GetProperty("commercialReadiness")
             .GetProperty("evidenceGaps").EnumerateArray());
         Assert.Equal("REGISTERED", confirmed.GetProperty("commercialReadiness")
@@ -291,6 +306,11 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             .GetProperty("status").GetString());
         Assert.Single(workspaceJson.RootElement.GetProperty("mediaPlan")
             .GetProperty("objections").EnumerateArray());
+        Assert.Equal(JsonValueKind.Object, workspaceJson.RootElement.GetProperty("shortlist")
+            .GetProperty("campaignCombinations").ValueKind);
+        Assert.Contains(workspaceJson.RootElement.GetProperty("shortlist").GetProperty("candidates").EnumerateArray(),
+            item => item.GetProperty("suitability").TryGetProperty("buyAssessment", out var assessment) &&
+                assessment.ValueKind == JsonValueKind.Object);
 
         await SetOperatorRoleAsync(
             connectionString, MasterDataCodes.Roles.AdvertiserAdmin);
@@ -304,6 +324,11 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         Assert.False(advertiserPlan.RootElement.TryGetProperty("subtotalMinor", out _));
         Assert.False(advertiserPlan.RootElement.GetProperty("lines")[0]
             .TryGetProperty("supplierCostMinor", out _));
+        using var advertiserAdminWorkspace = await client.GetAsync(Path($"brief-versions/{BriefVersionId}/planning"));
+        advertiserAdminWorkspace.EnsureSuccessStatusCode();
+        using var advertiserAdminWorkspaceJson = JsonDocument.Parse(
+            await advertiserAdminWorkspace.Content.ReadAsStringAsync());
+        AssertSupplierAssessmentsHidden(advertiserAdminWorkspaceJson.RootElement);
 
         await SetOperatorRoleAsync(
             connectionString, MasterDataCodes.Roles.AdvertiserApprover);
@@ -316,9 +341,23 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             .GetProperty("assumptions").EnumerateArray());
         Assert.Empty(advertiserWorkspaceJson.RootElement.GetProperty("mediaPlan")
             .GetProperty("objections").EnumerateArray());
+        AssertSupplierAssessmentsHidden(advertiserWorkspaceJson.RootElement);
 
         using var crossTenant = await other.GetAsync(Path($"brief-versions/{BriefVersionId}/planning"));
         await AssertProblemAsync(crossTenant, HttpStatusCode.Forbidden, "TENANT_FORBIDDEN");
+    }
+
+    private static void AssertSupplierAssessmentsHidden(JsonElement workspace)
+    {
+        var shortlist = workspace.GetProperty("shortlist");
+        Assert.True(!shortlist.TryGetProperty("campaignCombinations", out var combinations) ||
+            combinations.ValueKind == JsonValueKind.Null);
+        Assert.All(shortlist.GetProperty("candidates").EnumerateArray(), candidate =>
+        {
+            var suitability = candidate.GetProperty("suitability");
+            Assert.True(!suitability.TryGetProperty("buyAssessment", out var assessment) ||
+                assessment.ValueKind == JsonValueKind.Null);
+        });
     }
 
     private static string Path(string suffix) => $"/api/v1/tenants/{TenantId}/{suffix}";

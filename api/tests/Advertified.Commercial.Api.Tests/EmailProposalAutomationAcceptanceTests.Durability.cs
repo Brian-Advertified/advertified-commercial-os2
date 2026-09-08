@@ -53,6 +53,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             Assert.Equal("REVIEW_REQUIRED",
                 receipt.RootElement.GetProperty("status").GetString());
             inboundEmailId = receipt.RootElement.GetProperty("inboundEmailId").GetGuid();
+            await CompleteEmailHumanReviewsAsync(firstClient, inboundEmailId);
 
             using var detail = await GetJsonAsync(
                 firstClient, Path($"email-automation/messages/{inboundEmailId}"));
@@ -147,6 +148,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
                 "event-accepted-local-failure",
                 "email-accepted-local-failure");
             inboundEmailId = receipt.RootElement.GetProperty("inboundEmailId").GetGuid();
+            await CompleteEmailHumanReviewsAsync(firstClient, inboundEmailId);
             using var detail = await GetJsonAsync(
                 firstClient, Path($"email-automation/messages/{inboundEmailId}"));
             var run = detail.RootElement.GetProperty("run");
@@ -207,8 +209,8 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             DateTimeOffset.UtcNow));
         using var receipt = await SendWebhookAsync(
             client, "event-concurrent-intent", "email-concurrent-intent");
-        Assert.Equal("FAILED", receipt.RootElement.GetProperty("status").GetString());
         var inboundEmailId = receipt.RootElement.GetProperty("inboundEmailId").GetGuid();
+        await CompleteEmailHumanReviewsAsync(client, inboundEmailId);
         using var preparedDetail = await GetJsonAsync(
             client, Path($"email-automation/messages/{inboundEmailId}"));
         var preparedRun = preparedDetail.RootElement.GetProperty("run");
@@ -297,11 +299,12 @@ public sealed partial class CanonicalPlanningAcceptanceTests
     private static async Task<JsonDocument> ProcessMessageAsync(
         HttpClient client,
         Guid inboundEmailId,
-        string requestKey)
+        string requestKey,
+        long? originalVersion = null)
     {
         using var detail = await GetJsonAsync(
             client, Path($"email-automation/messages/{inboundEmailId}"));
-        var version = detail.RootElement.GetProperty("run").GetProperty("version").GetInt64();
+        var version = originalVersion ?? detail.RootElement.GetProperty("run").GetProperty("version").GetInt64();
         using var request = new HttpRequestMessage(
             HttpMethod.Post,
             Path($"email-automation/messages/{inboundEmailId}:process"));

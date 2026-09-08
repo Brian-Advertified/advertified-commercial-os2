@@ -35,7 +35,7 @@ def audience_research_unknowns(existing=()) -> tuple[UnknownItem, ...]:
         ),
         "artifact.audiences.structured_evidence": (
             "Which approved evidence supports language, life-stage and segmentation "
-            "labels, including the exact taxonomy and version? These inputs are not supplied."
+            "labels, including the exact taxonomy and version? Review any missing or conflicting fields."
         ),
     }
     existing_paths = {item.field_path for item in existing}

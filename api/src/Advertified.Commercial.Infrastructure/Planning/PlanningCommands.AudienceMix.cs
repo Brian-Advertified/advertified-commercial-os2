@@ -19,8 +19,10 @@ public sealed partial class PlanningCommands
     {
         var brief = await LoadPlanningReadyBriefAsync(
             briefVersionId, envelope, cancellationToken);
-        var proposal = await planningAgent.ProposeAudiencesAsync(
-            BuildBriefInput(brief, envelope), cancellationToken);
+        var input = BuildBriefInput(brief, envelope);
+        input = input with { AudienceEvidence = await PlanningAudienceEvidenceReader.ReadAsync(
+            store.DbContext, input, cancellationToken) };
+        var proposal = await planningAgent.ProposeAudiencesAsync(input, cancellationToken);
         if (proposal.Audiences.Count == 0 || proposal.IncrementalCostMinor < 0)
         {
             throw new InvalidOperationException("The audience proposal is invalid.");
@@ -28,7 +30,8 @@ public sealed partial class PlanningCommands
         PlanningAudienceProposalValidator.Validate(
             proposal.Audiences,
             Read<string[]>(brief.GeographiesJson),
-            Read<Guid[]>(brief.EvidenceIdsJson));
+            Read<Guid[]>(brief.EvidenceIdsJson), input.AudienceEvidence);
+        PlanningAudienceEvidenceGuard.Validate(proposal.Audiences, input.AudienceEvidence);
         var targetingRationale = OpportunityCommandSupport.Required(
             proposal.TargetingRationale, 4000, nameof(proposal.TargetingRationale));
         var positioningStatement = OpportunityCommandSupport.Required(

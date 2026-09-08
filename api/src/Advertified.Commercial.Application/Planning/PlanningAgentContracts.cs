@@ -10,7 +10,18 @@ public sealed record PlanningBriefInput(
     string Objective,
     IReadOnlyList<string> Audiences,
     IReadOnlyList<string> Geographies,
-    IReadOnlyList<Guid> EvidenceItemIds);
+    IReadOnlyList<Guid> EvidenceItemIds)
+{
+    public IReadOnlyList<AudienceEvidenceFact> AudienceEvidence { get; init; } = [];
+}
+
+public sealed record AudienceEvidenceFact(
+    Guid? EvidenceItemId, string AudienceName, string? Language, string? LifeStage,
+    string? LsmSem, string? LsmSemTaxonomy, string? LsmSemTaxonomyVersion,
+    string? NeedState, string? BuyingContext, string? MessageContext, string? MomentContext)
+{
+    public Guid? BriefVersionId { get; init; }
+}
 
 public sealed record MediaPlanningInput(
     PlanningBriefInput Brief,

@@ -1,5 +1,6 @@
 import { expect, test, type Route } from '@playwright/test'
 import { planningWorkspaceSchema } from '../src/api/planning-schemas'
+import { buyAssessmentFixture, combinationFixture } from './buy-assessment-fixture'
 
 const tenantId = 'c1000000-0000-0000-0000-000000000001'
 const userId = 'c2000000-0000-0000-0000-000000000001'
@@ -67,6 +68,11 @@ test('planner edits allocation and timing before approving the plan', async ({ p
 
   await page.getByRole('button', { name: 'Build inventory shortlist' }).click()
   await page.getByText('Buying evidence and gaps', { exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Digital screen exposure' })).toBeVisible()
+  await expect(page.getByText('Supplied audience measurement — not a campaign forecast')).toBeVisible()
+  await page.getByText('Compare coverage combinations', { exact: true }).click()
+  await page.getByRole('button', { name: 'Review this combination' }).click()
+  await expect(page.getByLabel('Select Johannesburg OOH Site')).toBeChecked()
   await expect(page.getByText('Cost per relevant audience reached: Needs evidence.', { exact: true })).toBeVisible()
   await expect(page.getByText('Additional campaign reach: Needs evidence.', { exact: true })).toBeVisible()
   await expect(page.getByText('Profile matches are not people reached.', { exact: false })).toBeVisible()
@@ -306,13 +312,14 @@ function mix(state: State) {
 
 function shortlist(state: State) {
   return { id: shortlistId, briefVersionId, mixVersionId: mixId, versionNumber: 1,
+    campaignCombinations: combinationFixture(candidateId),
     inputHash: 'c'.repeat(64), status: state.shortlist?.status ?? 'DRAFT', assumptions: [], version: state.shortlist?.version ?? 1,
     createdAtUtc: now, candidates: [{ id: candidateId, inventoryTenantId: tenantId,
       marketplaceListingVersionId: null, inventoryProductId: productId, productVersionId,
       rateId, availabilityId, name: 'Johannesburg OOH Site', channel: 'OOH', geography: 'Johannesburg',
       rateAmountMinor: 100_000, currency: 'ZAR', isEligible: true, rejectionReason: null, rejectionDetail: null,
       score: 88, rationale: 'Eligible after governed hard constraints and local peer review.',
-      suitability: { policyVersion: 'OOH_LOCAL_PEER_V1', geography: 0, audienceContext: 0,
+      suitability: { buyAssessment: buyAssessmentFixture, policyVersion: 'OOH_LOCAL_PEER_V1', geography: 0, audienceContext: 0,
         objectiveFormat: 0, budgetEfficiency: 0, evidenceQualityFreshness: 1,
         portfolioCoverageDiversity: 0, total: 0.1, evidenceGaps: [
           'suitability.objectiveFormatEvidence', 'suitability.comparableTargetExposureCost',

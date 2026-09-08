@@ -206,6 +206,7 @@ public sealed class BriefRecordStore(GovernanceDbContext dbContext)
             version.fees_minor AS "FeesMinor", version.constraints_json::text AS "ConstraintsJson",
             version.measurement_json::text AS "MeasurementJson",
             version.facts_json::text AS "FactsJson", version.unknowns_json::text AS "UnknownsJson",
+            version.audience_research_json::text AS "AudienceResearchJson",
             version.assumptions_json::text AS "AssumptionsJson",
             version.conflicts_json::text AS "ConflictsJson",
             COALESCE((SELECT jsonb_agg(jsonb_build_object(

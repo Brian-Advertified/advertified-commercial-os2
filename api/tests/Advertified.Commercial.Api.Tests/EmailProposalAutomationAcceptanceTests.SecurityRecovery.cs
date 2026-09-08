@@ -118,6 +118,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         using var receipt = await SendWebhookAsync(
             client, "event-rejected-delivery", "email-rejected-delivery");
         var inboundEmailId = receipt.RootElement.GetProperty("inboundEmailId").GetGuid();
+        await CompleteEmailHumanReviewsAsync(client, inboundEmailId);
         using var detail = await GetJsonAsync(
             client, Path($"email-automation/messages/{inboundEmailId}"));
         var run = detail.RootElement.GetProperty("run");
@@ -166,6 +167,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             using var receipt = await SendWebhookAsync(
                 intakeClient, "event-manual-operator", "email-manual-operator");
             inboundEmailId = receipt.RootElement.GetProperty("inboundEmailId").GetGuid();
+            await CompleteEmailHumanReviewsAsync(intakeClient, inboundEmailId);
             using var detail = await GetJsonAsync(
                 intakeClient, Path($"email-automation/messages/{inboundEmailId}"));
             runId = detail.RootElement.GetProperty("run").GetProperty("id").GetGuid();
@@ -182,8 +184,10 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             });
         using var operatorClient = operatorFactory.CreateClient();
         const string key = "process-manual-second-operator";
-        using var first = await ProcessMessageAsync(operatorClient, inboundEmailId, key);
-        using var replay = await ProcessMessageAsync(operatorClient, inboundEmailId, key);
+        using var before = await GetJsonAsync(operatorClient, Path($"email-automation/messages/{inboundEmailId}"));
+        var originalVersion = before.RootElement.GetProperty("run").GetProperty("version").GetInt64();
+        using var first = await ProcessMessageAsync(operatorClient, inboundEmailId, key, originalVersion);
+        using var replay = await ProcessMessageAsync(operatorClient, inboundEmailId, key, originalVersion);
 
         AssertAmbiguousRun(first.RootElement);
         AssertAmbiguousRun(replay.RootElement);
@@ -226,7 +230,12 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         using var processed = await ProcessMessageAsync(
             client, inboundEmailId, "process-resume-processing");
 
-        Assert.Equal("SENT", processed.RootElement.GetProperty("status").GetString());
+        Assert.Equal("REVIEW_REQUIRED", processed.RootElement.GetProperty("status").GetString());
+        Assert.Equal("STP_UNREADY", processed.RootElement.GetProperty("failureCode").GetString());
+        Assert.Empty(provider.Deliveries);
+        await CompleteEmailHumanReviewsAsync(client, inboundEmailId);
+        using var completed = await GetJsonAsync(client, Path($"email-automation/messages/{inboundEmailId}"));
+        Assert.Equal("SENT", completed.RootElement.GetProperty("run").GetProperty("status").GetString());
         Assert.Single(provider.Deliveries);
     }
 

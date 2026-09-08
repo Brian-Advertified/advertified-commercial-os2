@@ -50,6 +50,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
     internal static void ConfigureDeterministicEmailInventorySelection(
         IServiceCollection services)
     {
+        ConfigureEmailAgentFixtures(services);
         services.RemoveAll<IEmailAutomationInventorySelector>();
         services.AddScoped<IEmailAutomationInventorySelector,
             DeterministicEmailInventorySelectionFixture>();

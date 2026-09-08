@@ -73,8 +73,8 @@ public sealed class HumanSafeExceptionHandler(
                 MasterDataCodes.AgentFailureReasons.AgentRuntimeUnavailable),
             AiMonthlyBudgetExceededException => new(
                 StatusCodes.Status429TooManyRequests,
-                "Monthly AI budget reached",
-                "No provider request was made. The USD 5 monthly allowance must reset before another live AI request can run.",
+                "Authorised AI budget unavailable",
+                "No new provider request was made. The authorised AI budget is exhausted or this invocation was already dispatched. Review the existing run before retrying.",
                 "AI_MONTHLY_BUDGET_EXCEEDED"),
             InventoryProcessingPausedException => new(
                 StatusCodes.Status503ServiceUnavailable,

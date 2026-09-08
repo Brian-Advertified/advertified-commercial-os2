@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { audienceResearchSchema } from './audience-research-schema'
 
 const requiredText = z.string().trim().min(1)
 const nullableText = z.string().nullable()
@@ -262,6 +263,7 @@ export const briefVersionSchema = z.object({
   rejectionReason: nullableText, requestedChanges: nullableText,
   version: z.number().int().positive(), createdAtUtc: z.iso.datetime({ offset: true }),
   spatialRequirements: z.array(briefSpatialRequirementSchema),
+  audienceResearch: z.array(audienceResearchSchema).nullish().transform(value => value ?? []),
 }).strict()
 
 export const campaignBriefSchema = z.object({

@@ -31,6 +31,7 @@ public sealed partial class BriefCommands
             store.DbContext, envelope.Command, cancellationToken);
         var spatial = BriefSpatialRequirements.Normalize(
             envelope.Command.SpatialRequirements);
+        BriefAudienceResearchValidation.Validate(envelope.Command);
         var evidenceIds = envelope.Command.EvidenceItemIds.Distinct().ToArray();
         await EnsureEvidenceAsync(brief, evidenceIds, envelope, cancellationToken);
         var versionNumber = await NextVersionAsync(

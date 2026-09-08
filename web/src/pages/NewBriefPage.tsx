@@ -60,6 +60,7 @@ function BriefCreator({ tenantId, userId, token }: {
             onApprove={model.approveReview} onEdit={model.editSource}
             onCorrectMode={model.correctMode}
             spatialRequirements={model.spatialRequirements}
+            audienceResearch={model.audienceResearch} onAudienceResearchChange={model.setAudienceResearch}
             onSpatialRequirementsChange={model.setSpatialRequirements} />}
   </section></>
 }

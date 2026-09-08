@@ -1,4 +1,5 @@
 import type { ZodType } from 'zod'
+import type { AudienceResearch } from './audience-research-schema'
 import { suppliedBriefUnderstandingSchema, type BriefClarification, type SuppliedBriefUnderstanding } from './brief-understanding-schemas'
 import { request } from './client'
 import { completeCommand, reserveCommandKey } from './pending-command-keys'
@@ -33,6 +34,7 @@ export type UnderstandBrief = {
 }
 
 export type CreateBriefVersion = {
+  audienceResearch?: AudienceResearch[]
   briefId: string
   baseVersionId: string | null
   businessProblem: string

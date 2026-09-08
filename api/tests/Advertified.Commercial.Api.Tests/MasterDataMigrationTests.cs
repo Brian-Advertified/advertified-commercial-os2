@@ -46,7 +46,9 @@ public sealed class MasterDataMigrationTests
             "202609080008_AudienceStrategyApproval",
             "202609080009_ProposalBranding",
             "202609080010_PublicInventorySummary",
-            "202609080011_AiMonthlyBudget"],
+            "202609080011_AiMonthlyBudget",
+            "202609080012_BriefAudienceResearch",
+            "202609080013_AiOwnerBudgetSafety"],
             applied.AppliedMigrations);
         var first = applied.MasterData;
         var repeated = await operation.ApplyAsync(postgres.GetConnectionString());
@@ -113,9 +115,10 @@ public sealed class MasterDataMigrationTests
             dbContext.Database.ExecuteSqlInterpolatedAsync(deleteItem));
 
         var migrator = dbContext.GetService<IMigrator>();
-        await migrator.MigrateAsync(Migration.InitialDatabase);
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            migrator.MigrateAsync(Migration.InitialDatabase));
 
-        Assert.False(await SchemaExistsAsync(
+        Assert.True(await SchemaExistsAsync(
             postgres.GetConnectionString(),
             "governance"));
     }

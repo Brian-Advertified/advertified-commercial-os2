@@ -107,6 +107,8 @@ def test_dotnet_projects_enforce_locked_restore() -> None:
     assert "<RestoreLockedMode>true</RestoreLockedMode>" in build_properties
     assert '"version": "10.0.400"' in sdk_selection
     assert '"rollForward": "disable"' in sdk_selection
+    assert '".editorconfig"' in read("api/Dockerfile")
+    assert "shared .editorconfig Directory.Build.props" in read("tools/run-api-memory-tests.sh")
     assert (
         '<Content Update="appsettings.Development.json" '
         'CopyToPublishDirectory="Never" />'

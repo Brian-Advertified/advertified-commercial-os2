@@ -2,7 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0.400-noble@sha256:e1ffd2a92ae84c1291bc1b68
 
 WORKDIR /src
 
-COPY ["Directory.Build.props", "global.json", "./"]
+COPY ["Directory.Build.props", "global.json", ".editorconfig", "./"]
 COPY ["api/Advertified.Commercial.Api.csproj", "api/packages.lock.json", "api/"]
 COPY ["api/src/Advertified.Commercial.Application/Advertified.Commercial.Application.csproj", "api/src/Advertified.Commercial.Application/packages.lock.json", "api/src/Advertified.Commercial.Application/"]
 COPY ["api/src/Advertified.Commercial.DatabaseMigrator/Advertified.Commercial.DatabaseMigrator.csproj", "api/src/Advertified.Commercial.DatabaseMigrator/packages.lock.json", "api/src/Advertified.Commercial.DatabaseMigrator/"]

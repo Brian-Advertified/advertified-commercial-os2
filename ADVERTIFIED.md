@@ -6337,6 +6337,113 @@ application images and the compressed reset backup are retained; Windows virtual
 was not attempted. Remaining audience research, branch-name discovery and reach/frequency optimiser
 limitations from 49.2.28 are unchanged. This is a local development deployment, not production GO.
 
+### 49.2.30 Complete planner-intelligence journey — 2026-09-08
+
+The owner reiterates completion of the requested planning intelligence, not another safeguards-only
+handoff. The preceding local release has 57 selected API checks, 11 database checks, three connected
+smoke journeys, 83 runtime and 74 architecture checks passing. This packet must connect audience
+evidence, precise place lookup, actual-buy exposure/value comparisons, campaign-level selection and
+visible recommendation/alternative reasoning on the canonical Brief-to-plan journey. Acceptance
+must distinguish an evidenced successful case from absent, incompatible or stale evidence; include
+a single supplied persona, static/digital trade-offs and a named-branch spatial requirement; and
+prove that editing a selection preserves its decision history and invalidates downstream work.
+Calculations must not multiply unrelated demographic percentages, add duplicated reach as unique
+people, compare unit prices as campaign costs or manufacture creative-format fit. Live source
+activation requires explicit source authority; deterministic test evidence must never enter the
+retained inventory as real research. No generated raster assets, production mutations or data reset are needed.
+
+The owner explicitly authorised live provider calls on 2026-09-08 and replaced the redevelopment
+prohibition for this work with an aggregate US$5 AI ceiling across all agents and calls. Invocation
+must reserve a conservative maximum charge against one shared budget, including in-flight calls,
+before dispatch; unknown pricing or unavailable budget enforcement blocks a paid call. Ordinary
+tests remain deterministic and background inventory processing stays paused. This authority does
+not purchase audience-research subscriptions or override provider licensing, attribution or storage
+restrictions. Real consumer/broadcast/site audience data requires an authorised research source;
+AI inference and branch proximity must never be relabelled measured audience reach.
+
+The owner separately accepted the public Nominatim usage policy for the single-instance development
+application. Development activation uses explicit searches, an identifying application User-Agent,
+one-request-per-second process-wide scheduling, bounded cached results, OpenStreetMap attribution,
+source identity and human verification of the exact branch before a spatial requirement becomes
+authoritative. Public-service activation is not authorised for production/multi-replica use. Mapbox
+remains the map renderer; its Search Box coverage/storage terms do not support the requested retained
+South African branch lookup. A bounded live lookup for `Clicks Cape Town` returned source-attributed
+branches on 2026-09-08; no AI call was involved and no provider results were bulk-imported as inventory.
+
+Research access is a distinct prerequisite: MRF MAPS, BRC audience research/Fusion and OMC ROAD are
+potential authoritative sources to approach, not connected/licensed datasets. Request explicit export
+or API, retention, AI-processing and client-reporting rights from the source owner. Public methodology
+pages do not establish those rights. The retained development catalogue's 7,242 current product
+versions have no structured audience profile as inspected on 2026-09-08. The research intake and
+matching path must not claim those products have measured audience reach until evidence is supplied.
+
+Low-SSD verification may use `tools/run-api-memory-tests.ps1`: it resolves the exact existing SDK
+digest from the canonical Dockerfile, refuses to pull, mounts the repository read-only and confines
+restores/build outputs to bounded memory-backed storage. Database tests use the same disposable
+Testcontainers fixtures only with the explicit integration switch. No host .NET SDK or persistent
+validation image/volume is introduced. Deployable application builds remain Dockerfile-owned.
+
+The implementation retains authorised research references/excerpts/period/method with the exact
+supplied Brief version and carries human-approved, audience-bound attributes through typed runtime
+contracts and deterministic validation. Unsupported or conflicting segmentation stays unknown.
+Actual-buy assessment exposes comparable supplier campaign cost, supplied audience baselines and
+digital slot/loop evidence; it does not manufacture a forecast. Bounded coverage combinations obey
+channel and total supplier-cost ceilings and retain separate human selection confirmation. They are
+not unique-reach optimisation or evidence of client-price affordability.
+
+Recovery verification exposed a proposal-delivery version defect: document rendering increments the
+proposal version, but automation passed the pre-render version to the durable delivery guard. The
+exact rendered version now flows into delivery. Outstanding branding pauses for human review with
+the draft reference retained. Host cancellation preserves the durable intent and propagates; recovery
+reconciles without authorising another send. Staleness, branding and idempotency guards remain intact.
+The new supplier-cost assessment and combination objects are excluded from advertiser-admin and
+advertiser-approver workspace projections; privileged planner views retain them. Existing shortlist
+rate fields and role definitions are unchanged.
+Both Docker release builds and the memory-backed test runner copy `.editorconfig`, so the configured
+complexity threshold participates in compilation. Database integration fixtures still use disposable
+Docker storage; memory-backed compiler outputs do not imply zero disk usage for the whole test run.
+
+Verification on 2026-09-08 (local development, not production certification):
+
+- `tools/run-api-memory-tests.ps1 -Integration -Filter` with the OR-separated fully-qualified
+  class filters `InventoryBuyAssessmentTests`, `CampaignCombinationAssessmentTests`,
+  `PlaceDiscoveryTests`, `AudienceResearchEvidenceTests`, `AiInvocationBudgetEnvelopeTests`,
+  `AgentRuntimeHttpAdapterTests`, `PlanningSelectionCoverageTests`, `AiMonthlyBudgetTests`,
+  `MasterDataMigrationTests` and `CanonicalPlanningAcceptanceTests`: 81 passed. The same runner
+  with `FullyQualifiedName~CanonicalPlanningAcceptanceTests.SoloAgencyOperatorTakesApprovedBriefThroughApprovedPlan`
+  passed again after advertiser projection was added, proving both advertiser roles hide the new
+  supplier assessment objects while the planner retains them. Earlier failures were corrected,
+  including obsolete fixture expectations, genuine human-review setup, exact replay identity,
+  forward-only migration expectations and rendered-proposal version propagation.
+- From `agent-runtime`, `python -B -m pytest tests -q -p no:cacheprovider`: 93 passed.
+  From repository root, `python -B -m pytest tests/architecture -q -p no:cacheprovider`: 74 passed.
+- `node tools/generate-openapi.mjs --url http://localhost:5097` regenerated the retained contract;
+  `tools/run-api-memory-tests.ps1 -Filter 'FullyQualifiedName~OpenApiContractTests'`: two passed,
+  including exact agreement between the retained contract and the running API definition.
+- From `web`, `npm run lint`, `npm run type-check`, `npm run master-data:check` (registry 2.37.0)
+  and `npm test` passed (16 web checks). `npx playwright test e2e/planning-workflow.spec.ts
+  e2e/brief-workflow.spec.ts --trace off --workers=1`: 16 desktop/compact checks passed.
+- With `ADVERTIFIED_VERIFY_LIVE_PLACES=true`, `npx playwright test --config
+  playwright.connected.config.ts e2e/place-discovery.connected.spec.ts
+  e2e/inventory-catalogue.connected.spec.ts --trace off --workers=1`: three passed against the
+  deployed application, including authenticated South African Clicks lookup, source attribution,
+  cross-tenant denial, catalogue paging/detail and published marketplace supply. No results were
+  persisted as measured audiences or inventory. Ordinary test suites make no live provider calls.
+- Through `Invoke-AdvertifiedCompose` with `infrastructure/docker-compose.yml` and
+  `infrastructure/docker-compose.app.yml`, `config --quiet` and separate `build api`,
+  `build migrator`, `build agent-runtime`, `build web` succeeded. `run --rm --no-deps migrator`
+  applied migrations `202609080012_BriefAudienceResearch` and `202609080013_AiOwnerBudgetSafety`;
+  `up -d --no-build --no-deps --force-recreate --wait --wait-timeout 120 agent-runtime api web`
+  completed with all three healthy. No seed, data reset or production deployment ran.
+- Running image digests: API `sha256:c8d9b0063ac6f30b5bf2dfbd3ab1f40005931a5bf10a6f725396851c0945d136`,
+  web `sha256:b64215af29c76f76e2fd079634ca4fef00a39bcf3b51d70f84d221b770b497a9`, runtime
+  `sha256:652b699922d856a0889d49972ed42ce573a6d6c65b3200d5558677352e214403`.
+  Post-deployment counts remain three users, 7,242 inventory products, zero briefs and zero AI
+  budget reservations/actual cost. No new raster assets were generated. Existing Vite lazy-map
+  chunk-size warning remains; the migrator emitted a missing optional Kerberos-library warning
+  but exited successfully. Licensed audience data and production place-provider activation remain
+  separate prerequisites, not delivered capabilities.
+
 ## 49.3 Release evidence
 
 A production release records:

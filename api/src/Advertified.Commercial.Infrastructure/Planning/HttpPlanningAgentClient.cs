@@ -24,7 +24,7 @@ public sealed partial class HttpPlanningAgentClient(
                 input.BriefVersionId,
                 input.Objective,
                 input.Audiences,
-                input.Geographies));
+                input.Geographies, input.AudienceEvidence));
         var output = await AgentRuntimeHttpSupport.InvokeAsync<AudienceArtifact>(
             httpClient,
             options.Value,
@@ -138,7 +138,8 @@ public sealed partial class HttpPlanningAgentClient(
         }
         var proposals = artifact.Audiences.Select(ToProposal).ToArray();
         PlanningAudienceProposalValidator.Validate(
-            proposals, input.Geographies, input.EvidenceItemIds);
+            proposals, input.Geographies, input.EvidenceItemIds, input.AudienceEvidence);
+        PlanningAudienceEvidenceGuard.Validate(proposals, input.AudienceEvidence);
         var boundEvidence = bindings
             .Where(binding => binding.FieldPath == "artifact.audiences")
             .SelectMany(binding => binding.EvidenceItemIds)
@@ -200,7 +201,8 @@ public sealed partial class HttpPlanningAgentClient(
         Guid BriefVersionId,
         string Objective,
         IReadOnlyList<string> Audiences,
-        IReadOnlyList<string> Geographies);
+        IReadOnlyList<string> Geographies,
+        IReadOnlyList<AudienceEvidenceFact>? AudienceEvidence = null);
 
     private sealed record MediaPlanningContext(
         Guid BriefVersionId,

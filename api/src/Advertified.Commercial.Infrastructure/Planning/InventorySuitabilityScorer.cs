@@ -6,15 +6,17 @@ internal static class InventorySuitabilityScorer
 {
     internal static PreparedShortlistCandidate[] Score(
         IReadOnlyList<PreparedShortlistCandidate> candidates,
-        PlanningPolicy policy)
-        => candidates.Select(candidate => ScoreCandidate(candidate, policy)).ToArray();
+        PlanningPolicy policy,
+        IReadOnlyList<AudienceDefinitionView>? targets = null)
+        => candidates.Select(candidate => ScoreCandidate(candidate, policy, targets ?? [])).ToArray();
 
     internal static InventorySuitabilityView Empty(PlanningPolicy policy) => new(
         policy.SuitabilityPolicyVersion, 0m, 0m, 0m, 0m, 0m, 0m, 0m, []);
 
     private static PreparedShortlistCandidate ScoreCandidate(
         PreparedShortlistCandidate candidate,
-        PlanningPolicy policy)
+        PlanningPolicy policy,
+        IReadOnlyList<AudienceDefinitionView> targets)
     {
         if (!candidate.Eligibility.IsEligible)
         {
@@ -57,7 +59,8 @@ internal static class InventorySuitabilityScorer
         var suitability = new InventorySuitabilityView(
             policy.SuitabilityPolicyVersion,
             Round(geography), Round(audience), Round(objectiveFormat),
-            Round(budget), Round(evidence), Round(diversity), Round(total), gaps);
+            Round(budget), Round(evidence), Round(diversity), Round(total), gaps,
+            InventoryBuyAssessment.Evaluate(candidate, policy, targets));
         return candidate with
         {
             Eligibility = candidate.Eligibility with { Score = suitability.Total },

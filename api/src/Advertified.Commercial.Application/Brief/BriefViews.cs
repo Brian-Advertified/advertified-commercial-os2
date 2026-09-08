@@ -74,7 +74,8 @@ public sealed record BriefVersionView(
     string? RequestedChanges,
     long Version,
     DateTimeOffset CreatedAtUtc,
-    IReadOnlyList<BriefSpatialRequirementView>? SpatialRequirements = null);
+    IReadOnlyList<BriefSpatialRequirementView>? SpatialRequirements = null,
+    IReadOnlyList<BriefAudienceResearch>? AudienceResearch = null);
 
 public sealed record CampaignBriefView(
     CampaignBriefSummaryView Brief,

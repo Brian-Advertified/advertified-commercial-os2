@@ -6,6 +6,7 @@ import { humanMessage } from '../api/client'
 import { planningApi } from '../api/planning-client'
 import { masterDataCodes } from '../generated/master-data-codes'
 import type { BriefSpatialDraft } from './BriefSpatialEditor'
+import type { AudienceResearch } from '../api/audience-research-schema'
 
 const CampaignModeField = 'campaignMode'
 
@@ -31,6 +32,7 @@ type IntakeModel = {
   understanding: SuppliedBriefUnderstanding | null
   preparationKeys: BriefPreparationKeys | null
   spatialRequirements: BriefSpatialDraft[]
+  audienceResearch: AudienceResearch[]
   busy: boolean
   error: string | null
 }
@@ -45,6 +47,7 @@ const initialModel: IntakeModel = {
   understanding: null,
   preparationKeys: null,
   spatialRequirements: [],
+  audienceResearch: [],
   busy: false,
   error: null,
 }
@@ -69,6 +72,8 @@ export function useBriefIntake(identity: Omit<BriefIntakeContext, 'isCurrent'>) 
     correctMode: correctMode(setModel),
     setSpatialRequirements: (values: BriefSpatialDraft[]) =>
       setModel(current => ({ ...current, spatialRequirements: values })),
+    setAudienceResearch: (values: AudienceResearch[]) =>
+      setModel(current => ({ ...current, audienceResearch: values })),
   }
 }
 
@@ -124,6 +129,7 @@ function approveReview(
       model.clarifications,
       model.preparationKeys,
       model.spatialRequirements,
+      model.audienceResearch,
       setModel,
       navigate,
     )
@@ -137,12 +143,13 @@ async function preparePlanning(
   clarifications: BriefClarification[],
   keys: BriefPreparationKeys,
   spatialRequirements: BriefSpatialDraft[],
+  audienceResearch: AudienceResearch[],
   setModel: UpdateModel,
   navigate: Navigate,
 ) {
   try {
     const id = await createCampaign(
-      context, source, understanding, clarifications, keys, spatialRequirements)
+      context, source, understanding, clarifications, keys, spatialRequirements, audienceResearch)
     assertCurrent(context)
     navigate(`/stp/${id}`)
   } catch (failure) {
@@ -167,6 +174,7 @@ function retryPlanning(
       model.clarifications,
       model.preparationKeys,
       model.spatialRequirements,
+      model.audienceResearch,
       setModel,
       navigate,
     )
@@ -244,6 +252,7 @@ async function createCampaign(
   clarifications: BriefClarification[],
   keys: BriefPreparationKeys,
   spatialRequirements: BriefSpatialDraft[],
+  audienceResearch: AudienceResearch[],
 ) {
   if (!understanding.clientName || !understanding.campaignMode) {
     throw new Error('The client and campaign media scope must be clear before planning starts.')
@@ -263,7 +272,7 @@ async function createCampaign(
   const draft = await briefApi.createVersion(
     context.tenantId,
     brief.id,
-    draftPayload(brief.id, understanding, spatialRequirements),
+    draftPayload(brief.id, understanding, spatialRequirements, audienceResearch),
     context.token,
     keys.version,
   )
@@ -311,6 +320,7 @@ function draftPayload(
   briefId: string,
   result: SuppliedBriefUnderstanding,
   spatialRequirements: BriefSpatialDraft[],
+  audienceResearch: AudienceResearch[],
 ): CreateBriefVersion {
   const draft = result.draft
   return {
@@ -321,7 +331,7 @@ function draftPayload(
     currency: draft.currency, vatStatus: draft.vatStatus, feesMinor: draft.feesMinor,
     constraints: draft.constraints, measurement: draft.measurement, facts: draft.facts,
     unknowns: draft.unknowns, assumptions: draft.assumptions,
-    conflicts: draft.conflicts, evidenceItemIds: [], spatialRequirements,
+    conflicts: draft.conflicts, evidenceItemIds: [], spatialRequirements, audienceResearch,
   }
 }
 

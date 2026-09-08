@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { buyAssessmentSchema } from './buy-assessment-schema'
 import { masterDataCodes } from '../generated/master-data-codes'
 import {
   inventoryCommercialTermsSchema,
@@ -133,6 +134,7 @@ const spatialMatchSchema = z.object({
 })
 
 const suitabilitySchema = z.object({
+  buyAssessment: buyAssessmentSchema.nullish(),
   policyVersion: z.string().min(1), geography: z.number().min(0).max(1),
   audienceContext: z.number().min(0).max(1),
   objectiveFormat: z.number().min(0).max(1),
@@ -185,6 +187,16 @@ export const shortlistCandidateSchema = z.object({
 })
 
 export const shortlistSchema = z.object({
+  campaignCombinations: z.object({
+    alternatives: z.array(z.object({
+      candidateIds: z.array(z.guid()), campaignSupplierCostMinor: z.number().nonnegative(),
+      currency: z.string(), channelCosts: z.array(z.object({
+        channel: z.string(), supplierCostMinor: z.number().nonnegative(), budgetMinor: z.number().nonnegative(),
+      })), coveredRequirementIds: z.array(z.guid()), evidenceGaps: z.array(z.string()),
+    })),
+    searchTruncated: z.boolean(), candidatesConsidered: z.number().int().nonnegative(),
+    missingCostCandidateCount: z.number().int().nonnegative(),
+  }).nullish(),
   id: z.guid(),
   briefVersionId: z.guid(),
   mixVersionId: z.guid(),

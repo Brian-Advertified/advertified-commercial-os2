@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import base64
 import json
-import math
 from typing import Any
 
 from botocore.exceptions import ClientError
 from pydantic import BaseModel
 
-CHARACTERS_PER_TOKEN_RESERVE = 3
 FIXED_INPUT_TOKEN_RESERVE = 32_768
 IMAGE_INPUT_TOKEN_RESERVE = 4_096
 
@@ -96,6 +94,7 @@ def count_input_tokens(
     model: str,
     system: list[dict[str, str]],
     messages: list[dict[str, object]],
+    tool_config: dict[str, object] | None = None,
 ) -> int | None:
     try:
         response = client.count_tokens(
@@ -104,6 +103,7 @@ def count_input_tokens(
                 "converse": {
                     "system": system,
                     "messages": messages,
+                    **({"toolConfig": tool_config} if tool_config is not None else {}),
                 },
             },
         )
@@ -128,17 +128,22 @@ def count_input_tokens(
 def conservative_input_token_estimate(
     system: list[dict[str, str]],
     messages: list[dict[str, object]],
+    tool_config: dict[str, object] | None = None,
 ) -> int:
-    text_characters = sum(len(block.get("text", "")) for block in system)
+    # Reserve one token per UTF-8 byte rather than an average character/token ratio.
+    # The schema occurs in both the system prompt and the actual tool configuration.
+    text_bytes = sum(len(block.get("text", "").encode("utf-8")) for block in system)
+    if tool_config is not None:
+        text_bytes += len(json.dumps(tool_config, ensure_ascii=True).encode("utf-8"))
     image_count = 0
     for message in messages:
         for block in message.get("content", []):  # type: ignore[union-attr]
             if "text" in block:
-                text_characters += len(block["text"])
+                text_bytes += len(block["text"].encode("utf-8"))
             elif "image" in block:
                 image_count += 1
     return (
-        math.ceil(text_characters / CHARACTERS_PER_TOKEN_RESERVE)
+        text_bytes
         + FIXED_INPUT_TOKEN_RESERVE
         + image_count * IMAGE_INPUT_TOKEN_RESERVE
     )

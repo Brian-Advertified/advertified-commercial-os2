@@ -1,0 +1,26 @@
+import { z } from 'zod'
+
+const measurement = z.number().nonnegative().nullable()
+
+export const buyAssessmentSchema = z.object({
+  campaignSupplierCostMinor: measurement,
+  currency: z.string().nullable(),
+  reach: measurement,
+  impressions: measurement,
+  averageFrequency: measurement,
+  costPerThousandImpressionsMinor: measurement,
+  costPerPersonReachedMinor: measurement,
+  universe: z.string().nullable(),
+  measurementPeriod: z.string().nullable(),
+  measurementSource: z.string().nullable(),
+  methodology: z.string().nullable(),
+  isTargetAudience: z.boolean(),
+  digitalExposure: z.object({
+    spotLengthSeconds: measurement, slotLengthSeconds: measurement,
+    loopLengthSeconds: measurement, playsPerLoop: measurement,
+    loopSharePercent: z.number().min(0).max(100).nullable(),
+  }).nullable(),
+  evidenceGaps: z.array(z.string()),
+})
+
+export type BuyAssessment = z.infer<typeof buyAssessmentSchema>

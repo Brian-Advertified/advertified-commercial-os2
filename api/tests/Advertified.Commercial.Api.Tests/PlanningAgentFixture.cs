@@ -12,45 +12,34 @@ internal sealed class PlanningAgentFixture : IPlanningAgentClient
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var classification = input.EvidenceItemIds.Count > 0
+        var classification = input.EvidenceItemIds.Count > 0 || input.AudienceEvidence.Count > 0
             ? MasterDataCodes.EvidenceClassifications.Inference
             : MasterDataCodes.EvidenceClassifications.Hypothesis;
         var candidateNames = input.Audiences.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        var primaryName = candidateNames.FirstOrDefault() ?? "Audience requiring clarification";
-        if (candidateNames.Count < 2)
-        {
-            candidateNames.Add($"High-intent {primaryName}");
-        }
-        if (candidateNames.Count < 3)
-        {
-            candidateNames.Add($"Adjacent {primaryName} requiring validation");
-        }
-        var audiences = candidateNames.Take(6).Select((name, index) =>
+        var audiences = candidateNames.Select(name =>
             new AudienceDefinitionProposal(
                 name,
                 $"Candidate segment derived from the approved Brief context: {name}.",
-                input.Objective,
-                index < 2
-                    ? "People actively considering action related to the campaign objective."
-                    : "The relationship to the buying decision must be validated.",
+                Research(input, name)?.NeedState ?? "Consumer need is not supplied.",
+                Research(input, name)?.BuyingContext ?? "Buying context is not supplied.",
                 input.Geographies,
-                null,
-                null,
-                null,
-                null,
-                null,
+                Research(input, name)?.Language,
+                Research(input, name)?.LifeStage,
+                Research(input, name)?.LsmSem,
+                Research(input, name)?.LsmSemTaxonomy,
+                Research(input, name)?.LsmSemTaxonomyVersion,
                 classification,
                 ["Do not infer sensitive individual attributes."],
                 input.EvidenceItemIds,
                 input.EvidenceItemIds.Count > 0 ? 0.70m : 0.45m,
-                index < 2)).ToArray();
+                true)).ToArray();
         var audienceNames = audiences.Select(item => item.Name).ToArray();
         var targetingRationale = audienceNames.Length == 0
             ? "No target segment was supplied; audience clarification is required."
             : $"Prioritise {string.Join(", ", audienceNames)} in {string.Join(", ", input.Geographies)} because the approved Brief identifies them as the audiences and markets relevant to the objective.";
         var positioningStatement = audienceNames.Length == 0
             ? $"Position the campaign around the approved objective: {input.Objective}"
-            : $"For {string.Join(", ", audienceNames)}, position the advertised offer as the credible route to {input.Objective.ToLowerInvariant()}.";
+            : "Positioning requires validated consumer need and product proposition.";
         return Task.FromResult(new AudienceAgentProposal(
             audiences,
             targetingRationale,
@@ -61,6 +50,10 @@ internal sealed class PlanningAgentFixture : IPlanningAgentClient
             "fixture-v1",
             0));
     }
+
+    private static AudienceEvidenceFact? Research(PlanningBriefInput input, string name) =>
+        input.AudienceEvidence.FirstOrDefault(item => string.Equals(
+            item.AudienceName, name, StringComparison.OrdinalIgnoreCase));
 
     public Task<MediaPlanningAgentProposal> ProposeMediaMixAsync(
         MediaPlanningInput input,

@@ -37,16 +37,21 @@ public sealed partial class CanonicalPlanningAcceptanceTests
                 client, "event-interrupted-host", "email-interrupted-host");
             inboundEmailId = receipt.RootElement.GetProperty("inboundEmailId").GetGuid();
             await EnableMailboxAutoSendAsync(connectionString);
+            using var initialReview = await ProcessMessageAsync(client, inboundEmailId, "resume-after-mailbox-enable");
+            await CompleteEmailHumanReviewsAsync(client, inboundEmailId, stopBeforeDelivery: true);
 
             using var scope = firstFactory.Services.CreateScope();
-            var processor = scope.ServiceProvider
-                .GetRequiredService<IEmailProposalAutomationProcessor>();
-            await Assert.ThrowsAsync<OperationCanceledException>(() => processor.ProcessAsync(
-                new TenantId(TenantId),
-                new ActorId(OperatorId),
-                inboundEmailId,
-                new CorrelationId(Guid.NewGuid()),
-                CancellationToken.None));
+            using var reviewed = await GetJsonAsync(client, Path($"email-automation/messages/{inboundEmailId}"));
+            var retry = new RetryInboundEmailCommand("Human completed audience and branding review.", []);
+            var envelope = new CommandEnvelope<RetryInboundEmailCommand>(
+                new TenantId(TenantId), new ActorId(OperatorId), new CommandId(Guid.NewGuid()),
+                new CorrelationId(Guid.NewGuid()), new IdempotencyKey("interrupt-authorized-review-retry"),
+                new Sha256Digest(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+                    System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(retry))).ToLowerInvariant()),
+                reviewed.RootElement.GetProperty("run").GetProperty("version").GetInt64(),
+                DateTimeOffset.UtcNow, retry);
+            await Assert.ThrowsAsync<OperationCanceledException>(() => scope.ServiceProvider
+                .GetRequiredService<IEmailAutomationCommands>().RetryAsync(inboundEmailId, envelope, CancellationToken.None));
 
             using var interrupted = await GetJsonAsync(
                 client, Path($"email-automation/messages/{inboundEmailId}"));
