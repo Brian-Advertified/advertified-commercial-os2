@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { api, humanMessage } from '../api/client'
 import type { CurrentUser, Workspace } from '../api/schemas'
@@ -41,18 +41,47 @@ const oohInboxRoles = new Set<string>([
   masterDataCodes.roles.agencyAdmin,
 ])
 
+const planningViewerRoles = new Set<string>([
+  masterDataCodes.roles.platformAdmin,
+  masterDataCodes.roles.internalPlanner,
+  masterDataCodes.roles.agencyAdmin,
+  masterDataCodes.roles.agencyCampaignUser,
+  masterDataCodes.roles.advertiserAdmin,
+  masterDataCodes.roles.advertiserApprover,
+])
+
+const supplierOperatorRoles = new Set<string>([
+  masterDataCodes.roles.platformAdmin,
+  masterDataCodes.roles.inventoryOps,
+  masterDataCodes.roles.supplierUser,
+  masterDataCodes.roles.influencerRep,
+])
+
+const inventoryViewerRoles = new Set<string>([
+  ...planningViewerRoles,
+  ...supplierOperatorRoles,
+])
+
+const briefCreatorRoles = new Set<string>([
+  masterDataCodes.roles.platformAdmin,
+  masterDataCodes.roles.internalPlanner,
+  masterDataCodes.roles.agencyAdmin,
+  masterDataCodes.roles.agencyCampaignUser,
+])
+
 const destinations: readonly Destination[] = [
   { to: '/home', label: 'Home', icon: 'home' },
-  { to: '/opportunities', label: 'Opportunities', icon: 'target' },
-  { to: '/briefs', label: 'Briefs', icon: 'brief' },
-  { to: '/inventory', label: 'Inventory', icon: 'inventory' },
-  { to: '/marketplace', label: 'Marketplace', icon: 'marketplace' },
+  { to: '/opportunities', label: 'Opportunities', icon: 'target', roles: planningViewerRoles },
+  { to: '/briefs', label: 'Briefs', icon: 'brief', roles: planningViewerRoles },
+  { to: '/inventory', label: 'Inventory', icon: 'inventory', roles: inventoryViewerRoles },
+  { to: '/marketplace', label: 'Marketplace', icon: 'marketplace', roles: inventoryViewerRoles },
   { to: '/ooh-inbox', label: 'Media inbox', icon: 'inbox', roles: oohInboxRoles },
-  { to: '/bookings', label: 'Bookings', icon: 'reservation' },
-  { to: '/campaigns', label: 'Campaigns', icon: 'plan' },
-  { to: '/measurement', label: 'Reporting', icon: 'chart' },
+  { to: '/bookings', label: 'Bookings', icon: 'reservation', roles: inventoryViewerRoles },
+  { to: '/delivery-proof-requests', label: 'Delivery', icon: 'evidence', roles: supplierOperatorRoles },
+  { to: '/campaigns', label: 'Campaigns', icon: 'plan', roles: planningViewerRoles },
+  { to: '/measurement', label: 'Reporting', icon: 'chart', roles: planningViewerRoles },
   { to: '/tasks', label: 'Tasks', icon: 'tasks' },
-  { to: '/funding', label: 'Finance', icon: 'money' },
+  { to: '/funding', label: 'Finance', icon: 'money', roles: planningViewerRoles },
   { to: '/admin/onboarding', label: 'Onboarding', icon: 'tasks', roles: platformAdminRoles },
   { to: '/admin/commercial', label: 'Settings', icon: 'commercial', roles: adminRoles },
 ]
@@ -69,7 +98,8 @@ const prefixNavigation: Readonly<Record<string, readonly string[]>> = {
   Inventory: ['/inventory'],
   Marketplace: ['/marketplace'],
   Bookings: ['/bookings'],
-  Campaigns: ['/campaigns', '/creative-assets/', '/delivery-proofs/'],
+  Delivery: ['/delivery-proof-requests', '/creative-assets/', '/delivery-proofs/'],
+  Campaigns: ['/campaigns'],
   Reporting: [
     '/measurement', '/reports', '/performance-evidence/', '/measurement-reports/',
   ],
@@ -122,9 +152,9 @@ function GlobalSearch() {
     ? new URLSearchParams(location.search).get('q') ?? ''
     : ''
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const focusSearch = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'k') return
+      if (!(event.ctrlKey || event.metaKey) || !event.shiftKey || event.key.toLowerCase() !== 'k') return
       event.preventDefault()
       inputRef.current?.focus()
       inputRef.current?.select()
@@ -135,7 +165,8 @@ function GlobalSearch() {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const normalized = inputRef.current?.value.trim() ?? ''
+    const value = new FormData(event.currentTarget).get('q')
+    const normalized = typeof value === 'string' ? value.trim() : ''
     if (!normalized) { inputRef.current?.focus(); return }
     navigate(`/search?q=${encodeURIComponent(normalized)}`)
   }
@@ -144,12 +175,28 @@ function GlobalSearch() {
     <button className="approved-global-search-submit" type="submit" aria-label="Submit search">
       <Icon name="search" />
     </button>
-    <input key={query} ref={inputRef} type="search" defaultValue={query}
+    <input ref={inputRef} name="q" type="search" defaultValue={query}
       aria-label="Search Advertified"
-      aria-keyshortcuts="Control+K Meta+K"
+      aria-keyshortcuts="Control+Shift+K Meta+Shift+K"
       placeholder="Search campaigns, briefs, inventory, reports…" />
-    <kbd aria-hidden="true">⌘ K</kbd>
+    <kbd aria-hidden="true">⇧⌘ K</kbd>
   </form>
+}
+
+function TopbarPrimaryActions({ workspace, notificationCount }: {
+  workspace: Workspace | null
+  notificationCount: number
+}) {
+  const roleCode = workspace?.roleCode
+  return <>
+    {roleCode && briefCreatorRoles.has(roleCode) && <NavLink className="approved-new-button" to="/briefs/new">
+      <Icon name="plus" /> New <span>⌄</span></NavLink>}
+    <NavLink className="approved-icon-button" to="/notifications" aria-label="Notifications">
+      <Icon name="bell" />{notificationCount > 0 && <i>{notificationCount}</i>}</NavLink>
+    {roleCode && oohInboxRoles.has(roleCode) && <NavLink
+      className="approved-icon-button" to="/ooh-inbox" aria-label="Messages"
+      title="Open outdoor advertising proposal inbox"><Icon name="inbox" /></NavLink>}
+  </>
 }
 
 function GlobalTopbar({ workspace, user, notificationCount, onSignOut }: {
@@ -163,11 +210,7 @@ function GlobalTopbar({ workspace, user, notificationCount, onSignOut }: {
   return <header className="approved-home-topbar">
     <GlobalSearch />
     <div className="approved-home-actions">
-      <NavLink className="approved-new-button" to="/briefs/new"><Icon name="plus" /> New <span>⌄</span></NavLink>
-      <NavLink className="approved-icon-button" to="/notifications" aria-label="Notifications"><Icon name="bell" />{notificationCount > 0 && <i>{notificationCount}</i>}</NavLink>
-      {workspace && oohInboxRoles.has(workspace.roleCode) && <NavLink
-        className="approved-icon-button" to="/ooh-inbox" aria-label="Messages"
-        title="Open outdoor advertising proposal inbox"><Icon name="inbox" /></NavLink>}
+      <TopbarPrimaryActions workspace={workspace} notificationCount={notificationCount} />
       <NavLink className="approved-icon-button" to="/faq" aria-label="Help"
         title="Open Advertified help">?</NavLink>
       <NavLink className="approved-user-chip" to="/profile" aria-label={`${displayName} profile`}><span>{initial}</span>
@@ -190,7 +233,7 @@ export function AppShell() {
   const user = activeShellData?.user ?? null
   const taskCount = activeShellData?.taskCount ?? 0
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (previousPath.current !== location.pathname) mainContentRef.current?.focus()
     previousPath.current = location.pathname
   }, [location.pathname])

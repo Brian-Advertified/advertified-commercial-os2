@@ -345,6 +345,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
 
         using var crossTenant = await other.GetAsync(Path($"brief-versions/{BriefVersionId}/planning"));
         await AssertProblemAsync(crossTenant, HttpStatusCode.Forbidden, "TENANT_FORBIDDEN");
+        await AssertReplacementDecisionHistoryAsync(client, other, connectionString, selectedProductId, planId);
     }
 
     private static void AssertSupplierAssessmentsHidden(JsonElement workspace)

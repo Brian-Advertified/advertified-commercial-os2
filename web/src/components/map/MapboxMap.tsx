@@ -4,11 +4,13 @@ import { masterDataCodes } from '../../generated/master-data-codes'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import './mapbox-map.css'
 import { validateGeometry } from './geojson'
+import { mapContent as copy } from './map-content'
 
 type Position = [number, number]
 type GeoJsonObject = Record<string, unknown>
 type MapGeoJsonData = Exclude<GeoJSONSourceSpecification['data'], string>
 type MapStatus = 'loading' | 'ready' | 'token-missing' | 'failed'
+type InspectFeature = { id: string; properties: { label: string; verified: boolean } }
 const spatialColor: ExpressionSpecification = ['case',
   ['!=', ['get', 'verified'], true], '#b7791f',
   ['==', ['get', 'priority'], masterDataCodes.spatialRequirementPriorities.excluded], '#b42318',
@@ -27,8 +29,12 @@ export function MapboxMap({ features, ariaLabel = 'Campaign geography map' }: {
 }) {
   const data = useMemo(() => featureCollection(features), [features])
   const token = mapboxToken()
-  const { containerRef, status } = useAdvertifiedMap(token, data)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const items = data.features as InspectFeature[]
+  const selected = items.find(feature => feature.id === selectedId)
+  const { containerRef, status, focus } = useAdvertifiedMap(token, data, setSelectedId)
   return <section className="advertified-map" aria-label={ariaLabel}>
+    <MapInspector items={items} selected={selected} focus={id => { setSelectedId(id); focus(id) }} />
     <div className="advertified-map-canvas" ref={containerRef} />
     {status === 'ready' && <div className="advertified-map-legend">
       <span>Amber: needs verification</span><span>Purple: verified area</span>
@@ -46,7 +52,23 @@ export function MapboxMap({ features, ariaLabel = 'Campaign geography map' }: {
   </section>
 }
 
-function useAdvertifiedMap(token: string, data: MapGeoJsonData) {
+function MapInspector({ items, selected, focus }: {
+  items: InspectFeature[]; selected?: InspectFeature; focus: (id: string | null) => void
+}) {
+  return <div className="advertified-map-inspector">
+      <label>{copy.places}<select value={selected?.id ?? ''} onChange={event => {
+        const id = event.target.value || null
+        focus(id)
+      }}><option value="">{copy.all}</option>{items.map(feature =>
+        <option key={feature.id} value={feature.id}>{String(feature.properties?.label)}</option>)}</select></label>
+      <button type="button" className="secondary-button" onClick={() => focus(null)}>{copy.all}</button>
+      {selected && <p role="status"><strong>{copy.selected}: {String(selected.properties?.label)}</strong><br />
+        {selected.properties?.verified ? copy.verified : copy.unverified}</p>}
+      <p>{copy.note}</p>
+    </div>
+}
+
+function useAdvertifiedMap(token: string, data: MapGeoJsonData, select: (id: string | null) => void) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const dataRef = useRef(data)
@@ -63,6 +85,10 @@ function useAdvertifiedMap(token: string, data: MapGeoJsonData) {
     let map: mapboxgl.Map
     try {
       map = createMap(containerRef.current, token, () => dataRef.current, updateStatus)
+      map.on('click', 'advertified-spatial-point', event => {
+        const feature = event.features?.[0] as { properties?: { featureId?: string } } | undefined
+        if (feature?.properties?.featureId) select(String(feature.properties.featureId))
+      })
     } catch {
       queueMicrotask(() => updateStatus('failed'))
       return () => { active = false }
@@ -73,7 +99,7 @@ function useAdvertifiedMap(token: string, data: MapGeoJsonData) {
       map.remove()
       mapRef.current = null
     }
-  }, [token])
+  }, [token, select])
 
   useEffect(() => {
     const map = mapRef.current
@@ -83,7 +109,13 @@ function useAdvertifiedMap(token: string, data: MapGeoJsonData) {
     fitToData(map, data)
   }, [data, status])
 
-  return { containerRef, status }
+  const focus = (id: string | null) => {
+    const map = mapRef.current
+    if (!map || status !== 'ready') return
+    const collection = data as Extract<MapGeoJsonData, { type: 'FeatureCollection' }>
+    fitToData(map, id ? { ...collection, features: collection.features.filter((feature: InspectFeature) => feature.id === id) } : data)
+  }
+  return { containerRef, status, focus }
 }
 
 function createMap(
@@ -125,7 +157,7 @@ function featureCollection(features: MapFeature[]) {
     return geometry ? [{
       type: 'Feature' as const,
       id: feature.id ?? `spatial-${index}`,
-      properties: { label: feature.label ?? '', verified: feature.properties?.verified === true,
+      properties: { label: feature.label ?? '', featureId: feature.id ?? `spatial-${index}`, verified: feature.properties?.verified === true,
         priority: feature.properties?.priority ?? null },
       geometry,
     }] : []

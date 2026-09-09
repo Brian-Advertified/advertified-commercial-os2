@@ -48,6 +48,8 @@ public sealed class PlanningReader(
             tenantId, briefVersionId, cancellationToken);
         var planRow = await store.FindLatestPlanAsync(
             tenantId, briefVersionId, cancellationToken);
+        if (planRow is not null && await store.HasSupersedingSelectionAsync(
+            tenantId, [planRow.Id], cancellationToken)) planRow = null;
         var campaignMode = campaignModeRow is null
             ? null
             : PlanningRecordStore.BuildCampaignModeView(

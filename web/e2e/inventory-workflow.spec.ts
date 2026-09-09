@@ -71,8 +71,30 @@ test('operator intake accepts validated candidates before separate publication',
   await expect(page.getByRole('heading', { name: 'How this placement compares' })).toBeVisible()
   await expect(page.getByText('Strong Value')).toBeVisible()
   await expect(page.getByText('25% below median')).toBeVisible()
+  await expect(page.getByText('Price comparison, not an audience or performance ranking')).toBeVisible()
+  await page.getByText('Comparison basis and limitations', { exact: true }).click()
+  await expect(page.getByText('OOH_LOCAL_PEER_V1', { exact: true })).toBeVisible()
+  await expect(page.getByText(/not a probability of campaign success/)).toBeVisible()
+  await expect(page.getByText(/Confirm current supplier terms/)).toBeVisible()
   await page.getByText('RATE CARD', { exact: true }).click()
   await expect(page.getByText(/File-integrity evidence: SHA-256 a{64}/)).toBeVisible()
+})
+
+test('supplier can inspect permitted price evidence without publication controls', async ({ page }) => {
+  const state: State = { role: 'supplier_admin', importStatus: 'COMPLETED', candidateStatus: 'APPROVED', published: true }
+  let mutations = 0
+  await page.addInitScript(id => sessionStorage.setItem('advertified.workspace', JSON.stringify({ tenantId: id })), tenantId)
+  await page.route('**/api/v1/**', route => {
+    if (route.request().method() !== 'GET') mutations += 1
+    return handleApi(route, state)
+  })
+  await page.goto(`/inventory/products/${productId}`)
+  await expect(page.getByRole('heading', { name: 'How this placement compares' })).toBeVisible()
+  await page.getByText('View 1 comparable site', { exact: true }).click()
+  await expect(page.getByText('Braamfontein Digital', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Publish reviewed inventory' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Approve' , exact: true })).toHaveCount(0)
+  expect(mutations).toBe(0)
 })
 
 async function handleApi(route: Route, state: State) {

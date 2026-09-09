@@ -14,7 +14,20 @@ public sealed record InventoryBuyAssessmentView(
     string? Methodology,
     bool IsTargetAudience,
     InventoryDigitalExposureView? DigitalExposure,
-    IReadOnlyList<string> EvidenceGaps);
+    IReadOnlyList<string> EvidenceGaps,
+    InventoryPlannerReasoningView? PlannerReasoning = null);
+
+public sealed record InventoryPlannerReasoningView(
+    string? PlannedChannelRole,
+    IReadOnlyList<PlannerAudienceContextView> TargetContexts,
+    int RequiredPlacesMatched,
+    int RequiredPlacesTotal,
+    bool HasMeasuredTargetAudience,
+    IReadOnlyList<string> ReviewQuestions,
+    IReadOnlyList<string> SupportedReasons,
+    IReadOnlyList<string> BuyingWarnings);
+
+public sealed record PlannerAudienceContextView(string Name, string NeedState, string BuyingContext);
 
 public sealed record InventoryDigitalExposureView(
     int? SpotLengthSeconds,

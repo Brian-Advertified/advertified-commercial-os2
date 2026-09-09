@@ -15,8 +15,7 @@
 .advertified-map-legend { position: absolute; bottom: 34px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 8px 12px; background: #fffffff2; color: #344054; border-radius: 6px; font-size: 12px; pointer-events: none; }
 
 .advertified-map-message {
-  position: absolute;
-  inset: 0;
+  position: relative;
   display: grid;
   place-items: center;
   padding: 2rem;
@@ -46,3 +45,7 @@
     min-height: 18rem;
   }
 }
+.advertified-map-inspector { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; padding: 1rem; background: #faf9ff; border-bottom: 1px solid #e8e4f4; }
+.advertified-map-inspector label { display: grid; gap: .4rem; flex: 1 1 15rem; min-width: 0; font-weight: 600; }
+.advertified-map-inspector select { width: 100%; min-width: 0; padding: .65rem; border: 1px solid #d9d2e8; border-radius: .6rem; background: white; }
+.advertified-map-inspector p { flex-basis: 100%; margin: 0; color: #514b61; overflow-wrap: anywhere; font-size: .85rem; }

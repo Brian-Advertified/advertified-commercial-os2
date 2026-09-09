@@ -156,7 +156,7 @@ function workspaceFixtures() {
       roleCode: 'agency_admin', version: 1 },
     { membershipId: 'b7000000-0000-0000-0000-000000000002',
       tenantId: supplierTenantId, name: 'Supplier Workspace', slug: 'supplier-workspace',
-      roleCode: 'supplier_admin', version: 1 },
+      roleCode: 'supplier_user', version: 1 },
   ]
 }
 

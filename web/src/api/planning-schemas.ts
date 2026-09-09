@@ -193,6 +193,20 @@ export const shortlistSchema = z.object({
       currency: z.string(), channelCosts: z.array(z.object({
         channel: z.string(), supplierCostMinor: z.number().nonnegative(), budgetMinor: z.number().nonnegative(),
       })), coveredRequirementIds: z.array(z.guid()), evidenceGaps: z.array(z.string()),
+      comparison: z.object({
+        supplierCostDeltaMinor: z.number().int(), addedCandidateIds: z.array(z.guid()), removedCandidateIds: z.array(z.guid()),
+        measuredTargetCandidateCount: z.number().int().nonnegative(), missingDeliveryCandidateCount: z.number().int().nonnegative(),
+        distinctInventoryWorkspaceCount: z.number().int().nonnegative(), plannedChannelRoles: z.array(z.string()),
+      }).nullable().optional(),
+      audienceForecast: z.object({
+        grossReach: z.number().nonnegative().nullable(), deduplicatedReach: z.number().nonnegative().nullable(),
+        duplicatedReach: z.number().nonnegative().nullable(), totalImpressions: z.number().nonnegative().nullable(),
+        averageFrequency: z.number().nonnegative().nullable(), universe: z.string().nullable(),
+        measurementPeriod: z.string().nullable(), measurementSource: z.string().nullable(), methodology: z.string().nullable(),
+        incrementalReach: z.array(z.object({
+          candidateId: z.guid(), incrementalReach: z.number().nonnegative().nullable(), evidenceGap: z.string().nullable(),
+        })), evidenceGaps: z.array(z.string()),
+      }).nullable().optional(),
     })),
     searchTruncated: z.boolean(), candidatesConsidered: z.number().int().nonnegative(),
     missingCostCandidateCount: z.number().int().nonnegative(),

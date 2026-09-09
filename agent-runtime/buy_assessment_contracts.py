@@ -19,6 +19,23 @@ class InventoryDigitalExposureFacts(ContractModel):
     loop_share_percent: Annotated[Decimal | None, Field(ge=0, le=100)] = None
 
 
+class PlannerAudienceContextFacts(ContractModel):
+    name: str
+    need_state: str
+    buying_context: str
+
+
+class InventoryPlannerReasoningFacts(ContractModel):
+    planned_channel_role: str | None = None
+    target_contexts: tuple[PlannerAudienceContextFacts, ...]
+    required_places_matched: NonNegativeInteger
+    required_places_total: NonNegativeInteger
+    has_measured_target_audience: bool
+    review_questions: tuple[str, ...]
+    supported_reasons: tuple[str, ...]
+    buying_warnings: tuple[str, ...]
+
+
 class InventoryBuyAssessmentFacts(ContractModel):
     campaign_supplier_cost_minor: NonNegativeInteger | None = None
     currency: str | None = None
@@ -34,3 +51,4 @@ class InventoryBuyAssessmentFacts(ContractModel):
     is_target_audience: bool
     digital_exposure: InventoryDigitalExposureFacts | None = None
     evidence_gaps: tuple[str, ...]
+    planner_reasoning: InventoryPlannerReasoningFacts | None = None

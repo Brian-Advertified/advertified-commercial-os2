@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test'
 
-const testPort = 43917
+const testPort = 43918
 const testOrigin = `http://127.0.0.1:${testPort}`
 
 export default defineConfig({
@@ -16,7 +16,7 @@ export default defineConfig({
   use: {
     baseURL: testOrigin,
     reducedMotion: 'reduce',
-    trace: 'retain-on-failure',
+    trace: 'off',
   },
   projects: [
     { name: 'desktop', use: { viewport: { width: 1280, height: 800 } } },

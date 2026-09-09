@@ -5,29 +5,32 @@ import {
   type PublicInventorySummary,
 } from '../api/publicInventory';
 import { MediaOwnerLogo } from '../components/MediaOwnerLogo';
-import { getPublicInventoryChannelPresentation } from '../data/publicInventoryChannels';
+import { getPublicInventoryChannelPresentation, publicInventoryCountLabel } from '../data/publicInventoryChannels';
 
 type NetworkState =
   | { status: 'loading' }
   | { status: 'ready'; data: PublicInventorySummary }
   | { status: 'unavailable' };
 
-type Owners = PublicInventorySummary['channels'][number]['owners'];
+type Units = PublicInventorySummary['channels'][number]['units'];
 
 export function PublicMediaNetworkPage({ channel }: { channel: string }) {
   const network = useNetworkState();
   const presentation = getPublicInventoryChannelPresentation(channel);
-  const owners = ownersFor(network, channel);
+  const units = unitsFor(network, channel);
+  const countBasis = network.status === 'ready'
+    ? publicInventoryCountLabel(network.data.channels.find(item => item.channel === channel)?.countBasis ?? '', channel)
+    : presentation.directoryTitle;
   return <section className="media-network-page" aria-labelledby="media-network-page-title">
     <div className="shell">
       <Link className="media-network-page__back" href="/">← Back to the media network</Link>
       <header className="media-network-page__header">
         <span className="eyebrow">ACTIVE PUBLISHED INVENTORY</span>
-        <h1 id="media-network-page-title">{presentation.directoryTitle}</h1>
-        <p>{networkDescription(network, owners.length)}</p>
+        <h1 id="media-network-page-title">{countBasis}</h1>
+        <p>{networkDescription(network, units.length, countBasis)}</p>
       </header>
-      <NetworkStateMessage state={network} hasOwners={owners.length > 0} />
-      {owners.length > 0 && <OwnerGrid owners={owners} label={presentation.label} />}
+      <NetworkStateMessage state={network} hasUnits={units.length > 0} />
+      {units.length > 0 && <UnitGrid units={units} label={countBasis} />}
     </div>
   </section>;
 }
@@ -48,36 +51,35 @@ function useNetworkState(): NetworkState {
   return network;
 }
 
-function ownersFor(state: NetworkState, channel: string): Owners {
+function unitsFor(state: NetworkState, channel: string): Units {
   return state.status === 'ready'
-    ? state.data.channels.find((item) => item.channel === channel)?.owners ?? []
+    ? state.data.channels.find((item) => item.channel === channel)?.units ?? []
     : [];
 }
 
-function networkDescription(state: NetworkState, count: number) {
+function networkDescription(state: NetworkState, count: number, countBasis: string) {
   if (state.status !== 'ready') {
-    return 'Loading the media owners represented by current published catalogue records.';
+    return 'Loading media represented by current published catalogue records.';
   }
-  const suffix = count === 1 ? '' : 's';
-  return `${count.toLocaleString()} distinct media owner${suffix} represented by current published catalogue records.`;
+  return `${countBasis}: ${count.toLocaleString()} represented by current published catalogue records. Counts refer to the stated media units, not their parent owners. Product counts do not establish distinct physical sites.`;
 }
 
-function NetworkStateMessage({ state, hasOwners }: {
-  state: NetworkState; hasOwners: boolean;
+function NetworkStateMessage({ state, hasUnits }: {
+  state: NetworkState; hasUnits: boolean;
 }) {
   if (state.status === 'loading') {
-    return <div className="media-network-page__state" role="status">Loading media owners…</div>;
+    return <div className="media-network-page__state" role="status">Loading media directory…</div>;
   }
   if (state.status === 'unavailable') {
-    return <div className="media-network-page__state" role="alert">The current media owner directory is temporarily unavailable.</div>;
+    return <div className="media-network-page__state" role="alert">The current media directory is temporarily unavailable.</div>;
   }
-  return hasOwners ? null
-    : <div className="media-network-page__state">No active published owners are currently listed for this channel.</div>;
+  return hasUnits ? null
+    : <div className="media-network-page__state">No identifiable media units are currently available in this directory.</div>;
 }
 
-function OwnerGrid({ owners, label }: { owners: Owners; label: string }) {
-  return <div className="media-network-owner-grid" aria-label={`${label} media owners`}>
-    {owners.map((owner) => <MediaOwnerLogo key={owner.id}
-      name={owner.name} logoUrl={owner.logoUrl} />)}
+function UnitGrid({ units, label }: { units: Units; label: string }) {
+  return <div className="media-network-owner-grid" aria-label={label}>
+    {units.map((unit) => <MediaOwnerLogo key={unit.id}
+      name={unit.name} logoUrl={unit.logoUrl} />)}
   </div>;
 }

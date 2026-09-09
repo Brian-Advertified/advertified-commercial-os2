@@ -223,6 +223,8 @@ public sealed partial class PlanningCommands
         MediaPlanVersionView plan,
         CancellationToken cancellationToken)
     {
+        if (await store.HasSupersedingSelectionAsync(tenantId, [plan.Id], cancellationToken))
+            return false;
         var current = await store.ListInventoryAsync(tenantId, cancellationToken,
             plan.Lines.Select(item => item.InventoryProductId).Distinct().ToArray());
         var byProduct = current.ToDictionary(InventoryKey.For);

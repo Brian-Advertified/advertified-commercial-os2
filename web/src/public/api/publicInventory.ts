@@ -1,4 +1,4 @@
-export interface PublicMediaOwner {
+export interface PublicMediaUnit {
   id: string;
   name: string;
   logoUrl: string | null;
@@ -7,7 +7,8 @@ export interface PublicMediaOwner {
 export interface PublicInventoryChannel {
   channel: string;
   count: number;
-  owners: PublicMediaOwner[];
+  countBasis: string;
+  units: PublicMediaUnit[];
 }
 
 export interface PublicInventorySummary {

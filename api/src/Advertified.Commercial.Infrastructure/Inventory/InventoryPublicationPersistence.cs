@@ -86,7 +86,8 @@ internal static class InventoryPublicationPersistence
                 INSERT INTO commercial.inventory_product_versions (
                     id, tenant_id, product_id, version_number, name, channel_code,
                     product_type_code, geography, address, latitude, longitude,
-                    description, extension_json, audience_profile_json, deliverable_json,
+                    description, outlet_id, outlet_name, outlet_identity_basis,
+                    outlet_source_locator, extension_json, audience_profile_json, deliverable_json,
                     spatial_json, coverage_geometry, catchment_geometry, route_geometry,
                     direction_geometry, verification_code, inventory_release_id,
                     source_import_id, source_candidate_id, published_by, published_at_utc)
@@ -94,7 +95,9 @@ internal static class InventoryPublicationPersistence
                     value."versionNumber", value."name", value."channel",
                     value."productType", value."geography", value."address",
                     value."latitude", value."longitude", value."description",
-                    value."extensionJson"::jsonb, value."audienceProfileJson"::jsonb,
+                    value."outletId", value."outletName", value."outletBasis",
+                    value."outletSourceLocator", value."extensionJson"::jsonb,
+                    value."audienceProfileJson"::jsonb,
                     value."deliverableJson"::jsonb, value."spatialJson"::jsonb,
                     CASE WHEN value."coverageGeoJson" IS NULL THEN NULL ELSE
                         ST_Multi(ST_SetSRID(ST_GeomFromGeoJSON(value."coverageGeoJson"), 4326)) END,
@@ -111,7 +114,9 @@ internal static class InventoryPublicationPersistence
                     "candidateId" uuid, "name" text, "channel" text,
                     "productType" text, "geography" text, "address" text,
                     "latitude" numeric, "longitude" numeric, "description" text,
-                    "extensionJson" text, "audienceProfileJson" text,
+                    "outletId" text, "outletName" text, "outletBasis" text,
+                    "outletSourceLocator" text, "extensionJson" text,
+                    "audienceProfileJson" text,
                     "deliverableJson" text, "spatialJson" text,
                     "coverageGeoJson" text, "catchmentGeoJson" text,
                     "routeGeoJson" text, "directionGeoJson" text);
@@ -301,6 +306,10 @@ internal sealed record PreparedInventoryPublication(
     decimal? Latitude,
     decimal? Longitude,
     string? Description,
+    string? OutletId,
+    string? OutletName,
+    string? OutletBasis,
+    string? OutletSourceLocator,
     string ExtensionJson,
     string? AudienceProfileJson,
     string? DeliverableJson,

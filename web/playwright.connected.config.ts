@@ -13,7 +13,7 @@ export default defineConfig({
   use: {
     baseURL: connectedOrigin,
     reducedMotion: 'reduce',
-    trace: 'retain-on-failure',
+    trace: 'off',
   },
   projects: [
     { name: 'connected-desktop', use: { viewport: { width: 1280, height: 800 } } },

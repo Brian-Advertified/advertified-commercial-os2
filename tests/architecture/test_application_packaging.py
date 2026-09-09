@@ -98,6 +98,20 @@ def test_local_docker_scripts_do_not_create_one_off_or_prune_global_images() -> 
     assert scripts.count("@('build',") == scripts.count("'--no-build'")
 
 
+def test_local_heavy_operations_require_actual_host_storage_headroom() -> None:
+    guard = read("tools/storage-headroom.ps1")
+    assert "AvailableFreeSpace" in guard
+    assert "$ReserveBytes = 5GB" in guard
+    assert "throw 'Insufficient host storage headroom" in guard
+    for path in ("tools/advertified-compose.ps1", "tools/run-api-memory-tests.ps1",
+                 "tools/run-api-release-tests.ps1"):
+        assert "Assert-AdvertifiedStorageHeadroom" in read(path)
+    assert "'--tmpfs', '/work:rw,size=2g'" in read("tools/run-api-memory-tests.ps1")
+    for path in ("web/playwright.config.ts", "web/playwright.connected.config.ts",
+                 "web/playwright.session-durability.config.ts"):
+        assert "trace: 'off'" in read(path)
+
+
 def test_dotnet_projects_enforce_locked_restore() -> None:
     build_properties = read("Directory.Build.props")
     sdk_selection = read("global.json")

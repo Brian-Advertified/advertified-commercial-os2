@@ -14,6 +14,7 @@ import { ExperienceSignals, type ExperienceSignal } from '../components/Experien
 import { Icon } from '../components/Icon'
 import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
+import { RoleHomeDashboard } from '../home/RoleHomeDashboard'
 import { mediaVisual } from '../planning/media-visuals'
 import { formatMoney, formatNumber, humanizeCode } from '../presentation/format'
 
@@ -25,6 +26,14 @@ type DashboardData = {
   tasks: HumanTask[]
   inventory: InventoryProductPage | null
 }
+
+const roleSpecificHomeRoles = new Set<string>([
+  masterDataCodes.roles.inventoryOps,
+  masterDataCodes.roles.supplierUser,
+  masterDataCodes.roles.influencerRep,
+  masterDataCodes.roles.advertiserAdmin,
+  masterDataCodes.roles.advertiserApprover,
+])
 
 const thumbnails = [
   '/assets/media-inventory/out-of-home-real.jpg',
@@ -53,6 +62,11 @@ function HomeData({ workspace }: { workspace: Workspace }) {
   }, [workspace.tenantId])
   if (error) return <MessageState title="Your workspace could not be opened" message={error} />
   if (!data) return <LoadingState label={`Preparing ${workspace.name}`} />
+  if (roleSpecificHomeRoles.has(workspace.roleCode)) return <RoleHomeDashboard
+    roleCode={workspace.roleCode} displayName={data.user.displayName}
+    workspaceName={workspace.name} currency={data.tenant.currencyCode}
+    campaigns={data.campaigns} bookings={data.bookings} tasks={data.tasks}
+    inventory={data.inventory} />
   return <ApprovedDashboard data={data} />
 }
 

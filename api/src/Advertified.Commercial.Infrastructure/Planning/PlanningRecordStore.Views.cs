@@ -117,12 +117,19 @@ public sealed partial class PlanningRecordStore
         var candidates = rows.Select(ToCandidateView).ToArray();
         var mix = await FindMixAsync(tenantId, shortlist.MixVersionId, cancellationToken)
             ?? throw new InvalidOperationException("The shortlist media mix is unavailable.");
+        var combinations = CampaignCombinationAssessment.Evaluate(candidates, BuildMixView(mix));
+        var research = await PlanningResearchPortfolioReader.ReadAsync(
+            dbContext, tenantId, cancellationToken);
+        combinations = combinations with
+        {
+            Alternatives = CampaignAudienceForecast.Attach(
+                combinations.Alternatives, candidates, research, tenantId),
+        };
         return new InventoryShortlistVersionView(
             shortlist.Id, shortlist.BriefVersionId, shortlist.MixVersionId,
             shortlist.VersionNumber, shortlist.InputHash, shortlist.Status,
             Read<string[]>(shortlist.AssumptionsJson), candidates,
-            shortlist.Version, shortlist.CreatedAtUtc,
-            CampaignCombinationAssessment.Evaluate(candidates, BuildMixView(mix)));
+            shortlist.Version, shortlist.CreatedAtUtc, combinations);
     }
 
     internal async Task<MediaPlanVersionView> BuildPlanViewAsync(

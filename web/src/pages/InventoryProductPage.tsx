@@ -15,6 +15,7 @@ import { ProductCommercial, ProductMedia } from '../inventory/InventoryProductOv
 import { SemanticDuplicateRecall } from '../inventory/SemanticDuplicateRecall'
 import { SupplierClaimPanel } from '../inventory/SupplierClaimPanel'
 import { formatDateTime, humanizeCode } from '../presentation/format'
+import { InventoryDecisionHistory } from '../reporting/InventoryDecisionHistory'
 
 export function InventoryProductPage() {
   const route = z.guid().safeParse(useParams().productId)
@@ -44,6 +45,7 @@ const reviewRoles = new Set<string>([inventoryCodes.role.platformAdmin,
   inventoryCodes.role.inventoryOperations])
 const rightsReviewRoles = new Set<string>([inventoryCodes.role.platformAdmin,
   ...supplierScopedRoles])
+const decisionReportRoles = new Set<string>([...reviewRoles, ...supplierScopedRoles])
 
 function ProductRecord({ tenantId, productId, token, canUpload, canReview,
   canReviewRights, canBackfill, roleCode }: {
@@ -102,6 +104,8 @@ function ProductRecordView({ tenantId, productId, record, token, canUpload, canR
     <AvailabilityExceptions tenantId={tenantId} token={token} record={record}
       canManage={canReview} onUpdated={onUpdated} />
     <InventoryAudienceProfile profile={record.audienceProfile} />
+    {decisionReportRoles.has(roleCode) && <InventoryDecisionHistory key={`${tenantId}:${productId}`}
+      tenantId={tenantId} inventoryProductId={productId} />}
     <ProductSourceEvidence tenantId={tenantId} token={token} record={record}
       canUpload={canUpload} canReviewRights={canReviewRights} roleCode={roleCode}
       onUpdated={onUpdated} />

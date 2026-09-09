@@ -21,8 +21,18 @@ test('authorised development reset leaves an empty Brief workspace and usable in
   await expect(page.locator('.approved-inventory-card').first()).toBeVisible()
   const summary = await page.request.get('/api/v1/public/inventory-summary')
   expect(summary.status()).toBe(200)
-  const inventory = await summary.json() as { totalCount: number; channels: { owners: unknown[] }[] }
+  const inventory = await summary.json() as {
+    totalCount: number; channels: { channel: string; count: number; countBasis: string; units: unknown[] }[]
+  }
   expect(inventory.totalCount).toBeGreaterThan(0)
-  expect(inventory.channels.some(channel => channel.owners.length > 0)).toBe(true)
+  expect(inventory.channels.some(channel => channel.units.length > 0)).toBe(true)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await page.goto('/')
+  await expect(page.getByText('Current media counts are temporarily unavailable.')).toHaveCount(0)
+  for (const channel of inventory.channels) {
+    expect(channel.count).toBe(channel.units.length)
+    const card = page.locator(`.public-inventory-card--${channel.channel}`)
+    await expect(card.locator('strong')).toHaveText(channel.count.toLocaleString())
+  }
+  await expect(page.locator('.media-inventory-partners')).toBeVisible()
 })

@@ -12,7 +12,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from '../../routing/router';
 import { getPublicInventorySummary, type PublicInventorySummary } from '../api/publicInventory';
 import { ProductPreview } from '../components/ProductPreview';
-import { getPublicInventoryChannelPresentation } from '../data/publicInventoryChannels';
+import { MediaInventoryPartnersStrip } from '../components/MediaInventoryPartnersStrip';
+import { getPublicInventoryChannelPresentation, publicInventoryCountLabel } from '../data/publicInventoryChannels';
 
 type InventoryState =
   | { status: 'loading' }
@@ -23,6 +24,7 @@ export function PublicHomePage() {
   const inventory = usePublicInventory();
   return <>
     <HomeHero />
+    <MediaInventoryPartnersStrip />
     <InventoryProof inventory={inventory} />
     <ParticipantSection />
   </>;
@@ -88,24 +90,25 @@ function InventoryChannelCard({ item }: {
 }) {
   const visual = getPublicInventoryChannelPresentation(item.channel);
   const count = item.count.toLocaleString();
+  const countLabel = publicInventoryCountLabel(item.countBasis, item.channel);
   return <Link href={`/media-network/${item.channel}`}
     className={`public-inventory-card public-inventory-card--${item.channel}`}
-    aria-label={`${visual.label}: ${count} media owners. View logos.`}>
+    aria-label={`${count} ${countLabel.toLowerCase()}. View directory.`}>
     {visual.image && <img className="public-inventory-card__image" src={visual.image}
       alt="" loading="lazy" decoding="async" />}
-    <div className="public-inventory-card__count"><strong>{count}</strong><span>{visual.label}</span></div>
+    <div className="public-inventory-card__count"><strong>{count}</strong><span>{countLabel}</span></div>
   </Link>;
 }
 
 function InventoryStateMessage({ state }: { state: InventoryState }) {
   if (state.status === 'loading') {
-    return <div className="public-inventory-proof__loading">Media owner counts are loading from the published catalogue.</div>;
+    return <div className="public-inventory-proof__loading">Media counts are loading from the published catalogue.</div>;
   }
   if (state.status === 'unavailable') {
-    return <div className="public-inventory-proof__loading">Current media owner counts are temporarily unavailable.</div>;
+    return <div className="public-inventory-proof__loading">Current media counts are temporarily unavailable.</div>;
   }
   return state.data.channels.length === 0
-    ? <div className="public-inventory-proof__loading">Media owners will appear here when published inventory is available.</div>
+    ? <div className="public-inventory-proof__loading">Media will appear here when published inventory is available.</div>
     : null;
 }
 

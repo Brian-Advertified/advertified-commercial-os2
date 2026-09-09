@@ -48,7 +48,12 @@ public sealed class MasterDataMigrationTests
             "202609080010_PublicInventorySummary",
             "202609080011_AiMonthlyBudget",
             "202609080012_BriefAudienceResearch",
-            "202609080013_AiOwnerBudgetSafety"],
+            "202609080013_AiOwnerBudgetSafety",
+            "202609080014_InventoryDecisionReports",
+            "202609080015_PublicInventoryUnits",
+            "202609080016_InventoryDecisionPagination",
+            "202609080017_CanonicalInventoryOutletIdentity",
+            "202609080018_InventoryResearchEnrichment"],
             applied.AppliedMigrations);
         var first = applied.MasterData;
         var repeated = await operation.ApplyAsync(postgres.GetConnectionString());

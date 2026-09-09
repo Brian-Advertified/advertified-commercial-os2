@@ -21,12 +21,14 @@ internal static class CampaignCombinationAssessment
         var eligible = candidates.Where(item => item.IsEligible && budgets.ContainsKey(item.Channel) &&
             item.Currency == mix.Currency).ToArray();
         var policy = PlanningPolicy.Load().SuitabilityPolicyVersion;
-        var priced = eligible.Where(item => HasCost(item) && item.Suitability?.PolicyVersion == policy)
-            .OrderByDescending(item => item.Score ?? 0m)
+        var priced = eligible.Where(item => HasCost(item) && item.Suitability?.PolicyVersion == policy && FitsCreative(item))
+            .OrderByDescending(item => item.Suitability?.BuyAssessment?.IsTargetAudience == true)
+            .ThenByDescending(item => item.Score ?? 0m)
             .ThenBy(item => Cost(item)).ThenBy(item => item.Id).ToArray();
         var pool = priced.Take(CandidateLimit).ToArray();
         var search = Search(pool, budgets, required, mix.TotalBudgetMinor);
-        return new(search.Completed.Take(AlternativeLimit).Select(state => View(state, mix, budgets)).ToArray(),
+        var alternatives = search.Completed.Take(AlternativeLimit).Select(state => View(state, mix, budgets)).ToArray();
+        return new(CampaignRelativeComparison.Attach(alternatives, candidates, mix),
             search.Truncated || priced.Length > pool.Length, pool.Length, eligible.Count(item => !HasCost(item)));
     }
 
@@ -87,6 +89,9 @@ internal static class CampaignCombinationAssessment
 
     private static IOrderedEnumerable<State> Order(IEnumerable<State> states) => states
         .OrderByDescending(item => item.Covered.Count)
+        .ThenByDescending(item => item.Candidates.Count == 0 ? 0m :
+            (decimal)item.Candidates.Count(value => value.Suitability?.BuyAssessment?.IsTargetAudience == true) /
+            item.Candidates.Count)
         .ThenByDescending(item => item.Candidates.Count == 0 ? 0m : item.Candidates.Average(value => value.Score ?? 0m))
         .ThenBy(item => item.Total).ThenBy(Key, StringComparer.Ordinal);
 
@@ -103,6 +108,12 @@ internal static class CampaignCombinationAssessment
 
     private static bool HasCost(InventoryShortlistCandidateView candidate) =>
         candidate.Suitability?.BuyAssessment?.CampaignSupplierCostMinor is >= 0;
+
+    private static bool FitsCreative(InventoryShortlistCandidateView candidate)
+    {
+        var digital = candidate.Suitability?.BuyAssessment?.DigitalExposure;
+        return !(digital?.SpotLengthSeconds > digital?.SlotLengthSeconds);
+    }
 
     private static long Cost(InventoryShortlistCandidateView candidate) =>
         candidate.Suitability!.BuyAssessment!.CampaignSupplierCostMinor!.Value;

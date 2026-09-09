@@ -15,22 +15,24 @@ export function InventoryBenchmarkSection({ tenantId, productId, channel }: {
   productId: string
   channel: string
 }) {
-  const [benchmark, setBenchmark] = useState<InventoryBenchmark | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+  const [result, setResult] = useState<{ key: string; benchmark?: InventoryBenchmark; message?: string } | null>(null)
+  const key = `${tenantId}:${productId}:${channel}`
   useEffect(() => {
     if (!benchmarkChannels.has(channel)) return
     let active = true
     void inventoryApi.getBenchmark(tenantId, productId)
-      .then(value => { if (active) { setBenchmark(value); setMessage(null) } })
+      .then(value => { if (active) setResult({ key, benchmark: value }) })
       .catch((failure: unknown) => {
         if (!active) return
-        setMessage(failure instanceof ApiFailure &&
+        setResult({ key, message: failure instanceof ApiFailure &&
           failure.code === 'INVENTORY_BENCHMARK_UNAVAILABLE'
           ? 'There is not enough current comparable outdoor advertising data to position this placement yet.'
-          : humanMessage(failure))
+          : humanMessage(failure) })
       })
     return () => { active = false }
-  }, [tenantId, productId, channel])
+  }, [tenantId, productId, channel, key])
+  const benchmark = result?.key === key ? result.benchmark : null
+  const message = result?.key === key ? result.message : null
   if (!benchmarkChannels.has(channel)) return null
   if (benchmark) return <InventoryBenchmarkPanel benchmark={benchmark} />
   if (message) return <article className="detail-card inventory-benchmark-empty">

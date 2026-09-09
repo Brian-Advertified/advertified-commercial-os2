@@ -2,6 +2,7 @@ import type { BuyAssessment } from '../api/buy-assessment-schema'
 import { formatMoney } from '../presentation/format'
 import { buyAssessmentContent as copy } from './buy-assessment-content'
 import './buy-assessment.css'
+import { InventoryPlannerReasoning } from './InventoryPlannerReasoning'
 
 export function InventoryBuyAssessment({ assessment }: { assessment: BuyAssessment }) {
   const money = (value: number | null) => value !== null && assessment.currency
@@ -11,6 +12,7 @@ export function InventoryBuyAssessment({ assessment }: { assessment: BuyAssessme
     <h4>{copy.title}</h4>
     <p><strong>{money(assessment.campaignSupplierCostMinor)}</strong> — {copy.supplierCost}</p>
     <small>{copy.costCaveat}</small>
+    {assessment.plannerReasoning && <InventoryPlannerReasoning value={assessment.plannerReasoning} />}
     <h4>{copy.baseline}</h4>
     <p>{assessment.isTargetAudience ? copy.target : copy.nonTarget}</p>
     <dl className="buy-assessment-facts">

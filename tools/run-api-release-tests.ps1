@@ -1,17 +1,24 @@
 param(
     [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Filter,
     [string]$IntegrationFilter,
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [switch]$PrepareIntegrationImage,
+    [switch]$KeepValidationImage
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $PSScriptRoot 'storage-headroom.ps1')
+Assert-AdvertifiedStorageHeadroom
 $validationImage = 'advertified/api-validation:local'
 $validationBuilder = (& docker context show).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'Unable to resolve the active Docker context.' }
 $validationCacheBudget = '1GB'
 if ($SkipBuild -and -not $IntegrationFilter) {
     throw 'SkipBuild is restricted to a selected integration rerun.'
+}
+if ($PrepareIntegrationImage -and ($SkipBuild -or $IntegrationFilter)) {
+    throw 'PrepareIntegrationImage only prepares the pinned validation image; do not combine it with SkipBuild or IntegrationFilter.'
 }
 # Explicit Docker-pinned validation only: never kill host processes or launch a stack.
 # The build is socket-free and reuses Docker's bounded local cache so the pinned
@@ -26,7 +33,7 @@ try {
             '--target', 'tests', '--build-arg', "TEST_FILTER=$Filter",
             '--progress', 'plain'
         )
-        if ($IntegrationFilter) {
+        if ($IntegrationFilter -or $PrepareIntegrationImage) {
             $buildArguments += @('--tag', $validationImage, '--load')
         }
         else {
@@ -51,7 +58,7 @@ try {
 }
 finally {
     $ErrorActionPreference = 'Continue'
-    if ($IntegrationFilter) {
+    if ($IntegrationFilter -and -not $KeepValidationImage) {
         & docker image rm $validationImage *> $null
     }
     if (-not $SkipBuild) {

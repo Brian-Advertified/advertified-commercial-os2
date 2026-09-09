@@ -13,7 +13,9 @@ public sealed class PublicInventorySummaryReader(GovernanceDbContext dbContext)
     {
         var rows = await dbContext.Database.SqlQuery<PublicInventoryOwnerRow>($"""
             SELECT channel_code AS "Channel", supplier_id AS "SupplierId",
-                   supplier_name AS "SupplierName"
+                   supplier_name AS "SupplierName", product_id AS "ProductId",
+                   product_name AS "ProductName", outlet_id AS "OutletId",
+                   outlet_name AS "OutletName"
             FROM commercial.public_inventory_listing_directory
             """).ToArrayAsync(cancellationToken);
         return Project(rows);
@@ -25,18 +27,18 @@ public sealed class PublicInventorySummaryReader(GovernanceDbContext dbContext)
         var channels = rows
             .GroupBy(row => PublicChannel(row.Channel))
             .Where(group => group.Key is not null)
-            .Select(group => new PublicInventoryChannelView(
-                group.Key!,
-                group.Select(row => row.SupplierId).Distinct().Count(),
-                group.GroupBy(row => row.SupplierId)
-                    .Select(owner => new PublicMediaOwnerView(
-                        owner.Key, owner.First().SupplierName, null))
-                    .OrderBy(owner => owner.Name, StringComparer.OrdinalIgnoreCase)
-                    .ToArray()))
+            .Select(group => Channel(group.Key!, group))
             .OrderBy(item => ChannelOrder(item.Channel))
             .ToArray();
         return new PublicInventorySummaryView(
-            rows.Select(row => row.SupplierId).Distinct().Count(), channels);
+            channels.Sum(item => item.Count), channels);
+    }
+
+    private static PublicInventoryChannelView Channel(string channel, IEnumerable<PublicInventoryOwnerRow> rows)
+    {
+        var units = rows.Select(PublicInventoryUnitIdentity.Project).OfType<PublicMediaUnitView>()
+            .DistinctBy(item => item.Id).OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+        return new(channel, units.Length, PublicInventoryUnitIdentity.CountBasis(channel), units);
     }
 
     private static string? PublicChannel(string channel) => channel switch
@@ -71,4 +73,8 @@ internal sealed class PublicInventoryOwnerRow
     public string Channel { get; set; } = string.Empty;
     public Guid SupplierId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
+    public Guid ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string? OutletId { get; set; }
+    public string? OutletName { get; set; }
 }

@@ -75,7 +75,7 @@ function radiusFeature(value: BriefSpatialDraft, geometry: Record<string, unknow
   if (!coordinates) return null
   return {
     id: `brief-spatial-radius-${index}`,
-    label: value.label || `Geography ${index + 1}`,
+    label: `${value.label || `Geography ${index + 1}`} · ${value.radiusMetres} m radius`,
     geometry: circlePolygon(coordinates, value.radiusMetres),
     properties: { type: 'radius', metres: value.radiusMetres,
       priority: value.priority, verified: value.isVerified ?? false },

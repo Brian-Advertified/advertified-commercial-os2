@@ -223,11 +223,13 @@ public sealed partial class InventoryCommands
         var package = PreparePackage(values.Package);
         var spatial = values.Spatial;
         var rates = PrepareRates(values, item.Candidate.SourceLocator);
+        var outlet = InventoryOutletIdentity.Resolve(values, item.Candidate.SourceLocator);
         return new PreparedInventoryPublication(
             productId, item.ProductCode, !exists, Guid.NewGuid(), versionNumber,
             item.Candidate.Id, Required(values.Name), Required(values.Channel),
             Required(values.ProductType), Required(values.Geography), values.Address,
             values.Latitude, values.Longitude, values.Description,
+            outlet?.Id, outlet?.Name, outlet?.Basis, outlet?.SourceLocator,
             WriteRequired(values.Extension ?? new Dictionary<string, string>()),
             WriteOptional(values.AudienceProfile), WriteOptional(values.Deliverable),
             WriteOptional(spatial),

@@ -21,6 +21,13 @@ export const buyAssessmentSchema = z.object({
     loopSharePercent: z.number().min(0).max(100).nullable(),
   }).nullable(),
   evidenceGaps: z.array(z.string()),
+  plannerReasoning: z.object({
+    plannedChannelRole: z.string().nullable(),
+    targetContexts: z.array(z.object({ name: z.string(), needState: z.string(), buyingContext: z.string() })),
+    requiredPlacesMatched: z.number().int().nonnegative(), requiredPlacesTotal: z.number().int().nonnegative(),
+    hasMeasuredTargetAudience: z.boolean(), reviewQuestions: z.array(z.string()),
+    supportedReasons: z.array(z.string()), buyingWarnings: z.array(z.string()),
+  }).nullable().optional(),
 })
 
 export type BuyAssessment = z.infer<typeof buyAssessmentSchema>

@@ -1,4 +1,4 @@
-const tagline = 'Advertise Now, Pay Later · Media Intelligence'
+const tagline = 'Media Intelligence · Commercial Planning'
 
 export function BrandMark() {
   return (

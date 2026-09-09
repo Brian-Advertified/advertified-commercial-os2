@@ -14,6 +14,9 @@ public sealed class ProposalInventoryReadiness(ProposalRecordStore store, Planni
         IReadOnlyList<ProposalPlanSnapshot> plans,
         CancellationToken cancellationToken)
     {
+        if (await planningStore.HasSupersedingSelectionAsync(
+            tenantId, plans.Select(item => item.Id).Distinct().ToArray(), cancellationToken))
+            throw new ProposalStaleException();
         var productIds = plans.SelectMany(item => item.Lines)
             .Select(item => item.InventoryProductId).Distinct().ToArray();
         var current = await planningStore.ListInventoryAsync(tenantId, cancellationToken, productIds);

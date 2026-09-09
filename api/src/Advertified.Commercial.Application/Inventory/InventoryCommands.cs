@@ -100,6 +100,11 @@ public sealed record InventoryAudienceMeasurementValue(
     string? Methodology,
     string? Limitations);
 
+public sealed record InventoryOutletIdentityValues(
+    string? Code,
+    string Name,
+    string? SourceLocator = null);
+
 public sealed record InventoryAudienceProfileValues(
     IReadOnlyList<InventoryAudienceSegmentValue> SpokenLanguages,
     IReadOnlyList<InventoryAudienceSegmentValue> UnderstoodLanguages,
@@ -150,7 +155,10 @@ public sealed record InventoryCandidateValues(
     IReadOnlyList<InventoryDiscountValues>? Discounts = null,
     [property: System.Text.Json.Serialization.JsonIgnore(
         Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-    InventorySharedTermsValues? SharedTerms = null);
+    InventorySharedTermsValues? SharedTerms = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(
+        Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    InventoryOutletIdentityValues? OutletIdentity = null);
 
 public interface IInventoryCommands
 {

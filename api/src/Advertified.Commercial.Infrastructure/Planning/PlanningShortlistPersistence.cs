@@ -43,7 +43,7 @@ internal static class PlanningShortlistPersistence
                     deliverable_json, spatial_json, spatial_match_json,
                     suitability_json, logo_asset_id,
                     rate_amount_minor, currency_code,
-                    channel_code, geography, input_hash, created_at_utc)
+                    channel_code, geography, input_hash, created_at_utc, agent_interpreted)
                 SELECT value."id", {tenantId.Value}, {shortlistId}, value."inventoryTenantId",
                     value."listingVersionId", value."productId", value."productVersionId",
                     value."rateId", value."availabilityId", value."productName",
@@ -56,7 +56,7 @@ internal static class PlanningShortlistPersistence
                     value."spatialMatchJson"::jsonb, value."suitabilityJson"::jsonb,
                     value."logoAssetId",
                     value."rateAmountMinor", value."currency", value."channel",
-                    value."geography", value."inputHash", {now}
+                    value."geography", value."inputHash", {now}, value."agentInterpreted"
                 FROM jsonb_to_recordset({candidatePayload}::jsonb) AS value(
                     "id" uuid, "recommendationId" uuid, "inventoryTenantId" uuid,
                     "listingVersionId" uuid, "productId" uuid, "productName" text,
@@ -68,7 +68,7 @@ internal static class PlanningShortlistPersistence
                     "deliverableJson" text, "spatialJson" text,
                     "spatialMatchJson" text, "suitabilityJson" text, "logoAssetId" uuid,
                     "rateAmountMinor" bigint, "currency" text, "channel" text,
-                    "geography" text, "inputHash" text);
+                    "geography" text, "inputHash" text, "agentInterpreted" boolean);
 
                 INSERT INTO commercial.recommendation_bindings (
                     id, tenant_id, brief_version_id, shortlist_version_id,
@@ -170,7 +170,8 @@ internal static class PlanningShortlistPersistence
             inventory.Channel,
             inventory.Geography,
             candidate.Rationale,
-            candidate.InputHash);
+            candidate.InputHash,
+            candidate.AgentInterpreted);
     }
 
     private static BenchmarkPayload ToBenchmarkPayload(
@@ -226,7 +227,8 @@ internal static class PlanningShortlistPersistence
         string Channel,
         string Geography,
         string Rationale,
-        string InputHash);
+        string InputHash,
+        bool AgentInterpreted);
 
     private sealed record BenchmarkPayload(
         Guid Id,
@@ -261,4 +263,5 @@ internal sealed record PreparedShortlistCandidate(
     InventorySuitabilityView Suitability,
     string InputHash,
     string Rationale,
-    BenchmarkResult? Benchmark);
+    BenchmarkResult? Benchmark,
+    bool AgentInterpreted = false);

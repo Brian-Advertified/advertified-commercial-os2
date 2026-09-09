@@ -17,7 +17,7 @@ export const publicRoutes = [
   { path: '/solutions/influencers', title: 'Influencer marketing | Advertified', description: 'Build creator-led relevance through suitable voices, clear deliverables and connected campaign evidence.' },
   { path: '/media-partners', title: 'Media catalogue sources | Advertified', description: 'See media brands represented by source records in the Advertified catalogue and learn how media owners can begin governed onboarding.' },
   { path: '/packages', title: 'Campaign investment | Advertified', description: 'Explore campaign investment bands and understand what different levels of media weight can unlock.' },
-  { path: '/pay-later', title: 'Advertise Now, Pay Later | Advertified', description: 'Learn about the independent campaign finance referral available after an approved Advertified proposal.' },
+  { path: '/pay-later', title: 'Advertise Now, Pay Later | Advertified', description: 'Learn about Advertified’s planned independent campaign-finance referral route. The service is not currently available.' },
   { path: '/resources', title: 'Campaign planning guidance | Advertified', description: 'Use four practical principles to strengthen the brief, media roles, investment choices and campaign evidence plan.' },
   { path: '/register', title: 'Join Advertified', description: 'Choose the right Advertified access path for an advertiser, agency, media owner, supplier, creator or influencer.' },
   { path: '/register/advertiser', title: 'Advertiser onboarding | Advertified', description: 'Contact Advertified to begin governed advertiser onboarding and access review.' },
@@ -76,8 +76,8 @@ export function metadataForPath(path: string): PublicRouteMetadata {
     const channel = networkMatch[1].replaceAll('_', ' ');
     return {
       path: normalizedPath,
-      title: `${channel} media owners | Advertified`,
-      description: `Browse the ${channel} stations, channels, publications, platforms and media owners represented by active published Advertified inventory.`,
+      title: `${channel} media directory | Advertified`,
+      description: `Browse the ${channel} media units represented by active published Advertified inventory.`,
     };
   }
   return publicNotFoundMetadata;

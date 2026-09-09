@@ -1,11 +1,12 @@
 namespace Advertified.Commercial.Application.Inventory;
 
-public sealed record PublicMediaOwnerView(Guid Id, string Name, string? LogoUrl);
+public sealed record PublicMediaUnitView(string Id, string Name, string? LogoUrl);
 
 public sealed record PublicInventoryChannelView(
     string Channel,
     int Count,
-    IReadOnlyList<PublicMediaOwnerView> Owners);
+    string CountBasis,
+    IReadOnlyList<PublicMediaUnitView> Units);
 
 public sealed record PublicInventorySummaryView(
     int TotalCount,

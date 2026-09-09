@@ -68,6 +68,39 @@ public sealed class CampaignCombinationAssessmentTests
         Assert.Empty(result.Alternatives);
     }
 
+    [Fact]
+    public void EvidenceBackedOptionPrecedesCheapUnknownAndComparisonShowsExactSwap()
+    {
+        var cheap = Candidate("OOH", 10, [], []);
+        var evidenced = Candidate("OOH", 50, [], []);
+        evidenced = evidenced with { Suitability = evidenced.Suitability! with
+        {
+            BuyAssessment = evidenced.Suitability!.BuyAssessment! with { IsTargetAudience = true, Reach = 100m },
+        } };
+        var screen = Candidate("DOOH", 20, [], []);
+        var result = CampaignCombinationAssessment.Evaluate([cheap, evidenced, screen], Mix(100));
+        Assert.Contains(evidenced.Id, result.Alternatives[0].CandidateIds);
+        Assert.Equal(1, result.Alternatives[0].Comparison!.MeasuredTargetCandidateCount);
+        Assert.Equal(1, result.Alternatives[0].Comparison!.MissingDeliveryCandidateCount);
+        var comparison = result.Alternatives[1].Comparison!;
+        Assert.Equal(-40, comparison.SupplierCostDeltaMinor);
+        Assert.Equal(cheap.Id, Assert.Single(comparison.AddedCandidateIds));
+        Assert.Equal(evidenced.Id, Assert.Single(comparison.RemovedCandidateIds));
+        Assert.Equal(["Presence", "Timed messages"], comparison.PlannedChannelRoles);
+    }
+
+    [Fact]
+    public void KnownCreativeSlotMismatchCannotBecomeAnAlternative()
+    {
+        var screen = Candidate("DOOH", 20, [], []);
+        screen = screen with { Suitability = screen.Suitability! with
+        {
+            BuyAssessment = screen.Suitability!.BuyAssessment! with { DigitalExposure = new(15, 5, 60, 1, 8.3333m) },
+        } };
+        var result = CampaignCombinationAssessment.Evaluate([Candidate("OOH", 10, [], []), screen], Mix(100));
+        Assert.Empty(result.Alternatives);
+    }
+
     private static MediaMixVersionView Mix(long channelBudget) => new(Guid.NewGuid(), Guid.NewGuid(),
         Guid.NewGuid(), 1, channelBudget * 2, "ZAR", [new("OOH", channelBudget, "Presence", []),
             new("DOOH", channelBudget, "Timed messages", [])], [], "fixture", "APPROVED", Guid.NewGuid(),

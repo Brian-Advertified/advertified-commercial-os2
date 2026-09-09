@@ -13855,6 +13855,483 @@
         ]
       }
     },
+    "/api/v1/tenants/{tenantId}/inventory-research": {
+      "post": {
+        "tags": [
+          "Inventory research enrichment"
+        ],
+        "operationId": "RegisterInventoryResearchDataset",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "description": "Optional UUID request correlation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique key for safely retrying this command.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "description": "Required for unsafe cookie-authenticated browser requests.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterInventoryResearchDatasetCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Strong optimistic-concurrency version for this entity.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Idempotency-Replayed": {
+                "description": "True when a prior canonical command result was replayed.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryResearchDatasetView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{tenantId}/inventory-research/{datasetId}": {
+      "get": {
+        "tags": [
+          "Inventory research enrichment"
+        ],
+        "operationId": "GetInventoryResearchDataset",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "datasetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "description": "Optional UUID request correlation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryResearchDatasetView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{tenantId}/inventory-research/matches/{matchId}:review": {
+      "post": {
+        "tags": [
+          "Inventory research enrichment"
+        ],
+        "operationId": "ReviewInventoryResearchMatch",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "matchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "description": "Optional UUID request correlation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique key for safely retrying this command.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Strong ETag version returned by the latest read.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "description": "Required for unsafe cookie-authenticated browser requests.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewInventoryResearchMatchCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Strong optimistic-concurrency version for this entity.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Idempotency-Replayed": {
+                "description": "True when a prior canonical command result was replayed.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryResearchDatasetView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ]
+      }
+    },
     "/api/v1/tenants/{tenantId}/inventory-suppliers/{supplierId}": {
       "get": {
         "tags": [
@@ -18810,6 +19287,135 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/tenants/{tenantId}/reporting/inventory-decisions": {
+      "get": {
+        "tags": [
+          "Operational and commercial reporting"
+        ],
+        "operationId": "GetInventoryDecisionReport",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "briefVersionId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "inventoryProductId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "description": "Optional UUID request correlation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryDecisionReportView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "UUID support reference for this response.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSafeProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ]
       }
     },
     "/api/v1/tenants/{tenantId}/reporting/operations": {
@@ -31050,6 +31656,67 @@
         },
         "additionalProperties": false
       },
+      "CampaignAudienceForecastView": {
+        "type": "object",
+        "properties": {
+          "grossReach": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "deduplicatedReach": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "duplicatedReach": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "totalImpressions": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "averageFrequency": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "universe": {
+            "type": "string",
+            "nullable": true
+          },
+          "measurementPeriod": {
+            "type": "string",
+            "nullable": true
+          },
+          "measurementSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "methodology": {
+            "type": "string",
+            "nullable": true
+          },
+          "incrementalReach": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CampaignCandidateIncrementalReachView"
+            },
+            "nullable": true
+          },
+          "evidenceGaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CampaignBriefSummaryView": {
         "type": "object",
         "properties": {
@@ -31135,6 +31802,25 @@
         },
         "additionalProperties": false
       },
+      "CampaignCandidateIncrementalReachView": {
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "incrementalReach": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "evidenceGap": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CampaignChannelCostView": {
         "type": "object",
         "properties": {
@@ -31193,6 +31879,12 @@
               "type": "string"
             },
             "nullable": true
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/CampaignRelativeComparisonView"
+          },
+          "audienceForecast": {
+            "$ref": "#/components/schemas/CampaignAudienceForecastView"
           }
         },
         "additionalProperties": false
@@ -31265,6 +31957,51 @@
           "selectedAtUtc": {
             "type": "string",
             "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CampaignRelativeComparisonView": {
+        "type": "object",
+        "properties": {
+          "supplierCostDeltaMinor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "addedCandidateIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "removedCandidateIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "measuredTargetCandidateCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "missingDeliveryCandidateCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "distinctInventoryWorkspaceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "plannedChannelRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -34207,6 +34944,9 @@
               "type": "string"
             },
             "nullable": true
+          },
+          "plannerReasoning": {
+            "$ref": "#/components/schemas/InventoryPlannerReasoningView"
           }
         },
         "additionalProperties": false
@@ -34357,6 +35097,9 @@
           },
           "sharedTerms": {
             "$ref": "#/components/schemas/InventorySharedTermsValues"
+          },
+          "outletIdentity": {
+            "$ref": "#/components/schemas/InventoryOutletIdentityValues"
           }
         },
         "additionalProperties": false
@@ -34560,6 +35303,98 @@
           "distanceKilometres": {
             "type": "number",
             "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryDecisionReportView": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryDecisionView"
+            },
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "supplierSafe": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryDecisionView": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "previousEventId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "previousProductVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "productName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isSelected": {
+            "type": "boolean"
+          },
+          "wasSelected": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "presentInCurrentShortlist": {
+            "type": "boolean"
+          },
+          "agentInterpreted": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "decidedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "briefVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "shortlistVersionId": {
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           }
         },
@@ -35247,6 +36082,24 @@
         },
         "additionalProperties": false
       },
+      "InventoryOutletIdentityValues": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceLocator": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "InventoryPackageComponentValues": {
         "type": "object",
         "properties": {
@@ -35383,6 +36236,55 @@
           },
           "sourceLocator": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryPlannerReasoningView": {
+        "type": "object",
+        "properties": {
+          "plannedChannelRole": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetContexts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlannerAudienceContextView"
+            },
+            "nullable": true
+          },
+          "requiredPlacesMatched": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "requiredPlacesTotal": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasMeasuredTargetAudience": {
+            "type": "boolean"
+          },
+          "reviewQuestions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "supportedReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "buyingWarnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
             "nullable": true
           }
         },
@@ -36030,6 +36932,248 @@
             "items": {
               "$ref": "#/components/schemas/InventorySchemaFieldMapping"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryResearchDatasetView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "datasetName": {
+            "type": "string",
+            "nullable": true
+          },
+          "measurementPeriod": {
+            "type": "string",
+            "nullable": true
+          },
+          "methodology": {
+            "type": "string",
+            "nullable": true
+          },
+          "universe": {
+            "type": "string",
+            "nullable": true
+          },
+          "rightsReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "taxonomyName": {
+            "type": "string",
+            "nullable": true
+          },
+          "taxonomyVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "limitations": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryResearchMatchView"
+            },
+            "nullable": true
+          },
+          "portfolios": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryResearchPortfolioView"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryResearchMatchView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "observationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceLocator": {
+            "type": "string",
+            "nullable": true
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "productVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "productName": {
+            "type": "string",
+            "nullable": true
+          },
+          "matchBasis": {
+            "type": "string",
+            "nullable": true
+          },
+          "matchDetail": {
+            "type": "string",
+            "nullable": true
+          },
+          "audienceProfile": {
+            "$ref": "#/components/schemas/InventoryAudienceProfileValues"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewedBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "reviewedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "appliedProductVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryResearchObservationInput": {
+        "type": "object",
+        "properties": {
+          "sourceLocator": {
+            "type": "string",
+            "nullable": true
+          },
+          "channel": {
+            "type": "string",
+            "nullable": true
+          },
+          "supplierId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "supplierProductCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "outletId": {
+            "type": "string",
+            "nullable": true
+          },
+          "geography": {
+            "type": "string",
+            "nullable": true
+          },
+          "audienceProfile": {
+            "$ref": "#/components/schemas/InventoryAudienceProfileValues"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryResearchPortfolioInput": {
+        "type": "object",
+        "properties": {
+          "sourceLocator": {
+            "type": "string",
+            "nullable": true
+          },
+          "observationSourceLocators": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "deduplicatedReach": {
+            "type": "number",
+            "format": "double"
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryResearchPortfolioView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceLocator": {
+            "type": "string",
+            "nullable": true
+          },
+          "observationSourceLocators": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "deduplicatedReach": {
+            "type": "number",
+            "format": "double"
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true
+          },
+          "productVersionIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -38848,6 +39992,24 @@
         },
         "additionalProperties": false
       },
+      "PlannerAudienceContextView": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "needState": {
+            "type": "string",
+            "nullable": true
+          },
+          "buyingContext": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PlanningSummaryView": {
         "type": "object",
         "properties": {
@@ -39779,10 +40941,14 @@
             "type": "integer",
             "format": "int32"
           },
-          "owners": {
+          "countBasis": {
+            "type": "string",
+            "nullable": true
+          },
+          "units": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PublicMediaOwnerView"
+              "$ref": "#/components/schemas/PublicMediaUnitView"
             },
             "nullable": true
           }
@@ -39806,12 +40972,12 @@
         },
         "additionalProperties": false
       },
-      "PublicMediaOwnerView": {
+      "PublicMediaUnitView": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
-            "format": "uuid"
+            "nullable": true
           },
           "name": {
             "type": "string",
@@ -40035,6 +41201,62 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CandidateEvidenceCommand"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegisterInventoryResearchDatasetCommand": {
+        "type": "object",
+        "properties": {
+          "sourceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "datasetName": {
+            "type": "string",
+            "nullable": true
+          },
+          "measurementPeriod": {
+            "type": "string",
+            "nullable": true
+          },
+          "methodology": {
+            "type": "string",
+            "nullable": true
+          },
+          "universe": {
+            "type": "string",
+            "nullable": true
+          },
+          "rightsReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "taxonomyName": {
+            "type": "string",
+            "nullable": true
+          },
+          "taxonomyVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "limitations": {
+            "type": "string",
+            "nullable": true
+          },
+          "observations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryResearchObservationInput"
+            },
+            "nullable": true
+          },
+          "portfolios": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryResearchPortfolioInput"
             },
             "nullable": true
           }
@@ -40613,6 +41835,20 @@
           "canonicalProductId": {
             "type": "string",
             "format": "uuid",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReviewInventoryResearchMatchCommand": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
             "nullable": true
           },
           "reason": {
@@ -41865,6 +43101,9 @@
     },
     {
       "name": "Inventory releases"
+    },
+    {
+      "name": "Inventory research enrichment"
     },
     {
       "name": "Inventory suppliers"

@@ -90,6 +90,22 @@ public sealed class InventoryBuyAssessmentTests
             [new(Guid.NewGuid(), "Target mothers", "", "", "", [], null, null, null, null, null,
                 "", [], [Guid.NewGuid()], 1m, "APPROVED")]);
 
+    [Fact]
+    public void PlannerRetainsChannelIntentButFlagsCreativeThatDoesNotFitPurchasedSlot()
+    {
+        var candidate = Candidate();
+        candidate = candidate with { Inventory = candidate.Inventory with
+        {
+            Channel = "DOOH", DeliverableJson = """{"spotLengthSeconds":15,"slotLengthSeconds":5,"loopLengthSeconds":60,"playsPerLoop":1}""",
+        } };
+        var result = Assess(candidate).PlannerReasoning!;
+        Assert.Equal("Relevant reach", result.PlannedChannelRole);
+        Assert.Equal("Target mothers", Assert.Single(result.TargetContexts).Name);
+        Assert.Contains("plannerReasoning.measuredTargetBaseline", result.SupportedReasons);
+        Assert.Contains("plannerReasoning.creativeDoesNotFit", result.BuyingWarnings);
+        Assert.Contains("plannerReasoning.messageAndMoment", result.ReviewQuestions);
+    }
+
     private static PreparedShortlistCandidate Candidate()
     {
         var inventory = new PlanningInventoryRow(Guid.NewGuid(), null, Guid.NewGuid(), Guid.NewGuid(),

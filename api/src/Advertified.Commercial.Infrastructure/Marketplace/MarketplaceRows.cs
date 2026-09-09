@@ -44,6 +44,10 @@ internal sealed record MarketplaceProductSnapshotRow
     public string Channel { get; set; } = string.Empty;
     public string ProductType { get; set; } = string.Empty;
     public string Geography { get; set; } = string.Empty;
+    public string? OutletId { get; set; }
+    public string? OutletName { get; set; }
+    public string? OutletBasis { get; set; }
+    public string? OutletSourceLocator { get; set; }
     public string? AudienceProfileJson { get; set; }
     public string RateType { get; set; } = string.Empty;
     public long AmountMinor { get; set; }

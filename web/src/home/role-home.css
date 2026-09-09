@@ -1,0 +1,54 @@
+.role-home .approved-kpi-card {
+  min-height: 142px;
+}
+
+.role-home-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.role-home-actions > a {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 13px;
+  align-items: center;
+  min-height: 104px;
+  padding: 18px;
+  border: 1px solid var(--approved-border, #e5e7eb);
+  border-radius: 16px;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+}
+
+.role-home-actions > a:hover,
+.role-home-actions > a:focus-visible {
+  border-color: #b7bdc8;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.role-home-actions > a > span {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 12px;
+  background: #f3f4f6;
+}
+
+.role-home-actions strong,
+.role-home-actions small {
+  display: block;
+}
+
+.role-home-actions small {
+  margin-top: 5px;
+  color: #667085;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .role-home-actions { grid-template-columns: 1fr; }
+}

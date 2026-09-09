@@ -8,6 +8,9 @@ public static class ReportingEndpoints
 {
     public static IEndpointRouteBuilder MapReportingEndpoints(this IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapGet("/api/v1/tenants/{tenantId:guid}/reporting/inventory-decisions", GetDecisionsAsync)
+            .WithName("GetInventoryDecisionReport").WithTags("Operational and commercial reporting")
+            .RequireAuthorization().Produces<InventoryDecisionReportView>().WithQueryProblems();
         endpoints.MapGet("/api/v1/tenants/{tenantId:guid}/reporting/operations", GetAsync)
             .WithName("GetOperationalReporting")
             .WithTags("Operational and commercial reporting")
@@ -16,6 +19,13 @@ public static class ReportingEndpoints
             .WithQueryProblems();
         return endpoints;
     }
+
+    private static async Task<IResult> GetDecisionsAsync(
+        Guid tenantId, Guid? briefVersionId, Guid? inventoryProductId, string? cursor,
+        ICurrentIdentity identity, IInventoryDecisionReader reader,
+        CancellationToken cancellationToken) => Results.Ok(await reader.ReadAsync(
+            identity.ActorId, new TenantId(tenantId), briefVersionId,
+            inventoryProductId, cursor, cancellationToken));
 
     private static async Task<IResult> GetAsync(
         Guid tenantId,

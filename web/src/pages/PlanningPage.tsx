@@ -17,6 +17,7 @@ import { ShortlistPanel } from '../planning/ShortlistPanel'
 import { announcePlanningChanged } from '../planning/planning-events'
 import { mediaVisual } from '../planning/media-visuals'
 import { formatMoney, humanizeCode } from '../presentation/format'
+import { InventoryDecisionHistory } from '../reporting/InventoryDecisionHistory'
 
 export function PlanningPage() {
   const briefVersionId = useParams().briefVersionId
@@ -89,6 +90,8 @@ function PlanningWorkspaceContent(props: PlanningContext & {
     <MixStage {...props} mix={mix} />
     <ShortlistStage {...props} mix={mix} shortlist={shortlist} />
     <PlanStage {...props} shortlist={shortlist} plan={plan} />
+    <InventoryDecisionHistory key={`${props.tenantId}-${props.briefVersionId}`}
+      tenantId={props.tenantId} briefVersionId={props.briefVersionId} />
   </section>
 }
 
@@ -169,8 +172,8 @@ function ShortlistStage(props: PlanningContext & {
     requiredChannels={props.mix.allocations
       .filter(item => item.budgetMinor > 0).map(item => item.channel)}
     busy={props.busy}
-    onConfirm={(selectedIds) => props.act(() => planningApi.selectShortlist(
-      props.tenantId, props.shortlist!, selectedIds, props.token))} />
+    onConfirm={(selectedIds, reason) => props.act(() => planningApi.selectShortlist(
+      props.tenantId, props.shortlist!, selectedIds, props.token, reason))} />
 }
 
 function PlanStage(props: PlanningContext & {

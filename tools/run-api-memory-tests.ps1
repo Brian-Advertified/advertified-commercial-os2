@@ -5,6 +5,8 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $PSScriptRoot 'storage-headroom.ps1')
+Assert-AdvertifiedStorageHeadroom -ExpectedGrowthBytes 512MB
 $dockerfile = Get-Content -LiteralPath (Join-Path $repoRoot 'api/Dockerfile') -TotalCount 1
 if ($dockerfile -notmatch '^FROM (mcr\.microsoft\.com/dotnet/sdk:10\.0\.400-[^ ]+@sha256:[a-f0-9]{64}) AS build$') {
     throw 'The canonical Docker-pinned SDK could not be resolved.'

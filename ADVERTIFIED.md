@@ -6444,6 +6444,234 @@ Verification on 2026-09-08 (local development, not production certification):
   but exited successfully. Licensed audience data and production place-provider activation remain
   separate prerequisites, not delivered capabilities.
 
+### 49.2.31 Remaining work after planner-intelligence release — 2026-09-08
+
+Owner-requested documentation-only handoff, based on deployed commit `f0cc96a` and the retained
+acceptance evidence in 49.2.30. This consolidates outstanding work; it does not authorise purchases,
+provider activation, new production mutations or an expansion of the US$5 AI ceiling. Historical
+packet limitations describe their original checkpoints; this section reflects the later release.
+Acceptance for this documentation change is consistency with current implementation and retained
+evidence, a clean diff check and passing architecture checks. No application rebuild is required.
+Verified: `git diff --check` passed; `python -B -m pytest tests/architecture -q -p no:cacheprovider`
+passed all 74 checks. Only this document changed; no commit, push, deployment or provider call ran.
+
+#### Product and planning work still to complete
+
+This is the retained pre-49.2.33 backlog. The later packet below records the implemented and
+verified portions of reasoning, comparison, decision reporting, maps and UI; its remaining
+limitations supersede corresponding broad statements here, without claiming the whole backlog done.
+
+- **Research-backed inventory enrichment:** obtain authorised research, map it to exact inventory,
+  geography, audience definitions and measurement periods, and retain provenance, usage rights,
+  freshness and limitations. Research intake exists, but the inspected 7,242 current products have
+  no structured audience profiles. Completion requires a real, traceable research-to-placement
+  example; a persona paragraph or nearby store is not measured audience evidence.
+- **Senior-planner decision logic:** finish evidence-based objective/creative-format fit, relevant
+  audience value and incremental contribution. Test affluent audiences, stay-at-home parents and
+  the R5 million static-billboard/digital-screen trade-off without demographic stereotypes or
+  invented exposure. Show why each placement supports the audience, message, moment and objective.
+  The currently unscored strategic factors remain gaps, not automatic selection authority.
+- **Campaign-level optimisation:** go beyond the implemented bounded coverage combinations to
+  evidenced reach, frequency, duplication, complementary channel roles and client-total affordability.
+  Include actual digital operating hours, contracted plays, duration and purchase quantities.
+  Completion requires compatible measurements and explicit trade-offs; never sum site reach as
+  unique campaign reach or confuse supplier-cost ceilings with the final client budget.
+- **Granular geographic planning:** extend the verified development branch lookup and point/radius
+  matching with verified branch coverage, map-led alternatives and, where supported by authorised
+  data, routes/catchments. Prove the full named-branch-to-eligible-screen journey and handling of
+  ambiguous branches, missing coordinates and no nearby inventory. Straight-line proximity must
+  not be described as road travel time, line of sight or audience composition.
+- **Planner replacement and supplier reporting:** complete and verify the supplier-facing report
+  connecting AI recommendation, human removal/replacement, reason, actor/time and exact campaign
+  and inventory versions. Reuse existing selection/audit mechanisms; verify downstream invalidation
+  and supplier/tenant-safe disclosure. Existing audit records alone do not establish that the
+  requested usable supplier report is delivered, or permit disclosure of private client details.
+- **Understandable benchmarking:** validate the existing local comparable-rate benchmark with real
+  inventory and supplier users. Make peer selection, format, area/distance, rate unit, period,
+  sample size and missing evidence understandable. Extend to audience/value comparisons only when
+  compatible research exists; a lower comparable rate is not proof of better audience performance.
+- **Premium, coherent experience:** complete a joined-up design/accessibility review across Brief,
+  planning, marketplace, proposals and role-specific screens, including long names, narrow layouts,
+  consistent logos, empty/error states and plain-language media labels. Existing layout/language
+  fixes and browser tests are credited; whole-product visual approval is not yet evidenced.
+- **Cross-role acceptance:** finish a coordinated realistic acceptance pack for planner/agent,
+  administrator, supplier, influencer and client, with UX, analyst, database, performance,
+  architecture and security review. Include replacement reports, research gaps, branch selection,
+  commercial reconciliation, permission failures and recovery. Retain reproducible findings and
+  fixes; selected automated checks do not certify every role or the entire lifecycle.
+- **Live AI evaluation:** run a small, explicitly bounded evaluation after configuration/pricing
+  checks, comparing outputs with human media-planner decisions. Keep shared reservations and the
+  remaining owner budget enforced. The deployed runtime is deterministic; live store search is not
+  evidence of a live AI planning run. No live AI spend was recorded for the release.
+
+#### Remaining integrations — point-form checklist
+
+- MRF MAPS: consumer behaviour and segmentation research; access/licence and permitted import/export route outstanding.
+- BRC audience research/Fusion: radio and cross-media audience evidence; access/licence and ingestion outstanding.
+- OMC ROAD: static-billboard and digital-screen audience research; access/licence and inventory matching outstanding.
+- Stats SA: optional official demographic background-data ingestion; not a substitute for placement reach.
+- Production maps/place discovery: contracted or self-hosted South African branch/POI service; public Nominatim is enabled for single-instance development only.
+- Routing/catchment data: provider and permitted retention/use to be selected if route/travel-time planning is implemented.
+- Mapbox rendering: production configuration, domain restrictions, attribution and operational verification; renderer already exists.
+- AWS Bedrock: bounded live planner evaluation and production activation/monitoring; adapter and shared budget safeguards already exist.
+- Inventory document extraction: validate the approved Bedrock extraction path against the remaining authorised corpus; background processing remains paused.
+- Production OIDC identity: provider configuration and end-to-end sign-in/session/role verification; local deterministic identity is not production authentication.
+- Transactional email: production Resend-direction configuration, sender/domain verification and send/reconciliation acceptance; deterministic delivery tests already exist.
+- S3-compatible storage: production private storage, credentials, retention and recovery verification; local object storage already exists.
+- Payment/funding: approved VodaPay and Advertise Now, Pay Later provider activation and reconciliation; remain inactive pending integration approval.
+- Supplier systems: authorised availability, quote, booking-confirmation and proof feeds where suppliers support them; no supplier API availability assumed.
+- Measurement platforms: authorised delivery/performance imports, campaign attribution and reconciliation.
+- Google/Meta or other advertising-platform execution: future optional scope, not a current mandatory launch dependency; requires separate value/authority review.
+
+#### Production and operating work still to verify
+
+- Reconcile the selected production topology with actual encrypted compute/data resources, DNS/TLS,
+  secret stores, durable identity keys, private storage and role-separated services. Local Docker
+  health is not production deployment evidence.
+- Rehearse deployment, rollback, backup restoration, failure recovery and alerting against approved
+  production-like infrastructure; retain observed recovery results and named operational ownership.
+- Measure catalogue/map/shortlist latency, concurrent-user behaviour and resource growth. Address the
+  retained lazy Mapbox bundle warning through measured performance work, not by hiding the warning.
+- Establish bounded build-cache/log/artifact retention and disk alerts. No new raster assets are
+  needed. Windows Docker virtual-disk compaction/reclamation remains an operational follow-up;
+  deleting cache inside Docker does not guarantee the Windows virtual-disk file shrinks.
+- Finish the retained campaign/proposal acceptance pack and obtain the required human legal,
+  privacy, asset-rights, role, finance and operational sign-offs, followed by an explicit release GO.
+  Earlier checkpoint failures or infrastructure observations require fresh verification, not an
+  assumption that they are unchanged or resolved.
+
+Recommended dependency order: authorised research and enrichment → planner reasoning and campaign
+comparisons → geographic/replacement/benchmark user journeys → cross-role/design/performance
+acceptance → production integration and operational sign-off. Independent safe documentation and
+test work can proceed without waiting for a research licence; measured-audience claims cannot.
+
+### 49.2.32 Restore the monochrome scrolling logo strip — 2026-09-08
+
+The owner clarifies that removing the scrolling logos was not requested. This overrides the
+logo-strip removal direction recorded in 49.2.25; it does not restore unrelated tagline animation.
+After the passing 74-check documentation gate, restore the existing homepage media-logo strip in
+its previous position below the hero. Reuse the retained assets and animation, apply monochrome
+presentation to every strip logo, and preserve hover/focus pause and reduced-motion behaviour.
+Do not generate or duplicate raster assets or change the live media-owner counts. Acceptance:
+desktop/compact browser checks for presence, loaded monochrome logos, motion/pause/reduced motion,
+plus web build/type/lint and architecture checks. Existing uncommitted handoff documentation is retained.
+
+Implemented by reconnecting `MediaInventoryPartnersStrip` and adding scoped CSS grayscale, without
+changing any image files. `npm run build` (including TypeScript) and `npm run lint` passed;
+`npx playwright test e2e/public-site.spec.ts --grep 'homepage restores monochrome' --trace off --workers=1`
+passed both desktop/compact cases. `python -B -m pytest tests/architecture -q -p no:cacheprovider`
+passed 74 checks; `git diff --check` passed. The existing lazy-map bundle warning remains.
+This correction is source-verified only: no Docker image build/deployment, commit or push ran.
+
+### 49.2.33 Storage recovery and complete planning workflows — 2026-09-08
+
+The owner directs Docker cleanup with verified recovery of Windows SSD space, removes repetitive
+deployment permission stops, and authorises implementation of planner reasoning, campaign
+comparisons, replacement reporting, understandable benchmarking, map interactions, premium UI and
+cross-role testing. Missing research licences block measured live audience claims, not implementing
+and testing these capabilities with explicitly synthetic fixtures. Prior gate: 49.2.32 source checks
+passed and the preceding deployed planning gate remains the rollback baseline. Preserve its data
+and existing uncommitted monochrome-strip/handoff work.
+
+First recover storage using unused build-cache cleanup, filesystem trim and offline compaction of
+the verified Docker data VHD; retain before/after host free bytes, VHD bytes, database counts and
+service health. Do not delete data volumes or backups or disable Windows paging. Then deliver
+bounded end-to-end planner, supplier-report and UI changes with truthful evidence-based rationale,
+human disposition, tenant-safe projections and deterministic role/negative-path acceptance.
+Consolidate Docker-pinned compilation/testing, build changed services once where practical, enforce
+host-space headroom and deploy to the existing local stack without another deployment approval.
+No production target or additional paid resource is selected by this authority; the aggregate AI
+ceiling remains US$5. Neither test success nor AI review constitutes production GO.
+
+The owner additionally corrects public counts: count radio stations, TV channels and other
+inventory-level outlets rather than parent media-owner organisations. Deduplicate rate/daypart
+variants; omit unresolved outlet identities rather than inventing stations. Return the count
+basis with each channel and preserve the monochrome scrolling logo strip.
+
+Storage recovery evidence: bounded unused build-cache pruning reclaimed 1.237 GB; guest filesystem
+trim released 6,262,996,992 bytes. Offline `tools/compact-local-docker-disk.ps1` reduced the verified
+Docker VHD from 41,766,879,232 to 20,414,726,144 bytes; actual Windows free space rose from
+2,403,639,296 to 23,752,462,336 bytes. After Docker restart all eight retained services were healthy
+and database counts remained 3 users, 7,242 inventory products and 0 briefs. No data volume,
+inventory, user record or backup was deleted. Build/test entry points now check a 5 GiB host
+reserve plus operation allowance (2 GiB build, 512 MiB memory-backed tests); other applications
+and Windows paging can still consume storage, so no absolute SSD-use guarantee is asserted.
+Browser-test traces are disabled by default in all three retained Playwright configurations;
+diagnostic capture requires deliberate invocation rather than accumulating on every failed run.
+
+Implemented boundaries for this packet:
+
+- Public counts identify radio stations, TV channels and publications from explicit imported
+  outlet/daypart/spot title structures, deduplicating those titles across rate rows. Ambiguous
+  bundles and digital offers are excluded from station counts. Other channels explicitly count
+  published inventory products, not asserted distinct physical sites. Migration 015 enriches
+  the existing publication-controlled projection with already-public product identity/name only.
+- Candidate buying assessments preserve target need/buying context and channel role; distinguish
+  evidence-supported geographic/target-baseline/loop-share reasons, creative-slot mismatch warnings
+  and unresolved planning questions. Combination search prefers measured-target evidence before
+  cheap unsupported options, excludes known creative-slot mismatches, and compares exact added/
+  removed candidates, supplier-cost deltas, evidence coverage and planned roles. It remains a
+  bounded coverage search, not a unique-reach, duplication or final-client-price optimiser.
+- Inventory decision history compares immutable human-confirmed selections within the same media
+  mix, preserving actor, reason, time and exact inventory/selection versions for assigned planners.
+  Independent mixes are not replacements. Supplier projections expose only the supplier's own
+  product history and withhold client/campaign identifiers, actor and private notes. Agent
+  interpretation is not labelled AI selection. A removal/addition pair is not labelled a proven
+  one-to-one replacement. Newly ineligible inventory retains its actual shortlist presence.
+- Newer confirmed selections prevent reuse of old same-mix plans for proposal actions and plan
+  approval. Older drafts cannot override a newer confirmed selection. Historical records remain
+  readable; no approved selection is edited in place.
+- Benchmark UI explains price-only interpretation, quartiles, rate/policy basis, exclusions and
+  missing freshness evidence. It clears stale tenant/product results. Maps offer keyboard place
+  inspection, refit and point selection with verification labels and proximity limitations.
+  Existing monochrome scrolling assets are restored without creating new raster images.
+
+Remaining limits: real research-to-inventory enrichment, compatible audience/duplication forecasts,
+live planner evaluation and live map-provider rendering acceptance are not established by these
+deterministic tests. Complete professional-role and whole-product design approval remain human
+acceptance work; this packet does not certify a perfect or production-approved system.
+
+### 49.2.34 Production-intelligence completion packet — 2026-09-08
+
+The owner authorises completion of the current uncommitted planner packet without discarding its
+work. This packet must first restore release integrity: use one repository-pinned .NET SDK policy,
+regenerate the retained OpenAPI contract for changed endpoints, remove retired-role UI residue,
+make unavailable finance products explicitly unavailable in public wording, provide durable
+pagination for inventory-decision history, and replace read-time parsing of product names for
+public station/channel/publication counts with a canonical retained outlet identity. Existing
+published rows may receive a one-time provenance-labelled migration mapping; new inventory must
+carry the canonical identity through its versioned publication data rather than re-parsing names in
+public reporting.
+
+Role-specific navigation and dashboard content must follow canonical permissions. Supplier and
+influencer workspaces prioritise own inventory, marketplace requests, bookings, creative delivery
+and tasks. Advertiser workspaces prioritise opportunities/Briefs/proposals requiring review,
+bookings/campaign progress, measurement and funding records they may view. A hidden menu is not a
+security boundary; API/RLS permissions remain authoritative.
+
+Research enrichment is a versioned evidence workflow, not direct mutation of live inventory.
+Advertified may register an authorised research dataset with source, measurement period,
+methodology, universe, taxonomy and rights/limitations; create deterministic candidate links to
+specific current inventory versions using explicit identifiers/geography/outlet identity; require
+human approval for each material mapping; and then create a new immutable inventory version whose
+audience profile retains the approved research provenance. Unsupported or incompatible mappings
+remain pending/rejected and cannot become measured audience facts.
+
+Campaign reach, frequency, duplication and incremental contribution may be calculated only from
+compatible measurement evidence. Compatibility requires the same measurement source, period,
+methodology and universe (plus compatible metric units/definitions). When evidence is absent or
+incompatible the planner returns the blocking evidence gaps instead of adding site reach or
+inventing deduplicated audience. Where compatible selected placements provide reach and impression
+measurements, Advertified may expose gross reach, total impressions and average frequency. A
+campaign deduplicated reach/duplication/incremental-reach value requires an explicit compatible
+cross-placement overlap/duplication measurement; otherwise those values remain unknown.
+
+Acceptance evidence for this packet: affected web/runtime/API tests, full ordinary browser suite,
+architecture and master-data checks, Docker-pinned consolidated API gate, retained OpenAPI equality,
+production web build, Compose validation for migration changes, complete diff review and a deliberate
+local commit. GitHub CI requires a subsequent explicitly authorised push; this packet does not grant
+push or production deployment authority.
+
 ## 49.3 Release evidence
 
 A production release records:

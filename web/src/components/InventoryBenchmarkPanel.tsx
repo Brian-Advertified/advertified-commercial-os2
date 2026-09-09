@@ -1,5 +1,6 @@
 import type { InventoryBenchmark } from '../api/inventory-schemas'
 import { formatMoney, humanizeCode } from '../presentation/format'
+import { benchmarkContent as copy } from './benchmark-content'
 
 export function InventoryBenchmarkPanel({ benchmark }: { benchmark: InventoryBenchmark }) {
   const difference = benchmark.differenceFromMedianPercent
@@ -9,13 +10,24 @@ export function InventoryBenchmarkPanel({ benchmark }: { benchmark: InventoryBen
       <p>{comparisonArea(benchmark.geographyBasis)} · {benchmark.cohortSize} comparable site{benchmark.cohortSize === 1 ? '' : 's'}</p></div>
       <div className="benchmark-position"><span>Market position</span>
         <strong>{humanizeCode(benchmark.position, true)}</strong>
-        <small>{Math.round(benchmark.confidence * 100)}% comparison confidence</small></div></div>
+        <small>{copy.quality}: {Math.round(benchmark.confidence * 100)}/100</small></div></div>
+    <p><strong>{copy.scope}</strong><br />{copy.explanation}</p>
     <div className="benchmark-summary-grid">
       <Metric label="This rate" value={formatMoney(benchmark.rateAmountMinor, benchmark.currency)} />
       <Metric label="Local median" value={benchmark.medianMinor === null ? 'Not enough data' : formatMoney(benchmark.medianMinor, benchmark.currency)} />
       <Metric label="Vs median" value={difference === null ? 'Not enough data' : signedPercent(difference)} />
       <Metric label="Price percentile" value={benchmark.percentile === null ? 'Not enough data' : `${benchmark.percentile}%`} />
     </div>
+    <p><strong>{copy.middleRange}: </strong>{benchmark.lowerQuartileMinor === null || benchmark.upperQuartileMinor === null
+      ? 'Not enough data' : `${formatMoney(benchmark.lowerQuartileMinor, benchmark.currency)} – ${formatMoney(benchmark.upperQuartileMinor, benchmark.currency)}`}</p>
+    <details className="benchmark-comparables"><summary>{copy.method}</summary>
+      <dl><dt>{copy.basis}</dt><dd>{humanizeCode(benchmark.rateType, true)} · {benchmark.currency}</dd>
+        <dt>{copy.policy}</dt><dd>{benchmark.policyVersion}</dd></dl>
+      <p>{copy.qualityHelp}</p><p>{copy.freshness}</p>
+      <h3>{copy.exclusions}</h3>{benchmark.exclusions.length
+        ? <ul>{benchmark.exclusions.map((reason, index) => <li key={index}>{reason}</li>)}</ul>
+        : <p>{copy.emptyExclusions}</p>}
+    </details>
     {benchmark.comparables.length > 0 && <details className="benchmark-comparables">
       <summary>View {benchmark.comparables.length} comparable site{benchmark.comparables.length === 1 ? '' : 's'}</summary>
       <div className="benchmark-comparable-list">{benchmark.comparables.map(site =>

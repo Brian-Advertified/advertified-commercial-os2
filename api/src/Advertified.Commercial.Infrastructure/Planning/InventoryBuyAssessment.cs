@@ -29,7 +29,8 @@ internal static class InventoryBuyAssessment
         return new(cost, candidate.Inventory.Currency, reach, impressions,
             Frequency(reach, impressions), CostRatio(cost, impressions, 1000m), CostRatio(cost, reach, 1m),
             basis?.Universe, basis?.MeasurementPeriod, basis?.MeasurementSource, basis?.Methodology,
-            targetMatch, digital, gaps.Distinct(StringComparer.Ordinal).ToArray());
+            targetMatch, digital, gaps.Distinct(StringComparer.Ordinal).ToArray(),
+            InventoryPlannerReasoning.Evaluate(candidate, targets, targetMatch, digital));
     }
 
     private static bool MatchesTarget(InventoryDeliveryMeasurementView? basis,

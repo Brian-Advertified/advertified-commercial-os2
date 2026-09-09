@@ -23,7 +23,9 @@ public sealed partial class MarketplaceAcceptanceTests
         using var other = otherFactory.CreateClient();
 
         var listing = await CreateAndPublishListingAsync(supplier, buyer);
+        await AssertPublicInventoryUnitsAsync(supplierFactory);
         var plan = await BuildBuyerPlanAsync(buyer, listing.ListingVersionId);
+        await AssertSupplierDecisionReportAsync(buyer, supplier, other, connectionString);
         await CompleteAcceptedExchangeAsync(
             buyer, supplier, other, listing.ListingVersionId, clock);
         await AssertExpiredResponseCannotBeAcceptedAsync(
@@ -32,6 +34,7 @@ public sealed partial class MarketplaceAcceptanceTests
             buyer, listing.ListingVersionId, clock);
         await AssertInvalidMarketplaceFiltersAsync(buyer);
         await ArchiveListingAsync(supplier, buyer, listing.ListingId);
+        await AssertPublicInventoryUnitsAsync(supplierFactory, expectedCount: 0);
         await AssertArchivedListingInvalidatesPlanAsync(buyer, plan);
         await AssertRetainedEvidenceAsync(
             connectionString, listing.ListingVersionId, expectedCommands: 12);

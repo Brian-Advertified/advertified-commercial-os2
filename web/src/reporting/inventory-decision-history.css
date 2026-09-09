@@ -1,0 +1,16 @@
+.inventory-decision-history { border: 1px solid var(--border, #dce3eb); border-radius: 16px; padding: clamp(16px, 3vw, 28px); margin-block: 24px; background: var(--surface, #fff); }
+.inventory-decision-history > header, .decision-row-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.inventory-decision-history h2, .inventory-decision-history h3 { margin-block: 0 8px; overflow-wrap: anywhere; }
+.inventory-decision-history p { max-width: 90ch; color: var(--text-muted, #536174); }
+.inventory-decision-history ol { list-style: none; padding: 0; display: grid; gap: 12px; }
+.inventory-decision-history li { border: 1px solid var(--border, #dce3eb); border-left: 3px solid #4666a8; border-radius: 10px; padding: 16px; min-width: 0; }
+.inventory-decision-history li.decision-removed { border-left-color: #986222; }
+.decision-row-heading > strong { font-size: .85rem; color: #304e7e; }
+.inventory-decision-history dl { display: grid; grid-template-columns: minmax(110px, 1fr) minmax(0, 3fr); gap: 8px 16px; font-size: .85rem; }
+.inventory-decision-history dd { margin: 0; overflow-wrap: anywhere; }
+.inventory-decision-history dl > div { display: contents; }
+.decision-evidence-note { font-size: .85rem; }
+.shortlist-decision-reason { display: grid; gap: 8px; margin-block: 20px; }
+.shortlist-decision-reason textarea { width: 100%; min-height: 84px; resize: vertical; }
+.shortlist-decision-reason small { color: var(--text-muted, #536174); }
+@media (max-width: 600px) { .inventory-decision-history dl { grid-template-columns: 1fr; } }

@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Npgsql;
 using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
@@ -20,8 +19,11 @@ public sealed class InventoryPurchasePersistenceTests
     [Fact]
     public async Task ApprovedBuyingQuantityControlsShortlistPlanAndProposalSnapshot()
     {
-        var connection = Connection();
-        await CanonicalPlanningAcceptanceTests.SeedAsync(connection, 10000000, initializeSchema: false);
+        await using var postgres = CanonicalPlanningAcceptanceTests.CreatePostgres();
+        await postgres.StartAsync();
+        var connection = postgres.GetConnectionString();
+        await DisposableDatabaseRoles.ProvisionAsync(connection);
+        await CanonicalPlanningAcceptanceTests.SeedAsync(connection, 10000000);
         await using var db = new GovernanceDbContext(new DbContextOptionsBuilder<GovernanceDbContext>()
             .UseNpgsql(connection).Options);
         var rate = await InsertRateAsync(db);
@@ -84,14 +86,6 @@ public sealed class InventoryPurchasePersistenceTests
 
     private static Task<JsonDocument> Command<T>(HttpClient client, string path, T body, long version = 1) =>
         CanonicalPlanningAcceptanceTests.CommandAsync(client, path, Guid.NewGuid().ToString(), version, body);
-
-    private static string Connection()
-    {
-        var database = Environment.GetEnvironmentVariable("PGDATABASE") ?? "";
-        Assert.StartsWith("advertified_brief_test_", database);
-        return new NpgsqlConnectionStringBuilder { Host = Environment.GetEnvironmentVariable("PGHOST"), Database = database,
-            Username = Environment.GetEnvironmentVariable("PGUSER"), Password = Environment.GetEnvironmentVariable("PGPASSWORD") }.ConnectionString;
-    }
 
     private static async Task<Guid> InsertRateAsync(GovernanceDbContext db)
     {

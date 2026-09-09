@@ -14,6 +14,7 @@ public static class InventoryEndpoints
     public static IEndpointRouteBuilder MapInventoryEndpoints(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapPlaceDiscoveryEndpoints();
+        endpoints.MapInventoryResearchEndpoints();
         var group = endpoints.MapGroup("/api/v1/tenants/{tenantId:guid}")
             .WithTags("Inventory truth").RequireAuthorization();
         group.MapPost("/inventory-imports", CreateImportAsync)

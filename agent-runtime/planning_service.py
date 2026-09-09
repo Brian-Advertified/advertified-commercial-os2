@@ -228,8 +228,8 @@ def _inventory_rationale(candidate: InventoryCandidateFacts) -> str:
     if benchmark is None:
         return (
             f"{candidate.name} is eligible after governed hard constraints. "
-            "No deterministic comparative benchmark applies, so selection should rely "
-            f"on the visible rate and governed suitability facts. {suitability} {audience}"
+            "No deterministic comparative benchmark applies. A low visible rate does not "
+            f"establish audience value; review the actual buy and evidence. {suitability} {audience}"
         )
     if benchmark.cohort_size < 2 or benchmark.median_minor is None:
         return (
@@ -253,10 +253,7 @@ def _suitability_rationale(candidate: InventoryCandidateFacts) -> str:
     components = (
         ("geography", suitability.geography),
         ("audience", suitability.audience_context),
-        ("objective/format", suitability.objective_format),
-        ("budget efficiency", suitability.budget_efficiency),
         ("evidence quality/freshness", suitability.evidence_quality_freshness),
-        ("portfolio coverage/diversity", suitability.portfolio_coverage_diversity),
     )
     detail = ", ".join(
         f"{name} {int(value * 100)}%" for name, value in components
@@ -267,8 +264,10 @@ def _suitability_rationale(candidate: InventoryCandidateFacts) -> str:
         else ""
     )
     return (
-        f"Governed suitability is {int(suitability.total * 100)}% under "
-        f"{suitability.policy_version}: {detail}.{gaps}"
+        f"The partial evidence score is {int(suitability.total * 100)}% under "
+        f"{suitability.policy_version}: {detail}. This is not a probability of success. "
+        "Creative effectiveness, comparable target cost and incremental reach remain "
+        f"unscored until supported by evidence.{gaps}"
     )
 
 

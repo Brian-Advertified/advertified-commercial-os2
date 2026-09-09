@@ -1,4 +1,5 @@
 $script:AdvertifiedComposeProject = 'advertified-os2-dev'
+. (Join-Path $PSScriptRoot 'storage-headroom.ps1')
 
 function Assert-AdvertifiedComposeProject {
     param([switch]$RequireExisting)
@@ -90,6 +91,9 @@ function Invoke-AdvertifiedCompose {
     )
 
     Assert-AdvertifiedComposeProject -RequireExisting
+    if ('build' -in $ComposeArguments -or '--build' -in $ComposeArguments) {
+        Assert-AdvertifiedStorageHeadroom
+    }
     $arguments = @('compose', '--project-name', $script:AdvertifiedComposeProject)
     foreach ($file in $ComposeFiles) {
         $arguments += @('--file', $file)

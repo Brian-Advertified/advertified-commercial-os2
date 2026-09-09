@@ -1,6 +1,7 @@
 import { expect, test, type Route } from '@playwright/test'
 import { planningWorkspaceSchema } from '../src/api/planning-schemas'
 import { buyAssessmentFixture, combinationFixture } from './buy-assessment-fixture'
+import { decisionReportFixture } from './inventory-decision-fixture'
 
 const tenantId = 'c1000000-0000-0000-0000-000000000001'
 const userId = 'c2000000-0000-0000-0000-000000000001'
@@ -70,7 +71,14 @@ test('planner edits allocation and timing before approving the plan', async ({ p
   await page.getByText('Buying evidence and gaps', { exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Digital screen exposure' })).toBeVisible()
   await expect(page.getByText('Supplied audience measurement — not a campaign forecast')).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Planner rationale and buying questions' })).toBeVisible()
+  await expect(page.getByText('Required places matched: 1 / 1', { exact: true })).toBeVisible()
+  await expect(page.getByText(/The creative is longer than the supplied slot/)).toBeVisible()
+  await expect(page.getByText(/Proximity alone does not establish audience/)).toBeVisible()
   await page.getByText('Compare coverage combinations', { exact: true }).click()
+  await expect(page.getByText('Difference from combination 1', { exact: true })).toBeVisible()
+  await expect(page.getByText('Same supplier cost', { exact: true })).toBeVisible()
+  await expect(page.getByText('Placements with measured target baselines', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Review this combination' }).click()
   await expect(page.getByLabel('Select Johannesburg OOH Site')).toBeChecked()
   await expect(page.getByText('Cost per relevant audience reached: Needs evidence.', { exact: true })).toBeVisible()
@@ -79,6 +87,8 @@ test('planner edits allocation and timing before approving the plan', async ({ p
   await page.getByText('Market comparison').click()
   await expect(page.getByText('4 comparable sites')).toBeVisible()
   await page.getByLabel('Select Johannesburg OOH Site').check()
+  await expect(page.getByRole('button', { name: 'Confirm selected inventory' })).toBeDisabled()
+  await page.getByLabel('Why are you carrying these placements forward?').fill('Retain the local anchor; audience reach still needs research.')
   await page.getByRole('button', { name: 'Confirm selected inventory' }).click()
 
   await page.getByRole('button', { name: 'Create media plan' }).click()
@@ -86,6 +96,10 @@ test('planner edits allocation and timing before approving the plan', async ({ p
   await page.getByRole('button', { name: 'Review and accept' }).click()
   await page.getByRole('button', { name: 'Approve media plan' }).click()
   await expect(page.getByText('Media plan approved and ready for proposal preparation.')).toBeVisible()
+  await page.getByRole('button', { name: 'Open decision history' }).click()
+  await expect(page.getByText('Removed from this selection', { exact: true })).toBeVisible()
+  await expect(page.getByText('Changed the anchor to improve verified local coverage.')).toBeVisible()
+  await expect(page.getByText('Agent interpretation is not evidence that AI selected the placement.', { exact: false })).toBeVisible()
 })
 
 test('buying quantity is bound to placement and saved before mix confirmation', async ({ page }) => {
@@ -170,6 +184,8 @@ test('audience strategy is reviewed and approved with one action', async ({ page
 async function handleApi(route: Route, state: State) {
   const request = route.request()
   const path = new URL(request.url()).pathname
+  if (path.endsWith('/reporting/inventory-decisions')) return json(route,
+    decisionReportFixture(productId, productVersionId, briefVersionId, shortlistId))
   if (request.method() === 'GET') return read(route, state, path)
   assertMutation(route, isVersioned(path))
   if (path.includes('audience') || path.includes('media-mix')) return handleMixCommand(route, state, path)

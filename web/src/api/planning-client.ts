@@ -142,11 +142,12 @@ export const planningApi = {
     shortlist: Shortlist,
     selectedCandidateIds: string[],
     token: string,
+    reason: string,
   ): Promise<Shortlist> {
     return mutate(
       `/api/v1/tenants/${tenantId}/shortlist-versions/${shortlist.id}:select`,
       shortlistSchema,
-      { selectedCandidateIds, reason: 'Planner confirmed selected inventory.' },
+      { selectedCandidateIds, reason },
       token, shortlist.version)
   },
 

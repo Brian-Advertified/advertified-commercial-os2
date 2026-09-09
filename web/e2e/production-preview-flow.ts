@@ -197,6 +197,8 @@ async function ensureScenarioChannels(page: Page, scenario: BriefScenario) {
 }
 
 async function selectInventory(page: Page, pattern: RegExp) {
+  const reason = page.getByLabel('Why are you carrying these placements forward?')
+  if (await reason.isVisible().catch(() => false)) await reason.fill('Reviewed placement coverage for the authorised preview campaign.')
   const confirm = page.getByRole('button', { name: /^Confirm selected inventory$/ })
   if (await canConfirm(confirm)) return
   const cards = page.locator('article').filter({

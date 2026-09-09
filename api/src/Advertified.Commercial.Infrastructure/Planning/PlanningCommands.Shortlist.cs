@@ -203,6 +203,7 @@ public sealed partial class PlanningCommands
             }
             return candidate with
             {
+                AgentInterpreted = true,
                 Rationale = OpportunityCommandSupport.Required(
                     interpretation.Rationale,
                     1_000,
@@ -286,6 +287,9 @@ public sealed partial class PlanningCommands
         await LoadPlanningReadyBriefAsync(
             shortlist.BriefVersionId, envelope, cancellationToken);
         EnsureSelectionRequest(shortlist, envelope.Command);
+        await store.LockSelectionMixAsync(envelope.TenantId, shortlist.MixVersionId, cancellationToken);
+        if (await store.HasNewerConfirmedShortlistAsync(envelope.TenantId, shortlist, cancellationToken))
+            throw new PlanningInputStaleException();
         var current = await store.BuildShortlistViewAsync(
             envelope.TenantId, shortlist, cancellationToken);
         var requested = envelope.Command.SelectedCandidateIds.ToHashSet();

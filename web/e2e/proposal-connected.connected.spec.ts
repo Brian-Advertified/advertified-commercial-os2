@@ -135,6 +135,7 @@ async function prepareApprovedPlan(page: import('@playwright/test').Page) {
   await page.getByLabel(
     'Select Local Demo Johannesburg Digital Billboard',
   ).check()
+  await page.getByLabel('Why are you carrying these placements forward?').fill('The reviewed digital placement meets the supplied campaign geography.')
   await page.getByRole('button', { name: 'Confirm selected inventory' }).click()
 
   await page.getByRole('button', { name: 'Create media plan' }).click()

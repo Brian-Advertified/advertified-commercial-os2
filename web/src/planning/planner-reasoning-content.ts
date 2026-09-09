@@ -1,0 +1,22 @@
+export const plannerReasoningContent = {
+  title: 'Planner rationale and buying questions', role: 'Intended channel role',
+  audience: 'Audience and buying context', supported: 'Supported by retained evidence',
+  warnings: 'Resolve before buying', questions: 'Planner review', unknown: 'Not supplied',
+  noReasons: 'No measured audience, full required-place coverage or quantified loop-share reason is established here.',
+  coverage: 'Required places matched', target: 'Measured target-audience baseline supplied',
+  noTarget: 'Measured target-audience baseline not established',
+  messages: {
+    'plannerReasoning.messageAndMoment': 'What message will work in this placement, and at what moment will people encounter it?',
+    'plannerReasoning.incrementalContribution': 'What does this placement add to the rest of the campaign? Check overlap before claiming incremental reach.',
+    'plannerReasoning.targetEvidence': 'Obtain compatible target-audience evidence before claiming this placement reaches the intended people.',
+    'plannerReasoning.proximityNotAudience': 'Does this location serve the intended journey? Proximity alone does not establish audience, footfall or exposure.',
+    'plannerReasoning.digitalExposureTradeoff': 'Compare creative length, loop share, operating hours and contracted plays with sustained static presence.',
+    'plannerReasoning.formatExposureTradeoff': 'Does this format provide enough viewing or listening opportunity for the message and campaign objective?',
+    'plannerReasoning.incompleteAudienceContext': 'Clarify the audience’s need and buying context before treating a persona as a media strategy.',
+    'plannerReasoning.creativeDoesNotFit': 'The creative is longer than the supplied slot. Resolve the mismatch before buying.',
+    'plannerReasoning.measuredTargetBaseline': 'A compatible supplied measurement is tied to the approved target audience; it remains a baseline, not a forecast.',
+    'plannerReasoning.requiredPlacesCovered': 'This placement matches all retained required geographic requirements.',
+    'plannerReasoning.quantifiedLoopShare': 'Supplied loop information supports a quantified share of the digital loop, not guaranteed campaign delivery.',
+  } as Record<string, string>,
+  unsupported: 'Additional review evidence is required; this version cannot interpret the returned evidence code.',
+} as const

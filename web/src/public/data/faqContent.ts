@@ -8,5 +8,5 @@ export const faqItems = [
   { question: 'Do I need an Advertified account?', answer: 'No. You can receive and respond to an approved proposal through a secure link without registering for a workspace.' },
   { question: 'Does a proposal mean the media is already booked?', answer: 'No. A proposal is a commercial recommendation. Pricing, availability, supplier commitments and campaign readiness are confirmed through the appropriate steps after the client decision.' },
   { question: 'How is campaign delivery verified?', answer: 'Advertified connects reporting to relevant proof of execution, such as installation evidence, flighting or transmission records, tear sheets, creator links and platform reports.' },
-  { question: 'How does Advertise Now, Pay Later work?', answer: 'After an approved proposal, Advertified can record a referral to an independent finance provider. The provider contacts and assesses the client and makes the finance decision.' },
+  { question: 'How does Advertise Now, Pay Later work?', answer: 'Advertise Now, Pay Later is a planned independent finance-referral route and is not currently available. When an approved provider integration is activated, the provider—not Advertified—will assess the client and make the finance decision.' },
 ] as const;

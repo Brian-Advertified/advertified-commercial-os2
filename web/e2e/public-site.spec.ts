@@ -18,6 +18,27 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
+test('media network counts stations and channels rather than parent owners', async ({ page }) => {
+  await page.route('**/api/v1/public/inventory-summary', route => route.fulfill({ json: {
+    totalCount: 3, channels: [
+      { channel: 'radio', count: 2, countBasis: 'canonical_radio_stations', units: [
+        { id: 'station-a', name: 'Synthetic Station A', logoUrl: null },
+        { id: 'station-b', name: 'Synthetic Station B', logoUrl: null }] },
+      { channel: 'television', count: 1, countBasis: 'canonical_television_channels', units: [
+        { id: 'channel-a', name: 'Synthetic Channel A', logoUrl: null }] },
+    ],
+  } }))
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Accept necessary' }).click()
+  await expect(page.getByRole('link', { name: '2 radio stations. View directory.' })).toBeVisible()
+  await expect(page.getByRole('link', { name: '1 tv channels. View directory.' })).toBeVisible()
+  await page.getByRole('link', { name: '2 radio stations. View directory.' }).click()
+  await expect(page.getByRole('heading', { name: 'Radio stations' })).toBeVisible()
+  await expect(page.getByText(/not their parent owners/)).toBeVisible()
+  await expect(page.getByText('Synthetic Station A', { exact: true }).last()).toBeVisible()
+  await expect(page.getByText('Synthetic Station B', { exact: true }).last()).toBeVisible()
+})
+
 test('public journey reaches solutions and the governed brief handoff', async ({ page }, testInfo) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Intelligence layer for modern advertising.' })).toBeVisible()
@@ -53,6 +74,26 @@ test('public onboarding stays truthful until an administrator grants access', as
     'href',
     /^mailto:ad@advertified\.com\?subject=/u,
   )
+})
+
+test('homepage restores monochrome scrolling logos with motion preferences', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Accept necessary' }).click()
+  const strip = page.getByRole('region', { name: 'MEDIA PARTNERS', exact: true })
+  await expect(strip).toBeVisible()
+  const logos = strip.locator('.media-partner-set:not([aria-hidden]) img')
+  expect(await logos.count()).toBeGreaterThan(0)
+  await expect.poll(() => logos.evaluateAll(images => images.every(image =>
+    image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0 &&
+    getComputedStyle(image).filter === 'grayscale(1)'))).toBe(true)
+  const track = strip.locator('.media-partner-track')
+  await expect(track).toHaveCSS('animation-name', 'media-partner-scroll')
+  await strip.locator('.media-partner-scroll').focus()
+  await expect(track).toHaveCSS('animation-play-state', 'paused')
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(track).toHaveCSS('animation-name', 'none')
+  await expect(strip.locator('.media-partner-set[aria-hidden="true"]')).toBeHidden()
 })
 
 test('every declared public page renders inside the public shell', async ({ page }) => {

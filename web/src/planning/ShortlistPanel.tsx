@@ -6,6 +6,8 @@ import { formatMoney } from '../presentation/format'
 import { mediaVisual } from './media-visuals'
 import { ShortlistSuitability } from './ShortlistSuitability'
 import { CampaignCombinations } from './CampaignCombinations'
+import { inventoryDecisionContent } from '../reporting/inventory-decision-content'
+import '../reporting/inventory-decision-history.css'
 
 const shortlistPageSize = 24
 
@@ -13,9 +15,10 @@ export function ShortlistPanel({ shortlist, requiredChannels, busy, onConfirm }:
   shortlist: Shortlist
   requiredChannels: string[]
   busy: boolean
-  onConfirm: (selectedIds: string[]) => Promise<void>
+  onConfirm: (selectedIds: string[], reason: string) => Promise<void>
 }) {
   const eligible = shortlist.candidates.filter(item => item.isEligible)
+  const [reason, setReason] = useState('')
   const [selected, setSelected] = useState<string[]>(
     eligible.filter(item => item.isSelected === true).map(item => item.id))
   const editable = shortlist.status === masterDataCodes.lifecycleStatuses.draft
@@ -31,8 +34,11 @@ export function ShortlistPanel({ shortlist, requiredChannels, busy, onConfirm }:
       <h2 id="shortlist-title">Choose the placements to carry forward</h2>
       <p>{eligible.length} eligible products from {shortlist.candidates.length} considered. Rejections are available on demand.</p></div>
       {editable && <button className="primary-button" type="button"
-        disabled={busy || selected.length === 0 || !coverage.selectedReady}
-        onClick={() => void onConfirm(selected)}>Confirm selected inventory</button>}</div>
+        disabled={busy || selected.length === 0 || !coverage.selectedReady || !reason.trim()}
+        onClick={() => void onConfirm(selected, reason.trim())}>Confirm selected inventory</button>}</div>
+    {editable && <label className="shortlist-decision-reason">{inventoryDecisionContent.reasonLabel}
+      <textarea value={reason} maxLength={2000} onChange={event => setReason(event.target.value)} />
+      <small>{inventoryDecisionContent.reasonHelp}</small></label>}
     <CoverageAlerts coverage={coverage} selectedCount={selected.length} />
     <CampaignCombinations shortlist={shortlist} editable={editable} busy={busy} onChoose={setSelected} />
     <CandidateList candidates={shortlist.candidates} eligible={eligible}
