@@ -83,6 +83,7 @@ function ProductRecordView({ tenantId, productId, record, token, canUpload, canR
   return <section className="inventory-record-page approved-inventory-detail" aria-labelledby="product-title">
     <ProductHeading record={record} />
     <nav className="approved-product-tabs"><a href="#product-overview" className="is-active">Overview</a>
+      <a href="#commercial">Commercial</a><a href="#availability">Availability</a>
       <a href="#audience-profile">Audience</a><a href="#source-evidence">Evidence</a>
       <a href="#market-comparison">Benchmark</a></nav>
     <div className="approved-product-detail-grid" id="product-overview">
@@ -98,12 +99,12 @@ function ProductRecordView({ tenantId, productId, record, token, canUpload, canR
         <article className="approved-product-quick-actions"><header><h2>Quick actions</h2></header><a href="#market-comparison">View benchmark</a><a href="#source-evidence">View evidence trail</a><Link to="/inventory">Return to catalogue</Link></article>
       </aside>
     </div>
-    <StructuredInventory record={record} />
-    {canReview && <SupplierClaimPanel tenantId={tenantId}
-      supplierId={record.product.supplierId} token={token} />}
-    <AvailabilityExceptions tenantId={tenantId} token={token} record={record}
-      canManage={canReview} onUpdated={onUpdated} />
-    <InventoryAudienceProfile profile={record.audienceProfile} />
+    <div id="commercial"><StructuredInventory record={record} />
+      {canReview && <SupplierClaimPanel tenantId={tenantId}
+        supplierId={record.product.supplierId} token={token} />}</div>
+    <div id="availability"><AvailabilityExceptions tenantId={tenantId} token={token} record={record}
+      canManage={canReview} onUpdated={onUpdated} /></div>
+    <div id="audience-profile"><InventoryAudienceProfile profile={record.audienceProfile} /></div>
     {decisionReportRoles.has(roleCode) && <InventoryDecisionHistory key={`${tenantId}:${productId}`}
       tenantId={tenantId} inventoryProductId={productId} />}
     <ProductSourceEvidence tenantId={tenantId} token={token} record={record}
@@ -116,8 +117,7 @@ function ProductHeading({ record }: { record: InventoryProduct }) {
   const item = record.product
   return <><div className="approved-inventory-pagebar">
     <Link className="text-action" to="/inventory">← Back to catalogue</Link>
-    <div><button className="primary-button" type="button" disabled
-      title="Choose inventory from an approved campaign mix.">Use in shortlist</button>
+    <div><Link className="secondary-button" to="/planning">Open Planning</Link>
       <a className="secondary-button" href="#source-evidence">Open evidence</a></div></div>
     <header className="approved-product-title"><div>
       <span>{humanizeCode(item.channel, true)}</span>

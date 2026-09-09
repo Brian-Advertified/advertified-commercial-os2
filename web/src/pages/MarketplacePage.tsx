@@ -148,9 +148,9 @@ function MarketplaceHeader({ tenantId, listings, requests, canBuy, canSupply }: 
     masterDataCodes.availabilityStatuses.available).length
   const needsAction = requests.filter(rfq => requestNeedsAction(rfq, tenantId)).length
   return <><header className="marketplace-command-header"><span className="marketplace-command-icon">
-    <Icon name="marketplace" /></span><div><p className="eyebrow">Current reviewed media supply</p>
-      <h1 id="marketplace-title">Supplier marketplace</h1>
-      <p>Search published supplier facts and exchange exact responses. Acceptance never creates a booking.</p>
+    <Icon name="marketplace" /></span><div><p className="eyebrow">Published media supply</p>
+      <h1 id="marketplace-title">Marketplace</h1>
+      <p>Find supplier-reviewed media currently published for campaign buying. Canonical records and source evidence remain in Inventory. Acceptance never creates a booking.</p>
     </div><div className="marketplace-access"><span>Workspace access</span>
       <strong>{accessLabel(canBuy, canSupply)}</strong></div></header>
     <dl className="marketplace-metric-strip">

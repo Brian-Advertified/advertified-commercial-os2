@@ -29,9 +29,9 @@ test('a reviewed supplied Brief proceeds to Audience Strategy', async ({ page })
 
   await page.goto('/briefs/new')
   await page.getByLabel('Campaign or Brief name').fill('December enquiry Brief')
-  await page.getByLabel('Original Brief').fill(
+  await page.getByLabel('Client requirement').fill(
     'Client One needs qualified Gauteng enquiries by December with a R100,000 media budget. The media type is unclear.')
-  await page.getByRole('button', { name: 'Understand this Brief' }).click()
+  await page.getByRole('button', { name: 'Understand this campaign' }).click()
 
   await expect(page.getByRole('heading', {
     name: 'Confirm only what could not be established',
@@ -75,11 +75,10 @@ test('Brief sections show progress and provide a governed continuation', async (
 
   await page.goto(`/briefs/${briefId}#brief-objectives`)
   await expect(page.getByRole('heading', { name: 'Review Campaign Brief' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Advertified understood the commercial requirement' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Outdoor advertising campaign' }))
     .toHaveAttribute('data-campaign-mode', 'OOH_ONLY')
-  await expect(page.getByText(
-    'Client One · December enquiry Brief · Version 1', { exact: true },
-  )).toBeVisible()
+  await expect(page.getByText('Client One · December enquiry Brief · Version 1', { exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: /Objectives Complete/ }))
     .toHaveAttribute('aria-current', 'step')
   await expect(page.getByRole('link', { name: /Measurement Needs attention/ })).toBeVisible()
@@ -127,8 +126,8 @@ test('leaving intake while creation is pending prevents later planning commands'
   try {
     await page.goto('/briefs/new')
     await page.getByLabel('Campaign or Brief name').fill('December enquiry Brief')
-    await page.getByLabel('Original Brief').fill('Original supplied request')
-    await page.getByRole('button', { name: 'Understand this Brief' }).click()
+    await page.getByLabel('Client requirement').fill('Original supplied request')
+    await page.getByRole('button', { name: 'Understand this campaign' }).click()
     const submitted = page.waitForRequest('**/briefs')
     await page.getByRole('button', { name: 'Approve Brief and start planning' }).click()
     await submitted

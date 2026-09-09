@@ -1,0 +1,31 @@
+.planning-opportunity-map {
+  margin: 14px 0 18px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--approved-line, #e6eaf1);
+  border-radius: var(--ui-radius-lg, 12px);
+  box-shadow: var(--approved-shadow, 0 4px 18px #1018280f);
+}
+.planning-opportunity-map > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.planning-opportunity-map > header h2 { margin: 0; color: #101828; font-size: 16px; }
+.planning-opportunity-map > header p:last-child { max-width: 850px; margin: 4px 0 0; color: #667085; font-size: 12px; }
+.planning-map-loading {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  color: #667085;
+  background: #f8f9fc;
+  border: 1px dashed #dfe4ed;
+  border-radius: 10px;
+  font-size: 12px;
+}
+@media (max-width: 640px) {
+  .planning-opportunity-map > header { display: grid; }
+  .planning-opportunity-map > header .status-chip { width: fit-content; }
+}

@@ -25,7 +25,7 @@ export function ProposalOptionCard({ option, selected, decisionMode, busy, onSel
       {option.inventory.length === 0
         ? <ul>{option.inventoryNames.map(name => <li key={name}>{name}</li>)}</ul>
         : <ul>{option.inventory.map(item => <li key={item.productVersionId}>
-          <strong>{item.name}</strong> · {item.geography} · {formatMoney(item.clientPriceMinor, option.currency)}
+          <strong>{item.name}</strong>{item.supplierName ? ` · ${item.supplierName}` : ''} · {item.geography} · {formatMoney(item.clientPriceMinor, option.currency)}
           {item.deliverable && <small>Deliverable: {[item.deliverable.format,
             item.deliverable.buyingUnit, item.deliverable.dimensions,
             item.deliverable.placement].filter(Boolean).join(' · ')}</small>}

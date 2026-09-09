@@ -56,6 +56,7 @@ test('planner edits allocation and timing before approving the plan', async ({ p
   await page.goto(`/planning/${briefVersionId}`)
   await expect(page.getByRole('heading', { name: 'Media Planning Overview' }))
     .toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'Advertified is turning strategy into a commercial decision' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Create media mix' }).click()
   await expect(page.getByRole('heading', { name: 'Shape the investment and timing' })).toBeVisible()

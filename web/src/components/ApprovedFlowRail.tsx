@@ -35,14 +35,14 @@ export function ApprovedFlowRail({ pathname, campaignFlow }: {
   if (pathname.startsWith('/inventory/imports/')) return null
   if (pathname.startsWith('/inventory')) {
     const active = pathname.includes('/products/') ? 6 : 5
-    return <Rail title="Inventory Intelligence Flow"
-      subtitle="From supplier files to commercially usable inventory"
+    return <Rail title="Inventory lifecycle"
+      subtitle="From source evidence to verified media records"
       steps={inventorySteps} active={active} tone="purple" />
   }
   if (isCampaignFlow(pathname) && campaignFlow.status !== 'unbound') {
     const presentation = campaignPresentation(campaignFlow)
-    return <Rail title={presentation.title} subtitle={presentation.subtitle}
-      steps={campaignSteps} active={campaignIndex(pathname)}
+    return <Rail title={presentation.title} ariaLabel={presentation.ariaLabel}
+      subtitle={presentation.subtitle} steps={campaignSteps} active={campaignIndex(pathname)}
       tone={presentation.tone} mode={presentation.mode} />
   }
   return null
@@ -51,25 +51,27 @@ export function ApprovedFlowRail({ pathname, campaignFlow }: {
 function campaignPresentation(flow: CampaignFlowResolution) {
   if (flow.status === 'resolved' &&
       flow.mode === masterDataCodes.campaignModes.oohOnly) {
-    return { title: 'Outdoor advertising campaign',
+    return { title: 'Outdoor advertising campaign', ariaLabel: 'Outdoor advertising campaign',
       subtitle: 'Outdoor advertising and digital screens only · One governed campaign lifecycle',
       tone: 'green' as const, mode: flow.mode }
   }
   if (flow.status === 'resolved' &&
       flow.mode === masterDataCodes.campaignModes.fullCampaign) {
-    return { title: 'Full Campaign Flow',
+    return { title: 'Full campaign', ariaLabel: 'Full Campaign Flow',
       subtitle: 'Full channel registry · One governed campaign lifecycle',
       tone: 'purple' as const, mode: flow.mode }
   }
   if (flow.status === 'unavailable') {
-    return { title: 'Campaign Flow', subtitle: 'Campaign type could not be verified',
+    return { title: 'Campaign journey', ariaLabel: 'Campaign Flow',
+      subtitle: 'Campaign type could not be verified',
       tone: 'purple' as const, mode: 'mode-unavailable' }
   }
   if (flow.status === 'loading') {
-    return { title: 'Campaign Flow', subtitle: 'Verifying campaign type…',
+    return { title: 'Campaign journey', ariaLabel: 'Campaign Flow',
+      subtitle: 'Verifying campaign type…',
       tone: 'purple' as const, mode: 'mode-loading' }
   }
-  return { title: 'Campaign Flow',
+  return { title: 'Campaign journey', ariaLabel: 'Campaign Flow',
     subtitle: 'Campaign type must be confirmed before planning',
     tone: 'purple' as const, mode: 'mode-unresolved' }
 }
@@ -110,8 +112,9 @@ function campaignIndex(pathname: string) {
   return campaignStageByArea[area] ?? 0
 }
 
-function Rail({ title, subtitle, steps, active, tone, mode }: {
+function Rail({ title, ariaLabel, subtitle, steps, active, tone, mode }: {
   title: string
+  ariaLabel?: string
   subtitle: string
   steps: readonly Step[]
   active: number
@@ -119,8 +122,8 @@ function Rail({ title, subtitle, steps, active, tone, mode }: {
   mode?: string
 }) {
   return <section className={`approved-flow-rail approved-flow-rail--${tone}`}
-    aria-label={title} data-campaign-mode={mode}>
-    <div className="approved-flow-title"><h1>{title}</h1><p>{subtitle}</p></div>
+    aria-label={ariaLabel ?? title} data-campaign-mode={mode}>
+    <div className="approved-flow-title"><strong>{title}</strong><p>{subtitle}</p></div>
     <ol>{steps.map((step, index) => <li key={step.label}
       className={index === active ? 'is-active' : index < active ? 'is-complete' : ''}>
       <span className="approved-flow-step-icon">{index < active ? '✓' : <Icon name={step.icon} />}</span>

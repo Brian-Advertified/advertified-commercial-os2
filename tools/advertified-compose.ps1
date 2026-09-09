@@ -98,8 +98,6 @@ function Invoke-AdvertifiedCompose {
         # incremental build reuses already-allocated Docker disk blocks.
         & docker builder prune --force --max-used-space 1GB --reserved-space 256MB *> $null
         if ($LASTEXITCODE -ne 0) { throw 'Docker builder cache pre-reclaim failed.' }
-        & docker image prune --force *> $null
-        if ($LASTEXITCODE -ne 0) { throw 'Docker dangling-image pre-reclaim failed.' }
         Assert-AdvertifiedStorageHeadroom -ExpectedGrowthBytes 0
     }
     $arguments = @('compose', '--project-name', $script:AdvertifiedComposeProject)
@@ -114,7 +112,6 @@ function Invoke-AdvertifiedCompose {
     if ($isBuild) {
         # Bound disposable build growth after every incremental local build. This never prunes
         # containers, networks, volumes, or tagged application images.
-        & docker image prune --force *> $null
         & docker builder prune --force --max-used-space 1GB --reserved-space 256MB *> $null
     }
 }

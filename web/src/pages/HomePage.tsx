@@ -8,12 +8,17 @@ import type { Campaign } from '../api/campaign-schemas'
 import { inventoryApi } from '../api/inventory-client'
 import type { InventoryProductPage } from '../api/inventory-schemas'
 import { opportunityApi } from '../api/opportunity-client'
+import { planningApi } from '../api/planning-client'
+import type { PlanningSummary } from '../api/planning-schemas'
+import { proposalApi } from '../api/proposal-client'
+import type { ProposalSummary } from '../api/proposal-schemas'
 import type { CurrentUser, HumanTask, Tenant, Workspace } from '../api/schemas'
 import { useWorkspace } from '../auth/workspace-state'
 import { ExperienceSignals, type ExperienceSignal } from '../components/ExperienceSignals'
 import { Icon } from '../components/Icon'
 import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
+import { DashboardCommercialProof } from '../home/DashboardCommercialProof'
 import { RoleHomeDashboard } from '../home/RoleHomeDashboard'
 import { mediaVisual } from '../planning/media-visuals'
 import { formatMoney, formatNumber, humanizeCode } from '../presentation/format'
@@ -24,6 +29,8 @@ type DashboardData = {
   campaigns: Campaign[]
   bookings: Booking[]
   tasks: HumanTask[]
+  planning: PlanningSummary[]
+  proposals: ProposalSummary[]
   inventory: InventoryProductPage | null
 }
 
@@ -71,15 +78,17 @@ function HomeData({ workspace }: { workspace: Workspace }) {
 }
 
 async function loadDashboard(tenantId: string): Promise<DashboardData> {
-  const [tenant, userProfile, campaigns, bookings, tasks, inventory] = await Promise.all([
+  const [tenant, userProfile, campaigns, bookings, tasks, planning, proposals, inventory] = await Promise.all([
     api.getTenant(tenantId),
     api.getCurrentUser(),
     campaignApi.list(tenantId).catch(() => []),
     bookingApi.list(tenantId).catch(() => []),
     opportunityApi.listTasks(tenantId).catch(() => []),
+    planningApi.list(tenantId).catch(() => []),
+    proposalApi.list(tenantId).catch(() => []),
     inventoryApi.search(tenantId, {}).catch(() => null),
   ])
-  return { tenant, user: userProfile.user, campaigns, bookings, tasks, inventory }
+  return { tenant, user: userProfile.user, campaigns, bookings, tasks, planning, proposals, inventory }
 }
 
 type DashboardView = ReturnType<typeof dashboardView>
@@ -87,16 +96,37 @@ type DashboardView = ReturnType<typeof dashboardView>
 function ApprovedDashboard({ data }: { data: DashboardData }) {
   const view = dashboardView(data)
   const [showGettingStarted, setShowGettingStarted] = useState(true)
+  const newWorkspace = data.campaigns.length === 0 && data.bookings.length === 0 &&
+    data.planning.length === 0 && data.proposals.length === 0
   return <section className="approved-dashboard" aria-labelledby="home-title">
     <header className="approved-dashboard-greeting">
       <h1 id="home-title">{greeting()}, {firstName(data.user.displayName)} 👋</h1>
-      <p>Your live workspace is prioritised around decisions, campaign movement and evidence-backed signals.</p>
+      <p>{newWorkspace
+        ? 'Start with the client request. Advertified will carry the approved facts through audience, planning and proposal.'
+        : 'Your live workspace is prioritised around decisions, campaign movement and evidence-backed signals.'}</p>
     </header>
-    <ExperienceSignals title="What needs attention now" signals={dashboardSignals(data, view)} />
-    <DashboardKpis data={data} view={view} />
-    <DashboardGrid data={data} view={view} />
-    {showGettingStarted && <GettingStarted onDismiss={() => setShowGettingStarted(false)} />}
+    {newWorkspace ? <NewWorkspaceHome data={data} view={view} /> : <>
+      <ExperienceSignals title="What needs attention now" signals={dashboardSignals(data, view)} />
+      <DashboardCommercialProof planning={data.planning} proposals={data.proposals}
+        campaigns={data.campaigns} bookings={data.bookings} />
+      <DashboardKpis data={data} view={view} />
+      <DashboardGrid data={data} view={view} />
+    </>}
+    {showGettingStarted && <GettingStarted prominent={newWorkspace}
+      onDismiss={() => setShowGettingStarted(false)} />}
   </section>
+}
+
+function NewWorkspaceHome({ data, view }: { data: DashboardData; view: DashboardView }) {
+  return <div className="approved-new-workspace-home">
+    {data.tasks.length > 0 && <ExperienceSignals title="What needs attention now"
+      signals={dashboardSignals(data, view)} />}
+    <article className="approved-launchpad">
+      <div><p className="eyebrow">Start a campaign</p><h2>Turn the client request into an approved plan</h2>
+        <p>Paste or upload the Brief, validate the audience, then let the existing planning workflow build the media decision.</p></div>
+      <Link className="primary-button" to="/briefs/new">Start Brief <span aria-hidden="true">→</span></Link>
+    </article>
+  </div>
 }
 
 function DashboardKpis({ data, view }: { data: DashboardData; view: DashboardView }) {
@@ -208,12 +238,17 @@ function DashboardRight({ data, campaigns }: {
   </div>
 }
 
-function GettingStarted({ onDismiss }: { onDismiss: () => void }) {
-  return <div className="approved-help-row">
+function GettingStarted({ onDismiss, prominent = false }: {
+  onDismiss: () => void
+  prominent?: boolean
+}) {
+  return <div className={`approved-help-row${prominent ? ' is-launchpad' : ''}`}>
     <article className="approved-getting-started">
       <button type="button" aria-label="Dismiss" onClick={onDismiss}>×</button>
-      <h2>Need help getting started?</h2>
-      <p>Create a brief, explore inventory or let Adverti Assistant guide you.</p>
+      <h2>{prominent ? 'Your first campaign starts here' : 'Need help getting started?'}</h2>
+      <p>{prominent
+        ? 'Use the same governed tools you will use in production: Brief, verified inventory and evidence-led guidance.'
+        : 'Create a brief, explore inventory or let Adverti Assistant guide you.'}</p>
       <div><Link to="/briefs/new"><Icon name="brief" /><span>
         <strong>Create Brief</strong><small>Start a new campaign brief</small>
       </span></Link>

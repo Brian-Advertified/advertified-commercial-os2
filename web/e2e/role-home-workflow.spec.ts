@@ -28,8 +28,8 @@ const cases: RoleCase[] = [
   },
   {
     roleCode: 'advertiser_admin', heading: 'Advertiser review workspace',
-    expectedNavigation: ['Home', 'Opportunities', 'Briefs', 'Inventory', 'Marketplace', 'Bookings', 'Campaigns', 'Reporting', 'Tasks', 'Finance'],
-    hiddenNavigation: ['Media inbox', 'Delivery'],
+    expectedNavigation: ['Home', 'Briefs', 'Campaigns', 'Reporting', 'Tasks'],
+    hiddenNavigation: ['Opportunities', 'Inventory', 'Marketplace', 'Media inbox', 'Bookings', 'Delivery', 'Finance'],
     dashboardAction: 'Campaign progress',
   },
 ]

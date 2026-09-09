@@ -87,7 +87,8 @@ internal static class ProposalPdfRenderer
             foreach (var inventory in option.Inventory)
             {
                 lines.Add(new PdfLine(
-                    $"{inventory.Name} | {inventory.Geography} | " +
+                    $"{inventory.Name}" + (string.IsNullOrWhiteSpace(inventory.SupplierName) ? "" : $" | {inventory.SupplierName}") +
+                    $" | {inventory.Geography} | " +
                     $"{FormatMoney(inventory.ClientPriceMinor, option.Currency)} | " +
                     $"{inventory.Availability}" + (inventory.Purchase is { } purchase
                         ? $" | {inventory.Quantity} {purchase.RateType}, rate per {purchase.Denominator}" : ""),

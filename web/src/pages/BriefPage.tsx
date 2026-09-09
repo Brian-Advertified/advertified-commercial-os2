@@ -19,6 +19,7 @@ import {
   useBriefSectionFlow,
 } from '../brief/brief-section-flow-state'
 import { BriefSummary, Field, ListFields } from '../brief/BriefPageParts'
+import { BriefCommercialProof } from '../brief/BriefCommercialProof'
 import { buildSectionStates } from '../brief/brief-section-status'
 import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
@@ -89,6 +90,8 @@ function BriefScreen(props: BriefScreenProps) {
       <div><span className="status-chip">
         {humanizeCode(props.version.status, true)}</span></div>
     </header>
+    <BriefCommercialProof record={props.record} version={props.version}
+      campaignMode={props.campaignMode} />
     <div className="approved-brief-layout">
       <BriefLocalNavigation sections={view.sections} activeId={flow.activeId}
         onSelect={flow.goTo} />
@@ -113,17 +116,14 @@ function BriefCoreSteps({ record, version, budget, step }: {
   return <>
     <BriefStep {...step('overview')}
       copy="Describe the business challenge and what success looks like.">
-      <article className="approved-brief-overview-copy">
-        <p>{version.businessProblem || 'Not supplied'}</p>
-        <span>{version.businessProblem ? '✓ Extracted from Brief' : '! Needs attention'}</span>
-      </article>
       <Field label="Campaign name" value={record.brief.title} />
       <Field label="Business problem" value={version.businessProblem || 'Not supplied'} wide />
     </BriefStep>
     <BriefStep {...step('objectives')} copy="What must this campaign achieve?">
       <Field label="Campaign objective" value={version.objective || 'Not supplied'} wide />
-      <Field label="Primary KPI" value={version.measurement[0] ?? 'Not supplied'} />
-      <Field label="Success target" value={version.measurement[1] ?? 'Not supplied'} />
+      <Field label="Success criteria" value={version.measurement.length > 0
+        ? `${version.measurement.length} approved measure${version.measurement.length === 1 ? '' : 's'} retained for the Measurement step`
+        : 'Not supplied'} wide />
     </BriefStep>
     <BriefStep {...step(masterDataCodes.agentTypes.audience)} copy="Who should the campaign influence?">
       <ListFields label="Audience" values={version.audiences} />

@@ -36,8 +36,8 @@ export function CampaignsPage() {
 function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
   return <section className="campaign-list-page" aria-labelledby="campaigns-title">
     <header className="campaign-list-hero"><div><p className="eyebrow">Campaign delivery</p>
-      <h1 id="campaigns-title">Move accepted work from funding to measurable delivery.</h1>
-      <p>Bookings, creative, proof and reporting stay connected to the exact option selected by the client.</p></div>
+      <h1 id="campaigns-title">Campaigns</h1>
+      <p>Move accepted work from funding to measurable delivery. Bookings, creative, proof and reporting stay connected to the exact option selected by the client.</p></div>
       <Link className="secondary-button" to="/funding">Open funding</Link></header>
     <CampaignPortfolioMetrics campaigns={campaigns} />
     {campaigns.length === 0 ? <CampaignEmpty /> : <div className="campaign-card-grid">

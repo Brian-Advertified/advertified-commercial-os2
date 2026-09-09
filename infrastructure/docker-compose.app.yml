@@ -96,6 +96,7 @@ services:
       Authentication__DevelopmentIdentity__IdentityType: human
       Authentication__BrowserSession__SecureCookie: "false"
       Authentication__BrowserSession__AllowedOrigins__0: http://localhost:3017
+      Authentication__BrowserSession__AllowedOrigins__1: http://127.0.0.1:3017
       InventoryProtection__ObjectStoreMode: Minio
       InventoryProtection__ScannerMode: ClamAv
       InventoryProtection__Endpoint: minio:9000

@@ -152,6 +152,28 @@
 .proposal-inventory-detail summary { color: var(--electric-soft); font-size: 0.75rem; font-weight: 750; cursor: pointer; }
 .proposal-inventory-detail ul { margin: 0.55rem 0 0; padding-left: 1rem; color: var(--muted); font-size: 0.75rem; }
 .proposal-select-button { width: 100%; margin-top: auto; }
+
+.proposal-choice-comparison {
+  padding: 1rem 1.1rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+}
+.proposal-choice-comparison header h2 { margin: 0.08rem 0 0.3rem; color: var(--navy); font-size: 1.05rem; }
+.proposal-choice-comparison header p:last-child { max-width: 64rem; margin: 0; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
+.proposal-comparison-scroll { margin-top: 0.85rem; overflow-x: auto; border: 1px solid var(--line); }
+.proposal-choice-comparison table { width: 100%; min-width: 54rem; border-collapse: collapse; }
+.proposal-choice-comparison th,
+.proposal-choice-comparison td { padding: 0.7rem 0.75rem; text-align: left; vertical-align: top; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 0.75rem; line-height: 1.45; }
+.proposal-choice-comparison tr > *:last-child { border-right: 0; }
+.proposal-choice-comparison tbody tr:last-child > * { border-bottom: 0; }
+.proposal-choice-comparison thead th { color: var(--navy); background: var(--surface-subtle); font-size: 0.8rem; }
+.proposal-choice-comparison thead th:first-child,
+.proposal-choice-comparison tbody th { width: 9.5rem; color: var(--muted); background: #fbfcfe; font-weight: 800; }
+.proposal-choice-comparison thead span { margin-left: 0.4rem; padding: 0.18rem 0.35rem; color: var(--positive); background: var(--positive-wash); border-radius: 999px; font-size: 0.65rem; }
+.proposal-choice-comparison td { color: var(--muted-strong); }
+.proposal-choice-comparison footer { margin-top: 0.7rem; color: var(--muted); font-size: 0.72rem; line-height: 1.45; }
+
 .proposal-selected-mark,
 .proposal-decision-confirmation { margin: auto 0 0; padding: 0.6rem 0.7rem; color: var(--positive); background: var(--positive-wash); border-left: 0.2rem solid var(--positive); font-size: 0.75rem; font-weight: 750; }
 

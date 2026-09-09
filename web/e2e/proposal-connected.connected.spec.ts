@@ -75,7 +75,7 @@ async function createClearBrief(
 ) {
   await page.goto('/briefs/new')
   await page.getByLabel('Campaign or Brief name').fill(title)
-  await page.getByLabel('Original Brief').fill([
+  await page.getByLabel('Client requirement').fill([
     'Client: Local Proposal Client',
     'Problem: Local business buyers do not know about the new workspace range.',
     'Objective: Generate 500 qualified enquiries.',
@@ -86,7 +86,7 @@ async function createClearBrief(
     'Media: OOH and DOOH only.',
     'Measurement: Qualified enquiries.',
   ].join('\n'))
-  await page.getByRole('button', { name: 'Understand this Brief' }).click()
+  await page.getByRole('button', { name: 'Understand this campaign' }).click()
   await expect(page.getByRole('heading', {
     name: 'Confirm what Advertified understood before planning begins.',
   })).toBeVisible()

@@ -42,7 +42,7 @@ test('connected proposal inbox opens against the local API', async ({ page }) =>
   expect(messagesResponse.status(), messagesBody).toBe(200)
   expect(userResponse.status(), userBody).toBe(200)
   await expect(page.getByRole('heading', {
-    name: 'Proposal inbox',
+    name: 'Media Inbox',
     exact: true,
   })).toBeVisible()
   await expect(page.getByText(mailboxAddress, { exact: true })).toBeVisible()

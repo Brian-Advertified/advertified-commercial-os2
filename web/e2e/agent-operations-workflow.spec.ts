@@ -33,15 +33,25 @@ test('agency administrator can find agent budgets and recorded costs in settings
   await expect(page.getByText('Paid AI disabled', { exact: true })).toBeVisible()
   await expect(page.getByText('Paid AI is disabled.')).toBeVisible()
   await expect(page.getByText('retained historical usage remains visible below.')).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Agents' })).toHaveAttribute('aria-selected', 'true')
   await expect(page.getByRole('heading', { name: 'Agent budgets and costs' })).toBeVisible()
   await expect(page.getByRole('row', { name: /Business Interpretation Agent/ }))
     .toContainText('$0.00')
+
+  await page.getByRole('tab', { name: 'Usage' }).click()
   const usage = page.getByRole('region', { name: 'Recent recorded usage' })
   await expect(usage.getByRole('row').filter({ hasText: 'Business Interpretation' })
     .filter({ hasText: 'Failed' })).toContainText('$0.00')
+
+  await page.getByRole('tab', { name: 'Runs' }).click()
   const runs = page.getByRole('region', { name: 'Recent durable runs' })
   await expect(runs.getByRole('row').filter({ hasText: 'Review Required' }))
     .toContainText('$0.00')
+
+  if ((page.viewportSize()?.width ?? 0) <= 820) {
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(1)
+  }
 })
 
 async function handleApi(route: Route) {

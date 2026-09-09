@@ -38,6 +38,7 @@ export const proposalSummarySchema = z.object({
 
 const proposalInventoryLineSchema = z.object({
   inventoryTenantId: z.guid(),
+  supplierName: z.string().trim().min(1).nullish().transform(value => value ?? null),
   marketplaceListingVersionId: z.guid().nullable(),
   inventoryProductId: z.guid(),
   productVersionId: z.guid(),

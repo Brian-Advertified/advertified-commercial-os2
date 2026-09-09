@@ -227,3 +227,15 @@
 .advertified-public .resource-grid a {
   color: #20a878;
 }
+
+.advertified-public .partner-directory-actions {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-top: 28px;
+  text-align: center;
+}
+.advertified-public .partner-directory-actions small {
+  color: var(--muted);
+  font-size: 12px;
+}

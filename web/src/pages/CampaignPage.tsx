@@ -8,6 +8,7 @@ import { BookingReadinessSection } from '../campaign/BookingReadinessSection'
 import { CampaignDeliveryRail } from '../campaign/CampaignDeliveryRail'
 import { CampaignFundingSummary } from '../campaign/CampaignFundingSummary'
 import { CampaignHeader } from '../campaign/CampaignHeader'
+import { CampaignCommercialProof } from '../campaign/CampaignCommercialProof'
 import {
   campaignBookingConfirmerRoles,
   campaignDeliveryOperatorRoles,
@@ -105,6 +106,7 @@ function CampaignWorkspace(props: WorkspaceProps) {
   return <section className="campaign-workspace-page" aria-labelledby="campaign-title">
     <Link className="text-action back-link" to="/campaigns">← Back to campaigns</Link>
     <CampaignHeader campaign={props.model.campaign} />
+    <CampaignCommercialProof model={props.model} />
     <CampaignDeliveryRail campaign={props.model.campaign} activeTab={activeTab}
       onSelect={setActiveTab} />
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}

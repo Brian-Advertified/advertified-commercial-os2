@@ -35,19 +35,27 @@ const platformAdminRoles = new Set<string>([
   masterDataCodes.roles.platformAdmin,
 ])
 
-const oohInboxRoles = new Set<string>([
-  masterDataCodes.roles.platformAdmin,
-  masterDataCodes.roles.internalPlanner,
-  masterDataCodes.roles.agencyAdmin,
-])
-
-const planningViewerRoles = new Set<string>([
+const agencyPlanningRoles = new Set<string>([
   masterDataCodes.roles.platformAdmin,
   masterDataCodes.roles.internalPlanner,
   masterDataCodes.roles.agencyAdmin,
   masterDataCodes.roles.agencyCampaignUser,
+])
+
+const advertiserRoles = new Set<string>([
   masterDataCodes.roles.advertiserAdmin,
   masterDataCodes.roles.advertiserApprover,
+])
+
+const planningViewerRoles = new Set<string>([
+  ...agencyPlanningRoles,
+  ...advertiserRoles,
+])
+
+const oohInboxRoles = new Set<string>([
+  masterDataCodes.roles.platformAdmin,
+  masterDataCodes.roles.internalPlanner,
+  masterDataCodes.roles.agencyAdmin,
 ])
 
 const supplierOperatorRoles = new Set<string>([
@@ -57,31 +65,32 @@ const supplierOperatorRoles = new Set<string>([
   masterDataCodes.roles.influencerRep,
 ])
 
-const inventoryViewerRoles = new Set<string>([
-  ...planningViewerRoles,
+const inventoryWorkspaceRoles = new Set<string>([
+  ...agencyPlanningRoles,
+  ...supplierOperatorRoles,
+])
+
+const buyerMarketplaceRoles = new Set<string>([
+  ...agencyPlanningRoles,
   ...supplierOperatorRoles,
 ])
 
 const briefCreatorRoles = new Set<string>([
-  masterDataCodes.roles.platformAdmin,
-  masterDataCodes.roles.internalPlanner,
-  masterDataCodes.roles.agencyAdmin,
-  masterDataCodes.roles.agencyCampaignUser,
+  ...agencyPlanningRoles,
 ])
 
 const destinations: readonly Destination[] = [
   { to: '/home', label: 'Home', icon: 'home' },
-  { to: '/opportunities', label: 'Opportunities', icon: 'target', roles: planningViewerRoles },
+  { to: '/opportunities', label: 'Opportunities', icon: 'target', roles: agencyPlanningRoles },
   { to: '/briefs', label: 'Briefs', icon: 'brief', roles: planningViewerRoles },
-  { to: '/inventory', label: 'Inventory', icon: 'inventory', roles: inventoryViewerRoles },
-  { to: '/marketplace', label: 'Marketplace', icon: 'marketplace', roles: inventoryViewerRoles },
+  { to: '/inventory', label: 'Inventory', icon: 'inventory', roles: inventoryWorkspaceRoles },
+  { to: '/marketplace', label: 'Marketplace', icon: 'marketplace', roles: buyerMarketplaceRoles },
   { to: '/ooh-inbox', label: 'Media inbox', icon: 'inbox', roles: oohInboxRoles },
-  { to: '/bookings', label: 'Bookings', icon: 'reservation', roles: inventoryViewerRoles },
+  { to: '/bookings', label: 'Bookings', icon: 'reservation', roles: supplierOperatorRoles },
   { to: '/delivery-proof-requests', label: 'Delivery', icon: 'evidence', roles: supplierOperatorRoles },
   { to: '/campaigns', label: 'Campaigns', icon: 'plan', roles: planningViewerRoles },
   { to: '/measurement', label: 'Reporting', icon: 'chart', roles: planningViewerRoles },
   { to: '/tasks', label: 'Tasks', icon: 'tasks' },
-  { to: '/funding', label: 'Finance', icon: 'money', roles: planningViewerRoles },
   { to: '/admin/onboarding', label: 'Onboarding', icon: 'tasks', roles: platformAdminRoles },
   { to: '/admin/commercial', label: 'Settings', icon: 'commercial', roles: adminRoles },
 ]
@@ -99,11 +108,10 @@ const prefixNavigation: Readonly<Record<string, readonly string[]>> = {
   Marketplace: ['/marketplace'],
   Bookings: ['/bookings'],
   Delivery: ['/delivery-proof-requests', '/creative-assets/', '/delivery-proofs/'],
-  Campaigns: ['/campaigns'],
+  Campaigns: ['/campaigns', '/funding'],
   Reporting: [
     '/measurement', '/reports', '/performance-evidence/', '/measurement-reports/',
   ],
-  Finance: ['/funding'],
   Onboarding: ['/admin/onboarding'],
   Settings: ['/admin/commercial', '/admin/agents'],
 }
@@ -159,8 +167,8 @@ function GlobalSearch() {
       inputRef.current?.focus()
       inputRef.current?.select()
     }
-    window.addEventListener('keydown', focusSearch)
-    return () => window.removeEventListener('keydown', focusSearch)
+    window.addEventListener('keydown', focusSearch, true)
+    return () => window.removeEventListener('keydown', focusSearch, true)
   }, [])
 
   function submit(event: FormEvent<HTMLFormElement>) {

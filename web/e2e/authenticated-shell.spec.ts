@@ -67,11 +67,9 @@ test('sidebar contains only real top-level work areas and workflow progress is n
     ['Inventory', '/inventory'],
     ['Marketplace', '/marketplace'],
     ['Media inbox', '/ooh-inbox'],
-    ['Bookings', '/bookings'],
     ['Campaigns', '/campaigns'],
     ['Reporting', '/measurement'],
     ['Tasks', '/tasks'],
-    ['Finance', '/funding'],
     ['Settings', '/admin/commercial'],
   ] as const
 
@@ -79,14 +77,20 @@ test('sidebar contains only real top-level work areas and workflow progress is n
     await expect(page.getByRole('link', { name: label, exact: true })).toHaveAttribute('href', path)
   }
 
-  for (const stage of ['Audience Strategy', 'Planning', 'Proposals', 'Approvals', 'Measurement']) {
+  for (const stage of ['Audience Strategy', 'Planning', 'Proposals', 'Approvals', 'Measurement', 'Bookings', 'Finance']) {
     await expect(page.getByRole('link', { name: stage, exact: true })).toHaveCount(0)
+  }
+
+  if ((page.viewportSize()?.width ?? 0) <= 820) {
+    const width = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth,
+      document: document.documentElement.scrollWidth }))
+    expect(width.document).toBeLessThanOrEqual(width.viewport)
   }
 
   await page.getByRole('link', { name: 'Reporting', exact: true }).click()
   await expect(page).toHaveURL(/\/measurement$/)
   await expect(page.getByRole('navigation', { name: 'Reporting views' })
-    .getByRole('link', { name: 'Reports', exact: true })).toHaveAttribute('href', '/reports')
+    .getByRole('link', { name: 'Operations', exact: true })).toHaveAttribute('href', '/reports')
 
   await page.getByRole('link', { name: 'Briefs', exact: true }).click()
   await expect(page).toHaveURL(/\/briefs$/)
@@ -197,6 +201,12 @@ async function handleTenantRead(route: Route, path: string) {
   }
   const area = path.split('/').filter(Boolean).at(-1) ?? ''
   if (area === 'briefs') return json(route, 200, [briefSearchFixture()])
+  if (path.endsWith('/campaigns/measurement-summaries')) {
+    return json(route, 200, { items: [], nextCursor: null })
+  }
+  if (path.endsWith('/measurement-reports')) {
+    return json(route, 200, { items: [], nextCursor: null })
+  }
   if (emptyPageAreas.has(area)) return json(route, 200, emptyPageFixture())
   if (emptyListAreas.has(area)) return json(route, 200, [])
   if (path.includes('/inventory-products')) {

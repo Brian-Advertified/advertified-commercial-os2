@@ -46,7 +46,7 @@ test('operator connects one mailbox and monitors automatic OOH proposals', async
 
   await page.goto('/ooh-inbox')
   await expect(page).toHaveURL(/\/ooh-inbox$/)
-  await expect(page.getByRole('heading', { name: 'Proposal inbox' })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'Media Inbox', exact: true })).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText('Outdoor advertising and digital screens only', { exact: true })).toBeVisible()
   await page.getByLabel('Mailbox address').fill('ooh@advertified.com')
   await page.getByLabel('Allowed sender domains').fill('client.example')

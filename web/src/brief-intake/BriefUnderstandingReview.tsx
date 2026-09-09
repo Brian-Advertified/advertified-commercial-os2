@@ -12,6 +12,7 @@ import {
 import { BriefSpatialEditor, type BriefSpatialDraft } from './BriefSpatialEditor'
 import { AudienceResearchEditor } from './AudienceResearchEditor'
 import type { AudienceResearch } from '../api/audience-research-schema'
+import { BriefInterpretationImpact } from './BriefInterpretationImpact'
 
 export function BriefUnderstandingReview({
   understanding,
@@ -35,6 +36,7 @@ export function BriefUnderstandingReview({
 }) {
   return <div className="brief-understanding-review">
     <UnderstandingReviewHero understanding={understanding} />
+    <BriefInterpretationImpact understanding={understanding} />
     <UnderstandingDetailGrid understanding={understanding} />
     <BriefSpatialEditor values={spatialRequirements}
       onChange={onSpatialRequirementsChange} />

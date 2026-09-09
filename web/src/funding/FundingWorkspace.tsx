@@ -52,8 +52,8 @@ function FundingHero({ workspace }: { workspace: FundingData }) {
   const confirmed = workspace.payments.filter(payment =>
     payment.status === masterDataCodes.lifecycleStatuses.confirmed).length
   return <header className="funding-hero"><div><p className="eyebrow eyebrow-light">Funding and purchase order</p>
-    <h1 id="funding-title">Turn an accepted proposal into accountable funding.</h1>
-    <p>Every purchase order, invoice and payment decision remains tied to the exact option selected by the client.</p></div>
+    <h1 id="funding-title">Finance</h1>
+    <p>Turn an accepted proposal into accountable funding. Every purchase order, invoice and payment decision remains tied to the exact option selected by the client.</p></div>
     <dl><div><dt>Purchase orders</dt><dd>{workspace.purchaseOrders.length}</dd></div>
       <div><dt>Invoices</dt><dd>{workspace.invoices.length}</dd></div>
       <div><dt>Confirmed payments</dt><dd>{confirmed}</dd></div></dl></header>

@@ -42,9 +42,8 @@ async function completeFunding(page: Page) {
     currency: 'ZAR',
   });
   await page.goto(`/funding?${query}`);
-  await expect(page.getByRole('heading', {
-    name: 'Turn an accepted proposal into accountable funding.',
-  })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: 'Finance', exact: true }))
+    .toBeVisible({ timeout: 15_000 });
   await expectOohCampaignFlow(page);
   await page.getByLabel('Purchase order number').fill('PO-DELIVERY-001');
   await page.getByLabel('Signed purchase order').setInputFiles(pdf);
@@ -61,6 +60,7 @@ async function completeFunding(page: Page) {
   await page.getByRole('link', { name: 'Open campaigns' }).click();
   await page.getByRole('link', { name: /Gauteng Growth Campaign/ }).click();
   await expectOohCampaignFlow(page);
+  await expect(page.getByRole('heading', { name: 'The commercial decision stays connected through delivery' })).toBeVisible();
 }
 
 async function completeCreativeReadiness(page: Page) {

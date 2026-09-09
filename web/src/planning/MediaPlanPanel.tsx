@@ -64,7 +64,8 @@ function PlanLine({ line, currency }: { line: MediaPlan['lines'][number]; curren
   const visual = mediaVisual(line.channel)
   return <article className={`plan-line media-tone-${visual.tone}`}>
     <div className="media-identity"><MediaTypeIcon channel={line.channel} />
-      <div><span>{visual.label}</span><h3 title={line.name}>{line.name}</h3><small>{line.geography}</small></div></div>
+      <div><span>{visual.label}</span><h3 title={line.name}>{line.name}</h3>
+        <small>{[line.supplierName, line.geography].filter(Boolean).join(' · ')}</small></div></div>
     <div className="plan-line-periods">{line.runningPeriods.map(period =>
       <span key={`${period.start}-${period.end}`}>{formatDate(period.start)} – {formatDate(period.end)}</span>)}</div>
     <div className="plan-line-commercial"><span>Qty <strong>{line.quantity}</strong>{purchaseBasis(line)}</span>

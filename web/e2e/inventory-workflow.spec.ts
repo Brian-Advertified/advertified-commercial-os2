@@ -46,7 +46,12 @@ test('operator intake accepts validated candidates before separate publication',
   await page.route('**/api/v1/**', async (route) => handleApi(route, state))
 
   await page.goto('/inventory')
-  await expect(page.getByRole('heading', { name: 'Media inventory', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Inventory', exact: true })).toBeVisible()
+  if ((page.viewportSize()?.width ?? 0) <= 820) {
+    const width = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth,
+      document: document.documentElement.scrollWidth }))
+    expect(width.document).toBeLessThanOrEqual(width.viewport)
+  }
   await page.getByLabel('Supplier / media owner').fill('City Media')
   await page.getByLabel(/Drag & drop files here/).setInputFiles({
     name: 'city-sites.csv', mimeType: 'text/csv',

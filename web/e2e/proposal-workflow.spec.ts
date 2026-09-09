@@ -65,6 +65,7 @@ test('agency prepares three approved-plan choices and client selects one', async
   await page.getByRole('button', { name: 'Create proposal' }).click()
 
   await expect(page.getByRole('heading', { name: 'Three routes to qualified demand' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'The proposal now carries the planning proof forward' })).toBeVisible()
   await page.getByLabel('Executive summary').fill(
     'Choose the route that best balances visibility, trust and measurable response.')
   await page.getByRole('button', { name: 'Save wording' }).click()

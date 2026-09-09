@@ -41,7 +41,7 @@ test('buyer creates and explicitly sends a marketplace request', async ({ page }
 
   await page.goto('/marketplace')
   await expect(page).toHaveURL(/\/marketplace$/)
-  await expect(page.getByRole('heading', { name: 'Supplier marketplace' })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'Marketplace', exact: true })).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText('Acceptance never creates a booking.')).toBeVisible()
   await expect(page.getByRole('cell', {
     name: /N1 Highway Digital Billboard/,

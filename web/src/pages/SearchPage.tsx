@@ -44,11 +44,21 @@ export function SearchPage() {
     {query
       ? <SearchResults key={`${selected.tenantId}:${query}`}
           tenantId={selected.tenantId} query={query} />
-      : <div className="approved-work-index-list"><article className="approved-work-index-empty">
-          <strong>Enter a search term</strong>
-          <p>Search campaigns, Briefs, inventory products and measurement reports.</p>
-        </article></div>}
+      : <SearchShortcuts />}
   </section>
+}
+
+function SearchShortcuts() {
+  const links: Array<[string, string, IconName]> = [
+    ['/briefs', 'Browse Briefs', 'brief'],
+    ['/campaigns', 'Browse campaigns', 'plan'],
+    ['/inventory', 'Browse inventory', 'inventory'],
+    ['/measurement', 'Open measurement', 'evidence'],
+  ]
+  return <><article className="approved-work-index-empty search-guidance"><strong>Search the current workspace</strong>
+    <p>Use the search box above for a campaign, client, supplier, location or reference. Or open a work area directly.</p></article>
+    <div className="approved-search-shortcuts">{links.map(([to, label, icon]) =>
+      <Link key={to} to={to}><Icon name={icon} /><span>{label}</span><b aria-hidden="true">→</b></Link>)}</div></>
 }
 
 function SearchResults({ tenantId, query }: { tenantId: string; query: string }) {

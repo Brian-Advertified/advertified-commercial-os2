@@ -29,10 +29,10 @@ export function NotificationsPage() {
   if (!tasks) return <LoadingState label="Loading notifications" />;
 
   return <section className="operations-page" aria-labelledby="notifications-title">
-    <header className="operations-command-header"><div><p className="eyebrow">Attention required</p>
+    <header className="operations-command-header"><div><p className="eyebrow">Attention alerts</p>
       <h1 id="notifications-title">Notifications</h1>
-      <p>Notifications reflect current assigned decisions and exceptions. Completing the underlying task clears the notification.</p>
-    </div></header>
+      <p>Notifications tell you what changed or needs attention. The underlying action remains owned by the assigned task.</p>
+    </div><Link className="secondary-button" to="/tasks">Open assigned tasks</Link></header>
     <section className="operations-panel" aria-labelledby="notification-list-title">
       <header className="operations-panel-header"><div><p className="eyebrow">Current</p>
         <h2 id="notification-list-title">Items needing your attention</h2></div><span>{tasks.length}</span></header>

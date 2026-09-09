@@ -35,6 +35,7 @@ internal static class PlanningShortlistPersistence
             await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
                 INSERT INTO commercial.inventory_shortlist_candidates (
                     id, tenant_id, shortlist_version_id, inventory_tenant_id,
+                    supplier_id, supplier_name, latitude, longitude,
                     marketplace_listing_version_id, inventory_product_id,
                     product_version_id, rate_id, availability_id, product_name, is_eligible,
                     rejection_reason_collection_code, rejection_reason_code,
@@ -45,6 +46,7 @@ internal static class PlanningShortlistPersistence
                     rate_amount_minor, currency_code,
                     channel_code, geography, input_hash, created_at_utc, agent_interpreted)
                 SELECT value."id", {tenantId.Value}, {shortlistId}, value."inventoryTenantId",
+                    value."supplierId", value."supplierName", value."latitude", value."longitude",
                     value."listingVersionId", value."productId", value."productVersionId",
                     value."rateId", value."availabilityId", value."productName",
                     value."isEligible", value."rejectionCollection",
@@ -59,6 +61,8 @@ internal static class PlanningShortlistPersistence
                     value."geography", value."inputHash", {now}, value."agentInterpreted"
                 FROM jsonb_to_recordset({candidatePayload}::jsonb) AS value(
                     "id" uuid, "recommendationId" uuid, "inventoryTenantId" uuid,
+                    "supplierId" uuid, "supplierName" text,
+                    "latitude" numeric, "longitude" numeric,
                     "listingVersionId" uuid, "productId" uuid, "productName" text,
                     "productVersionId" uuid, "rateId" uuid, "availabilityId" uuid,
                     "isEligible" boolean, "rejectionCollection" text,
@@ -143,6 +147,10 @@ internal static class PlanningShortlistPersistence
             candidate.Id,
             Guid.NewGuid(),
             inventory.InventoryTenantId,
+            inventory.SupplierId,
+            inventory.SupplierName,
+            inventory.Latitude,
+            inventory.Longitude,
             inventory.MarketplaceListingVersionId,
             inventory.ProductId,
             inventory.Name,
@@ -202,6 +210,10 @@ internal static class PlanningShortlistPersistence
         Guid Id,
         Guid RecommendationId,
         Guid InventoryTenantId,
+        Guid SupplierId,
+        string SupplierName,
+        decimal? Latitude,
+        decimal? Longitude,
         Guid? ListingVersionId,
         Guid ProductId,
         string ProductName,

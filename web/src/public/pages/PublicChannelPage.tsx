@@ -6,13 +6,22 @@ import type { ChannelDefinition } from '../data/channelContent';
 
 const icons = { ooh: MonitorUp, radio: RadioTower, television: Tv, print: Newspaper, digital: Smartphone, influencers: Users } as const;
 
+const heroTitles: Record<string, string> = {
+  ooh: 'Be present in the places your audience moves through.',
+  radio: 'Build familiarity through voice, language and repetition.',
+  television: 'Use sight, sound and scale to make the campaign memorable.',
+  print: 'Add trusted context, detail and credibility to the campaign.',
+  digital: 'Turn relevant attention into measurable action.',
+  influencers: 'Build relevance through credible creator voices.',
+};
+
 export function PublicChannelPage({ channel }: { channel: ChannelDefinition }) {
   const Icon = icons[channel.slug as keyof typeof icons] ?? MonitorUp;
   return (
     <>
       <PublicPageHero
         eyebrow={channel.eyebrow}
-        title={`${channel.name} advertising with a clear campaign role`}
+        title={heroTitles[channel.slug] ?? `${channel.name} with a clear campaign role`}
         introduction={channel.introduction}
         actions={<Link className="btn primary large" href="/start">Discuss {channel.slug === 'ooh' ? 'an' : 'a'} {channel.shortName} campaign →</Link>}
       />

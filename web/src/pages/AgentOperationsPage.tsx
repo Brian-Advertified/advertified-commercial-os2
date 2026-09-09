@@ -16,6 +16,8 @@ const administratorRoles = new Set<string>([
   masterDataCodes.roles.agencyAdmin,
 ])
 
+type AgentView = 'agents' | 'usage' | 'runs'
+
 export function AgentOperationsPage() {
   const { selected, loading } = useWorkspace()
   const [operations, setOperations] = useState<AgentOperations | null>(null)
@@ -41,13 +43,14 @@ export function AgentOperationsPage() {
 }
 
 function AgentOperationsWorkspace({ operations }: { operations: AgentOperations }) {
+  const [view, setView] = useState<AgentView>('agents')
   const providerState = operations.liveProviderEnabled ? 'Live provider enabled' : 'Paid AI disabled'
   return <section className="operations-page agent-operations-page" aria-labelledby="agent-operations-title">
     <SettingsNavigation />
     <header className="operations-command-header"><div>
       <p className="eyebrow">AI governance and cost oversight</p>
       <h1 id="agent-operations-title">Agent operations</h1>
-      <p>Review each specialist agent’s current per-run cap and tenant-attributable usage.</p>
+      <p>Review specialist-agent controls, usage and durable workflow runs without mixing the three ledgers together.</p>
     </div><span className="operations-state-label">Read only</span></header>
     <dl className="operations-context-strip operations-context-four">
       <div><dt>Provider policy</dt><dd>{providerState}</dd></div>
@@ -59,10 +62,25 @@ function AgentOperationsWorkspace({ operations }: { operations: AgentOperations 
     {!operations.liveProviderEnabled && <p className="inline-alert" role="status">
       {operationalCopy.providerDisabled}
     </p>}
-    <AgentBudgetTable agents={operations.agents} currency={operations.currency} />
-    <UsageTable usage={operations.recentUsage} currency={operations.currency} />
-    <RunTable runs={operations.recentRuns} currency={operations.currency} />
+    <div className="agent-operations-tabs" role="tablist" aria-label="Agent operation views">
+      <AgentTab current={view} value="agents" label="Agents" count={operations.agents.length} onSelect={setView} />
+      <AgentTab current={view} value="usage" label="Usage" count={operations.recentUsage.length} onSelect={setView} />
+      <AgentTab current={view} value="runs" label="Runs" count={operations.recentRuns.length} onSelect={setView} />
+    </div>
+    {view === 'agents' && <AgentBudgetTable agents={operations.agents} currency={operations.currency} />}
+    {view === 'usage' && <UsageTable usage={operations.recentUsage} currency={operations.currency} />}
+    {view === 'runs' && <RunTable runs={operations.recentRuns} currency={operations.currency} />}
   </section>
+}
+
+function AgentTab({ current, value, label, count, onSelect }: {
+  current: AgentView; value: AgentView; label: string; count: number
+  onSelect: (view: AgentView) => void
+}) {
+  return <button type="button" role="tab" className={current === value ? 'is-active' : ''}
+    aria-selected={current === value} onClick={() => onSelect(value)}>
+    {label}<span>{count}</span>
+  </button>
 }
 
 function AgentBudgetTable({ agents, currency }: { agents: AgentBudget[]; currency: string }) {

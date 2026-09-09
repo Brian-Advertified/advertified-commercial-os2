@@ -73,6 +73,9 @@ public sealed partial class PlanningRecordStore
         var rows = await DbContext.Database.SqlQuery<ShortlistCandidateRow>($"""
             SELECT candidate.id AS "Id",
                 candidate.inventory_tenant_id AS "InventoryTenantId",
+                candidate.supplier_id AS "SupplierId",
+                candidate.supplier_name AS "SupplierName",
+                candidate.latitude AS "Latitude", candidate.longitude AS "Longitude",
                 candidate.marketplace_listing_version_id AS "MarketplaceListingVersionId",
                 candidate.inventory_product_id AS "InventoryProductId",
                 candidate.product_version_id AS "ProductVersionId",
@@ -166,6 +169,7 @@ public sealed partial class PlanningRecordStore
         DbContext.Database.SqlQuery<MediaPlanLineRow>($"""
             SELECT line.plan_version_id AS "PlanVersionId", line.id AS "Id",
                 line.inventory_tenant_id AS "InventoryTenantId",
+                line.supplier_name AS "SupplierName",
                 line.marketplace_listing_version_id AS "MarketplaceListingVersionId",
                 line.inventory_product_id AS "InventoryProductId",
                 line.product_version_id AS "ProductVersionId", line.rate_id AS "RateId",
@@ -243,7 +247,8 @@ public sealed partial class PlanningRecordStore
                 Read<string[]>(row.BenchmarkExclusionsJson ?? "[]"));
         }
         return new InventoryShortlistCandidateView(
-            row.Id, row.InventoryTenantId, row.MarketplaceListingVersionId,
+            row.Id, row.InventoryTenantId, row.SupplierId, row.SupplierName,
+            row.Latitude, row.Longitude, row.MarketplaceListingVersionId,
             row.InventoryProductId, row.ProductVersionId, row.RateId, row.AvailabilityId,
             row.Name, row.Channel, row.Geography, row.RateAmountMinor, row.Currency,
             row.IsEligible, row.RejectionReason, row.RejectionDetail, row.Score,
@@ -274,7 +279,7 @@ public sealed partial class PlanningRecordStore
     }
 
     private static MediaPlanLineView ToPlanLineView(MediaPlanLineRow row) => new(
-        row.Id, row.InventoryTenantId, row.MarketplaceListingVersionId,
+        row.Id, row.InventoryTenantId, row.SupplierName, row.MarketplaceListingVersionId,
         row.InventoryProductId, row.ProductVersionId, row.RateId, row.AvailabilityId,
         row.Name, row.Channel, row.Geography,
         Read<MediaRunningPeriodView[]>(row.RunningPeriodsJson),

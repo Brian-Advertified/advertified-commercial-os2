@@ -3,21 +3,30 @@ import { formatMoney, humanizeCode } from '../presentation/format'
 import './planning-decision-context.css'
 
 type DecisionContext = NonNullable<PlanningWorkspace['decisionContext']>
+type DecisionStage = 'targeting' | 'planning'
 
-export function PlanningDecisionContext({ value }: { value: DecisionContext }) {
-  return <section className="planning-decision-context" aria-labelledby="commercial-chain-title">
+export function PlanningDecisionContext({ value, stage = 'planning' }: {
+  value: DecisionContext
+  stage?: DecisionStage
+}) {
+  const audienceStage = stage === 'targeting'
+  return <section className={`planning-decision-context is-${stage}`}
+    aria-labelledby="commercial-chain-title">
     <header><p className="eyebrow">Commercial reasoning chain</p>
-      <h2 id="commercial-chain-title">Why this plan should exist</h2>
-      <p>Approved Brief facts flow into audience strategy, media jobs and the eventual buy decision.</p></header>
+      <h2 id="commercial-chain-title">{audienceStage
+        ? 'What the audience decision must solve' : 'Why this plan should exist'}</h2>
+      <p>{audienceStage
+        ? 'Approved Brief facts define the audience decision before media planning begins.'
+        : 'Approved Brief facts flow into audience strategy, media jobs and the eventual buy decision.'}</p></header>
     <ol>
       <DecisionStep number="1" label="Business problem" text={value.businessProblem} />
       <DecisionStep number="2" label="Objective" text={value.objective} />
       <DecisionList number="3" label="Success measures" values={value.successMeasures}
         empty="No explicit success measure is retained in the approved Brief." />
-      <DecisionStep number="4" label="Audience strategy"
+      {!audienceStage && <DecisionStep number="4" label="Audience strategy"
         text={value.targetingRationale || 'Audience strategy is not approved yet.'}
-        detail={value.positioningStatement || undefined} />
-      <MediaJobs value={value} />
+        detail={value.positioningStatement || undefined} />}
+      {!audienceStage && <MediaJobs value={value} />}
     </ol>
     {value.evidenceGaps.length > 0 && <p className="planning-decision-gaps">
       <strong>Still to establish:</strong> {value.evidenceGaps.map(humanizeGap).join(' · ')}</p>}

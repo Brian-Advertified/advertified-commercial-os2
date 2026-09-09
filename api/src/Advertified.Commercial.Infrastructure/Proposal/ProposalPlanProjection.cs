@@ -37,7 +37,7 @@ internal static class ProposalPlanProjection
 
     private static ProposalInventoryLineView ToProposalInventory(
         Advertified.Commercial.Application.Planning.MediaPlanLineView line) => new(
-        line.InventoryTenantId, line.MarketplaceListingVersionId,
+        line.InventoryTenantId, line.SupplierName, line.MarketplaceListingVersionId,
         line.InventoryProductId, line.ProductVersionId, line.RateId,
         line.AvailabilityId, line.Name, line.Channel, line.Geography,
         line.RunningPeriods.Select(period => new ProposalRunningPeriodView(

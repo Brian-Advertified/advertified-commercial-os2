@@ -21,8 +21,8 @@ export function InventoryCatalogueHeader({ items }: { items: InventoryProductSum
     item.verification === masterDataCodes.verificationLevels.humanVerified).length
   const ooh = items.filter(item => item.channel === masterDataCodes.channels.ooh ||
     item.channel === masterDataCodes.channels.dooh).length
-  return <header className="approved-catalogue-hero"><div><p className="eyebrow">Published Inventory Catalogue</p>
-    <h1 id="inventory-title">Media inventory</h1><p>Search published, source-linked media products by supplier, channel and geography.</p></div>
+  return <header className="approved-catalogue-hero"><div><p className="eyebrow">Verified media records</p>
+    <h1 id="inventory-title">Inventory</h1><p>Review verified media records, supplier evidence and catalogue facts. Campaign-buying supply is published separately in Marketplace.</p></div>
     <dl><Snapshot label="Inventory" value={items.length} /><Snapshot label="Verified" value={verified} />
       <Snapshot label="Suppliers" value={suppliers} /><Snapshot label="Outdoor advertising and digital screens" value={ooh} /></dl></header>
 }

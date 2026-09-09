@@ -136,6 +136,10 @@ public sealed record InventorySuitabilityView(
 public sealed record InventoryShortlistCandidateView(
     Guid Id,
     Guid InventoryTenantId,
+    Guid? SupplierId,
+    string? SupplierName,
+    decimal? Latitude,
+    decimal? Longitude,
     Guid? MarketplaceListingVersionId,
     Guid InventoryProductId,
     Guid ProductVersionId,
@@ -189,6 +193,7 @@ public sealed record PlanObjectionView(
 public sealed record MediaPlanLineView(
     Guid Id,
     Guid InventoryTenantId,
+    string? SupplierName,
     Guid? MarketplaceListingVersionId,
     Guid InventoryProductId,
     Guid ProductVersionId,

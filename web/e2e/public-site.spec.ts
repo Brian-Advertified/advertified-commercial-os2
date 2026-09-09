@@ -96,6 +96,32 @@ test('homepage restores monochrome scrolling logos with motion preferences', asy
   await expect(strip.locator('.media-partner-set[aria-hidden="true"]')).toBeHidden()
 })
 
+test('media partners uses progressive disclosure instead of a mobile wall', async ({ page }, testInfo) => {
+  await page.goto('/media-partners')
+  const cards = page.locator('.partner-cards article')
+  const toggle = page.getByRole('button', { name: /Show all .* partners|Show fewer partners/u })
+  await expect(toggle).toBeVisible()
+  expect(await cards.count()).toBeLessThanOrEqual(12)
+  await toggle.click()
+  expect(await cards.count()).toBeGreaterThan(12)
+  await expect(toggle).toHaveText(/Show fewer partners/u)
+  if (testInfo.project.name === 'compact') {
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(1)
+  }
+})
+
+test('compact how-it-works shows one journey stage at a time', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'compact', 'Compact progressive disclosure only')
+  await page.goto('/how-it-works')
+  const stages = page.locator('.hiw-stage')
+  await expect(stages).toHaveCount(6)
+  await expect(stages.filter({ visible: true })).toHaveCount(1)
+  await page.getByRole('button', { name: /Plan/u }).click()
+  await expect(stages.nth(2)).toBeVisible()
+  await expect(stages.nth(0)).toBeHidden()
+})
+
 test('every declared public page renders inside the public shell', async ({ page }) => {
   test.setTimeout(120_000)
 

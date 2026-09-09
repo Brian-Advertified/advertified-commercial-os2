@@ -73,7 +73,7 @@ test('connected marketplace exposes published inventory', async ({ page }) => {
   await page.getByRole('button', { name: /Advertified Local/ }).click()
 
   await page.goto('/marketplace')
-  await expect(page.getByRole('heading', { name: 'Supplier marketplace' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Marketplace', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Supply ledger' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'No published supply found' })).toHaveCount(0)
   await expect(page.locator('.marketplace-table tbody tr').first()).toBeVisible()

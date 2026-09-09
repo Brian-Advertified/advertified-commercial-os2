@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { humanMessage } from '../api/client'
 import { planningApi } from '../api/planning-client'
@@ -15,9 +15,12 @@ import { MediaMixEditor } from '../planning/MediaMixEditor'
 import { MediaPlanPanel } from '../planning/MediaPlanPanel'
 import { PlanningDecisionContext } from '../planning/PlanningDecisionContext'
 import { MediaTimeline } from '../planning/MediaTimeline'
+import { PlanningCommercialProof } from '../planning/PlanningCommercialProof'
+import { PlanningOpportunityMap } from '../planning/PlanningOpportunityMap'
 import { ShortlistPanel } from '../planning/ShortlistPanel'
 import { announcePlanningChanged } from '../planning/planning-events'
 import { mediaVisual } from '../planning/media-visuals'
+import { humanizeCode } from '../presentation/format'
 import { InventoryDecisionHistory } from '../reporting/InventoryDecisionHistory'
 
 export function PlanningPage() {
@@ -84,17 +87,78 @@ function PlanningWorkspaceContent(props: PlanningContext & {
     <header className="approved-media-planning-header"><div><p className="eyebrow">Integrated plan across all selected channels</p>
       <h1 id="planning-title">Media Planning Overview</h1>
       <p>Allocate investment, select eligible supply and reconcile the client-ready media plan.</p></div>
-      <span className="status-chip status-positive">{workspace.campaignMode?.mode === masterDataCodes.campaignModes.oohOnly ? 'Outdoor advertising and digital screens only' : 'Full campaign'}</span></header>
+      <span className="status-chip status-positive">{campaignModeLabel(workspace)}</span></header>
     {workspace.decisionContext && <PlanningDecisionContext value={workspace.decisionContext} />}
     <ExperienceSignals title="Planning intelligence" signals={planningSignals(workspace, mix, shortlist, plan)} />
+    <PlanningCommercialProof workspace={workspace} mix={mix} shortlist={shortlist} plan={plan} />
+    <PlanningOpportunityMap shortlist={shortlist} />
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
     {mix && <ApprovedPlanningOverview mix={mix} shortlist={shortlist} plan={plan} />}
-    <MixStage {...props} mix={mix} />
-    <ShortlistStage {...props} mix={mix} shortlist={shortlist} />
-    <PlanStage {...props} shortlist={shortlist} plan={plan} />
+    <PlanningStages {...props} mix={mix} shortlist={shortlist} plan={plan} />
     <InventoryDecisionHistory key={`${props.tenantId}-${props.briefVersionId}`}
       tenantId={props.tenantId} briefVersionId={props.briefVersionId} />
   </section>
+}
+
+function campaignModeLabel(workspace: PlanningWorkspace) {
+  return workspace.campaignMode?.mode === masterDataCodes.campaignModes.oohOnly
+    ? 'Outdoor advertising and digital screens only' : 'Full campaign'
+}
+
+function PlanningStages(props: PlanningContext & {
+  workspace: PlanningWorkspace; busy: boolean; error: string | null; act: ActionRunner
+  mix: MediaMix | null; shortlist: Shortlist | null; plan: MediaPlan | null
+}) {
+  const mixApproved = isApproved(props.mix?.status)
+  return <>
+    <PlanningStagePanel number="1" title="Strategy & allocation" status={props.mix?.status ?? null}
+      open={!mixApproved}><MixStage {...props} mix={props.mix} /></PlanningStagePanel>
+    <SupplyPlanningStage {...props} enabled={mixApproved} />
+    <CommercialPlanningStage {...props} enabled={isApproved(props.shortlist?.status)} />
+  </>
+}
+
+function SupplyPlanningStage(props: PlanningContext & {
+  workspace: PlanningWorkspace; busy: boolean; error: string | null; act: ActionRunner
+  mix: MediaMix | null; shortlist: Shortlist | null; plan: MediaPlan | null; enabled: boolean
+}) {
+  if (!props.enabled) return null
+  const approved = isApproved(props.shortlist?.status)
+  return <PlanningStagePanel number="2" title="Supply & scenarios"
+    status={props.shortlist?.status ?? null} open={!approved}>
+    <ShortlistStage {...props} mix={props.mix} shortlist={props.shortlist} />
+  </PlanningStagePanel>
+}
+
+function CommercialPlanningStage(props: PlanningContext & {
+  workspace: PlanningWorkspace; busy: boolean; error: string | null; act: ActionRunner
+  mix: MediaMix | null; shortlist: Shortlist | null; plan: MediaPlan | null; enabled: boolean
+}) {
+  if (!props.enabled) return null
+  return <PlanningStagePanel number="3" title="Commercial reconciliation"
+    status={props.plan?.status ?? null} open>
+    <PlanStage {...props} shortlist={props.shortlist} plan={props.plan} />
+  </PlanningStagePanel>
+}
+
+function isApproved(status: string | null | undefined) {
+  return status === masterDataCodes.lifecycleStatuses.approved
+}
+
+function PlanningStagePanel({ number, title, status, open, children }: {
+  number: string
+  title: string
+  status: string | null
+  open: boolean
+  children: ReactNode
+}) {
+  const [expanded, setExpanded] = useState(open)
+  return <details className="planning-stage-panel" open={expanded}
+    onToggle={event => setExpanded(event.currentTarget.open)}>
+    <summary><span>{number}</span><div><strong>{title}</strong>
+      <small>{status ? humanizeCode(status, true) : 'Not started'}</small></div><b>⌄</b></summary>
+    <div className="planning-stage-content">{children}</div>
+  </details>
 }
 
 function MixStage(props: PlanningContext & {

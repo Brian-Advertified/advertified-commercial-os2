@@ -29,10 +29,12 @@ export function ShortlistPanel({ shortlist, requiredChannels, busy, onConfirm }:
     setSelected(current => current.includes(id)
       ? current.filter(item => item !== id) : [...current, id])
   }
+  const suppliers = new Set(shortlist.candidates
+    .map(item => item.supplierId ?? item.inventoryTenantId)).size
   return <section className="planning-section" aria-labelledby="shortlist-title">
     <div className="planning-section-heading"><div><p className="eyebrow">Inventory</p>
       <h2 id="shortlist-title">Choose the placements to carry forward</h2>
-      <p>{eligible.length} eligible products from {shortlist.candidates.length} considered. Rejections are available on demand.</p></div>
+      <p>{eligible.length} eligible products from {shortlist.candidates.length} considered across {suppliers} supplier{suppliers === 1 ? '' : 's'}. Rejections are available on demand.</p></div>
       {editable && <button className="primary-button" type="button"
         disabled={busy || selected.length === 0 || !coverage.selectedReady || !reason.trim()}
         onClick={() => void onConfirm(selected, reason.trim())}>Confirm selected inventory</button>}</div>
@@ -137,7 +139,8 @@ function CandidateCard({ candidate, editable, selected, onToggle }: {
     ? 'Eligible' : candidate.rejectionReason?.replaceAll('_', ' ')
   return <article className={`shortlist-card media-tone-${visual.tone} ${candidate.isEligible ? '' : 'is-rejected'}`}>
     <div className="shortlist-card-head"><div className="media-identity"><MediaTypeIcon channel={candidate.channel} />
-      <div><span>{visual.label}</span><h3>{candidate.name}</h3></div></div>
+      <div><span>{visual.label}</span><h3>{candidate.name}</h3>
+        {candidate.supplierName && <small>{candidate.supplierName}</small>}</div></div>
       <Selection candidate={candidate} editable={editable} selected={selected} onToggle={onToggle} /></div>
     <p>{candidate.geography}</p>
     <div className="shortlist-facts"><span>{rate}</span><span>{eligibility}</span></div>

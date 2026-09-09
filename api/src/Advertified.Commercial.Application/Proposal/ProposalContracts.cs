@@ -215,6 +215,7 @@ public sealed record ProposalRunningPeriodView(
 
 public sealed record ProposalInventoryLineView(
     Guid InventoryTenantId,
+    string? SupplierName,
     Guid? MarketplaceListingVersionId,
     Guid InventoryProductId,
     Guid ProductVersionId,

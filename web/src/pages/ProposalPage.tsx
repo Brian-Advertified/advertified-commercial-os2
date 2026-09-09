@@ -11,6 +11,8 @@ import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { ProposalAgencyActions } from '../proposal/ProposalAgencyActions'
 import { ProposalClientDecision } from '../proposal/ProposalClientDecision'
+import { ProposalCommercialProof } from '../proposal/ProposalCommercialProof'
+import { ProposalChoiceComparison } from '../proposal/ProposalChoiceComparison'
 import { ProposalEditor } from '../proposal/ProposalEditor'
 import { clientMediaCopy } from '../presentation/media-labels'
 import { ProposalBrandingPanel } from '../proposal/ProposalBrandingPanel'
@@ -122,7 +124,10 @@ function ProposalContent(props: ProposalContentProps) {
       ← {canPrepare ? 'Back to Brief' : 'Back to work'}
     </Link>
     <ProposalHero proposal={proposal} />
-    <ProposalNavigation canPrepare={canPrepare} hasFunding={Boolean(proposal.decision?.optionId)} />
+    <ProposalNavigation canPrepare={canPrepare} hasFunding={Boolean(proposal.decision?.optionId)}
+      choiceCount={proposal.options.length} />
+    <ProposalCommercialProof proposal={proposal} />
+    <ProposalChoiceComparison proposal={proposal} />
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
     <ProposalInventoryUpdateNotice proposal={proposal} />
     {canPrepare ? <AgencyProposalContent {...props} /> : <ClientProposalContent {...props} />}
@@ -234,13 +239,15 @@ function ProposalHero({ proposal }: { proposal: Proposal }) {
   </header>
 }
 
-function ProposalNavigation({ canPrepare, hasFunding }: {
+function ProposalNavigation({ canPrepare, hasFunding, choiceCount }: {
   canPrepare: boolean
   hasFunding: boolean
+  choiceCount: number
 }) {
   return <nav className="proposal-navigation" aria-label="Proposal sections">
     <a href="#proposal-details">Summary and wording</a>
     {canPrepare && <a href="#proposal-branding">Branding</a>}
+    {choiceCount > 1 && <a href="#proposal-comparison">Compare choices</a>}
     <a href="#proposal-options">Client choices</a>
     {canPrepare && <a href="#proposal-action">Next action</a>}
     {hasFunding && <a href="#proposal-funding">Funding handoff</a>}

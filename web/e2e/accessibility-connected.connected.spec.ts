@@ -37,9 +37,9 @@ test('connected critical shell has usable keyboard and accessibility semantics',
 
   await page.getByRole('link', { name: 'New campaign Brief' }).click()
   await expect(mainContent).toBeFocused()
-  await expect(page.getByRole('heading', { name: 'Start with the Brief, not a form' }))
+  await expect(page.getByRole('heading', { name: 'What does the campaign need to achieve?' }))
     .toBeVisible()
   await expect(page.getByLabel('Campaign or Brief name')).toBeVisible()
-  await expect(page.getByLabel('Original Brief')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Understand this Brief' })).toBeVisible()
+  await expect(page.getByLabel('Client requirement')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Understand this campaign' })).toBeVisible()
 })

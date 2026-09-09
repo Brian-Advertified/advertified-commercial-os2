@@ -147,6 +147,10 @@ const suitabilitySchema = z.object({
 export const shortlistCandidateSchema = z.object({
   id: z.guid(),
   inventoryTenantId: z.guid(),
+  supplierId: z.guid().nullish().transform(value => value ?? null),
+  supplierName: z.string().trim().min(1).nullish().transform(value => value ?? null),
+  latitude: z.number().min(-90).max(90).nullish().transform(value => value ?? null),
+  longitude: z.number().min(-180).max(180).nullish().transform(value => value ?? null),
   marketplaceListingVersionId: z.guid().nullable(),
   inventoryProductId: z.guid(),
   productVersionId: z.guid(),
@@ -231,6 +235,7 @@ export const shortlistSchema = z.object({
 export const planLineSchema = z.object({
   id: z.guid(),
   inventoryTenantId: z.guid(),
+  supplierName: z.string().trim().min(1).nullish().transform(value => value ?? null),
   marketplaceListingVersionId: z.guid().nullable(),
   inventoryProductId: z.guid(),
   productVersionId: z.guid(),

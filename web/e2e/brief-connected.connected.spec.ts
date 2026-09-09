@@ -13,10 +13,10 @@ test('connected clear Brief reaches OOH planning without a fake approval', async
 
   await page.goto('/briefs/new')
   await expect(page.getByRole('heading', {
-    name: 'Start with the Brief, not a form',
+    name: 'What does the campaign need to achieve?',
   })).toBeVisible()
   await fillBriefSource(page, 'OOH and DOOH only.')
-  await page.getByRole('button', { name: 'Understand this Brief' }).click()
+  await page.getByRole('button', { name: 'Understand this campaign' }).click()
   await expect(page.getByRole('heading', {
     name: 'Confirm what Advertified understood before planning begins.',
   })).toBeVisible()
@@ -51,7 +51,7 @@ test('connected mixed-channel Brief reaches the Full Campaign flow', async ({ pa
   await expectLocalSelfApproval(page)
   await page.goto('/briefs/new')
   await fillBriefSource(page, 'OOH billboards and radio.')
-  await page.getByRole('button', { name: 'Understand this Brief' }).click()
+  await page.getByRole('button', { name: 'Understand this campaign' }).click()
   await expect(page.getByRole('heading', {
     name: 'Confirm what Advertified understood before planning begins.',
   })).toBeVisible()
@@ -102,7 +102,8 @@ async function signIn(page: Page) {
     name: 'Where are you working today?',
   })).toBeVisible()
   await page.getByRole('button', { name: /Advertified Local/ }).click()
-  await expect(page.getByRole('heading', { name: /Good morning, Local/ })).toBeVisible()
+  await expect(page).toHaveURL(/\/home$/)
+  await expect(page.locator('.approved-shell--workspace')).toBeVisible()
 }
 
 async function expectLocalSelfApproval(page: Page) {
@@ -119,7 +120,7 @@ async function expectLocalSelfApproval(page: Page) {
 async function fillBriefSource(page: Page, media: string) {
   await page.getByLabel('Campaign or Brief name')
     .fill(`Connected campaign Brief ${Date.now()}`)
-  await page.getByLabel('Original Brief').fill([
+  await page.getByLabel('Client requirement').fill([
     'Client: Client One',
     'Problem: Local buyers do not know about the new workspace range.',
     'Objective: Generate 500 qualified enquiries.',

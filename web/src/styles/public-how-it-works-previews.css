@@ -299,8 +299,16 @@
 
   .advertified-public .hiw-stage {
     grid-template-columns: 52px minmax(0, 1fr);
-    padding: 58px 0;
+    padding: 34px 0 46px;
     gap: 17px 11px;
+  }
+
+  .advertified-public .hiw-stage:not(.is-active) {
+    display: none;
+  }
+
+  .advertified-public .hiw-journey__spine {
+    display: none;
   }
 
   .advertified-public .hiw-stage__node {

@@ -15,7 +15,7 @@ test('authorised development reset leaves an empty Brief workspace and usable in
   expect(await briefs.json()).toEqual([])
   await page.getByRole('link', { name: 'Create new Brief', exact: true }).first().click()
   await expect(page).toHaveURL(/\/briefs\/new$/)
-  await expect(page.getByRole('heading', { name: 'Start with the Brief, not a form' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'What does the campaign need to achieve?' })).toBeVisible()
   await page.goto('/inventory')
   await expect(page.getByRole('heading', { name: 'Media inventory', exact: true })).toBeVisible()
   await expect(page.locator('.approved-inventory-card').first()).toBeVisible()

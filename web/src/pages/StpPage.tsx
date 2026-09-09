@@ -7,6 +7,7 @@ import type { AudienceSet, PlanningWorkspace } from '../api/planning-schemas'
 import { useSession } from '../auth/session-state'
 import { useWorkspace } from '../auth/workspace-state'
 import { CampaignModeBinding } from '../campaign-flow/CampaignFlowBindings'
+import { AudienceCommercialProof } from '../brief-intake/AudienceCommercialProof'
 import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { PlanningDecisionContext } from '../planning/PlanningDecisionContext'
@@ -55,7 +56,9 @@ function AudienceStrategyContent(props: Context & {
       {workspace.audience && <span className={`status-chip ${approved ? 'status-positive' : ''}`}>
         {humanizeCode(workspace.audience.status, true)}</span>}
     </header>
-    {workspace.decisionContext && <PlanningDecisionContext value={workspace.decisionContext} />}
+    {workspace.decisionContext && <PlanningDecisionContext value={workspace.decisionContext}
+      stage="targeting" />}
+    <AudienceCommercialProof audience={workspace.audience} approved={approved} />
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
     {!workspace.campaignMode
       ? <CampaignModeChoice {...props} />

@@ -50,7 +50,7 @@ test('live 3017 uses one Advertified shell across all authenticated modules', as
   await page.goto('/briefs/new')
   await expect(page.getByRole('region', { name: 'Campaign Flow' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Campaign Flow' }).getByRole('link')).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: 'Start with the Brief, not a form' })).toHaveCSS('font-size', '22px')
+  await expect(page.getByRole('heading', { name: 'What does the campaign need to achieve?' })).toHaveCSS('font-size', '22px')
 
   await page.goto('/inventory')
   await expect(page.getByRole('region', { name: 'Inventory Intelligence Flow' })).toBeVisible()

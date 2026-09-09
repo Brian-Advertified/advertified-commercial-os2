@@ -68,9 +68,9 @@ function BriefCreator({ tenantId, userId, token }: {
 function BriefIntakeHeading() {
   return <header className="page-heading brief-intake-heading"><div>
     <p className="eyebrow">New campaign</p>
-    <h1 id="new-brief-title">Start with the Brief, not a form</h1>
-    <p>Paste the client request in its original wording. Advertified structures the campaign, identifies the media scope and asks only about material details that remain unclear.</p>
-  </div><span className="brief-heading-state">Source-first intake</span></header>
+    <h1 id="new-brief-title">What does the campaign need to achieve?</h1>
+    <p>Paste the formal Brief or simply the client's campaign requirement in its original wording. Advertified will identify the business problem, desired outcome, audience, geography, timing, budget and media constraints before asking only for material gaps.</p>
+  </div><span className="brief-heading-state">Outcome-first intake</span></header>
 }
 
 function useCurrentUser(enabled: boolean) {

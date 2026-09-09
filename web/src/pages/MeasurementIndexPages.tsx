@@ -1,106 +1,145 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { humanMessage } from '../api/client'
-import { measurementIndexApi, type IndexPage } from '../api/measurement-index-client'
+import {
+  measurementIndexApi,
+  type IndexPage,
+  type MeasurementCampaignSummary,
+  type MeasurementReportSummary,
+} from '../api/measurement-index-client'
 import { useWorkspace } from '../auth/workspace-state'
 import { LoadingState, MessageState } from '../components/PageState'
 import { formatDateTime, humanizeCode } from '../presentation/format'
 import { OperationalReporting } from '../reporting/OperationalReporting'
 
 export function MeasurementIndexPage() {
-  return <PagedIndex title="Measurement" load={measurementIndexApi.campaigns}>
-    {campaign => <SummaryRow title={campaign.title} updated={campaign.updatedAtUtc}
-      to={`/campaigns/${campaign.id}#measurement`}
-      meta={`${humanizeCode(campaign.status, true)} · ${campaign.evidenceCount} reviewed evidence item(s) · ${campaign.reportCount} report(s)`} />}
-  </PagedIndex>
+  return <PagedIndex<MeasurementCampaignSummary> title="Campaign measurement"
+    subtitle="Campaign-level evidence, reporting readiness and approved outcomes."
+    load={measurementIndexApi.campaigns}
+    metrics={items => [
+      ['Campaigns', items.length, 'Campaigns in this result window'],
+      ['Evidence', items.reduce((sum, item) => sum + item.evidenceCount, 0), 'Reviewed evidence items'],
+      ['Reports', items.reduce((sum, item) => sum + item.reportCount, 0), 'Measurement reports'],
+    ]}
+    row={campaign => <IndexLink key={campaign.id} to={`/campaigns/${campaign.id}#measurement`}
+      title={campaign.title}
+      meta={`${humanizeCode(campaign.status, true)} · ${campaign.evidenceCount} reviewed evidence item(s) · ${campaign.reportCount} report(s)`}
+      action={measurementAction(campaign)} updatedAtUtc={campaign.updatedAtUtc} />} />
 }
 
 export function ReportsIndexPage() {
   const { selected, loading } = useWorkspace()
   if (loading) return <LoadingState />
-  if (!selected) return <MessageState title="Reports" message="Select a workspace to continue." />
-  return <section className="approved-work-index" aria-label="Reports">
-    <header className="approved-work-index-header"><h1>Operational and commercial reporting</h1>
-      <nav className="approved-reporting-tabs" aria-label="Reporting views">
-        <Link to="/measurement">Campaign measurement</Link><Link to="/reports">Operations</Link>
-      </nav></header>
+  if (!selected) return <Navigate to="/workspaces" replace />
+  return <section className="approved-work-index" aria-label="Reporting">
+    <header className="approved-work-index-header"><div><h1>Reporting</h1>
+      <p>Portfolio, operational and commercial intelligence across the current workspace.</p></div>
+      <ReportingTabs /></header>
     <OperationalReporting tenantId={selected.tenantId} />
-    <h2>Approved measurement reports</h2>
-    <MeasurementReportIndex />
+    <section className="reporting-measurement-index" aria-labelledby="approved-report-title">
+      <h2 id="approved-report-title">Approved measurement reports</h2>
+      <MeasurementReportIndex />
+    </section>
   </section>
 }
 
 function MeasurementReportIndex() {
-  return <PagedIndex title="Measurement reports" load={measurementIndexApi.reports}>
-    {report => <SummaryRow title={`${report.campaignTitle} · Report ${report.versionNumber}`}
-      updated={report.updatedAtUtc} to={`/measurement-reports/${report.id}`}
-      meta={`${humanizeCode(report.status, true)} · ${report.evidenceCount} evidence source(s)`} />}
-  </PagedIndex>
+  return <PagedIndex<MeasurementReportSummary> title="Measurement reports" compact
+    subtitle="Approved campaign-level reports backed by reviewed evidence."
+    load={measurementIndexApi.reports}
+    metrics={items => [['Reports', items.length, 'Reports in this result window']]}
+    row={report => <IndexLink key={report.id} to={`/measurement-reports/${report.id}`}
+      title={`${report.campaignTitle} · Report ${report.versionNumber}`}
+      meta={`${humanizeCode(report.status, true)} · ${report.evidenceCount} evidence source(s)`}
+      action="Review sourced interpretation" updatedAtUtc={report.updatedAtUtc} />} />
 }
 
+function ReportingTabs() {
+  return <nav className="approved-reporting-tabs" aria-label="Reporting views">
+    <Link to="/measurement">Campaign measurement</Link><Link to="/reports">Operations</Link>
+  </nav>
+}
+
+type Metric = [label: string, value: number | string, note: string]
 type LoadPage<T> = (tenantId: string, cursor: string | null) => Promise<IndexPage<T>>
 
-function PagedIndex<T extends { id: string }>({ title, load, children }: {
-  title: string; load: LoadPage<T>; children: (item: T) => ReactNode
+function PagedIndex<T>({ title, subtitle, load, row, metrics, compact = false }: {
+  title: string; subtitle: string; load: LoadPage<T>; row: (item: T) => ReactNode
+  metrics: (items: T[]) => Metric[]; compact?: boolean
 }) {
+  const state = usePagedIndex(load)
+  if (state.loading) return <LoadingState />
+  if (!state.selected) return <Navigate to="/workspaces" replace />
+  if (state.error) return <MessageState title={`${title} could not be opened`} message={state.error} />
+  if (!state.page) return <LoadingState label={`Loading ${title.toLowerCase()}`} />
+  return <PagedIndexContent title={title} subtitle={subtitle} compact={compact} page={state.page}
+    metrics={metrics(state.page.items)} row={row} loadOlder={state.loadOlder} />
+}
+
+function usePagedIndex<T>(load: LoadPage<T>) {
   const { selected, loading: workspaceLoading } = useWorkspace()
   const tenantId = selected?.tenantId
-  const [navigation, setNavigation] = useState({ tenantId, cursor: null as string | null })
-  const cursor = navigation.tenantId === tenantId ? navigation.cursor : null
-  const [retry, setRetry] = useState(0)
-  const key = pageResultKey(tenantId, cursor, retry)
-  const [result, setResult] = useState<{
-    key: string; page?: IndexPage<T>; error?: string
-  } | null>(null)
+  const [cursor, setCursor] = useState<string | null>(null)
+  const key = `${tenantId ?? ''}:${cursor ?? ''}`
+  const [result, setResult] = useState<{ key: string; page?: IndexPage<T>; error?: string } | null>(null)
   useEffect(() => {
     if (!tenantId) return
     let active = true
-    void load(tenantId, cursor).then(page => {
-      if (active) setResult({ key, page })
-    }).catch((failure: unknown) => {
-      if (active) setResult({ key, error: humanMessage(failure) })
-    })
+    void load(tenantId, cursor).then(page => { if (active) setResult({ key, page }) })
+      .catch((failure: unknown) => { if (active) setResult({ key, error: humanMessage(failure) }) })
     return () => { active = false }
   }, [tenantId, cursor, key, load])
-  if (workspaceLoading || (tenantId && result?.key !== key)) return <LoadingState />
-  if (!tenantId) return <MessageState title={title} message="Select a workspace to continue." />
-  return <IndexResults title={title} page={result?.page} error={result?.error}
-    cursor={cursor} onRetry={() => setRetry(value => value + 1)}
-    onNavigate={next => setNavigation({ tenantId, cursor: next })}>{children}</IndexResults>
+  const current = currentPageResult(result, key)
+  return {
+    selected,
+    loading: workspaceLoading || Boolean(tenantId && !current),
+    error: current?.error,
+    page: current?.page,
+    loadOlder: (next: string) => setCursor(next),
+  }
 }
 
-function pageResultKey(tenantId: string | undefined, cursor: string | null, retry: number) {
-  return `${tenantId ?? ''}:${cursor ?? ''}:${retry}`
+function currentPageResult<T>(result: { key: string; page?: IndexPage<T>; error?: string } | null, key: string) {
+  return result?.key === key ? result : null
 }
 
-function IndexResults<T extends { id: string }>({ title, page, error, cursor, onRetry, onNavigate, children }: {
-  title: string; page?: IndexPage<T>; error?: string; cursor: string | null
-  onRetry: () => void; onNavigate: (cursor: string | null) => void; children: (item: T) => ReactNode
+function PagedIndexContent<T>({ title, subtitle, compact, page, metrics, row, loadOlder }: {
+  title: string; subtitle: string; compact: boolean; page: IndexPage<T>; metrics: Metric[]
+  row: (item: T) => ReactNode; loadOlder: (cursor: string) => void
 }) {
-  return <section className="approved-work-index" aria-label={title}>
-    <header className="approved-work-index-header">
-      <h1>{title}</h1>
-      <nav className="approved-reporting-tabs" aria-label="Reporting views">
-        <Link to="/measurement">Campaign measurement</Link>
-        <Link to="/reports">Reports</Link>
-      </nav>
-    </header>
-    {error && <><MessageState title={`${title} could not be opened`} message={error} />
-      <button type="button" onClick={onRetry}>Retry</button></>}
+  return <section className={`approved-work-index${compact ? ' is-nested' : ''}`}
+    aria-labelledby={compact ? undefined : 'measurement-index-title'}>
+    {!compact && <header className="approved-work-index-header"><div>
+      <h1 id="measurement-index-title">{title}</h1><p>{subtitle}</p></div><ReportingTabs /></header>}
+    {!compact && <div className="approved-work-queue-summary">{metrics.map(([label, value, note]) =>
+      <article key={label}><span>{label}</span><strong>{value}</strong><small>{note}</small></article>)}</div>}
     <div className="approved-work-index-list">
-      {page?.items.map(item => <div key={item.id}>{children(item)}</div>)}
-      {page?.items.length === 0 && <p>No results are available.</p>}
+      {page.items.length === 0 && <MeasurementEmpty title={title} />}
+      {page.items.map(row)}
     </div>
-    {cursor && <button type="button" onClick={() => onNavigate(null)}>First page</button>}
-    {page?.nextCursor && <button type="button" onClick={() => onNavigate(page.nextCursor)}>Next page</button>}
+    {page.nextCursor && <button className="secondary-button approved-index-more" type="button"
+      onClick={() => loadOlder(page.nextCursor!)}>Load older</button>}
   </section>
 }
 
-function SummaryRow({ title, meta, updated, to }: {
-  title: string; meta: string; updated: string; to: string
+function MeasurementEmpty({ title }: { title: string }) {
+  const message = title === 'Campaign measurement'
+    ? 'Campaigns appear here when delivery reaches the measurement stage.'
+    : 'Approved measurement reports will appear here when they are generated.'
+  return <article className="approved-work-index-empty"><strong>No {title.toLowerCase()} yet</strong>
+    <p>{message}</p></article>
+}
+
+function IndexLink({ to, title, meta, action, updatedAtUtc }: {
+  to: string; title: string; meta: string; action: string; updatedAtUtc: string
 }) {
-  return <Link className="approved-work-index-row" to={to}>
-    <div><strong>{title}</strong><small>{meta}</small></div>
-    <time>{formatDateTime(updated)}</time>
-  </Link>
+  return <Link className="approved-work-index-row" to={to}><span aria-hidden="true">↗</span>
+    <div><strong>{title}</strong><small>{meta}</small><em>{action}</em></div>
+    <time>{formatDateTime(updatedAtUtc)}</time><span aria-hidden="true">→</span></Link>
+}
+
+function measurementAction(campaign: MeasurementCampaignSummary) {
+  if (campaign.evidenceCount === 0) return 'Add or review delivery evidence'
+  if (campaign.reportCount === 0) return 'Prepare measurement report'
+  return 'Review campaign outcome'
 }

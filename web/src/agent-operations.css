@@ -28,3 +28,50 @@
 
 .app-shell .agent-operations-page .operations-table td { white-space: nowrap; }
 .app-shell .agent-operations-page .operations-table td:first-child { white-space: normal; }
+
+.agent-operations-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0 10px;
+  padding: 6px;
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid var(--approved-line);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--approved-shadow);
+}
+.agent-operations-tabs button {
+  min-height: var(--ui-control-height);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  color: var(--approved-body);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.agent-operations-tabs button span {
+  min-width: 22px;
+  padding: 2px 6px;
+  color: var(--approved-muted);
+  background: #f2f4f7;
+  border-radius: 999px;
+  text-align: center;
+}
+.agent-operations-tabs button.is-active {
+  color: var(--approved-purple);
+  background: var(--approved-purple-soft);
+}
+.agent-operations-tabs button.is-active span {
+  color: #fff;
+  background: var(--approved-purple);
+}
+.agent-operations-page .operations-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+.agent-operations-page .operations-table { min-width: 640px; }
