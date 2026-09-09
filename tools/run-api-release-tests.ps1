@@ -9,8 +9,8 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 . (Join-Path $PSScriptRoot 'storage-headroom.ps1')
-Assert-AdvertifiedStorageHeadroom
 $validationImage = 'advertified/api-validation:local'
+$validationSdkImage = 'mcr.microsoft.com/dotnet/sdk:10.0.400-noble@sha256:e1ffd2a92ae84c1291bc1b6887501f8af98e6331e7af6d4c8d37168c5e87a64c'
 $validationBuilder = (& docker context show).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'Unable to resolve the active Docker context.' }
 $validationCacheBudget = '1GB'
@@ -20,6 +20,22 @@ if ($SkipBuild -and -not $IntegrationFilter) {
 if ($PrepareIntegrationImage -and ($SkipBuild -or $IntegrationFilter)) {
     throw 'PrepareIntegrationImage only prepares the pinned validation image; do not combine it with SkipBuild or IntegrationFilter.'
 }
+$expectedGrowth = if ($SkipBuild) {
+    0
+}
+elseif (Test-AdvertifiedDockerImageExists -Image $validationSdkImage) {
+    # Docker Desktop's WSL disk is already allocated for the pinned SDK. Reclaim disposable
+    # builder cache first, then preserve the absolute host reserve while reusing that disk.
+    & docker builder prune --force --max-used-space $validationCacheBudget --reserved-space 256MB *> $null
+    if ($LASTEXITCODE -ne 0) { throw 'Docker validation-cache pre-reclaim failed.' }
+    & docker image prune --force *> $null
+    if ($LASTEXITCODE -ne 0) { throw 'Docker dangling-image pre-reclaim failed.' }
+    0
+}
+else {
+    2GB
+}
+Assert-AdvertifiedStorageHeadroom -ExpectedGrowthBytes $expectedGrowth
 # Explicit Docker-pinned validation only: never kill host processes or launch a stack.
 # The build is socket-free and reuses Docker's bounded local cache so the pinned
 # SDK is not downloaded into a new VHD allocation on every validation run.
@@ -46,9 +62,10 @@ try {
         }
     }
     if ($IntegrationFilter) {
-        & docker run --rm --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock `
+        & docker run --rm --label advertified.validation=true `
+            --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock `
             --add-host host.docker.internal:host-gateway -e TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal `
-            $validationImage dotnet test `
+            $validationImage timeout 25m dotnet test `
             api/tests/Advertified.Commercial.Api.Tests/Advertified.Commercial.Api.Tests.csproj `
             --configuration Release --no-build --no-restore --filter $IntegrationFilter --logger 'console;verbosity=normal'
         if ($LASTEXITCODE -ne 0) {

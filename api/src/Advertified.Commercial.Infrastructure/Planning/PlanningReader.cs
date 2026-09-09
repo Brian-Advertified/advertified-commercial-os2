@@ -62,10 +62,11 @@ public sealed class PlanningReader(
         var plan = planRow is null ? null : ProjectPlanForViewer(
             await store.BuildPlanViewAsync(tenantId, planRow, cancellationToken),
             advertiserViewer);
+        var decisionContext = PlanningDecisionContext.Build(brief, audience, mix);
         await transaction.CommitAsync(cancellationToken);
         return new PlanningWorkspaceView(
             brief.BriefId, briefVersionId, brief.ClientName, campaignMode,
-            audience, mix, shortlist, plan);
+            audience, mix, shortlist, plan, decisionContext);
     }
 
     public async Task<MediaPlanVersionView> GetPlanAsync(

@@ -4,3 +4,7 @@
 .buy-assessment-facts > div { min-width: 0; }
 .buy-assessment-facts dt { font-size: 0.8rem; opacity: 0.75; }
 .buy-assessment-facts dd { margin: 0.3rem 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.buy-decision { display: grid; gap: 0.65rem; margin: 0.75rem 0 1rem; }
+.buy-decision .status-chip { justify-self: start; }
+.buy-decision ul { margin: 0; padding-left: 1.2rem; }
+.buy-decision > div { padding-top: 0.65rem; border-top: 1px solid var(--line); }

@@ -33,7 +33,9 @@ public sealed partial class ProposalCommands
             envelope.CorrelationId.Value,
             brief.BriefVersionId,
             brief.BriefVersion,
+            brief.BusinessProblem,
             brief.Objective,
+            ProposalRecordStore.Read<string[]>(brief.MeasurementJson).Take(3).ToArray(),
             ProposalRecordStore.Read<Guid[]>(brief.EvidenceIdsJson),
             inputs.Select(item => new ProposalOptionNarrativeInput(
                 item.Plan.Id, item.Plan.VersionNumber,

@@ -10,13 +10,14 @@ import { ExperienceSignals, type ExperienceSignal } from '../components/Experien
 import { Icon } from '../components/Icon'
 import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
+import { ApprovedPlanningOverview } from '../planning/ApprovedPlanningOverview'
 import { MediaMixEditor } from '../planning/MediaMixEditor'
 import { MediaPlanPanel } from '../planning/MediaPlanPanel'
+import { PlanningDecisionContext } from '../planning/PlanningDecisionContext'
 import { MediaTimeline } from '../planning/MediaTimeline'
 import { ShortlistPanel } from '../planning/ShortlistPanel'
 import { announcePlanningChanged } from '../planning/planning-events'
 import { mediaVisual } from '../planning/media-visuals'
-import { formatMoney, humanizeCode } from '../presentation/format'
 import { InventoryDecisionHistory } from '../reporting/InventoryDecisionHistory'
 
 export function PlanningPage() {
@@ -84,57 +85,16 @@ function PlanningWorkspaceContent(props: PlanningContext & {
       <h1 id="planning-title">Media Planning Overview</h1>
       <p>Allocate investment, select eligible supply and reconcile the client-ready media plan.</p></div>
       <span className="status-chip status-positive">{workspace.campaignMode?.mode === masterDataCodes.campaignModes.oohOnly ? 'Outdoor advertising and digital screens only' : 'Full campaign'}</span></header>
+    {workspace.decisionContext && <PlanningDecisionContext value={workspace.decisionContext} />}
     <ExperienceSignals title="Planning intelligence" signals={planningSignals(workspace, mix, shortlist, plan)} />
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
-    {mix && <ApprovedPlanningOverview mix={mix} plan={plan} />}
+    {mix && <ApprovedPlanningOverview mix={mix} shortlist={shortlist} plan={plan} />}
     <MixStage {...props} mix={mix} />
     <ShortlistStage {...props} mix={mix} shortlist={shortlist} />
     <PlanStage {...props} shortlist={shortlist} plan={plan} />
     <InventoryDecisionHistory key={`${props.tenantId}-${props.briefVersionId}`}
       tenantId={props.tenantId} briefVersionId={props.briefVersionId} />
   </section>
-}
-
-function ApprovedPlanningOverview({ mix, plan }: { mix: MediaMix; plan: MediaPlan | null }) {
-  const total = Math.max(mix.totalBudgetMinor, 1)
-  const selectedLines = plan?.lines ?? []
-  const gradient = mix.allocations.map((item, index) => {
-    const previous = mix.allocations.slice(0, index).reduce((sum, value) => sum + value.budgetMinor, 0)
-    const start = previous / total * 100
-    const end = (previous + item.budgetMinor) / total * 100
-    return `${mediaVisual(item.channel).color} ${start}% ${end}%`
-  }).join(', ')
-  return <section className="approved-planning-overview" aria-labelledby="approved-planning-overview-title">
-    <header><div><p className="eyebrow">Media Planning Overview</p><h2 id="approved-planning-overview-title">Integrated plan across selected channels</h2></div>
-      <span>{humanizeCode(mix.status, true)}</span></header>
-    <div className="approved-planning-kpis">
-      <PlanKpi label="Total Investment" value={formatMoney(mix.totalBudgetMinor, mix.currency, 0)} note="Planning budget" />
-      <PlanKpi label="Total Reach" value="—" note="No verified reach forecast yet" />
-      <PlanKpi label="Avg. Frequency" value="—" note="Requires verified forecast" />
-      <PlanKpi label="Impressions" value="—" note="Requires verified forecast" />
-    </div>
-    <div className="approved-planning-visual-grid">
-      <article className="approved-planning-investment"><header><h3>Investment by Channel</h3></header>
-        <div><div className="approved-plan-donut" style={{ background: `conic-gradient(${gradient || '#edf0f4 0 100%'})` }}><span><strong>{formatMoney(mix.totalBudgetMinor, mix.currency, 0)}</strong><small>Total</small></span></div>
-          <div className="approved-plan-legend">{mix.allocations.map((item) => { const visual = mediaVisual(item.channel); return <div key={item.channel}><i style={{ background: visual.color }} />
-            <strong>{visual.label}</strong><span>{Math.round(item.budgetMinor / total * 100)}%</span><small>{formatMoney(item.budgetMinor, mix.currency, 0)}</small></div> })}</div></div></article>
-      <article className="approved-media-flight"><header><h3>Media Flight</h3></header><div>{mix.allocations.map((item, index) => {
-        const period = item.runningPeriods[0]
-        const visual = mediaVisual(item.channel)
-        return <div key={item.channel}><strong>{visual.label}</strong><span><i style={{ width: `${Math.max(18, 88 - index * 9)}%`, background: visual.color }} /></span>
-          <small>{period ? `${period.start} → ${period.end}` : 'Dates not supplied'}</small></div>
-      })}</div></article>
-    </div>
-    <article className="approved-top-placements"><header><h3>Top Placements</h3><span>{selectedLines.length} planned line{selectedLines.length === 1 ? '' : 's'}</span></header>
-      {selectedLines.length === 0 ? <p className="approved-empty">Top placements will appear after inventory is selected and the plan is created.</p> : <div className="approved-placement-table"><div><span>Channel</span><span>Placement</span><span>Location</span><span>Flight</span><span>Investment</span></div>
-        {selectedLines.slice(0, 7).map(line => <div key={line.id}><strong>{humanizeCode(line.channel, true)}</strong><span>{line.name}</span><span>{line.geography}</span>
-          <span>{line.runningPeriods[0] ? `${line.runningPeriods[0].start} – ${line.runningPeriods[0].end}` : '—'}</span><strong>{formatMoney(line.clientPriceMinor, plan!.currency, 0)}</strong></div>)}</div>}
-    </article>
-  </section>
-}
-
-function PlanKpi({ label, value, note }: { label: string; value: string; note: string }) {
-  return <article><span>{label}</span><strong>{value}</strong><small>{note}</small></article>
 }
 
 function MixStage(props: PlanningContext & {

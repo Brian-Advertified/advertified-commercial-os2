@@ -19,8 +19,12 @@ internal sealed class ProposalNarrativeFixture(
         var optionSummary = string.Join(" ", input.Options.Select(option =>
             $"{option.Label} invests {ProposalMoneyFormatter.Format(option.BudgetMinor, option.Currency)} across " +
             $"{string.Join(", ", option.Channels)} to {LowerFirst(option.Outcome)}."));
+        var success = input.SuccessMeasures.Count == 0
+            ? string.Empty
+            : $" Success will be assessed against {string.Join("; ", input.SuccessMeasures)}.";
         return Task.FromResult(new ProposalNarrative(
-            $"The approved campaign objective is {LowerFirst(input.BriefObjective)}. {optionSummary}",
+            $"The approved business problem is {LowerFirst(input.BriefBusinessProblem)}. " +
+            $"The approved campaign objective is {LowerFirst(input.BriefObjective)}.{success} {optionSummary}",
             0));
     }
 

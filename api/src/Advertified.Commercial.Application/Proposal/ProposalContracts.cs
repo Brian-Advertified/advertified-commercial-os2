@@ -315,7 +315,9 @@ public sealed record ProposalNarrativeInput(
     Guid CorrelationId,
     Guid BriefVersionId,
     long BriefVersion,
+    string BriefBusinessProblem,
     string BriefObjective,
+    IReadOnlyList<string> SuccessMeasures,
     IReadOnlyList<Guid> EvidenceItemIds,
     IReadOnlyList<ProposalOptionNarrativeInput> Options);
 

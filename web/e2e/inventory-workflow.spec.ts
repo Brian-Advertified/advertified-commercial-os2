@@ -46,7 +46,7 @@ test('operator intake accepts validated candidates before separate publication',
   await page.route('**/api/v1/**', async (route) => handleApi(route, state))
 
   await page.goto('/inventory')
-  await expect(page.getByRole('heading', { name: 'Inventory' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Media inventory', exact: true })).toBeVisible()
   await page.getByLabel('Supplier / media owner').fill('City Media')
   await page.getByLabel(/Drag & drop files here/).setInputFiles({
     name: 'city-sites.csv', mimeType: 'text/csv',

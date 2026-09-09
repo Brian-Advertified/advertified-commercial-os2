@@ -28,6 +28,10 @@ export const buyAssessmentSchema = z.object({
     hasMeasuredTargetAudience: z.boolean(), reviewQuestions: z.array(z.string()),
     supportedReasons: z.array(z.string()), buyingWarnings: z.array(z.string()),
   }).nullable().optional(),
+  decision: z.object({
+    code: z.enum(['BUY', 'NEEDS_REVIEW', 'DO_NOT_BUY']),
+    supportedReasons: z.array(z.string()), blockingReasons: z.array(z.string()),
+  }).nullable().optional(),
 })
 
 export type BuyAssessment = z.infer<typeof buyAssessmentSchema>

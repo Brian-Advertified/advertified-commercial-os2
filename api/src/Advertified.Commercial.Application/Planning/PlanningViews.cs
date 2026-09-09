@@ -247,6 +247,21 @@ public sealed record PlanningSummaryView(
     string? MediaPlanStatus,
     DateTimeOffset UpdatedAtUtc);
 
+public sealed record PlanningMediaJobView(
+    string Channel,
+    string Role,
+    long BudgetMinor,
+    string Currency);
+
+public sealed record PlanningDecisionContextView(
+    string BusinessProblem,
+    string Objective,
+    IReadOnlyList<string> SuccessMeasures,
+    string? TargetingRationale,
+    string? PositioningStatement,
+    IReadOnlyList<PlanningMediaJobView> MediaJobs,
+    IReadOnlyList<string> EvidenceGaps);
+
 public sealed record PlanningWorkspaceView(
     Guid BriefId,
     Guid BriefVersionId,
@@ -255,4 +270,5 @@ public sealed record PlanningWorkspaceView(
     AudienceDefinitionSetView? Audience,
     MediaMixVersionView? MediaMix,
     InventoryShortlistVersionView? Shortlist,
-    MediaPlanVersionView? MediaPlan);
+    MediaPlanVersionView? MediaPlan,
+    PlanningDecisionContextView? DecisionContext = null);

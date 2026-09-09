@@ -126,7 +126,10 @@ def _canonical_proposal_payload(payload, request):
         return payload
 
     governed_facts = [
+        f"Approved business problem: {request.proposal.brief_business_problem}",
         f"Approved objective: {request.proposal.brief_objective}",
+        *(["Approved success measures:", *request.proposal.success_measures]
+          if request.proposal.success_measures else []),
         "Approved options:",
         *(
             f"{option.label}: {option.outcome} | "

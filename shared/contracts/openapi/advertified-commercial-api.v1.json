@@ -31885,6 +31885,9 @@
           },
           "audienceForecast": {
             "$ref": "#/components/schemas/CampaignAudienceForecastView"
+          },
+          "scenario": {
+            "$ref": "#/components/schemas/CampaignScenarioView"
           }
         },
         "additionalProperties": false
@@ -32001,6 +32004,33 @@
             "items": {
               "type": "string"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CampaignScenarioView": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "recommended": {
+            "type": "boolean"
+          },
+          "supplierCostDeltaMinor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "deduplicatedReachDelta": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "averageFrequencyDelta": {
+            "type": "number",
+            "format": "double",
             "nullable": true
           }
         },
@@ -34947,6 +34977,33 @@
           },
           "plannerReasoning": {
             "$ref": "#/components/schemas/InventoryPlannerReasoningView"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/InventoryBuyDecisionView"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryBuyDecisionView": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "supportedReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "blockingReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -40010,6 +40067,71 @@
         },
         "additionalProperties": false
       },
+      "PlanningDecisionContextView": {
+        "type": "object",
+        "properties": {
+          "businessProblem": {
+            "type": "string",
+            "nullable": true
+          },
+          "objective": {
+            "type": "string",
+            "nullable": true
+          },
+          "successMeasures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "targetingRationale": {
+            "type": "string",
+            "nullable": true
+          },
+          "positioningStatement": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediaJobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningMediaJobView"
+            },
+            "nullable": true
+          },
+          "evidenceGaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PlanningMediaJobView": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "nullable": true
+          },
+          "budgetMinor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PlanningSummaryView": {
         "type": "object",
         "properties": {
@@ -40077,6 +40199,9 @@
           },
           "mediaPlan": {
             "$ref": "#/components/schemas/MediaPlanVersionView"
+          },
+          "decisionContext": {
+            "$ref": "#/components/schemas/PlanningDecisionContextView"
           }
         },
         "additionalProperties": false

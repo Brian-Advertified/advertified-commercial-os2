@@ -222,8 +222,12 @@ function buildInput(form: FormData, choices: ChoiceDraft[]): ProposalDraftInput 
 
 function defaultChoice(plan: ApprovedPlanChoice, ordinal: number): ChoiceDraft {
   const labels = plan.channels.map(channel => mediaVisual(channel).label)
-  return { plan, label: labels.length === 1 ? `${labels[0]} route` : `Integrated route ${ordinal}`,
-    outcome: `Use ${labels.join(' and ')} to deliver the approved campaign outcome.` }
+  const channelLabel = labels.length > 0 ? labels.join(' + ') : `Plan ${ordinal}`
+  return {
+    plan,
+    label: labels.length === 1 ? `${channelLabel} focused plan` : `${channelLabel} integrated plan`,
+    outcome: `Invest ${formatMoney(plan.totalMinor, plan.currency)} across ${labels.join(' and ') || 'the approved media plan'} using the retained inventory and running periods for the approved campaign objective.`,
+  }
 }
 
 function defaultExpiry() {

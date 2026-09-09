@@ -26,11 +26,13 @@ internal static class InventoryBuyAssessment
         // Supplied measurements are a comparable baseline, never a booked-buy forecast.
         gaps.Add("buyAssessment.measurementNotForecast");
         var digital = Digital(candidate.Inventory, gaps);
+        var decision = InventoryBuyDecision.Evaluate(
+            candidate, cost, targetMatch, reach, impressions, digital);
         return new(cost, candidate.Inventory.Currency, reach, impressions,
             Frequency(reach, impressions), CostRatio(cost, impressions, 1000m), CostRatio(cost, reach, 1m),
             basis?.Universe, basis?.MeasurementPeriod, basis?.MeasurementSource, basis?.Methodology,
             targetMatch, digital, gaps.Distinct(StringComparer.Ordinal).ToArray(),
-            InventoryPlannerReasoning.Evaluate(candidate, targets, targetMatch, digital));
+            InventoryPlannerReasoning.Evaluate(candidate, targets, targetMatch, digital), decision);
     }
 
     private static bool MatchesTarget(InventoryDeliveryMeasurementView? basis,

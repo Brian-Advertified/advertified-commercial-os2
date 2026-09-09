@@ -9,6 +9,7 @@ import { useWorkspace } from '../auth/workspace-state'
 import { CampaignModeBinding } from '../campaign-flow/CampaignFlowBindings'
 import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
+import { PlanningDecisionContext } from '../planning/PlanningDecisionContext'
 import { humanizeCode } from '../presentation/format'
 
 export function StpPage() {
@@ -54,6 +55,7 @@ function AudienceStrategyContent(props: Context & {
       {workspace.audience && <span className={`status-chip ${approved ? 'status-positive' : ''}`}>
         {humanizeCode(workspace.audience.status, true)}</span>}
     </header>
+    {workspace.decisionContext && <PlanningDecisionContext value={workspace.decisionContext} />}
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
     {!workspace.campaignMode
       ? <CampaignModeChoice {...props} />

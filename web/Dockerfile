@@ -12,6 +12,7 @@ RUN npm ci
 COPY web/index.html web/tsconfig.json web/tsconfig.app.json web/tsconfig.node.json web/vite.config.ts ./
 COPY web/public ./public
 COPY web/src ./src
+COPY tools/check-web-bundle-budget.mjs /src/tools/check-web-bundle-budget.mjs
 
 RUN npm run build
 

@@ -91,8 +91,16 @@ function Invoke-AdvertifiedCompose {
     )
 
     Assert-AdvertifiedComposeProject -RequireExisting
-    if ('build' -in $ComposeArguments -or '--build' -in $ComposeArguments) {
-        Assert-AdvertifiedStorageHeadroom
+    $isBuild = 'build' -in $ComposeArguments -or '--build' -in $ComposeArguments
+    if ($isBuild) {
+        # Docker Desktop's WSL disk does not immediately return pruned space to Windows. Reclaim
+        # disposable builder cache first, then protect the absolute 5 GiB host reserve while the
+        # incremental build reuses already-allocated Docker disk blocks.
+        & docker builder prune --force --max-used-space 1GB --reserved-space 256MB *> $null
+        if ($LASTEXITCODE -ne 0) { throw 'Docker builder cache pre-reclaim failed.' }
+        & docker image prune --force *> $null
+        if ($LASTEXITCODE -ne 0) { throw 'Docker dangling-image pre-reclaim failed.' }
+        Assert-AdvertifiedStorageHeadroom -ExpectedGrowthBytes 0
     }
     $arguments = @('compose', '--project-name', $script:AdvertifiedComposeProject)
     foreach ($file in $ComposeFiles) {
@@ -102,6 +110,12 @@ function Invoke-AdvertifiedCompose {
     & docker @arguments
     if ($LASTEXITCODE -ne 0) {
         throw "Docker Compose failed: $($ComposeArguments -join ' ')"
+    }
+    if ($isBuild) {
+        # Bound disposable build growth after every incremental local build. This never prunes
+        # containers, networks, volumes, or tagged application images.
+        & docker image prune --force *> $null
+        & docker builder prune --force --max-used-space 1GB --reserved-space 256MB *> $null
     }
 }
 

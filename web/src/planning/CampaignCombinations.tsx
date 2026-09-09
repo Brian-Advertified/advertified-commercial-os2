@@ -15,7 +15,8 @@ export function CampaignCombinations({ shortlist, editable, busy, onChoose }: {
     {combinations.alternatives.length === 0 && <p>{copy.none}</p>}
     <div className="shortlist-grid">{combinations.alternatives.map((alternative, index) =>
       <section className="buy-assessment" key={alternative.candidateIds.join(',')}>
-        <h4>{copy.option} {index + 1}</h4>
+        <h4>{scenarioLabel(alternative.scenario?.code, index)}</h4>
+        {alternative.scenario && <p>{scenarioSummary(alternative.scenario, alternative.currency)}</p>}
         <strong>{formatMoney(alternative.campaignSupplierCostMinor, alternative.currency)}</strong>
         <p>{copy.supplier}</p>
         <ul>{alternative.candidateIds.map(id => <li key={id}>{candidates.get(id)?.name ?? copy.unknownCandidate}</li>)}</ul>
@@ -33,6 +34,27 @@ export function CampaignCombinations({ shortlist, editable, busy, onChoose }: {
 type Alternative = NonNullable<Shortlist['campaignCombinations']>['alternatives'][number]
 type Comparison = NonNullable<Alternative['comparison']>
 type AudienceForecastValue = NonNullable<Alternative['audienceForecast']>
+type Scenario = NonNullable<Alternative['scenario']>
+
+function scenarioLabel(code: Scenario['code'] | undefined, index: number) {
+  if (code === 'RECOMMENDED') return copy.recommended
+  if (code === 'MAX_MEASURED_REACH') return copy.maximumReach
+  if (code === 'HIGHER_FREQUENCY') return copy.higherFrequency
+  if (code === 'LOWER_SUPPLIER_COST') return copy.lowerCost
+  if (code === 'ALTERNATIVE') return copy.alternative
+  return `${copy.option} ${index + 1}`
+}
+
+function scenarioSummary(value: Scenario, currency: string) {
+  if (value.code === 'RECOMMENDED') return 'Top-ranked combination from the current approved constraints and evidence.'
+  if (value.code === 'MAX_MEASURED_REACH' && value.deduplicatedReachDelta !== null)
+    return `Adds ${formatNumber(value.deduplicatedReachDelta, 0)} measured deduplicated reach versus the recommended plan.`
+  if (value.code === 'HIGHER_FREQUENCY' && value.averageFrequencyDelta !== null)
+    return `Adds ${formatNumber(value.averageFrequencyDelta, 2)} measured average frequency versus the recommended plan.`
+  if (value.code === 'LOWER_SUPPLIER_COST')
+    return `Saves ${formatMoney(Math.abs(value.supplierCostDeltaMinor), currency)} in supplier cost versus the recommended plan.`
+  return 'A materially different supply combination for planner comparison.'
+}
 
 function AudienceForecast({ value, names }: { value: AudienceForecastValue; names: Map<string, string> }) {
   const facts = [

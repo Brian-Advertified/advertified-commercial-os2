@@ -17,6 +17,8 @@ public sealed class InventoryBuyAssessmentTests
         Assert.Equal(10_000m, result.CostPerThousandImpressionsMinor);
         Assert.Equal(30m, result.CostPerPersonReachedMinor);
         Assert.True(result.IsTargetAudience);
+        Assert.Equal("BUY", result.Decision!.Code);
+        Assert.Contains("buyDecision.measuredTargetAudience", result.Decision.SupportedReasons);
         Assert.Contains("buyAssessment.measurementNotForecast", result.EvidenceGaps);
     }
 
@@ -37,6 +39,8 @@ public sealed class InventoryBuyAssessmentTests
         Assert.Null(result.Reach);
         Assert.Null(result.AverageFrequency);
         Assert.Null(result.CostPerThousandImpressionsMinor);
+        Assert.Equal("NEEDS_REVIEW", result.Decision!.Code);
+        Assert.Contains("buyDecision.deliveryEvidenceMissing", result.Decision.BlockingReasons);
     }
 
     [Fact]
@@ -66,6 +70,24 @@ public sealed class InventoryBuyAssessmentTests
         var result = Assess(candidate);
         Assert.Equal(10_000m, result.Reach);
         Assert.False(result.IsTargetAudience);
+    }
+
+    [Fact]
+    public void PlacementCanContributeToOneRequiredGeographyWithoutCoveringTheWholeCampaign()
+    {
+        var candidate = Candidate();
+        var first = Guid.NewGuid();
+        var second = Guid.NewGuid();
+        candidate = candidate with
+        {
+            SpatialMatch = new(true, [first, second], [first], [], [], [], [], .5m, []),
+        };
+
+        var result = Assess(candidate);
+
+        Assert.Equal("BUY", result.Decision!.Code);
+        Assert.Contains("buyDecision.requiredGeographyContribution", result.Decision.SupportedReasons);
+        Assert.DoesNotContain("buyDecision.requiredGeographyMissing", result.Decision.BlockingReasons);
     }
 
     [Theory]
@@ -98,7 +120,10 @@ public sealed class InventoryBuyAssessmentTests
         {
             Channel = "DOOH", DeliverableJson = """{"spotLengthSeconds":15,"slotLengthSeconds":5,"loopLengthSeconds":60,"playsPerLoop":1}""",
         } };
-        var result = Assess(candidate).PlannerReasoning!;
+        var assessment = Assess(candidate);
+        var result = assessment.PlannerReasoning!;
+        Assert.Equal("DO_NOT_BUY", assessment.Decision!.Code);
+        Assert.Contains("buyDecision.creativeDoesNotFit", assessment.Decision.BlockingReasons);
         Assert.Equal("Relevant reach", result.PlannedChannelRole);
         Assert.Equal("Target mothers", Assert.Single(result.TargetContexts).Name);
         Assert.Contains("plannerReasoning.measuredTargetBaseline", result.SupportedReasons);

@@ -6672,6 +6672,56 @@ production web build, Compose validation for migration changes, complete diff re
 local commit. GitHub CI requires a subsequent explicitly authorised push; this packet does not grant
 push or production deployment authority.
 
+### 49.2.35 Commercial business-flow coherence — 2026-09-09 [Decision]
+
+Advertified must present one continuous commercial reasoning chain instead of creating parallel
+workflow modules for each screen. Canonical ownership is fixed as follows: Opportunity owns the
+commercial framing fields already retained on the opportunity (expected value, deadline, problem and
+objective) plus its governed evidence lifecycle; the approved Brief owns business problem, objective
+and measurement/success criteria; the approved Audience Definition Set owns targeting rationale and
+positioning; the Media Mix owns channel roles, budgets and running periods; campaign combinations and
+the compatible-audience forecast own campaign scenario evidence; inventory eligibility, suitability
+and Buy Assessment own the inventory buy decision; `SupplierRateCalculator` plus `PlanAmounts` own
+commercial mathematics; and approved Media Plan versions remain the sole commercial source for
+proposal options and booking.
+
+Do not add a second KPI table, scenario engine, inventory scorer, pricing calculator, opportunity
+qualification aggregate, proposal-option engine or role-dashboard system for these same facts. UI and
+agent projections may derive business-readable labels from the canonical objects but may not persist
+competing truth. The visible reasoning chain is: business problem → objective → approved success
+measures → audience/positioning → media jobs → campaign scenario → inventory buy/review decision →
+commercial waterfall → client proposal. Missing evidence stays explicitly unknown or review-required;
+it is never filled with an AI estimate merely to complete the chain.
+
+Campaign scenario labels are evidence claims. `RECOMMENDED` means the existing deterministic
+combination ordering selected the first viable alternative under current constraints; `MAX_MEASURED_REACH`
+and `HIGHER_FREQUENCY` may be used only when compatible campaign evidence produces a real positive
+trade-off versus the recommended alternative; `LOWER_SUPPLIER_COST` requires a real negative supplier
+cost delta. Ties and unsupported metrics remain a neutral alternative.
+
+The inventory Buy Assessment may expose `BUY`, `NEEDS_REVIEW` or `DO_NOT_BUY` only as a derived verdict over
+existing eligibility, campaign-period priceability, spatial contribution, compatible target/delivery
+evidence and known creative fit. It may never override a hard eligibility failure. Individual
+placements are not required to cover every campaign geography: campaign combinations own collective
+required-area coverage, while an individual placement need only make an evidenced contribution where
+structured geography applies.
+
+Commercial totals must never be recomputed independently in presentation code. Supplier pricing
+already includes the canonical production/installation terms where supplied; commercial policy then
+applies fees/commission/markup and VAT. Presentation may expose that existing waterfall but must not
+add those execution costs a second time.
+
+Proposal narrative must preserve the approved business problem and objective and may project up to
+three approved Brief success measures into the executive summary, while retaining the full measurement
+set on the Brief. Proposal option labels/outcomes may be made more client-readable, but they must stay
+factual to the selected approved Media Plan and must not invent reach, frequency, performance or other
+outcomes absent compatible evidence.
+
+Marketplace RFQ due dates, supplier-response validity/expiry and booking-time supply/rate checks remain
+the current supplier-commitment lifecycle. A future media hold/reservation is a new commercial
+commitment with its own expiry/release semantics and must not be simulated by duplicating those
+records or mutating availability without an explicit approved lifecycle design.
+
 ## 49.3 Release evidence
 
 A production release records:

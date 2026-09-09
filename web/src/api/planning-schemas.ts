@@ -207,6 +207,11 @@ export const shortlistSchema = z.object({
           candidateId: z.guid(), incrementalReach: z.number().nonnegative().nullable(), evidenceGap: z.string().nullable(),
         })), evidenceGaps: z.array(z.string()),
       }).nullable().optional(),
+      scenario: z.object({
+        code: z.enum(['RECOMMENDED', 'MAX_MEASURED_REACH', 'HIGHER_FREQUENCY', 'LOWER_SUPPLIER_COST', 'ALTERNATIVE']),
+        recommended: z.boolean(), supplierCostDeltaMinor: z.number().int(),
+        deduplicatedReachDelta: z.number().nullable(), averageFrequencyDelta: z.number().nullable(),
+      }).nullable().optional(),
     })),
     searchTruncated: z.boolean(), candidatesConsidered: z.number().int().nonnegative(),
     missingCostCandidateCount: z.number().int().nonnegative(),
@@ -323,6 +328,13 @@ export const planningWorkspaceSchema = z.object({
   mediaMix: mediaMixSchema.nullable(),
   shortlist: shortlistSchema.nullable(),
   mediaPlan: mediaPlanSchema.nullable(),
+  decisionContext: z.object({
+    businessProblem: z.string(), objective: z.string(), successMeasures: z.array(z.string()),
+    targetingRationale: z.string().nullable(), positioningStatement: z.string().nullable(),
+    mediaJobs: z.array(z.object({
+      channel: z.string(), role: z.string(), budgetMinor: z.number().int().nonnegative(), currency: z.string(),
+    })), evidenceGaps: z.array(z.string()),
+  }).nullable().optional(),
 })
 
 export type AudienceSet = z.infer<typeof audienceSetSchema>

@@ -1,5 +1,6 @@
 export const buyAssessmentContent = {
   title: 'What does this buy deliver?',
+  buy: 'BUY', review: 'NEEDS REVIEW', doNotBuy: 'DO NOT BUY',
   supplierCost: 'Supplier cost for the planned dates and purchase quantity',
   costCaveat: 'Supplier cost is not the client quote: fees, tax and final commercial terms still apply.',
   baseline: 'Supplied audience measurement — not a campaign forecast',
@@ -20,4 +21,17 @@ export const buyAssessmentContent = {
   share: 'Time share of the loop (%)',
   loopCaveat: 'Time share is not audience share. Operating hours, contracted plays, viewing conditions and campaign delivery still need evidence.',
   source: 'Source', period: 'Measurement period', universe: 'Measured audience', methodology: 'Method',
+  reasons: {
+    'buyDecision.eligible': 'Passes the current hard eligibility rules.',
+    'buyDecision.ineligible': 'Fails a hard eligibility rule for this approved plan.',
+    'buyDecision.pricedForCampaign': 'Has a deterministic supplier cost for the planned dates and buying quantity.',
+    'buyDecision.campaignCostMissing': 'Campaign-period supplier cost is not deterministically priceable.',
+    'buyDecision.requiredGeographyContribution': 'Contributes to at least one retained required geography for the campaign.',
+    'buyDecision.requiredGeographyMissing': 'Does not contribute to the retained required geography for this campaign.',
+    'buyDecision.measuredTargetAudience': 'Has compatible measurement tied to the approved target audience.',
+    'buyDecision.targetAudienceEvidenceMissing': 'Target-audience delivery evidence is not established.',
+    'buyDecision.deliveryEvidencePresent': 'Has compatible reach or impression evidence for comparison.',
+    'buyDecision.deliveryEvidenceMissing': 'Compatible reach or impression evidence is missing.',
+    'buyDecision.creativeDoesNotFit': 'The supplied creative duration exceeds the available slot.',
+  },
 } as const

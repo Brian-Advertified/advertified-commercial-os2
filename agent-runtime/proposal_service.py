@@ -24,10 +24,19 @@ def propose_narrative(
         f"{channel_labels(item.channels)} to {_lower_first(item.outcome)}."
         for item in request.proposal.options
     )
+    success = ""
+    if request.proposal.success_measures:
+        success = (
+            " Success will be assessed against "
+            + "; ".join(request.proposal.success_measures)
+            + "."
+        )
     artifact = ProposalNarrativeDraftArtifact(
         executive_summary=(
+            "The approved business problem is "
+            f"{_lower_first(request.proposal.brief_business_problem)}. "
             "The approved campaign objective is "
-            f"{_lower_first(request.proposal.brief_objective)}. {options}"
+            f"{_lower_first(request.proposal.brief_objective)}.{success} {options}"
         ),
     )
     evidence_ids = request.invocation.approved_evidence_item_ids

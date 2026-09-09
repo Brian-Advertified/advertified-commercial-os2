@@ -15,7 +15,13 @@ public sealed record InventoryBuyAssessmentView(
     bool IsTargetAudience,
     InventoryDigitalExposureView? DigitalExposure,
     IReadOnlyList<string> EvidenceGaps,
-    InventoryPlannerReasoningView? PlannerReasoning = null);
+    InventoryPlannerReasoningView? PlannerReasoning = null,
+    InventoryBuyDecisionView? Decision = null);
+
+public sealed record InventoryBuyDecisionView(
+    string Code,
+    IReadOnlyList<string> SupportedReasons,
+    IReadOnlyList<string> BlockingReasons);
 
 public sealed record InventoryPlannerReasoningView(
     string? PlannedChannelRole,

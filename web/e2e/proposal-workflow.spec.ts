@@ -80,7 +80,7 @@ test('agency prepares three approved-plan choices and client selects one', async
   await page.reload()
   await expect(page.getByText('Decision required')).toBeVisible()
   const digitalChoice = page.locator('article').filter({
-    has: page.getByRole('heading', { name: 'Digital route' }),
+    has: page.getByRole('heading', { name: 'Digital focused plan' }),
   })
   await digitalChoice.getByRole('button', { name: 'Select this option' }).click()
   await expect(page.getByText('Your selected route has been recorded.')).toBeVisible()

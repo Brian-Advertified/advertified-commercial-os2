@@ -76,7 +76,7 @@ test('planner edits allocation and timing before approving the plan', async ({ p
   await expect(page.getByText(/The creative is longer than the supplied slot/)).toBeVisible()
   await expect(page.getByText(/Proximity alone does not establish audience/)).toBeVisible()
   await page.getByText('Compare coverage combinations', { exact: true }).click()
-  await expect(page.getByText('Difference from combination 1', { exact: true })).toBeVisible()
+  await expect(page.getByText('Difference from recommended plan', { exact: true })).toBeVisible()
   await expect(page.getByText('Same supplier cost', { exact: true })).toBeVisible()
   await expect(page.getByText('Placements with measured target baselines', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Review this combination' }).click()

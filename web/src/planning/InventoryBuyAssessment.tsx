@@ -10,6 +10,7 @@ export function InventoryBuyAssessment({ assessment }: { assessment: BuyAssessme
   const digital = assessment.digitalExposure
   return <section aria-label={copy.title} className="buy-assessment">
     <h4>{copy.title}</h4>
+    {assessment.decision && <BuyDecision value={assessment.decision} />}
     <p><strong>{money(assessment.campaignSupplierCostMinor)}</strong> — {copy.supplierCost}</p>
     <small>{copy.costCaveat}</small>
     {assessment.plannerReasoning && <InventoryPlannerReasoning value={assessment.plannerReasoning} />}
@@ -40,6 +41,21 @@ export function InventoryBuyAssessment({ assessment }: { assessment: BuyAssessme
       <Fact label={copy.methodology} value={assessment.methodology} />
     </dl>
   </section>
+}
+
+function BuyDecision({ value }: { value: NonNullable<BuyAssessment['decision']> }) {
+  const label = value.code === 'BUY' ? copy.buy : value.code === 'NEEDS_REVIEW' ? copy.review : copy.doNotBuy
+  const tone = value.code === 'BUY' ? 'status-positive' : value.code === 'DO_NOT_BUY' ? 'status-danger' : 'status-warning'
+  return <div className="buy-decision"><span className={`status-chip ${tone}`}>{label}</span>
+    {value.supportedReasons.length > 0 && <ul>{value.supportedReasons.map(reason =>
+      <li key={reason}>{decisionReason(reason)}</li>)}</ul>}
+    {value.blockingReasons.length > 0 && <div><strong>Resolve before buying</strong><ul>
+      {value.blockingReasons.map(reason => <li key={reason}>{decisionReason(reason)}</li>)}</ul></div>}
+  </div>
+}
+
+function decisionReason(reason: string) {
+  return copy.reasons[reason as keyof typeof copy.reasons] ?? reason
 }
 
 function Fact({ label, value }: { label: string; value: number | string | null }) {

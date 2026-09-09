@@ -28,7 +28,9 @@ public sealed partial class ProposalRecordStore(GovernanceDbContext dbContext)
         CancellationToken cancellationToken) =>
         dbContext.Database.SqlQuery<PlanningReadyBriefReferenceRow>($"""
             SELECT brief.id AS "BriefId", version.id AS "BriefVersionId",
-                version.objective AS "Objective", brief.owner_user_id AS "OwnerUserId",
+                version.business_problem AS "BusinessProblem", version.objective AS "Objective",
+                version.measurement_json::text AS "MeasurementJson",
+                brief.owner_user_id AS "OwnerUserId",
                 version.version AS "BriefVersion", brief.client_account_id AS "ClientAccountId",
                 tenant.trading_name AS "AgencyBrandName",
                 client.trading_name AS "ClientBrandName",

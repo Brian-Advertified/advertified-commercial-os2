@@ -1,0 +1,55 @@
+.planning-decision-context {
+  border: 1px solid var(--border-subtle, #dfe3ea);
+  border-radius: 18px;
+  padding: 24px;
+  background: var(--surface, #fff);
+}
+
+.planning-decision-context > header {
+  margin-bottom: 18px;
+}
+
+.planning-decision-context > header h2 {
+  margin: 4px 0 6px;
+}
+
+.planning-decision-context > ol {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.planning-decision-context > ol > li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.planning-decision-context > ol > li > span {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle, #dfe3ea);
+  font-weight: 700;
+}
+
+.planning-decision-context p,
+.planning-decision-context ul {
+  margin: 4px 0 0;
+}
+
+.planning-decision-context small {
+  display: block;
+  margin-top: 4px;
+}
+
+.planning-decision-gaps {
+  margin-top: 18px !important;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle, #dfe3ea);
+}

@@ -27,7 +27,9 @@ def payload() -> dict:
         "invocation": request_invocation,
         "proposal": {
             "brief_version_id": BRIEF_ID,
+            "brief_business_problem": "Qualified furniture enquiries have declined",
             "brief_objective": "Increase qualified furniture enquiries",
+            "success_measures": ["Qualified enquiries", "Showroom visits"],
             "options": [{
                 "plan_version_id": "88888888-8888-8888-8888-888888888888",
                 "plan_version": 4,
@@ -64,6 +66,9 @@ def test_proposal_narrative_preserves_exact_supplied_commercial_facts(
     assert response.status_code == 200, response.text
     output = response.json()
     summary = output["artifact"]["executive_summary"]
+    assert "qualified furniture enquiries have declined" in summary.lower()
+    assert "increase qualified furniture enquiries" in summary.lower()
+    assert "Qualified enquiries; Showroom visits" in summary
     assert "ZAR 10,000.01" in summary
     assert "Outdoor advertising, Digital screens, DIGITAL" in summary
     assert "OOH" not in summary
@@ -90,7 +95,9 @@ def test_bedrock_proposal_boundary_preserves_governed_facts() -> None:
 
     summary = output.artifact.executive_summary
     assert provider_artifact["executive_summary"] in summary
+    assert f"Approved business problem: {request.proposal.brief_business_problem}" in summary
     assert f"Approved objective: {request.proposal.brief_objective}" in summary
+    assert "Approved success measures:\nQualified enquiries\nShowroom visits" in summary
     assert (
         "Launch: Build qualified response | ZAR 10,000.01 | "
         "channels: Outdoor advertising, Digital screens, DIGITAL"

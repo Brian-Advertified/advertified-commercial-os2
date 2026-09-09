@@ -10,7 +10,8 @@ public sealed partial class AgentRuntimeHttpAdapterTests
     [Fact]
     public async Task ProposalAdapterPreservesExactApprovedOptionFacts()
     {
-        const string narrative = "The approved objective is increase enquiries. " +
+        const string narrative = "The approved business problem is enquiries are declining. " +
+            "The approved objective is increase enquiries. Success measures: Qualified enquiries; Store visits. " +
             "Launch invests ZAR 10,000.01 across OOH to build qualified response. " +
             "Scale invests ZAR 20,000 across DIGITAL to increase consideration.";
         var client = CreateClient(async request =>
@@ -40,7 +41,8 @@ public sealed partial class AgentRuntimeHttpAdapterTests
     [Fact]
     public async Task ProposalAdapterRejectsAlteredCommercialValue()
     {
-        const string altered = "The approved objective is increase enquiries. " +
+        const string altered = "The approved business problem is enquiries are declining. " +
+            "The approved objective is increase enquiries. Success measures: Qualified enquiries; Store visits. " +
             "Launch invests ZAR 9,000 across OOH to build qualified response. " +
             "Scale invests ZAR 20,000 across DIGITAL to increase consideration.";
         var client = CreateClient(request => Task.FromResult(Response(
@@ -69,7 +71,9 @@ public sealed partial class AgentRuntimeHttpAdapterTests
         Guid.Parse("44444444-4444-4444-4444-444444444444"),
         BriefVersionId,
         3,
+        "Enquiries are declining",
         "Increase enquiries",
+        ["Qualified enquiries", "Store visits"],
         [EvidenceId],
         [
             new(Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), 2,

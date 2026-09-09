@@ -14,7 +14,15 @@ public sealed record CampaignCombinationView(
     IReadOnlyList<Guid> CoveredRequirementIds,
     IReadOnlyList<string> EvidenceGaps,
     CampaignRelativeComparisonView? Comparison = null,
-    CampaignAudienceForecastView? AudienceForecast = null);
+    CampaignAudienceForecastView? AudienceForecast = null,
+    CampaignScenarioView? Scenario = null);
+
+public sealed record CampaignScenarioView(
+    string Code,
+    bool Recommended,
+    long SupplierCostDeltaMinor,
+    decimal? DeduplicatedReachDelta,
+    decimal? AverageFrequencyDelta);
 
 public sealed record CampaignAudienceForecastView(
     decimal? GrossReach,

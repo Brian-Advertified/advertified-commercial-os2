@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import mapboxgl, { type ExpressionSpecification, type GeoJSONSource, type GeoJSONSourceSpecification } from 'mapbox-gl'
+import {
+  Map as MapboxGLMap,
+  NavigationControl,
+  type ExpressionSpecification,
+  type GeoJSONSource,
+  type GeoJSONSourceSpecification,
+  type LayerSpecification,
+} from 'mapbox-gl/esm'
 import { masterDataCodes } from '../../generated/master-data-codes'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import './mapbox-map.css'
@@ -70,7 +77,7 @@ function MapInspector({ items, selected, focus }: {
 
 function useAdvertifiedMap(token: string, data: MapGeoJsonData, select: (id: string | null) => void) {
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const mapRef = useRef<mapboxgl.Map | null>(null)
+  const mapRef = useRef<MapboxGLMap | null>(null)
   const dataRef = useRef(data)
   const [status, setStatus] = useState<MapStatus>(token ? 'loading' : 'token-missing')
 
@@ -82,7 +89,7 @@ function useAdvertifiedMap(token: string, data: MapGeoJsonData, select: (id: str
     if (!token || !containerRef.current) return
     let active = true
     const updateStatus = (next: MapStatus) => { if (active) setStatus(next) }
-    let map: mapboxgl.Map
+    let map: MapboxGLMap
     try {
       map = createMap(containerRef.current, token, () => dataRef.current, updateStatus)
       map.on('click', 'advertified-spatial-point', event => {
@@ -124,7 +131,7 @@ function createMap(
   getData: () => MapGeoJsonData,
   setStatus: (status: MapStatus) => void,
 ) {
-  const map = new mapboxgl.Map({
+  const map = new MapboxGLMap({
     accessToken: token,
     container,
     style: 'mapbox://styles/mapbox/light-v11',
@@ -132,7 +139,7 @@ function createMap(
     zoom: 4.2,
     attributionControl: true,
   })
-  map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right')
+  map.addControl(new NavigationControl({ showCompass: false }), 'top-right')
   map.on('load', () => {
     const data = getData()
     ensureSpatialLayers(map, data)
@@ -168,7 +175,7 @@ function featureCollection(features: MapFeature[]) {
   } as Extract<MapGeoJsonData, { type: 'FeatureCollection' }>
 }
 
-function ensureSpatialLayers(map: mapboxgl.Map, data: MapGeoJsonData) {
+function ensureSpatialLayers(map: MapboxGLMap, data: MapGeoJsonData) {
   if (!map.getSource('advertified-spatial')) {
     map.addSource('advertified-spatial', { type: 'geojson', data })
   }
@@ -192,11 +199,11 @@ function ensureSpatialLayers(map: mapboxgl.Map, data: MapGeoJsonData) {
   })
 }
 
-function addLayer(map: mapboxgl.Map, id: string, layer: mapboxgl.LayerSpecification) {
+function addLayer(map: MapboxGLMap, id: string, layer: LayerSpecification) {
   if (!map.getLayer(id)) map.addLayer(layer)
 }
 
-function fitToData(map: mapboxgl.Map, data: MapGeoJsonData) {
+function fitToData(map: MapboxGLMap, data: MapGeoJsonData) {
   const positions: Position[] = []
   collectPositions(data, positions)
   if (positions.length === 0) return

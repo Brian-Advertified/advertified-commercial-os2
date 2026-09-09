@@ -31,7 +31,9 @@ public sealed class HttpProposalNarrativeClient(
                 options.Value),
             new ProposalContext(
                 input.BriefVersionId,
+                input.BriefBusinessProblem,
                 input.BriefObjective,
+                input.SuccessMeasures,
                 input.Options.Select(item => new ProposalOption(
                     item.PlanVersionId,
                     item.PlanVersion,
@@ -85,10 +87,13 @@ public sealed class HttpProposalNarrativeClient(
         ProposalNarrativeInput input)
     {
         if (string.IsNullOrWhiteSpace(narrative) || narrative.Length > 5_000 ||
-            !narrative.Contains(input.BriefObjective, StringComparison.OrdinalIgnoreCase))
+            !narrative.Contains(input.BriefBusinessProblem, StringComparison.OrdinalIgnoreCase) ||
+            !narrative.Contains(input.BriefObjective, StringComparison.OrdinalIgnoreCase) ||
+            input.SuccessMeasures.Any(measure =>
+                !narrative.Contains(measure, StringComparison.OrdinalIgnoreCase)))
         {
             throw new InvalidOperationException(
-                "The proposal narrative does not preserve the approved objective.");
+                "The proposal narrative does not preserve the approved business problem, objective and success measures.");
         }
         if (input.Options.Any(option =>
                 !narrative.Contains(option.Label, StringComparison.Ordinal) ||
@@ -110,7 +115,9 @@ public sealed class HttpProposalNarrativeClient(
 
     private sealed record ProposalContext(
         Guid BriefVersionId,
+        string BriefBusinessProblem,
         string BriefObjective,
+        IReadOnlyList<string> SuccessMeasures,
         IReadOnlyList<ProposalOption> Options);
 
     private sealed record ProposalOption(

@@ -120,10 +120,11 @@ public sealed partial class PlanningRecordStore
         var combinations = CampaignCombinationAssessment.Evaluate(candidates, BuildMixView(mix));
         var research = await PlanningResearchPortfolioReader.ReadAsync(
             dbContext, tenantId, cancellationToken);
+        var forecasted = CampaignAudienceForecast.Attach(
+            combinations.Alternatives, candidates, research, tenantId);
         combinations = combinations with
         {
-            Alternatives = CampaignAudienceForecast.Attach(
-                combinations.Alternatives, candidates, research, tenantId),
+            Alternatives = CampaignScenarioClassifier.Attach(forecasted),
         };
         return new InventoryShortlistVersionView(
             shortlist.Id, shortlist.BriefVersionId, shortlist.MixVersionId,

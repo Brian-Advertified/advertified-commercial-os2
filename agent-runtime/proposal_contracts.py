@@ -22,7 +22,9 @@ class ProposalOptionInput(ContractModel):
 
 class ProposalContext(ContractModel):
     brief_version_id: UUID
+    brief_business_problem: Annotated[str, Field(min_length=1, max_length=4_000)]
     brief_objective: Annotated[str, Field(min_length=1, max_length=4_000)]
+    success_measures: Annotated[tuple[str, ...], Field(max_length=3)]
     options: Annotated[tuple[ProposalOptionInput, ...], Field(min_length=1, max_length=3)]
 
 

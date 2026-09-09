@@ -89,7 +89,9 @@ internal sealed record ExternalDecisionAuthorityRow(
 internal sealed record PlanningReadyBriefReferenceRow(
     Guid BriefId,
     Guid BriefVersionId,
+    string BusinessProblem,
     string Objective,
+    string MeasurementJson,
     Guid OwnerUserId,
     long BriefVersion,
     string EvidenceIdsJson,
