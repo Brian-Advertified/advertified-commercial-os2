@@ -251,8 +251,9 @@
   .approved-catalogue-map { border-left: 0; border-top: 1px solid #edf0f4; }
   .approved-map-canvas { height: 240px; }
   .inventory-workbench-layout { grid-template-columns: minmax(0, 1fr) !important; }
-  .approved-product-detail-grid { grid-template-columns: minmax(0, 1fr); }
-  .approved-product-tabs { overflow-x: auto; white-space: nowrap; }
+  .approved-inventory-detail .approved-product-detail-grid { grid-template-columns: minmax(0, 1fr); }
+  .approved-inventory-detail .approved-product-detail-grid > * { min-width: 0; }
+  .approved-inventory-detail .approved-product-tabs { max-width: 100%; overflow-x: auto; white-space: nowrap; }
   .approved-inventory-pagebar { align-items: flex-start; flex-direction: column; }
 }
 @media (max-width: 560px) {

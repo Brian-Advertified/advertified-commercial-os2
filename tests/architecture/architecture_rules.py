@@ -41,7 +41,9 @@ PROJECT_POLICIES = {
                 "Minio",
                 "Npgsql",
                 "Npgsql.EntityFrameworkCore.PostgreSQL",
+                "PDFsharp-MigraDoc",
                 "PdfPig",
+                "Uno.Fonts.OpenSans",
             }
         ),
     ),

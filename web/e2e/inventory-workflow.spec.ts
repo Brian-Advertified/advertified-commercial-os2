@@ -29,7 +29,7 @@ for (const noCandidates of [false, true]) test(`document evidence can be reevalu
   await expect(page.getByText(/Retained source value/)).toBeVisible()
   await expect(page.getByRole('link', { name: /protected original/ })).toHaveAttribute('href',
     `/api/v1/tenants/${tenantId}/inventory-imports/${importId}/source`)
-  await page.getByLabel('Reason for correction or reevaluation').fill('Recheck against the current policy.')
+  await page.getByLabel('Reason for reevaluation').fill('Recheck against the current policy.')
   await page.getByRole('button', { name: 'Reevaluate retained evidence' }).click()
   await expect.poll(() => state.reevaluations).toBe(1)
   expect(state.published).toBe(false)
@@ -72,8 +72,9 @@ test('operator intake accepts validated candidates before separate publication',
   await expect(productLink).toBeVisible()
   await productLink.click()
   await expect(page).toHaveURL(`/inventory/products/${productId}`)
-  await expect(page.getByText('Confirm availability before booking.')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Supplier confirmation is required before booking.')).toBeVisible({ timeout: 15_000 })
   await expect(page.getByRole('heading', { name: 'How this placement compares' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width)
   await expect(page.getByText('Strong Value')).toBeVisible()
   await expect(page.getByText('25% below median')).toBeVisible()
   await expect(page.getByText('Price comparison, not an audience or performance ranking')).toBeVisible()
@@ -95,6 +96,7 @@ test('supplier can inspect permitted price evidence without publication controls
   })
   await page.goto(`/inventory/products/${productId}`)
   await expect(page.getByRole('heading', { name: 'How this placement compares' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width)
   await page.getByText('View 1 comparable site', { exact: true }).click()
   await expect(page.getByText('Braamfontein Digital', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Publish reviewed inventory' })).toHaveCount(0)
@@ -174,8 +176,7 @@ function importFixture(state: State) {
 function candidateFixture(state: State) {
   return {
     id: candidateId, importId, rowNumber: 1, status: state.candidateStatus,
-    values: valuesFixture(), validation: [{ fieldName: 'availability', code: 'AVAILABILITY_UNKNOWN',
-      message: 'Availability is not supplied and must be confirmed before booking.', isBlocking: false }],
+    values: valuesFixture(), validation: [],
     evidence: [{ fieldName: 'product_code', rawValue: 'OOH-001', normalizedValue: 'OOH-001',
       transformation: 'TRIM', sourceLocator: 'csv#row=2', sourceHash: 'a'.repeat(64),
       evidenceBasis: 'DOCUMENT_EXPLICIT', verificationState: 'UNVERIFIED', requiredAction: 'NONE',
@@ -189,7 +190,7 @@ function valuesFixture() {
   return { productCode: 'OOH-001', name: 'Bree Street Gantry', channel: 'OOH',
     productType: 'OOH_SITE', geography: 'Johannesburg', address: 'Bree Street',
     latitude: -26.2041, longitude: 28.0473, rateType: 'MONTH_RATE', currency: 'ZAR',
-    rateAmountMinor: 125000, availability: 'UNKNOWN', extension: {}, audienceProfile: null }
+    rateAmountMinor: 125000, availability: 'PLANNING_AVAILABLE', extension: {}, audienceProfile: null }
 }
 
 function productSummary() {
@@ -204,7 +205,7 @@ function productFixture() {
     supplierCommercial: null, supplierContacts: [], deliverable: null, spatial: null, packages: [], availabilityExceptions: [],
     extension: {}, rate: { rateType: 'MONTH_RATE', currency: 'ZAR', amountMinor: 125000,
       sourceLocator: 'csv#row=2', effectiveFrom: null, effectiveTo: null, vatTreatment: null, commercialTerms: null },
-      availability: { status: 'UNKNOWN', observedAtUtc: now,
+      availability: { status: 'PLANNING_AVAILABLE', observedAtUtc: now,
       validUntilUtc: null, sourceLocator: 'csv#row=2' }, assets: [{ assetType: 'RATE_CARD',
         mediaType: 'text/csv', contentHash: 'a'.repeat(64), sourceReference: `inventory-import:${importId}`,
         assetId: null, rightsStatus: null, rightsBasis: null, licensedUntil: null, proposalEligible: false,

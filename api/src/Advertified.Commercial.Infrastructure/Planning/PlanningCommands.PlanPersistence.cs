@@ -114,7 +114,7 @@ public sealed partial class PlanningCommands
             VALUES ({Guid.NewGuid()}, {tenantId.Value}, {lineId},
                 {inventory.InventoryTenantId}, {inventory.MarketplaceListingVersionId},
                 {inventory.SupplierId},
-                {inventory.Availability ?? MasterDataCodes.AvailabilityStatuses.Unknown},
+                {inventory.Availability ?? MasterDataCodes.AvailabilityStatuses.PlanningAvailable},
                 {MasterDataCodes.RateFreshnessStatuses.Current},
                 {(confidence == MasterDataCodes.SupplyConfidenceStatuses.Confirmed
                     ? inventory.ObservedAtUtc : null)},

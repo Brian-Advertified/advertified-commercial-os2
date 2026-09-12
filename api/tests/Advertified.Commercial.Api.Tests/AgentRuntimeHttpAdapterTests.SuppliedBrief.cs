@@ -15,9 +15,11 @@ public sealed partial class AgentRuntimeHttpAdapterTests
         "strategy",
         "critic_readiness",
         "brief_drafting",
-        "audience",
+        "market_intelligence",
+        "audience_intelligence",
+        "location_intelligence",
+        "media_strategy",
         "inventory_intelligence",
-        "media_planning",
         "proposal_narrative",
         "creative",
         "measurement",
@@ -43,7 +45,8 @@ public sealed partial class AgentRuntimeHttpAdapterTests
             Assert.Equal(text, source.GetProperty("source_content").GetString());
             var artifact = SuppliedArtifact(mode, text, budget, source.GetProperty("source_hash").GetString()!);
             var response = Response(JsonSerializer.SerializeToElement(artifact, AgentRuntimeHttpSupport.WireJson), []);
-            var directory = Path.Combine(Path.GetTempPath(), "advertified-contracts");
+            var directory = Environment.GetEnvironmentVariable("ADVERTIFIED_TEST_EVIDENCE_DIRECTORY")
+                ?? Path.Combine(Path.GetTempPath(), "advertified-contracts");
             Directory.CreateDirectory(directory);
             var name = mode ?? "AMBIGUOUS";
             await File.WriteAllTextAsync(Path.Combine(directory, $"brief-{name}-request.json"), json);

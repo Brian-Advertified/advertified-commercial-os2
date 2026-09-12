@@ -94,6 +94,7 @@ class BriefDraftArtifact(ContractModel):
     currency: Annotated[str, Field(min_length=3, max_length=3)] | None
     vat_status: Annotated[str, Field(min_length=1, max_length=100)] | None
     fees_minor: Annotated[int, Field(ge=0)] | None
+    media_requirements: tuple[str, ...]
     constraints: tuple[str, ...]
     measurement: tuple[str, ...]
     facts: tuple[str, ...]

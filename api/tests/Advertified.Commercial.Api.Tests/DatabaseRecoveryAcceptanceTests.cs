@@ -23,8 +23,6 @@ public sealed partial class DatabaseRecoveryAcceptanceTests
     private const string Username = "advertified_recovery";
     private const string Password = "advertified-recovery-local-only";
     private const string ArchivePath = "/tmp/advertified-recovery.dump";
-    // Must agree with the audited initial-baseline tenant-isolation contract.
-    private const int ExpectedProtectedTableCount = 101;
     private static readonly Guid TenantId =
         Guid.Parse("e1000000-0000-0000-0000-000000000001");
     private static readonly Guid OtherTenantId =
@@ -54,6 +52,8 @@ public sealed partial class DatabaseRecoveryAcceptanceTests
         await PrepareDatabasesAsync(source, target);
         await PrepareObjectStoresAsync(sourceObjects, targetObjects);
         await SeedSourceAsync(source.GetConnectionString());
+        var expectedSchema = await ReadSchemaManifestAsync(source.GetConnectionString());
+        var recoveryTimer = System.Diagnostics.Stopwatch.StartNew();
         var objectBackup = await CreateObjectBackupAsync(sourceObjects);
 
         var dump = await source.ExecAsync(
@@ -74,8 +74,9 @@ public sealed partial class DatabaseRecoveryAcceptanceTests
             targetObjects, objectBackup, reference);
         await sourceObjects.StopAsync();
         await RestoreObjectAsync(targetObjects, objectBackup, reference);
-        await AssertRestoredStateAsync(target.GetConnectionString());
+        await AssertRestoredStateAsync(target.GetConnectionString(), expectedSchema);
         await AssertRestoredObjectAsync(targetObjects, objectBackup, reference);
+        await RetainRecoveryEvidenceAsync(expectedSchema, recoveryTimer.Elapsed);
     }
 
     private static PostgreSqlContainer CreatePostgres() => DisposablePostgres.Create(
@@ -165,7 +166,7 @@ public sealed partial class DatabaseRecoveryAcceptanceTests
         batch.BatchCommands.Add(command);
     }
 
-    private static async Task AssertRestoredStateAsync(string connectionString)
+    private static async Task AssertRestoredStateAsync(string connectionString, string expectedSchema)
     {
         await AssertAuthenticatedAccessAsync(connectionString);
         await AssertRestoredMembershipAsync(connectionString);
@@ -184,12 +185,7 @@ public sealed partial class DatabaseRecoveryAcceptanceTests
             FROM governance.master_data_collections
             WHERE registry_version = '{MasterDataCodes.RegistryVersion}'
             """));
-        Assert.Equal(ExpectedProtectedTableCount, await CountAsync(connection, """
-            SELECT count(*)::integer FROM pg_class item
-            JOIN pg_namespace scope ON scope.oid = item.relnamespace
-            WHERE scope.nspname = 'commercial' AND item.relrowsecurity
-              AND item.relforcerowsecurity
-            """));
+        Assert.Equal(expectedSchema, await ReadSchemaManifestAsync(connectionString));
         await AssertRestoredTraceAsync(connection);
         await AssertApplicationRoleIsolationAsync(connection);
     }
@@ -212,6 +208,7 @@ public sealed partial class DatabaseRecoveryAcceptanceTests
         new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Test");
+            builder.UseDeterministicTestDependencies();
             builder.UseSetting("ConnectionStrings:CommercialDatabase", connectionString);
             builder.UseSetting("Authentication:Mode", "Deterministic");
             builder.UseSetting("Authentication:DevelopmentIdentity:UserId", UserId.ToString());

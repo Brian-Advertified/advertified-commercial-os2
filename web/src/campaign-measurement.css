@@ -260,6 +260,29 @@
   color: var(--warning);
 }
 
+.campaign-learning-panel {
+  padding: 1rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f7fbff 100%);
+  border: 1px solid #dfe7f2;
+  border-radius: 0.5rem;
+}
+.campaign-learning-panel > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.campaign-learning-panel h2 { margin: 0.08rem 0 0.3rem; color: var(--navy); font-size: 1.05rem; }
+.campaign-learning-panel header p:last-child { max-width: 64rem; margin: 0; color: var(--muted-strong); font-size: 0.78rem; line-height: 1.5; }
+.campaign-learning-panel header > span { flex: 0 0 auto; padding: 0.32rem 0.5rem; color: var(--electric-soft); background: var(--electric-wash); border: 1px solid #d8e2f4; border-radius: 999px; font-size: 0.7rem; font-weight: 800; text-transform: capitalize; }
+.campaign-learning-grid { margin-top: 0.85rem; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line); background: #fff; }
+.campaign-learning-grid article { min-width: 0; padding: 0.8rem; border-right: 1px solid var(--line); }
+.campaign-learning-grid article:last-child { border-right: 0; }
+.campaign-learning-grid h3 { margin: 0; color: var(--navy); font-size: 0.85rem; }
+.campaign-learning-grid ul { margin: 0.65rem 0 0; padding: 0; display: grid; gap: 0.55rem; list-style: none; }
+.campaign-learning-grid li { display: grid; gap: 0.15rem; padding-top: 0.55rem; border-top: 1px solid var(--line); }
+.campaign-learning-grid li:first-child { padding-top: 0; border-top: 0; }
+.campaign-learning-grid strong { color: var(--navy); font-size: 0.74rem; }
+.campaign-learning-grid span,
+.campaign-learning-grid p { margin: 0; color: var(--muted); font-size: 0.74rem; line-height: 1.45; }
+.campaign-learning-panel > footer { margin-top: 0.7rem; color: var(--muted); font-size: 0.72rem; line-height: 1.45; }
+.campaign-learning-panel > footer strong { color: var(--navy); }
+
 @media (max-width: 900px) {
   .measurement-form-grid,
   .measurement-metric-entry fieldset > div,
@@ -277,9 +300,14 @@
   .measurement-metric-entry fieldset > div,
   .measurement-form-actions,
   .measurement-report-generation,
-  .measurement-report-columns {
+  .measurement-report-columns,
+  .campaign-learning-grid {
     grid-template-columns: 1fr;
   }
+  .campaign-learning-panel > header { align-items: stretch; flex-direction: column; }
+  .campaign-learning-panel header > span { align-self: flex-start; }
+  .campaign-learning-grid article { border-right: 0; border-bottom: 1px solid var(--line); }
+  .campaign-learning-grid article:last-child { border-bottom: 0; }
 
   .measurement-report-columns > section {
     border-right: 0;

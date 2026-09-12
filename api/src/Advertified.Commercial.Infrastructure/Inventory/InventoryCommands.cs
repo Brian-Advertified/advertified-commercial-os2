@@ -102,7 +102,7 @@ public sealed partial class InventoryCommands(
         processing.Value.EnsureAdmission();
         var receipt = await dispatcher.DispatchAsync(
             envelope,
-            envelope.Command.ReevaluateAcceptance || envelope.Command.CorrectedSchema is not null
+            envelope.Command.ReevaluateAcceptance
                 ? MasterDataReferences.Permissions.InventoryReview : MasterDataReferences.Permissions.InventoryImport,
             token => ReprojectExtractionOutcomeAsync(importId, envelope, token), cancellationToken,
             token => supplierAccess.EnsureImportAccessAsync(

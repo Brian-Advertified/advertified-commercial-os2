@@ -1,4 +1,5 @@
 using Advertified.Commercial.Application.Brief;
+using Advertified.Commercial.Application.Intelligence;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.MasterData;
@@ -14,8 +15,10 @@ public sealed partial class CanonicalPlanningAcceptanceTests
     {
         services.RemoveAll<ISuppliedBriefAgentClient>();
         services.AddScoped<ISuppliedBriefAgentClient>(_ => new SuppliedBriefAgentFixture(EmailUnderstanding));
-        services.RemoveAll<IPlanningAgentClient>();
-        services.AddScoped<IPlanningAgentClient, PlanningAgentFixture>();
+        services.RemoveAll<IAudienceIntelligenceAgentClient>();
+        services.AddScoped<IAudienceIntelligenceAgentClient, AudienceIntelligenceAgentFixture>();
+        services.RemoveAll<IMediaStrategyIntelligenceAgentClient>();
+        services.AddScoped<IMediaStrategyIntelligenceAgentClient, MediaStrategyIntelligenceAgentFixture>();
         services.RemoveAll<IProposalNarrativeClient>();
         services.AddScoped<IProposalNarrativeClient>(_ => new ProposalNarrativeFixture(ProposalPolicy.Load()));
     }

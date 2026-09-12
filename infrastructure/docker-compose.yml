@@ -40,19 +40,6 @@ services:
       retries: 12
       start_period: 10s
 
-  clamav:
-    image: clamav/clamav:1.4.3@sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4
-    ports:
-      - "127.0.0.1:${CLAMAV_PORT:-53310}:3310"
-    volumes:
-      - clamav_data:/var/lib/clamav
-    healthcheck:
-      test: ["CMD-SHELL", "clamdscan --ping 3"]
-      interval: 15s
-      timeout: 10s
-      retries: 20
-      start_period: 90s
-
   redis:
     image: redis:7.4.2-alpine@sha256:02419de7eddf55aa5bcf49efb74e88fa8d931b4d77c07eff8a6b2144472b6952
     command: ["redis-server", "--appendonly", "yes"]
@@ -81,5 +68,4 @@ services:
 volumes:
   postgres_data:
   minio_data:
-  clamav_data:
   redis_data:

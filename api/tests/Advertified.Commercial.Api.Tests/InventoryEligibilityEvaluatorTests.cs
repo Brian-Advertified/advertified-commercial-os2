@@ -64,7 +64,7 @@ public sealed class InventoryEligibilityEvaluatorTests
     {
         var inventory = new PlanningInventoryRow(
             Guid.NewGuid(), null, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            "Social package", channel, "SOCIAL_PLACEMENT", "Social package",
+            "Fixture supplier", "Social package", channel, "SOCIAL_PLACEMENT", "Social package",
             null, null, null, null, null, null, null, null, null, null, null,
             null, null, null, "[]", null, "REGISTERED", null, "EXCLUSIVE",
             null, null, null, null);

@@ -46,7 +46,7 @@ public sealed record EmailAutomationRunView(
     Guid? ClientAccountId,
     Guid? BriefId,
     Guid? BriefVersionId,
-    Guid? StpVersionId,
+    Guid? AudienceArtifactId,
     Guid? MediaMixVersionId,
     Guid? ShortlistVersionId,
     Guid? MediaPlanVersionId,

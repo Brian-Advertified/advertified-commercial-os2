@@ -50,6 +50,30 @@
   font-size: var(--ui-font-xs);
   font-weight: 800;
 }
+.audience-decision-comparison {
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--approved-line);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--approved-shadow);
+}
+.audience-decision-comparison h3 { margin: 0; color: var(--approved-ink); font-size: 14px; }
+.audience-decision-comparison header p:last-child { margin: 4px 0 0; color: var(--approved-muted); font-size: 11px; line-height: 1.5; }
+.audience-comparison-scroll { margin-top: 10px; max-width: 100%; overflow-x: auto; border: 1px solid var(--approved-line); }
+.audience-decision-comparison table { width: 100%; min-width: 760px; border-collapse: collapse; }
+.audience-decision-comparison th,
+.audience-decision-comparison td { padding: 9px 10px; text-align: left; vertical-align: top; border-right: 1px solid var(--approved-line); border-bottom: 1px solid var(--approved-line); font-size: 11px; line-height: 1.45; }
+.audience-decision-comparison tr > *:last-child { border-right: 0; }
+.audience-decision-comparison tbody tr:last-child > * { border-bottom: 0; }
+.audience-decision-comparison thead th { color: var(--approved-ink); background: #f9fafb; }
+.audience-decision-comparison thead th:first-child,
+.audience-decision-comparison tbody th { width: 110px; color: var(--approved-muted); background: #fcfcfd; font-weight: 800; }
+.audience-decision-comparison thead span { margin-top: 5px; width: fit-content; padding: 2px 6px; display: block; border-radius: 999px; font-size: 10px; }
+.audience-decision-comparison thead .is-primary { color: #fff; background: var(--approved-purple); }
+.audience-decision-comparison thead .is-secondary { color: #175cd3; background: #eff8ff; }
+.audience-decision-comparison thead .is-excluded { color: #b42318; background: #fff1f0; }
+.audience-decision-comparison td { color: var(--approved-body); }
+
 .audience-strategy-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -145,6 +169,9 @@
   color: var(--approved-muted);
   font-size: 11px;
 }
+.audience-strategy-why { padding-top: 8px; border-top: 1px solid var(--approved-line); }
+.audience-strategy-why summary { color: var(--approved-purple); font-size: var(--ui-font-xs); font-weight: 800; cursor: pointer; }
+.audience-strategy-why p { margin: 7px 0 0; color: var(--approved-muted); font-size: var(--ui-font-xs); line-height: 1.5; }
 .audience-strategy-exclusions {
   padding: 8px 10px;
   color: #735b20 !important;

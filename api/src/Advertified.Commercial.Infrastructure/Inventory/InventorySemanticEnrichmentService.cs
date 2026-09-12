@@ -30,7 +30,7 @@ public sealed class InventorySemanticEnrichmentService(
             return extraction;
 
         var runtime = runtimeOptions.Value;
-        EnsureLiveConfiguration(runtime, settings);
+        InventorySemanticConfigurationGuard.EnsureLive(runtime, settings);
         var (source, codes) =
             await LoadSourceAsync(claim, cancellationToken);
         var context = CreateContext(claim, source);
@@ -147,10 +147,7 @@ public sealed class InventorySemanticEnrichmentService(
         claim.CorrelationId,
         claim.ImportId,
         source.Version,
-        claim.SourceHash,
-        source.DocumentClass ??
-            throw new InvalidOperationException(
-                "The inventory document class is absent."));
+        claim.SourceHash);
 
     private Task<IReadOnlyList<InventorySemanticRunRow>>
         PrepareRunsAsync(
@@ -362,39 +359,4 @@ public sealed class InventorySemanticEnrichmentService(
         codes.RateTypes.Order(StringComparer.Ordinal).ToArray(),
         codes.Currencies.Order(StringComparer.Ordinal).ToArray(),
         codes.Availability.Order(StringComparer.Ordinal).ToArray());
-
-    internal static void EnsureLiveConfiguration(
-        AgentRuntimeOptions runtime,
-        InventorySemanticOptions semantic)
-    {
-        var expectedCapMinor =
-            (semantic.PerCallCostCapUsdMicros + 9_999L) /
-            10_000L;
-        if (!InventorySemanticOptions.IsPlanningValid(semantic) ||
-            runtime.Mode != AgentRuntimeOptions.HttpMode ||
-            runtime.Provider !=
-                AgentRuntimeOptions.BedrockProvider ||
-            !runtime.AllowLive ||
-            !string.Equals(
-                runtime.ModelFor(
-                    MasterDataCodes.AgentTypes.InventoryIntelligence,
-                    InventorySemanticOperations.SemanticEnrichment),
-                semantic.ModelId,
-                StringComparison.Ordinal) ||
-            !string.Equals(
-                runtime.ModelFor(
-                    MasterDataCodes.AgentTypes.InventoryIntelligence,
-                    InventorySemanticOperations.SourceTranscription),
-                semantic.ModelId,
-                StringComparison.Ordinal) ||
-            runtime.CostCapFor(
-                MasterDataCodes.AgentTypes
-                    .InventoryIntelligence) !=
-                expectedCapMinor)
-        {
-            throw new InvalidOperationException(
-                "Semantic extraction requires the exact governed and " +
-                "preflighted live route.");
-        }
-    }
 }

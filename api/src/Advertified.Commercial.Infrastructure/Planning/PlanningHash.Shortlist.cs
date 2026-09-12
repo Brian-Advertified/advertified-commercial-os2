@@ -7,7 +7,7 @@ internal static partial class PlanningHash
 {
     internal static string ForShortlist(
         MediaMixRow mix,
-        AudienceDefinitionSetView audience,
+        AudienceStrategyView audience,
         IReadOnlyList<PlanningInventoryRow> inventory) => OpportunityCommandSupport.Hash(
             $"{mix.Id:N}|{mix.Version}|{mix.InputHash}|{audience.Id:N}|" +
             $"{audience.VersionNumber}|{audience.InputHash}|" + string.Join('|',

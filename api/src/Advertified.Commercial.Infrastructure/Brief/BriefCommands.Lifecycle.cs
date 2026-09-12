@@ -274,9 +274,7 @@ public sealed partial class BriefCommands
     private static void EnsurePlanningReady(BriefVersionRow row)
     {
         var view = row.ToView();
-        if (row.BudgetUnknown || !row.BudgetMinor.HasValue ||
-            string.IsNullOrWhiteSpace(row.Currency) ||
-            view.Unknowns.Any(item => item.IsBlocking))
+        if (view.Unknowns.Any(item => item.IsBlocking))
         {
             throw new InvalidLifecycleTransitionException();
         }

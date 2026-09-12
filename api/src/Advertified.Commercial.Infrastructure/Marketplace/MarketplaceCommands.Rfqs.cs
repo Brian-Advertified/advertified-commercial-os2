@@ -87,25 +87,32 @@ public sealed partial class MarketplaceCommands
         await LockExchangeAsync(rfqId, cancellationToken);
         var rfq = await store.FindRfqAsync(rfqId, now, cancellationToken)
             ?? throw new UnauthorizedAccessException("Marketplace request access denied.");
+        var responseAllowed = rfq.Status is
+            MasterDataCodes.MarketplaceRfqStatuses.Sent or
+            MasterDataCodes.MarketplaceRfqStatuses.Responded;
         if (rfq.SupplierTenantId != envelope.TenantId.Value ||
-            rfq.Status != MasterDataCodes.MarketplaceRfqStatuses.Sent)
+            !responseAllowed || rfq.DueAtUtc <= now)
         {
             throw new InvalidLifecycleTransitionException();
         }
+        var currentResponseVersion = rfq.ResponseVersion ?? 0;
+        if (currentResponseVersion != envelope.ExpectedVersion)
+            throw new VersionConflictException();
+        var responseVersion = currentResponseVersion + 1;
         var responseId = Guid.NewGuid();
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.marketplace_supplier_responses (
                 id, rfq_id, buyer_tenant_id, supplier_tenant_id, response_version,
                 amount_minor, currency_code, availability_code, terms,
                 valid_until_utc, evidence_references_json, submitted_by, submitted_at_utc)
-            VALUES ({responseId}, {rfq.Id}, {rfq.BuyerTenantId}, {rfq.SupplierTenantId}, 1,
-                {envelope.Command.AmountMinor}, {response.Currency}, {response.Availability},
-                {response.Terms}, {envelope.Command.ValidUntilUtc}, {response.EvidenceJson}::jsonb,
-                {envelope.ActorId.Value}, {now})
+            VALUES ({responseId}, {rfq.Id}, {rfq.BuyerTenantId}, {rfq.SupplierTenantId},
+                {responseVersion}, {envelope.Command.AmountMinor}, {response.Currency},
+                {response.Availability}, {response.Terms}, {envelope.Command.ValidUntilUtc},
+                {response.EvidenceJson}::jsonb, {envelope.ActorId.Value}, {now})
             """, cancellationToken);
         var view = await LoadRfqViewAsync(rfqId, cancellationToken);
         return CommandOutcomeFactory.Create(
-            envelope, view, responseId, envelope.ExpectedVersion + 1,
+            envelope, view, responseId, responseVersion,
             MasterDataReferences.CommercialResourceTypes.MarketplaceSupplierResponse,
             MasterDataReferences.CommercialActions.MarketplaceRfqResponseSubmitted,
             MasterDataReferences.CommercialEventTypes.MarketplaceResponseSubmitted, now);
@@ -116,12 +123,16 @@ public sealed partial class MarketplaceCommands
         CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
-        var visible = await store.FindRfqByResponseAsync(responseId, now, cancellationToken)
+        var identity = await store.FindResponseIdentityAsync(responseId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Marketplace response access denied.");
-        await LockExchangeAsync(visible.Id, cancellationToken);
-        var rfq = await store.FindRfqByResponseAsync(responseId, now, cancellationToken)
+        if (identity.BuyerTenantId != envelope.TenantId.Value)
+            throw new UnauthorizedAccessException("Marketplace response access denied.");
+        await LockExchangeAsync(identity.RfqId, cancellationToken);
+        var rfq = await store.FindRfqAsync(identity.RfqId, now, cancellationToken)
             ?? throw new UnauthorizedAccessException("Marketplace response access denied.");
-        if (rfq.BuyerTenantId != envelope.TenantId.Value || !rfq.ResponseId.HasValue ||
+        if (rfq.BuyerTenantId != envelope.TenantId.Value ||
+            rfq.ResponseId != responseId ||
+            identity.ResponseVersion != envelope.ExpectedVersion ||
             rfq.ResponseVersion != envelope.ExpectedVersion)
         {
             throw new InvalidLifecycleTransitionException();
@@ -129,6 +140,10 @@ public sealed partial class MarketplaceCommands
         if (rfq.ResponseValidUntilUtc <= now)
         {
             throw new MarketplaceResponseExpiredException();
+        }
+        if (rfq.ResponseAvailability != MasterDataCodes.AvailabilityStatuses.Available)
+        {
+            throw new MarketplaceResponseUnavailableException();
         }
         if (rfq.Status != MasterDataCodes.MarketplaceRfqStatuses.Responded)
         {

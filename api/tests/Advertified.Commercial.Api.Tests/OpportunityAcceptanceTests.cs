@@ -28,6 +28,16 @@ public sealed partial class OpportunityAcceptanceTests
         var clientId = await CreateClientAsync(owner);
         var opportunity = await CreateOpportunityAsync(owner, clientId);
         var opportunityId = opportunity.GetProperty("id").GetGuid();
+        using (var noEvidence = await SendCommandAsync(
+                   owner,
+                   $"/api/v1/tenants/{TenantId}/opportunities/{opportunityId}/qualification:start",
+                   "opportunity-start-without-evidence",
+                   new { comment = "Evidence-free discovery must not advance." },
+                   1))
+        {
+            await AssertProblemAsync(
+                noEvidence, HttpStatusCode.Conflict, "EVIDENCE_REQUIRED");
+        }
         await AssertCaptureBoundaryAsync(owner, opportunityId);
         await RegisterEvidenceAsync(owner, opportunityId);
         await StartQualificationAsync(owner, opportunityId, 1);

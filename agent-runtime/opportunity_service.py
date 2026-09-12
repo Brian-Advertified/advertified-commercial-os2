@@ -216,6 +216,21 @@ def critique(
     )
 
 
+def _brief_unknowns() -> tuple[UnknownItem, ...]:
+    return (
+        UnknownItem(
+            field_path="budget",
+            question="What budget is available?",
+            is_blocking=False,
+        ),
+        UnknownItem(
+            field_path="timing",
+            question="When must the work run?",
+            is_blocking=False,
+        ),
+    )
+
+
 def draft_brief(
     request: OpportunityAgentRequest,
 ) -> AgentOutputEnvelope[BriefDraftArtifact]:
@@ -238,6 +253,7 @@ def draft_brief(
         currency=None,
         vat_status=None,
         fees_minor=None,
+        media_requirements=(),
         constraints=risks,
         measurement=(),
         facts=tuple(item.excerpt for item in request.approved_evidence),
@@ -251,18 +267,7 @@ def draft_brief(
             field_path="artifact.business_problem",
             evidence_item_ids=evidence_ids,
         ),),
-        unknowns=(
-            UnknownItem(
-                field_path="budget",
-                question="What budget is available?",
-                is_blocking=False,
-            ),
-            UnknownItem(
-                field_path="timing",
-                question="When must the work run?",
-                is_blocking=False,
-            ),
-        ),
+        unknowns=_brief_unknowns(),
         assumptions=(),
         confidence=(ConfidenceAssessment(
             field_path="artifact.business_problem",

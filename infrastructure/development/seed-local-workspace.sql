@@ -377,6 +377,3 @@ VALUES
 )
 ON CONFLICT (id) DO NOTHING;
 
--- Load the physically reviewed source corpus and its buyer-visible marketplace projection.
-\ir inventory-bootstrap.generated.sql
-\ir publish-current-inventory-to-marketplace.sql

@@ -1,17 +1,22 @@
 import { useState } from 'react'
-import type { Shortlist, ShortlistCandidate } from '../api/planning-schemas'
+import { humanMessage } from '../api/client'
+import { planningApi } from '../api/planning-client'
+import type { InventoryIntelligenceInterpretation, Shortlist, ShortlistCandidate } from '../api/planning-schemas'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { formatMoney } from '../presentation/format'
 import { mediaVisual } from './media-visuals'
 import { ShortlistSuitability } from './ShortlistSuitability'
+import { ShortlistDecisionFunnel } from './ShortlistDecisionFunnel'
 import { CampaignCombinations } from './CampaignCombinations'
 import { inventoryDecisionContent } from '../reporting/inventory-decision-content'
 import '../reporting/inventory-decision-history.css'
 
 const shortlistPageSize = 24
 
-export function ShortlistPanel({ shortlist, requiredChannels, busy, onConfirm }: {
+export function ShortlistPanel({ tenantId, token, shortlist, requiredChannels, busy, onConfirm }: {
+  tenantId: string
+  token: string
   shortlist: Shortlist
   requiredChannels: string[]
   busy: boolean
@@ -21,6 +26,9 @@ export function ShortlistPanel({ shortlist, requiredChannels, busy, onConfirm }:
   const [reason, setReason] = useState('')
   const [selected, setSelected] = useState<string[]>(
     eligible.filter(item => item.isSelected === true).map(item => item.id))
+  const [interpretations, setInterpretations] = useState<InventoryIntelligenceInterpretation[]>([])
+  const [interpreting, setInterpreting] = useState(false)
+  const [interpretationError, setInterpretationError] = useState<string | null>(null)
   const editable = shortlist.status === masterDataCodes.lifecycleStatuses.draft
   const coverage = requiredCoverage(
     shortlist.candidates, eligible, selected, requiredChannels,
@@ -29,23 +37,62 @@ export function ShortlistPanel({ shortlist, requiredChannels, busy, onConfirm }:
     setSelected(current => current.includes(id)
       ? current.filter(item => item !== id) : [...current, id])
   }
+  async function explain() {
+    setInterpreting(true); setInterpretationError(null)
+    try {
+      const result = await planningApi.explainShortlist(tenantId, shortlist.id, token)
+      setInterpretations(result.interpretations)
+    } catch (failure) {
+      setInterpretationError(humanMessage(failure))
+    } finally { setInterpreting(false) }
+  }
+  const advisory = new Map(interpretations.map(item => [item.candidateId, item]))
   const suppliers = new Set(shortlist.candidates
     .map(item => item.supplierId ?? item.inventoryTenantId)).size
   return <section className="planning-section" aria-labelledby="shortlist-title">
-    <div className="planning-section-heading"><div><p className="eyebrow">Inventory</p>
-      <h2 id="shortlist-title">Choose the placements to carry forward</h2>
-      <p>{eligible.length} eligible products from {shortlist.candidates.length} considered across {suppliers} supplier{suppliers === 1 ? '' : 's'}. Rejections are available on demand.</p></div>
-      {editable && <button className="primary-button" type="button"
-        disabled={busy || selected.length === 0 || !coverage.selectedReady || !reason.trim()}
-        onClick={() => void onConfirm(selected, reason.trim())}>Confirm selected inventory</button>}</div>
-    {editable && <label className="shortlist-decision-reason">{inventoryDecisionContent.reasonLabel}
-      <textarea value={reason} maxLength={2000} onChange={event => setReason(event.target.value)} />
-      <small>{inventoryDecisionContent.reasonHelp}</small></label>}
+    <ShortlistHeading eligibleCount={eligible.length} totalCount={shortlist.candidates.length}
+      suppliers={suppliers} editable={editable} busy={busy} interpreting={interpreting}
+      canConfirm={selected.length > 0 && coverage.selectedReady && Boolean(reason.trim())}
+      onExplain={explain} onConfirm={() => onConfirm(selected, reason.trim())} />
+    <InventoryIntelligenceNotice error={interpretationError} count={interpretations.length} />
+    <ShortlistReason editable={editable} reason={reason} setReason={setReason} />
     <CoverageAlerts coverage={coverage} selectedCount={selected.length} />
+    <ShortlistDecisionFunnel candidates={shortlist.candidates} selectedIds={selected} />
     <CampaignCombinations shortlist={shortlist} editable={editable} busy={busy} onChoose={setSelected} />
     <CandidateList candidates={shortlist.candidates} eligible={eligible}
-      editable={editable} selected={selected} onToggle={toggle} />
+      editable={editable} selected={selected} advisory={advisory} onToggle={toggle} />
   </section>
+}
+
+function ShortlistHeading({ eligibleCount, totalCount, suppliers, editable, busy, interpreting,
+  canConfirm, onExplain, onConfirm }: {
+  eligibleCount: number; totalCount: number; suppliers: number; editable: boolean
+  busy: boolean; interpreting: boolean; canConfirm: boolean
+  onExplain: () => Promise<void>; onConfirm: () => Promise<void>
+}) {
+  return <div className="planning-section-heading"><div><p className="eyebrow">Inventory</p>
+    <h2 id="shortlist-title">Choose the placements to carry forward</h2>
+    <p>{eligibleCount} eligible products from {totalCount} considered across {suppliers} supplier{suppliers === 1 ? '' : 's'}. Rejections are available on demand.</p></div>
+    <div className="planning-actions"><button className="secondary-button" type="button"
+      disabled={busy || interpreting} onClick={() => void onExplain()}>
+      {interpreting ? 'Explaining shortlist…' : 'Explain shortlist with AI'}</button>
+      {editable && <button className="primary-button" type="button" disabled={busy || !canConfirm}
+        onClick={() => void onConfirm()}>Confirm selected inventory</button>}</div></div>
+}
+
+function InventoryIntelligenceNotice({ error, count }: { error: string | null; count: number }) {
+  if (error) return <p className="rejection-copy" role="alert">{error}</p>
+  if (count === 0) return null
+  return <p className="inventory-rationale"><strong>AI advisory only:</strong> These explanations restate the governed shortlist and strategy. They do not change eligibility, scores, availability or your selection.</p>
+}
+
+function ShortlistReason({ editable, reason, setReason }: {
+  editable: boolean; reason: string; setReason: (value: string) => void
+}) {
+  if (!editable) return null
+  return <label className="shortlist-decision-reason">{inventoryDecisionContent.reasonLabel}
+    <textarea value={reason} maxLength={2000} onChange={event => setReason(event.target.value)} />
+    <small>{inventoryDecisionContent.reasonHelp}</small></label>
 }
 
 function CoverageAlerts({ coverage, selectedCount }: {
@@ -72,11 +119,12 @@ function CoverageAlerts({ coverage, selectedCount }: {
   </>
 }
 
-function CandidateList({ candidates, eligible, editable, selected, onToggle }: {
+function CandidateList({ candidates, eligible, editable, selected, advisory, onToggle }: {
   candidates: ShortlistCandidate[]
   eligible: ShortlistCandidate[]
   editable: boolean
   selected: string[]
+  advisory: Map<string, InventoryIntelligenceInterpretation>
   onToggle: (id: string) => void
 }) {
   const [showRejected, setShowRejected] = useState(false)
@@ -95,7 +143,8 @@ function CandidateList({ candidates, eligible, editable, selected, onToggle }: {
     </div>
     <div className="shortlist-grid">{visible.map(candidate =>
       <CandidateCard key={candidate.id} candidate={candidate} editable={editable}
-        selected={selected.includes(candidate.id)} onToggle={() => onToggle(candidate.id)} />)}</div>
+        advisory={advisory.get(candidate.id)} selected={selected.includes(candidate.id)}
+        onToggle={() => onToggle(candidate.id)} />)}</div>
     {visible.length < ranked.length && <button className="secondary-button" type="button"
       onClick={() => setVisibleLimit(current => current + shortlistPageSize)}>Load more inventory</button>}
   </>
@@ -126,10 +175,11 @@ function requiredCoverage(
   }
 }
 
-function CandidateCard({ candidate, editable, selected, onToggle }: {
+function CandidateCard({ candidate, editable, selected, advisory, onToggle }: {
   candidate: ShortlistCandidate
   editable: boolean
   selected: boolean
+  advisory?: InventoryIntelligenceInterpretation
   onToggle: () => void
 }) {
   const visual = mediaVisual(candidate.channel)
@@ -144,15 +194,28 @@ function CandidateCard({ candidate, editable, selected, onToggle }: {
       <Selection candidate={candidate} editable={editable} selected={selected} onToggle={onToggle} /></div>
     <p>{candidate.geography}</p>
     <div className="shortlist-facts"><span>{rate}</span><span>{eligibility}</span></div>
-    {candidate.rejectionDetail && <p className="rejection-copy">{candidate.rejectionDetail}</p>}
-    {candidate.rationale && <p className="inventory-rationale">
-      <strong>Recommendation rationale:</strong> {candidate.rationale}</p>}
+    <CandidateNarratives candidate={candidate} advisory={advisory} />
     <CommercialDetail candidate={candidate} />
     <ShortlistSuitability candidate={candidate} />
     <PlacementDetail candidate={candidate} />
     <AudienceFitDetail candidate={candidate} />
-    {candidate.benchmark && <BenchmarkDetail candidate={candidate} />}
+    <BenchmarkBoundary candidate={candidate} />
   </article>
+}
+
+function CandidateNarratives({ candidate, advisory }: {
+  candidate: ShortlistCandidate; advisory?: InventoryIntelligenceInterpretation
+}) {
+  return <>
+    {candidate.rejectionDetail && <p className="rejection-copy">{candidate.rejectionDetail}</p>}
+    {candidate.rationale && <p className="inventory-rationale">
+      <strong>Deterministic recommendation rationale:</strong> {candidate.rationale}</p>}
+    {advisory && <p className="inventory-rationale"><strong>AI recommendation:</strong> {advisory.rationale}</p>}
+  </>
+}
+
+function BenchmarkBoundary({ candidate }: { candidate: ShortlistCandidate }) {
+  return candidate.benchmark ? <BenchmarkDetail candidate={candidate} /> : null
 }
 
 function CommercialDetail({ candidate }: { candidate: ShortlistCandidate }) {

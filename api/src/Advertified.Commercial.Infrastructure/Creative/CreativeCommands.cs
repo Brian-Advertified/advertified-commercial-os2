@@ -15,7 +15,7 @@ public sealed partial class CreativeCommands(
     CampaignRecordStore campaignStore,
     CommandDispatcher dispatcher,
     IInventoryObjectStore objectStore,
-    IInventoryMalwareScanner malwareScanner,
+    IFileMalwareProtection malwareScanner,
     TimeProvider timeProvider) : ICreativeCommands
 {
     public async Task<CommandResult<CampaignView>> RequestAsync(

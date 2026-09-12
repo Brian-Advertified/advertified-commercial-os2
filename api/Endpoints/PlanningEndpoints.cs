@@ -1,6 +1,7 @@
 using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Identity;
+using Advertified.Commercial.Application.Intelligence;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Domain.Governance;
 
@@ -26,12 +27,12 @@ public static class PlanningEndpoints
             .WithCommandProblems(requiresVersion: false);
         group.MapPost("/brief-versions/{briefVersionId:guid}/audiences:generate",
                 GenerateAudiencesAsync)
-            .WithName("GenerateAudiences").Produces<AudienceDefinitionSetView>()
+            .WithName("GenerateAudiences").Produces<AudienceStrategyView>()
             .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
             .WithCommandProblems(requiresVersion: false);
-        group.MapPost("/audience-strategies/{audienceSetId:guid}:approve",
+        group.MapPost("/audience-strategies/{audienceArtifactId:guid}:approve",
                 ApproveAudienceStrategyAsync)
-            .WithName("ApproveAudienceStrategy").Produces<AudienceDefinitionSetView>()
+            .WithName("ApproveAudienceStrategy").Produces<AudienceStrategyView>()
             .WithCommandProblems(requiresVersion: true);
         group.MapPost("/brief-versions/{briefVersionId:guid}/media-mixes:generate",
                 GenerateMixAsync)
@@ -54,6 +55,17 @@ public static class PlanningEndpoints
             .WithName("SelectInventoryShortlist")
             .Produces<InventoryShortlistVersionView>()
             .WithCommandProblems(requiresVersion: true);
+        group.MapGet("/shortlist-versions/{shortlistVersionId:guid}/intelligence/inventory",
+                GetInventoryIntelligenceAsync)
+            .WithName("GetInventoryIntelligence")
+            .Produces<IntelligenceArtifactView>()
+            .WithQueryProblems();
+        group.MapPost("/shortlist-versions/{shortlistVersionId:guid}/intelligence/inventory",
+                AnalyseInventoryIntelligenceAsync)
+            .WithName("RunInventoryIntelligence")
+            .Produces<IntelligenceArtifactView>()
+            .RequireRateLimiting(RequestRateLimitPolicies.AgentWork)
+            .WithQueryProblems();
         group.MapPost("/brief-versions/{briefVersionId:guid}/media-plans:generate",
                 GeneratePlanAsync)
             .WithName("GenerateMediaPlan").Produces<MediaPlanVersionView>()
@@ -127,12 +139,12 @@ public static class PlanningEndpoints
                 briefVersionId, envelope, token), cancellationToken);
 
     private static Task<IResult> ApproveAudienceStrategyAsync(
-        Guid tenantId, Guid audienceSetId, ApproveAudienceStrategyCommand command,
+        Guid tenantId, Guid audienceArtifactId, ApproveAudienceStrategyCommand command,
         HttpContext context, ICurrentIdentity identity, IPlanningCommands commands,
         TimeProvider clock, CancellationToken cancellationToken) => ExecuteMutationAsync(
             tenantId, command, context, identity, clock,
             (envelope, token) => commands.ApproveAudienceStrategyAsync(
-                audienceSetId, envelope, token), cancellationToken);
+                audienceArtifactId, envelope, token), cancellationToken);
 
     private static Task<IResult> GenerateMixAsync(
         Guid tenantId, Guid briefVersionId, GenerateMediaMixCommand command,
@@ -173,6 +185,21 @@ public static class PlanningEndpoints
             tenantId, command, context, identity, clock,
             (envelope, token) => commands.SelectShortlistAsync(
                 shortlistVersionId, envelope, token), cancellationToken);
+
+    private static async Task<IResult> GetInventoryIntelligenceAsync(
+        Guid tenantId, Guid shortlistVersionId, ICurrentIdentity identity,
+        IInventoryIntelligenceService service, CancellationToken cancellationToken)
+    {
+        var artifact = await service.GetLatestAsync(
+            identity.ActorId.Value, tenantId, shortlistVersionId, cancellationToken);
+        return artifact is null ? Results.NotFound() : Results.Ok(artifact);
+    }
+
+    private static async Task<IResult> AnalyseInventoryIntelligenceAsync(
+        Guid tenantId, Guid shortlistVersionId, ICurrentIdentity identity,
+        IInventoryIntelligenceService service, CancellationToken cancellationToken) =>
+        Results.Ok(await service.AnalyseShortlistAsync(
+            identity.ActorId.Value, tenantId, shortlistVersionId, cancellationToken));
 
     private static Task<IResult> GeneratePlanAsync(
         Guid tenantId, Guid briefVersionId, GenerateMediaPlanCommand command,

@@ -9,7 +9,7 @@ internal static class PlanningDecisionContext
 
     internal static PlanningDecisionContextView Build(
         PlanningBriefRow brief,
-        AudienceDefinitionSetView? audience,
+        AudienceStrategyView? audience,
         MediaMixVersionView? mix)
     {
         var measures = ReadMeasurements(brief.MeasurementJson);

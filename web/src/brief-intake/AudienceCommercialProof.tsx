@@ -1,8 +1,8 @@
-import type { AudienceSet } from '../api/planning-schemas'
+import type { AudienceStrategy } from '../api/planning-schemas'
 import { CommercialValueProof, type CommercialProofMetric } from '../components/CommercialValueProof'
 
 export function AudienceCommercialProof({ audience, approved }: {
-  audience: AudienceSet | null
+  audience: AudienceStrategy | null
   approved: boolean
 }) {
   if (!audience) return null

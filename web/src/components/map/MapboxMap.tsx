@@ -17,9 +17,13 @@ type Position = [number, number]
 type GeoJsonObject = Record<string, unknown>
 type MapGeoJsonData = Exclude<GeoJSONSourceSpecification['data'], string>
 type MapStatus = 'loading' | 'ready' | 'token-missing' | 'failed'
-type InspectFeature = { id: string; properties: { label: string; verified: boolean } }
+type InspectFeature = { id: string; properties: { label: string; verified: boolean; state?: string | null } }
 const spatialColor: ExpressionSpecification = ['case',
   ['!=', ['get', 'verified'], true], '#b7791f',
+  ['==', ['get', 'state'], 'Selected'], '#16b364',
+  ['==', ['get', 'state'], 'Eligible'], '#2089ff',
+  ['==', ['get', 'state'], 'Rejected'], '#b42318',
+  ['==', ['get', 'state'], 'Point of interest'], '#22bdd0',
   ['==', ['get', 'priority'], masterDataCodes.spatialRequirementPriorities.excluded], '#b42318',
   '#6038f5']
 
@@ -43,9 +47,7 @@ export function MapboxMap({ features, ariaLabel = 'Campaign geography map' }: {
   return <section className="advertified-map" aria-label={ariaLabel}>
     <MapInspector items={items} selected={selected} focus={id => { setSelectedId(id); focus(id) }} />
     <div className="advertified-map-canvas" ref={containerRef} />
-    {status === 'ready' && <div className="advertified-map-legend">
-      <span>Amber: needs verification</span><span>Purple: verified area</span>
-      <span>Red: verified exclusion</span></div>}
+    {status === 'ready' && <MapLegend items={items} />}
     {status === 'loading' && <MapMessage>Loading campaign map…</MapMessage>}
     {status === 'token-missing' && <MapMessage>
       Map preview is unavailable. You can continue using the geography fields.
@@ -156,6 +158,22 @@ function MapMessage({ children }: { children: ReactNode }) {
   return <div className="advertified-map-message">{children}</div>
 }
 
+function MapLegend({ items }: { items: InspectFeature[] }) {
+  const states = new Set(items.map(item => item.properties.state).filter(Boolean))
+  if (states.has('Selected') || states.has('Eligible') || states.has('Rejected')) {
+    return <div className="advertified-map-legend">
+      {states.has('Selected') && <span>Green: selected media</span>}
+      {states.has('Eligible') && <span>Blue: eligible media</span>}
+      {states.has('Rejected') && <span>Red: rejected media</span>}
+      {states.has('Point of interest') && <span>Cyan: point of interest</span>}
+    </div>
+  }
+  return <div className="advertified-map-legend">
+    <span>Amber: needs verification</span><span>Purple: verified area</span>
+    <span>Red: verified exclusion</span>
+  </div>
+}
+
 function featureCollection(features: MapFeature[]) {
   const budget = { remainingPoints: 20_000 }
   // A Brief admits 100 requirements; each point-radius contributes a point and an overlay.
@@ -165,7 +183,7 @@ function featureCollection(features: MapFeature[]) {
       type: 'Feature' as const,
       id: feature.id ?? `spatial-${index}`,
       properties: { label: feature.label ?? '', featureId: feature.id ?? `spatial-${index}`, verified: feature.properties?.verified === true,
-        priority: feature.properties?.priority ?? null },
+        priority: feature.properties?.priority ?? null, state: feature.properties?.state ?? null },
       geometry,
     }] : []
   })

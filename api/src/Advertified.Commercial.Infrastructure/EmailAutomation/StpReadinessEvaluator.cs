@@ -6,7 +6,7 @@ namespace Advertified.Commercial.Infrastructure.EmailAutomation;
 public sealed class StpReadinessEvaluator : IStpReadinessEvaluator
 {
     public StpReadinessView Evaluate(
-        AudienceDefinitionSetView strategy,
+        AudienceStrategyView strategy,
         decimal minimumConfidence)
     {
         if (minimumConfidence is < 0 or > 1)
@@ -47,12 +47,24 @@ public sealed class StpReadinessEvaluator : IStpReadinessEvaluator
             .Where(definitionsById.ContainsKey)
             .Select(id => definitionsById[id])
             .ToArray();
-        var lowestConfidence = targetDefinitions.Length == 0
-            ? 0m
-            : targetDefinitions.Min(item => item.Confidence);
-        if (lowestConfidence < minimumConfidence)
+        decimal? lowestConfidence = null;
+        var evidenceDependentTargets = targetDefinitions
+            .Where(item => item.Classification != MasterDataCodes.EvidenceClassifications.ClientRequirement)
+            .ToArray();
+        if (evidenceDependentTargets.Length > 0)
         {
-            reasons.Add("The target audience evidence is below the automatic-send confidence policy.");
+            if (evidenceDependentTargets.Any(item => item.Confidence is null))
+            {
+                reasons.Add("A derived target audience lacks retained evidence confidence, so automatic sending remains blocked.");
+            }
+            else
+            {
+                lowestConfidence = evidenceDependentTargets.Min(item => item.Confidence!.Value);
+                if (lowestConfidence < minimumConfidence)
+                {
+                    reasons.Add("The derived target audience evidence is below the automatic-send confidence policy.");
+                }
+            }
         }
 
         return new StpReadinessView(

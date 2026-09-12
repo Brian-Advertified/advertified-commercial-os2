@@ -150,6 +150,7 @@ internal sealed class OpportunityAgentFixture : IOpportunityAgentClient
             currency = (string?)null,
             vat_status = (string?)null,
             fees_minor = (long?)null,
+            media_requirements = Array.Empty<string>(),
             constraints,
             measurement = Array.Empty<string>(),
             facts = input.ApprovedEvidence.Select(item => item.Excerpt).ToArray(),

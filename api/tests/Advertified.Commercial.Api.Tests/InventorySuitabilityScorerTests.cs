@@ -78,7 +78,7 @@ public sealed class InventorySuitabilityScorerTests
         var inventory = new PlanningInventoryRow(
             InventoryTenantId: Guid.NewGuid(), MarketplaceListingVersionId: null,
             ProductId: Guid.NewGuid(), ProductVersionId: Guid.NewGuid(), SupplierId: Guid.NewGuid(),
-            Name: "Verified screen", Channel: "DOOH", ProductType: "DOOH_SCREEN", Geography: "Sandton",
+            SupplierName: "Verified supplier", Name: "Verified screen", Channel: "DOOH", ProductType: "DOOH_SCREEN", Geography: "Sandton",
             Latitude: null, Longitude: null, RateId: Guid.NewGuid(), RateType: "MONTH_RATE",
             Currency: "ZAR", RateAmountMinor: rate, EffectiveFrom: new(2026, 9, 1),
             EffectiveTo: new(2026, 10, 31), RateSource: "fixture:rate", AvailabilityId: Guid.NewGuid(),

@@ -94,6 +94,84 @@ public sealed partial class WorkerSchedulerStore(string connectionString)
         return result as string ?? EmailWorkerCompletion.Fenced;
     }
 
+    public async Task<ProposalReplanWorkerClaim?> ClaimProposalReplanAsync(
+        Guid workerId,
+        int leaseSeconds,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            """
+            SELECT replan_id, tenant_id, source_proposal_version_id,
+                inventory_tenant_id, replacement_release_id,
+                review_owner_user_id, triggered_by, affected_impact_ids_json,
+                attempt_number, source_generation, claim_token
+            FROM commercial.claim_next_proposal_replan(@worker_id, @lease_seconds)
+            """, connection);
+        command.Parameters.AddWithValue("worker_id", workerId);
+        command.Parameters.AddWithValue("lease_seconds", leaseSeconds);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        return await reader.ReadAsync(cancellationToken)
+            ? new ProposalReplanWorkerClaim(
+                reader.GetGuid(0), reader.GetGuid(1), reader.GetGuid(2),
+                reader.GetGuid(3), reader.GetGuid(4), reader.GetGuid(5),
+                reader.GetGuid(6), reader.GetString(7), reader.GetInt32(8),
+                reader.GetInt32(9), reader.GetGuid(10))
+            : null;
+    }
+
+    public async Task<bool> HeartbeatProposalReplanAsync(
+        Guid claimToken,
+        int leaseSeconds,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            "SELECT commercial.heartbeat_proposal_replan(@claim_token, @lease_seconds)",
+            connection);
+        command.Parameters.AddWithValue("claim_token", claimToken);
+        command.Parameters.AddWithValue("lease_seconds", leaseSeconds);
+        return await command.ExecuteScalarAsync(cancellationToken) is true;
+    }
+
+    public async Task<string> CompleteProposalReplanAsync(
+        Guid claimToken,
+        int sourceGeneration,
+        bool success,
+        string? proposedRevisionJson,
+        string? comparisonJson,
+        string? failureCode,
+        string? failureDetail,
+        int failureDelaySeconds,
+        int maxAttempts,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            """
+            SELECT commercial.complete_proposal_replan(
+                @claim_token, @source_generation, @success,
+                CAST(@proposed_revision_json AS jsonb),
+                CAST(@comparison_json AS jsonb), @failure_code, @failure_detail,
+                @failure_delay_seconds, @max_attempts)
+            """, connection);
+        command.Parameters.AddWithValue("claim_token", claimToken);
+        command.Parameters.AddWithValue("source_generation", sourceGeneration);
+        command.Parameters.AddWithValue("success", success);
+        command.Parameters.AddWithValue("proposed_revision_json",
+            proposedRevisionJson is null ? DBNull.Value : proposedRevisionJson);
+        command.Parameters.AddWithValue("comparison_json",
+            comparisonJson is null ? DBNull.Value : comparisonJson);
+        command.Parameters.AddWithValue("failure_code",
+            failureCode is null ? DBNull.Value : failureCode);
+        command.Parameters.AddWithValue("failure_detail",
+            failureDetail is null ? DBNull.Value : failureDetail);
+        command.Parameters.AddWithValue("failure_delay_seconds", failureDelaySeconds);
+        command.Parameters.AddWithValue("max_attempts", maxAttempts);
+        return await command.ExecuteScalarAsync(cancellationToken) as string ??
+            EmailWorkerCompletion.Fenced;
+    }
+
     public async Task<InventoryExtractionWorkerClaim?> ClaimInventoryExtractionAsync(
         Guid workerId,
         int leaseSeconds,
@@ -110,8 +188,7 @@ public sealed partial class WorkerSchedulerStore(string connectionString)
                 correlation_id, claim_token
             FROM commercial.claim_next_inventory_extraction_attempt(
                 @worker_id, @lease_seconds, @max_concurrency)
-            """,
-            connection);
+            """, connection);
         command.Parameters.AddWithValue("worker_id", workerId);
         command.Parameters.AddWithValue("lease_seconds", leaseSeconds);
         command.Parameters.AddWithValue("max_concurrency", maxConcurrency);

@@ -92,6 +92,18 @@ public sealed class MasterDataItem
         SortOrder = sortOrder;
         MetadataJson = metadataJson;
         EffectiveFrom = effectiveFrom;
+        EffectiveTo = null;
+        UpdatedAtUtc = changedAtUtc;
+    }
+
+    internal void Retire(
+        int retirementSortOrder,
+        DateOnly effectiveTo,
+        DateTimeOffset changedAtUtc)
+    {
+        IsActive = false;
+        SortOrder = retirementSortOrder;
+        EffectiveTo = effectiveTo;
         UpdatedAtUtc = changedAtUtc;
     }
 }

@@ -37,9 +37,6 @@ public static class SuppliedBriefFieldPaths
     public static bool IsSupported(string value) => Supported.Contains(value);
 }
 
-public sealed class SuppliedBriefInterpretationUnavailableException()
-    : Exception("Supplied-brief interpretation is not configured.");
-
 public sealed record UnderstandSuppliedBriefRequest(
     string SourceTitle,
     string SourceContent,
@@ -123,8 +120,6 @@ public sealed record SuppliedBriefAgentInput(
 
 public interface ISuppliedBriefAgentClient
 {
-    bool IsAvailable { get; }
-
     Task<SuppliedBriefUnderstandingView> UnderstandAsync(
         SuppliedBriefAgentInput input,
         CancellationToken cancellationToken);

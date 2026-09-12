@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Advertified.Commercial.Application.Commands;
 using Advertified.Commercial.Application.Foundation;
+using Advertified.Commercial.Application.Intelligence;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Domain.Constants;
 using Advertified.Commercial.Domain.MasterData;
@@ -17,9 +18,13 @@ public sealed partial class PlanningCommands(
     PlanningPolicy planningPolicy,
     CampaignModePolicy campaignModePolicy,
     CommercialPolicyRecordStore commercialPolicyStore,
-    IPlanningAgentClient planningAgent) : IPlanningCommands
+    IAudienceIntelligenceAgentClient audienceIntelligenceAgent) : IPlanningCommands
 {
     private static readonly JsonSerializerOptions StoredJson = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions BriefStoredJson = new(JsonSerializerDefaults.Web)
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    };
     private static readonly string[] UnconfirmedSupplyUncertainty =
         ["Supplier availability is not confirmed for the full flight."];
 
@@ -31,21 +36,21 @@ public sealed partial class PlanningCommands(
             token => SelectCampaignModeOutcomeAsync(briefVersionId, envelope, token),
             CommandOutcomeFactory.ToResult<CampaignModeSelectionView>, cancellationToken);
 
-    public Task<CommandResult<AudienceDefinitionSetView>> GenerateAudiencesAsync(
+    public Task<CommandResult<AudienceStrategyView>> GenerateAudiencesAsync(
         Guid briefVersionId,
         CommandEnvelope<GenerateAudiencesCommand> envelope,
         CancellationToken cancellationToken) => DispatchAsync(
             envelope, MasterDataReferences.Permissions.PlanGenerate,
             token => GenerateAudiencesOutcomeAsync(briefVersionId, envelope, token),
-            CommandOutcomeFactory.ToResult<AudienceDefinitionSetView>, cancellationToken);
+            CommandOutcomeFactory.ToResult<AudienceStrategyView>, cancellationToken);
 
-    public Task<CommandResult<AudienceDefinitionSetView>> ApproveAudienceStrategyAsync(
-        Guid audienceSetId,
+    public Task<CommandResult<AudienceStrategyView>> ApproveAudienceStrategyAsync(
+        Guid audienceArtifactId,
         CommandEnvelope<ApproveAudienceStrategyCommand> envelope,
         CancellationToken cancellationToken) => DispatchAsync(
             envelope, MasterDataReferences.Permissions.PlanApprove,
-            token => ApproveAudienceStrategyOutcomeAsync(audienceSetId, envelope, token),
-            CommandOutcomeFactory.ToResult<AudienceDefinitionSetView>, cancellationToken);
+            token => ApproveAudienceStrategyOutcomeAsync(audienceArtifactId, envelope, token),
+            CommandOutcomeFactory.ToResult<AudienceStrategyView>, cancellationToken);
 
     public Task<CommandResult<MediaMixVersionView>> GenerateMediaMixAsync(
         Guid briefVersionId,
@@ -130,6 +135,10 @@ public sealed partial class PlanningCommands(
     private static T Read<T>(string json) =>
         JsonSerializer.Deserialize<T>(json, StoredJson)
         ?? throw new InvalidOperationException("Stored planning JSON is invalid.");
+
+    private static T ReadBrief<T>(string json) =>
+        JsonSerializer.Deserialize<T>(json, BriefStoredJson)
+        ?? throw new InvalidOperationException("Stored Brief JSON is invalid.");
 
     private static string Write<T>(T value) => JsonSerializer.Serialize(value, StoredJson);
 }

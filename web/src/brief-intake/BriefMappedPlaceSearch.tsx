@@ -18,9 +18,8 @@ export function BriefMappedPlaceSearch({ onSelect }: { onSelect: (value: Partial
     try {
       const response = await discoverPlaces(selected.tenantId, query.trim())
       if (current !== requestId.current) return
-      setPlaces(response.places)
-      setMessage(!response.available ? placeCopy.providerUnavailable
-        : response.places.length ? placeCopy.chooseMapped : placeCopy.noMappedResults)
+      setPlaces(response)
+      setMessage(response.length ? placeCopy.chooseMapped : placeCopy.noMappedResults)
     } catch { if (current === requestId.current) setMessage(placeCopy.searchError) }
     finally { if (current === requestId.current) setBusy(false) }
   }

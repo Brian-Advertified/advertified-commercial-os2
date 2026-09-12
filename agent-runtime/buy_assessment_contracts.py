@@ -21,8 +21,8 @@ class InventoryDigitalExposureFacts(ContractModel):
 
 class PlannerAudienceContextFacts(ContractModel):
     name: str
-    need_state: str
-    buying_context: str
+    need_state: str | None = None
+    buying_context: str | None = None
 
 
 class InventoryPlannerReasoningFacts(ContractModel):

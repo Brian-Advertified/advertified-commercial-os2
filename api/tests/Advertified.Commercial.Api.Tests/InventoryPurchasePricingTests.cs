@@ -3,7 +3,9 @@ using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.CommercialSettings;
+using Advertified.Commercial.Infrastructure.Opportunity;
 using Advertified.Commercial.Infrastructure.Planning;
+using Microsoft.AspNetCore.Hosting;
 using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
@@ -18,7 +20,19 @@ public sealed class InventoryPurchasePricingTests
     public async Task PurchaseContractAndMigrationAreExportedFromCompiledSource()
     {
         await using var factory = new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder => builder.UseDeterministicInventoryProtection());
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseDeterministicInventoryProtection();
+                builder.UseSetting("AgentRuntime:Mode", AgentRuntimeOptions.HttpDeterministicMode);
+                builder.UseSetting("AgentRuntime:BaseUrl", "http://agent-runtime.test");
+                builder.UseSetting("AgentRuntime:ServiceKey", "purchase-pricing-test-only");
+                builder.UseSetting("AgentRuntime:Provider", AgentRuntimeOptions.DeterministicProvider);
+                builder.UseSetting("AgentRuntime:DefaultModel", "fixture-v1");
+                builder.UseSetting("AgentRuntime:DefaultCostCapMinor", "0");
+                builder.UseSetting("AgentRuntime:CostCapsMinor:media_strategy", "0");
+                builder.UseSetting("AgentRuntime:AllowLive", "false");
+                builder.UseSetting("AgentRuntime:MaxAttempts", "1");
+            });
         using var client = factory.CreateClient();
         var json = await client.GetStringAsync("/swagger/v1/swagger.json");
         using var document = JsonDocument.Parse(json);
@@ -106,7 +120,7 @@ public sealed class InventoryPurchasePricingTests
     {
         var terms = new InventoryCommercialTermsValues(null, null, null, production, installation, minimum,
             null, ["Supplier-defined deliverable"], [], [], null, null, null, null, billingDays);
-        return new(Guid.NewGuid(), null, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Synthetic placement",
+        return new(Guid.NewGuid(), null, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Synthetic supplier", "Synthetic placement",
             MasterDataCodes.Channels.Digital, MasterDataCodes.InventoryProductTypes.DigitalPlacement,
             "Gauteng", null, null, Guid.NewGuid(), basis, MasterDataCodes.Currencies.Zar, 10000,
             new(2026, 1, 1), new(2026, 12, 31), "synthetic:rate", null,

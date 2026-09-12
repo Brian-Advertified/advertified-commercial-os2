@@ -55,7 +55,7 @@ public sealed class CampaignScenarioClassifierTests
     }
 
     private static CampaignCombinationView Alternative(long cost, decimal? reach, decimal? frequency) => new(
-        [Guid.NewGuid()], cost, "ZAR", [], [], [], AudienceForecast: new(
+        [Guid.NewGuid()], cost, cost, "ZAR", [], [], [], AudienceForecast: new(
             GrossReach: reach, DeduplicatedReach: reach, DuplicatedReach: 0,
             TotalImpressions: reach.HasValue && frequency.HasValue ? reach * frequency : null,
             AverageFrequency: frequency, Universe: reach.HasValue ? "Target audience" : null,

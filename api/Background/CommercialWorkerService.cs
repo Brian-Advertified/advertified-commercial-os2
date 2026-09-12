@@ -29,7 +29,8 @@ public sealed partial class CommercialWorkerService(
                     await ProcessOutboxAsync(stoppingToken);
                 var emailProcessed = emailAutomation.Value.Mode != EmailAutomationOptions.DisabledMode &&
                     await ProcessEmailAsync(stoppingToken);
-                if (!outboxProcessed && !emailProcessed)
+                var replanProcessed = await ProcessProposalReplanAsync(stoppingToken);
+                if (!outboxProcessed && !emailProcessed && !replanProcessed)
                 {
                     await Task.Delay(
                         options.Value.PollInterval,

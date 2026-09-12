@@ -8,8 +8,8 @@ public sealed record GenerateAudiencesCommand;
 
 public sealed record ApproveAudienceStrategyCommand(
     IReadOnlyList<Guid> TargetAudienceIds,
-    string TargetingRationale,
-    string PositioningStatement,
+    string? TargetingRationale,
+    string? PositioningStatement,
     string? Reason);
 
 public sealed record GenerateMediaMixCommand;
@@ -52,13 +52,13 @@ public interface IPlanningCommands
         CommandEnvelope<SelectCampaignModeCommand> envelope,
         CancellationToken cancellationToken);
 
-    Task<CommandResult<AudienceDefinitionSetView>> GenerateAudiencesAsync(
+    Task<CommandResult<AudienceStrategyView>> GenerateAudiencesAsync(
         Guid briefVersionId,
         CommandEnvelope<GenerateAudiencesCommand> envelope,
         CancellationToken cancellationToken);
 
-    Task<CommandResult<AudienceDefinitionSetView>> ApproveAudienceStrategyAsync(
-        Guid audienceSetId,
+    Task<CommandResult<AudienceStrategyView>> ApproveAudienceStrategyAsync(
+        Guid audienceArtifactId,
         CommandEnvelope<ApproveAudienceStrategyCommand> envelope,
         CancellationToken cancellationToken);
 

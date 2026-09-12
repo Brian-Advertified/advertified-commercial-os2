@@ -2,14 +2,16 @@ import type { ZodType } from 'zod'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { request } from './client'
 import {
-  audienceSetSchema,
+  audienceStrategySchema,
+  inventoryIntelligenceArtifactSchema,
+  inventoryIntelligencePayloadSchema,
   mediaMixSchema,
   mediaPlanSchema,
   campaignModeSchema,
   planningSummariesSchema,
   planningWorkspaceSchema,
   shortlistSchema,
-  type AudienceSet,
+  type AudienceStrategy,
   type MediaAllocation,
   type MediaMix,
   type MediaPlan,
@@ -86,12 +88,12 @@ export const planningApi = {
   generateAudiences(tenantId: string, briefVersionId: string, token: string) {
     return create(
       `/api/v1/tenants/${tenantId}/brief-versions/${briefVersionId}/audiences:generate`,
-      audienceSetSchema, token)
+      audienceStrategySchema, token)
   },
 
   approveAudience(
     tenantId: string,
-    audience: AudienceSet,
+    audience: AudienceStrategy,
     targetAudienceIds: string[],
     targetingRationale: string,
     positioningStatement: string,
@@ -99,7 +101,7 @@ export const planningApi = {
   ) {
     return mutate(
       `/api/v1/tenants/${tenantId}/audience-strategies/${audience.id}:approve`,
-      audienceSetSchema,
+      audienceStrategySchema,
       { targetAudienceIds, targetingRationale, positioningStatement,
         reason: 'Audience strategy reviewed and approved for media planning.' },
       token, audience.version)
@@ -149,6 +151,17 @@ export const planningApi = {
       shortlistSchema,
       { selectedCandidateIds, reason },
       token, shortlist.version)
+  },
+
+  async explainShortlist(tenantId: string, shortlistId: string, token: string) {
+    const artifact = (await request(
+      `/api/v1/tenants/${tenantId}/shortlist-versions/${shortlistId}/intelligence/inventory`,
+      inventoryIntelligenceArtifactSchema,
+      { method: 'POST' },
+      { antiforgeryToken: token },
+    )).data
+    const payload = inventoryIntelligencePayloadSchema.parse(JSON.parse(artifact.artifactJson))
+    return { artifact, interpretations: payload.interpretations }
   },
 
   generatePlan(tenantId: string, briefVersionId: string, token: string): Promise<MediaPlan> {

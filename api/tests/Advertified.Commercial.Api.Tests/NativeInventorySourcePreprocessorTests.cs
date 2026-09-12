@@ -21,12 +21,18 @@ public sealed class NativeInventorySourcePreprocessorTests
         var packets = InventorySemanticPacketBuilder.BuildTranscription(
             extraction, Codes(), Settings());
 
-        Assert.Equal(2, extraction.Document.SourceElements?.Count);
+        var elements = Assert.IsAssignableFrom<IReadOnlyList<InventoryExtractedSourceElement>>(
+            extraction.Document.SourceElements);
+        Assert.Equal(4, elements.Count);
+        Assert.Equal("csv:row=2;column=1", elements[2].Locator);
+        Assert.Equal("Alpha", elements[2].RawValue);
+        Assert.Equal("csv:row=2;column=2", elements[3].Locator);
+        Assert.Equal("1250", elements[3].RawValue);
         Assert.Single(packets);
         Assert.Equal(InventorySemanticOperations.SourceTranscription,
             packets[0].Operation);
-        Assert.Contains("Alpha,1250", packets[0].RequestJson,
-            StringComparison.Ordinal);
+        Assert.Contains("Alpha", packets[0].RequestJson, StringComparison.Ordinal);
+        Assert.Contains("1250", packets[0].RequestJson, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -54,9 +60,15 @@ public sealed class NativeInventorySourcePreprocessorTests
         var result = Process("rates.xlsx", "application/xlsx",
             MasterDataCodes.DocumentClasses.Xlsx, bytes);
 
-        var element = Assert.Single(result.Document.SourceElements!);
-        Assert.Equal("xlsx:sheet=1;row=7", element.Locator);
-        Assert.Equal("B7=Johannesburg | C7=900", element.RawValue);
+        var elements = Assert.IsAssignableFrom<IReadOnlyList<InventoryExtractedSourceElement>>(
+            result.Document.SourceElements);
+        Assert.Equal(2, elements.Count);
+        Assert.Equal("xlsx:sheet=1;cell=B7", elements[0].Locator);
+        Assert.Equal(2, elements[0].Column);
+        Assert.Equal("Johannesburg", elements[0].RawValue);
+        Assert.Equal("xlsx:sheet=1;cell=C7", elements[1].Locator);
+        Assert.Equal(3, elements[1].Column);
+        Assert.Equal("900", elements[1].RawValue);
     }
 
     [Fact]

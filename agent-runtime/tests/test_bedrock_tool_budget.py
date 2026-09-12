@@ -37,7 +37,7 @@ def invoke(monkeypatch, client, schema, cap):
     monkeypatch.setenv(bedrock_provider.MAX_TOKENS_KEY, "4096")
     messages = [{"role": "user", "content": [{"text": "supplied input"}]}]
     monkeypatch.setattr(bedrock_provider, "_request_context", lambda *_: (client, messages))
-    return _invoke_bedrock(AgentCode.AUDIENCE, None, "Propose grounded candidates", schema,
+    return _invoke_bedrock(AgentCode.AUDIENCE_INTELLIGENCE, None, "Propose grounded candidates", schema,
         SimpleNamespace(run_id="run", step_id="step"),
         SimpleNamespace(model="fixture", cost_cap_minor=cap),
         BedrockPricing(input_per_million_usd=Decimal(1), output_per_million_usd=Decimal(1)), None)

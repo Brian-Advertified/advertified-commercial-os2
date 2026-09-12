@@ -1,6 +1,7 @@
 using Advertified.Commercial.Api.Authentication;
 using Advertified.Commercial.Infrastructure.EmailAutomation;
 using Advertified.Commercial.Infrastructure.Inventory;
+using Advertified.Commercial.Infrastructure.LocationIntelligence;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Advertified.Commercial.Infrastructure.Outbox;
 
@@ -8,6 +9,11 @@ namespace Advertified.Commercial.Api.Startup;
 
 internal static class StartupConfigurationValidator
 {
+    private const string PrivateAgentRuntimeHost = "agent-runtime";
+    private const int PrivateAgentRuntimePort = 8080;
+    private const string PublicNominatimHost = "nominatim.openstreetmap.org";
+    private const string PublicOverpassHost = "overpass-api.de";
+
     internal static string ValidateAndGetConnectionString(
         WebApplicationBuilder builder,
         ProcessRoleOptions processRole,
@@ -59,6 +65,7 @@ internal static class StartupConfigurationValidator
         EnsureHttpEdge(configuration);
         if (!releaseSmoke)
         {
+            EnsureProductionLocationIntelligence(configuration);
             EnsureCompleteProductionServices(
                 configuration, agentRuntime, inventoryExtraction, emailAutomation);
         }
@@ -86,29 +93,86 @@ internal static class StartupConfigurationValidator
             throw new InvalidOperationException(
                 "Development-only agent runtime modes are restricted to development and test.");
         }
-        if (agentRuntime.UsesHttp && !SafeHttps(agentRuntime.BaseUrl))
+        if (agentRuntime.UsesHttp && !HasSafeAgentRuntimeTransport(agentRuntime.BaseUrl))
         {
             throw new InvalidOperationException(
-                "Non-local agent runtime transport must use an HTTPS URL without embedded credentials.");
+                "Agent runtime transport must use HTTPS unless it is the exact private production Compose service endpoint.");
         }
+    }
+
+    internal static bool HasSafeAgentRuntimeTransport(string value) =>
+        SafeHttps(value) || SafePrivateAgentRuntime(value);
+
+    private static bool SafePrivateAgentRuntime(string value)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+        return uri.Scheme == Uri.UriSchemeHttp &&
+            string.Equals(uri.Host, PrivateAgentRuntimeHost, StringComparison.Ordinal) &&
+            uri.Port == PrivateAgentRuntimePort &&
+            string.IsNullOrEmpty(uri.UserInfo) &&
+            uri.AbsolutePath == "/" &&
+            string.IsNullOrEmpty(uri.Query) &&
+            string.IsNullOrEmpty(uri.Fragment);
     }
 
     private static void EnsureInventoryProtection(
         InventoryProtectionOptions inventoryProtection)
     {
-        if (inventoryProtection.ObjectStoreMode == InventoryProtectionOptions.InMemoryMode ||
-            inventoryProtection.ScannerMode == InventoryProtectionOptions.DeterministicScanner)
+        if (inventoryProtection.ObjectStoreMode != InventoryProtectionOptions.AwsS3Mode)
         {
             throw new InvalidOperationException(
-                "Deterministic inventory protection is restricted to development and test.");
+                "Production file protection requires private AWS S3 object storage.");
         }
-        if (inventoryProtection.ObjectStoreMode == InventoryProtectionOptions.MinioMode &&
-            !inventoryProtection.UseTls)
+        if (inventoryProtection.ScannerMode != InventoryProtectionOptions.ExternalVerdictScanner)
         {
             throw new InvalidOperationException(
-                "Production S3-compatible object storage must require TLS.");
+                "Production file protection requires the governed external malware-verdict mode.");
         }
     }
+
+    private static void EnsureProductionLocationIntelligence(
+        ConfigurationManager configuration)
+    {
+        var discoveryEndpoint = configuration[$"{LocationDiscoveryOptions.SectionName}:Endpoint"];
+        var discoveryUserAgent = configuration[$"{LocationDiscoveryOptions.SectionName}:UserAgent"];
+        var poiEndpoint = configuration[$"{PoiDiscoveryOptions.SectionName}:Endpoint"];
+        var poiUserAgent = configuration[$"{PoiDiscoveryOptions.SectionName}:UserAgent"];
+
+        if (!HasSafeProductionLocationEndpoint(discoveryEndpoint, PublicNominatimHost) ||
+            !HasSafeProviderUserAgent(discoveryUserAgent))
+        {
+            throw new InvalidOperationException(
+                "Production location discovery requires an explicit non-public HTTPS Nominatim-compatible provider and user agent.");
+        }
+        if (!HasSafeProductionLocationEndpoint(poiEndpoint, PublicOverpassHost) ||
+            !HasSafeProviderUserAgent(poiUserAgent))
+        {
+            throw new InvalidOperationException(
+                "Production POI discovery requires an explicit non-public HTTPS Overpass-compatible provider and user agent.");
+        }
+    }
+
+    internal static bool HasSafeProductionLocationEndpoint(
+        string? value,
+        string publicServiceHost)
+    {
+        if (string.IsNullOrWhiteSpace(value) ||
+            !Uri.TryCreate(value, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+        return uri.Scheme == Uri.UriSchemeHttps &&
+            string.IsNullOrEmpty(uri.UserInfo) &&
+            !string.Equals(uri.Host, publicServiceHost, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasSafeProviderUserAgent(string? value) =>
+        !string.IsNullOrWhiteSpace(value) &&
+        !value.Contains('\r') &&
+        !value.Contains('\n');
 
     private static void EnsureHttpEdge(ConfigurationManager configuration)
     {
@@ -147,18 +211,14 @@ internal static class StartupConfigurationValidator
             throw new InvalidOperationException(
                 "Production AI must use the governed live Bedrock HTTP runtime.");
         }
-        if (inventoryExtraction.Mode ==
-                InventoryExtractionOptions.DeterministicMode &&
+        if (inventoryExtraction.Mode != InventoryExtractionOptions.NativeMode ||
+            configuration.GetValue<bool>(
+                $"{InventoryProcessingOptions.SectionName}:Paused") ||
             !configuration.GetValue<bool>(
-                $"{InventoryProcessingOptions.SectionName}:Paused"))
+                $"{InventorySemanticOptions.SectionName}:Enabled"))
         {
             throw new InvalidOperationException(
-                "Production inventory extraction must remain paused until the governed Nova Lite source-transcription route is enabled.");
-        }
-        if (configuration[SuppliedBriefConfiguration.ModeKey] != SuppliedBriefConfiguration.Http)
-        {
-            throw new InvalidOperationException(
-                "Production supplied-Brief understanding must use the HTTP agent runtime.");
+                "Production inventory processing requires native source preprocessing, governed semantic extraction, and an unpaused worker.");
         }
         if (emailAutomation.Mode != EmailAutomationOptions.ResendMode || emailAutomation.ProcessInline)
         {

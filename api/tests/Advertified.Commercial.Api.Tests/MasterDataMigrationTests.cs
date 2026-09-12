@@ -1,6 +1,7 @@
 using Advertified.Commercial.DatabaseMigrator;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Migrations;
+using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -53,7 +54,20 @@ public sealed class MasterDataMigrationTests
             "202609080015_PublicInventoryUnits",
             "202609080016_InventoryDecisionPagination",
             "202609080017_CanonicalInventoryOutletIdentity",
-            "202609080018_InventoryResearchEnrichment"],
+            "202609080018_InventoryResearchEnrichment",
+            "202609090001_PlanningBusinessProof",
+            "202609090002_PlanSupplierProof",
+            "202609100003_CommercialIntelligenceKernel",
+            "202609100004_BriefMediaRequirements",
+            "202609100005_RetireLegacyAvailabilityUnknown",
+            "202609100006_RemoveDeadShortlistAgentInterpreted",
+            "202609110007_AcceptedSupplierQuoteBookingLineage",
+            "202609110008_ProposalReplanRevisions",
+            "202609110009_ProposalReplanSourceGeneration",
+            "202609120010_EmailAutomationProgressAttempts",
+            "202609120011_OpportunityDuplicateRejection",
+            "202609120012_ManualPartnerFunding",
+            "202609120013_MasterDataRegistryEvolution"],
             applied.AppliedMigrations);
         var first = applied.MasterData;
         var repeated = await operation.ApplyAsync(postgres.GetConnectionString());
@@ -69,6 +83,13 @@ public sealed class MasterDataMigrationTests
                 WHERE table_schema = 'commercial'
                   AND table_name = 'inventory_rates'
                   AND column_name = 'variant_json') AS "Value"
+            """).SingleAsync());
+        Assert.False(await dbContext.Database.SqlQueryRaw<bool>("""
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'commercial'
+                  AND table_name = 'inventory_shortlist_candidates'
+                  AND column_name = 'agent_interpreted') AS "Value"
             """).SingleAsync());
 
         Assert.Equal(first, second);
@@ -134,6 +155,15 @@ public sealed class MasterDataMigrationTests
             .WithWebHostBuilder(builder =>
             {
                 builder.UseDeterministicInventoryProtection();
+                builder.UseSetting("AgentRuntime:Mode", AgentRuntimeOptions.HttpDeterministicMode);
+                builder.UseSetting("AgentRuntime:BaseUrl", "http://agent-runtime.test");
+                builder.UseSetting("AgentRuntime:ServiceKey", "master-data-test-only");
+                builder.UseSetting("AgentRuntime:Provider", AgentRuntimeOptions.DeterministicProvider);
+                builder.UseSetting("AgentRuntime:DefaultModel", "fixture-v1");
+                builder.UseSetting("AgentRuntime:DefaultCostCapMinor", "0");
+                builder.UseSetting("AgentRuntime:CostCapsMinor:media_strategy", "0");
+                builder.UseSetting("AgentRuntime:AllowLive", "false");
+                builder.UseSetting("AgentRuntime:MaxAttempts", "1");
                 builder.ConfigureAppConfiguration((_, configuration) =>
                     configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {

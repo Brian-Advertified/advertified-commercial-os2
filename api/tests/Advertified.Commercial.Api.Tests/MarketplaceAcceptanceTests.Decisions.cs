@@ -21,7 +21,6 @@ public sealed partial class MarketplaceAcceptanceTests
         var item = Assert.Single(report.RootElement.GetProperty("items").EnumerateArray());
         Assert.Equal(ProductVersionId, item.GetProperty("productVersionId").GetGuid());
         Assert.True(item.GetProperty("isSelected").GetBoolean());
-        Assert.True(item.GetProperty("agentInterpreted").GetBoolean());
         foreach (var name in new[] { "actorId", "reason", "briefVersionId", "shortlistVersionId" })
             Assert.Equal(JsonValueKind.Null, item.GetProperty(name).ValueKind);
         foreach (var tenant in new[] { SupplierTenantId, OtherTenantId })

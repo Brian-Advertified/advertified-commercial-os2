@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Net;
 using System.Text.Json;
+using Advertified.Commercial.Application.Intelligence;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Application.Measurement;
@@ -66,20 +67,25 @@ public sealed partial class MarketplaceAcceptanceTests
             builder.UseSetting("Authentication:DevelopmentIdentity:UserId", userId.ToString());
             builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", userId.ToString());
             builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
-            builder.UseSetting("AgentRuntime:Mode", "Disabled");
             builder.UseSetting("EmailAutomation:Mode", "Deterministic");
             builder.UseSetting("EmailAutomation:SenderAddress", "proposals@advertified.test");
-            builder.UseDeterministicInventoryProtection();
+            builder.UseSetting("RateLimits:HeavyWorkPermitLimit", "200");
+            builder.UseSetting("RateLimits:BusinessMutationPermitLimit", "500");
+            builder.UseDeterministicTestDependencies();
             builder.UseSetting("Logging:LogLevel:Default", "Warning");
             builder.ConfigureLogging(logging => logging.AddConsole());
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<TimeProvider>();
                 services.AddSingleton<TimeProvider>(clock);
-                services.RemoveAll<IPlanningAgentClient>();
+                services.RemoveAll<IAudienceIntelligenceAgentClient>();
                 services.AddScoped<
-                    IPlanningAgentClient,
-                    PlanningAgentFixture>();
+                    IAudienceIntelligenceAgentClient,
+                    AudienceIntelligenceAgentFixture>();
+                services.RemoveAll<IMediaStrategyIntelligenceAgentClient>();
+                services.AddScoped<
+                    IMediaStrategyIntelligenceAgentClient,
+                    MediaStrategyIntelligenceAgentFixture>();
                 services.RemoveAll<IProposalNarrativeClient>();
                 services.AddScoped<IProposalNarrativeClient>(_ =>
                     new ProposalNarrativeFixture(

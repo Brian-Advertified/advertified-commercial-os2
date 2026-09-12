@@ -274,6 +274,20 @@ public sealed record ProposalDecisionView(
     string? ExternalPartyEmail,
     string? EvidenceReference);
 
+public sealed record ProposalCampaignContextView(
+    string BusinessProblem,
+    string Objective,
+    IReadOnlyList<string> TargetAudiences,
+    string? TargetingRationale,
+    string? PositioningStatement,
+    IReadOnlyList<string> Geographies,
+    IReadOnlyList<string> SuccessMeasures,
+    bool AudienceDirectionConsistent,
+    int InventoryOptionsEvaluated = 0,
+    int EligibleInventoryOptions = 0,
+    int SuppliersEvaluated = 0,
+    int SelectedPlacements = 0);
+
 public sealed record ProposalVersionView(
     Guid Id,
     Guid BriefId,
@@ -301,7 +315,8 @@ public sealed record ProposalVersionView(
     IReadOnlyList<ProposalInventoryImpactView> InventoryImpacts,
     ProposalBrandingView Branding,
     long Version,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    ProposalCampaignContextView? CampaignContext = null);
 
 public sealed record ProposalDocumentContent(
     Guid Id,

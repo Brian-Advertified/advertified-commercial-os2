@@ -81,12 +81,17 @@ internal static partial class InventorySupplierReleasePublication
             dbContext, tenantId, supplierId, importId, publishedBy,
             now, cancellationToken);
 
-        return release.PreviousReleaseId.HasValue
-            ? await RegisterProposalImpactsAsync(
-                dbContext, tenantId, supplierId,
-                release.PreviousReleaseId.Value, release.ReleaseId,
-                publishedBy, now, cancellationToken)
-            : 0;
+        if (!release.PreviousReleaseId.HasValue)
+            return 0;
+        var impactCount = await RegisterProposalImpactsAsync(
+            dbContext, tenantId, supplierId,
+            release.PreviousReleaseId.Value, release.ReleaseId,
+            publishedBy, now, cancellationToken);
+        if (impactCount > 0)
+            await RegisterProposalReplansAsync(
+                dbContext, tenantId, supplierId, release.ReleaseId,
+                publishedBy, now, cancellationToken);
+        return impactCount;
     }
 
     private static async Task SupersedeCurrentReleaseAsync(
@@ -140,11 +145,6 @@ internal static partial class InventorySupplierReleasePublication
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        await LinkReplacementVersionsAsync(
-            dbContext, tenantId, previousReleaseId, replacementReleaseId,
-            now, cancellationToken);
-        await MarkRemainingVersionsAndPackagesAsync(
-            dbContext, tenantId, previousReleaseId, now, cancellationToken);
         await ArchiveSupersededListingsAsync(
             dbContext, tenantId, previousReleaseId, replacementReleaseId,
             now, cancellationToken);
@@ -152,49 +152,6 @@ internal static partial class InventorySupplierReleasePublication
             dbContext, tenantId, supplierId, previousReleaseId,
             replacementReleaseId, now, cancellationToken);
     }
-
-    private static Task<int> LinkReplacementVersionsAsync(
-        GovernanceDbContext dbContext,
-        TenantId tenantId,
-        Guid previousReleaseId,
-        Guid replacementReleaseId,
-        DateTimeOffset now,
-        CancellationToken cancellationToken) =>
-        dbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            UPDATE commercial.inventory_product_versions previous
-            SET superseded_by_version_id = replacement.id,
-                superseded_at_utc = {now}
-            FROM commercial.inventory_products product
-            JOIN commercial.inventory_product_versions replacement
-              ON replacement.tenant_id = product.tenant_id
-             AND replacement.id = product.current_version_id
-            WHERE previous.tenant_id = {tenantId.Value}
-              AND previous.inventory_release_id = {previousReleaseId}
-              AND previous.product_id = product.id
-              AND product.current_release_id = {replacementReleaseId}
-              AND replacement.inventory_release_id = {replacementReleaseId}
-              AND previous.superseded_at_utc IS NULL
-            """, cancellationToken);
-
-    private static Task<int> MarkRemainingVersionsAndPackagesAsync(
-        GovernanceDbContext dbContext,
-        TenantId tenantId,
-        Guid previousReleaseId,
-        DateTimeOffset now,
-        CancellationToken cancellationToken) =>
-        dbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            UPDATE commercial.inventory_product_versions
-            SET superseded_at_utc = {now}
-            WHERE tenant_id = {tenantId.Value}
-              AND inventory_release_id = {previousReleaseId}
-              AND superseded_at_utc IS NULL;
-
-            UPDATE commercial.inventory_packages
-            SET superseded_at_utc = {now}
-            WHERE tenant_id = {tenantId.Value}
-              AND inventory_release_id = {previousReleaseId}
-              AND superseded_at_utc IS NULL;
-            """, cancellationToken);
 
     private static Task<int> ArchiveSupersededListingsAsync(
         GovernanceDbContext dbContext,
@@ -272,6 +229,20 @@ internal static partial class InventorySupplierReleasePublication
             SELECT commercial.register_supplier_inventory_replacement_impacts(
                 {tenantId.Value}, {supplierId}, {previousReleaseId},
                 {replacementReleaseId}, {actorId}, {now}) AS "Value"
+            """).SingleAsync(cancellationToken);
+
+    private static Task<int> RegisterProposalReplansAsync(
+        GovernanceDbContext dbContext,
+        TenantId tenantId,
+        Guid supplierId,
+        Guid replacementReleaseId,
+        Guid actorId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<int>($"""
+            SELECT commercial.register_supplier_inventory_replan_work(
+                {tenantId.Value}, {supplierId}, {replacementReleaseId},
+                {actorId}, {now}) AS "Value"
             """).SingleAsync(cancellationToken);
 
     private sealed record CurrentInventoryReleaseRow(

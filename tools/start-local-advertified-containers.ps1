@@ -1,50 +1,50 @@
+param(
+    [switch]$BackendOnly,
+    [switch]$IncludeOptionalInfrastructure
+)
+
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$infra = @(
-    'advertified-os2-dev-postgres-1',
-    'advertified-os2-dev-minio-1',
-    'advertified-os2-dev-clamav-1',
-    'advertified-os2-dev-redis-1',
-    'advertified-os2-dev-mailhog-1'
-)
-$app = @(
-    'advertified-os2-dev-agent-runtime-1',
-    'advertified-os2-dev-api-1',
-    'advertified-os2-dev-web-1'
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $PSScriptRoot 'advertified-compose.ps1')
+$composeFiles = @(
+    'infrastructure/docker-compose.yml',
+    'infrastructure/docker-compose.app.yml'
 )
 
-function Assert-ContainerExists([string]$Name) {
-    & docker container inspect $Name *> $null
-    if ($LASTEXITCODE -ne 0) { throw "Expected local Advertified container is missing: $Name" }
-}
+Push-Location $repoRoot
+try {
+    Assert-AdvertifiedComposeProject -RequireExisting
 
-function Start-Existing([string]$Name) {
-    Assert-ContainerExists $Name
-    & docker start $Name | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Failed to start $Name" }
-}
+    $entryService = if ($BackendOnly) { 'api' } else { 'web' }
+    Invoke-AdvertifiedCompose $composeFiles @('up', '--detach', '--no-build', $entryService)
 
-function Wait-ContainerReady([string]$Name) {
-    for ($attempt = 1; $attempt -le 90; $attempt++) {
-        $state = (& docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' $Name).Trim()
-        if ($LASTEXITCODE -eq 0 -and ($state -eq 'healthy' -or $state -eq 'running')) {
-            Write-Host "$Name is $state."
-            return
-        }
-        if ($state -eq 'unhealthy' -or $state -eq 'exited' -or $state -eq 'dead') {
-            throw "$Name entered state $state while restoring the local stack."
-        }
-        Start-Sleep -Seconds 2
+    if ($IncludeOptionalInfrastructure) {
+        Invoke-AdvertifiedCompose $composeFiles @(
+            'up', '--detach', '--no-build', '--no-deps', 'redis', 'mailhog')
     }
-    throw "Timed out waiting for $Name to become ready."
-}
 
-foreach ($name in $infra) { Start-Existing $name }
-foreach ($name in $infra) { Wait-ContainerReady $name }
-foreach ($name in $app) {
-    Start-Existing $name
-    Wait-ContainerReady $name
-}
+    $required = if ($BackendOnly) {
+        @('postgres', 'agent-runtime', 'minio', 'api')
+    }
+    else {
+        @('postgres', 'agent-runtime', 'minio', 'api', 'web')
+    }
 
-Write-Host 'Advertified local containers restored without running migrator or development seed.'
+    foreach ($service in $required) {
+        Wait-AdvertifiedService $composeFiles $service
+    }
+
+    Assert-AdvertifiedComposeProject -RequireExisting
+    Invoke-AdvertifiedCompose $composeFiles @('ps')
+
+    Write-Host 'Advertified local Compose startup completed in the canonical advertified-os2-dev project.'
+    Write-Host 'The retained migrator and bootstrap/seed services may be Exited (0); they are one-shot startup jobs, not runtime services.'
+    if (-not $IncludeOptionalInfrastructure) {
+        Write-Host 'Redis and Mailhog were not started because they are optional development utilities.'
+    }
+}
+finally {
+    Pop-Location
+}

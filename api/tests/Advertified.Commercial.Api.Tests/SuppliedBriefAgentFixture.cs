@@ -7,8 +7,6 @@ internal sealed class SuppliedBriefAgentFixture(
     Func<SuppliedBriefAgentInput, SuppliedBriefUnderstandingView>? output = null)
     : ISuppliedBriefAgentClient
 {
-    public bool IsAvailable => true;
-
     public Task<SuppliedBriefUnderstandingView> UnderstandAsync(
         SuppliedBriefAgentInput input,
         CancellationToken cancellationToken)

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 import { humanMessage } from '../api/client'
+import { planningApi } from '../api/planning-client'
+import type { PlanningWorkspace } from '../api/planning-schemas'
 import { proposalApi } from '../api/proposal-client'
 import {
   proposalDraftInputSchema,
@@ -16,6 +18,7 @@ import {
 } from '../campaign-flow/CampaignFlowBindings'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { LoadingState, MessageState } from '../components/PageState'
+import { PlanningDecisionContext } from '../planning/PlanningDecisionContext'
 import { mediaVisual } from '../planning/media-visuals'
 import { formatDate, formatMoney } from '../presentation/format'
 import { proposalPolicy } from '../proposal/proposal-policy'
@@ -52,6 +55,7 @@ function ProposalBuilder(context: BuilderContext) {
 function useProposalBuilder({ tenantId, briefId, token }: BuilderContext) {
   const navigate = useNavigate()
   const [plans, setPlans] = useState<ApprovedPlanChoice[] | null>(null)
+  const [planning, setPlanning] = useState<PlanningWorkspace | null>(null)
   const [choices, setChoices] = useState<ChoiceDraft[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -62,8 +66,18 @@ function useProposalBuilder({ tenantId, briefId, token }: BuilderContext) {
       .catch((failure: unknown) => { if (active) setError(humanMessage(failure)) })
     return () => { active = false }
   }, [tenantId, briefId])
+  useEffect(() => {
+    const briefVersionId = plans?.[0]?.briefVersionId
+    if (!briefVersionId) return
+    let active = true
+    void planningApi.getWorkspace(tenantId, briefVersionId)
+      .then(value => { if (active) setPlanning(value) })
+      .catch(() => { if (active) setPlanning(null) })
+    return () => { active = false }
+  }, [tenantId, plans])
   function toggle(plan: ApprovedPlanChoice) {
-    setChoices(current => toggleChoice(current, plan))
+    setChoices(current => toggleChoice(
+      current, plan, planning?.decisionContext?.objective ?? null))
   }
   function update(planId: string, patch: Partial<Pick<ChoiceDraft, 'label' | 'outcome'>>) {
     setChoices(current => current.map(item => item.plan.id === planId ? { ...item, ...patch } : item))
@@ -76,12 +90,12 @@ function useProposalBuilder({ tenantId, briefId, token }: BuilderContext) {
     } catch (failure) { setError(humanMessage(failure)) }
     finally { setBusy(false) }
   }
-  return { plans, choices, error, busy, toggle, update, submit, reportError: setError }
+  return { plans, planning, choices, error, busy, toggle, update, submit, reportError: setError }
 }
 
 type BuilderState = ReturnType<typeof useProposalBuilder> & { plans: ApprovedPlanChoice[] }
 
-function BuilderContent({ briefId, plans, choices, error, busy, toggle, update, submit, reportError }: BuilderContext & BuilderState) {
+function BuilderContent({ briefId, plans, planning, choices, error, busy, toggle, update, submit, reportError }: BuilderContext & BuilderState) {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const parsed = proposalDraftInputSchema.safeParse(buildInput(new FormData(event.currentTarget), choices))
@@ -94,6 +108,7 @@ function BuilderContent({ briefId, plans, choices, error, busy, toggle, update, 
   return <section className="proposal-page proposal-builder" aria-labelledby="proposal-builder-title">
     <Link className="text-action back-link" to={`/briefs/${briefId}`}>← Back to Brief</Link>
     <BuilderHero choiceCount={choices.length} planCount={plans.length} />
+    {planning?.decisionContext && <PlanningDecisionContext value={planning.decisionContext} />}
     {error && <p className="inline-alert" role="alert">{error}</p>}
     {plans.length === 0 ? <EmptyPlans briefId={briefId} /> :
       <form onSubmit={event => void handleSubmit(event)} className="proposal-builder-form">
@@ -200,10 +215,10 @@ function ProposalDetails({ busy }: { busy: boolean }) {
   </div>
 }
 
-function toggleChoice(current: ChoiceDraft[], plan: ApprovedPlanChoice) {
+function toggleChoice(current: ChoiceDraft[], plan: ApprovedPlanChoice, objective: string | null) {
   if (current.some(item => item.plan.id === plan.id)) return current.filter(item => item.plan.id !== plan.id)
   if (current.length >= maximumChoices) return current
-  return [...current, defaultChoice(plan, current.length + 1)]
+  return [...current, defaultChoice(plan, current.length + 1, objective)]
 }
 
 function buildInput(form: FormData, choices: ChoiceDraft[]): ProposalDraftInput {
@@ -220,13 +235,16 @@ function buildInput(form: FormData, choices: ChoiceDraft[]): ProposalDraftInput 
   }
 }
 
-function defaultChoice(plan: ApprovedPlanChoice, ordinal: number): ChoiceDraft {
+function defaultChoice(plan: ApprovedPlanChoice, ordinal: number, objective: string | null): ChoiceDraft {
   const labels = plan.channels.map(channel => mediaVisual(channel).label)
   const channelLabel = labels.length > 0 ? labels.join(' + ') : `Plan ${ordinal}`
+  const objectiveCopy = objective?.trim()
+    ? `to support the approved objective: ${objective.trim()}`
+    : 'against the approved campaign objective'
   return {
     plan,
     label: labels.length === 1 ? `${channelLabel} focused plan` : `${channelLabel} integrated plan`,
-    outcome: `Invest ${formatMoney(plan.totalMinor, plan.currency)} across ${labels.join(' and ') || 'the approved media plan'} using the retained inventory and running periods for the approved campaign objective.`,
+    outcome: `Invest ${formatMoney(plan.totalMinor, plan.currency)} across ${labels.join(' and ') || 'the approved media plan'} ${objectiveCopy}, using the retained inventory and running periods.`,
   }
 }
 

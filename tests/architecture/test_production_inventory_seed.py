@@ -53,6 +53,10 @@ def test_marketplace_projection_is_rebound_to_production_identity() -> None:
     assert CREATOR_ID in sql
     assert production_seed.LOCAL_TENANT_ID not in sql
     assert production_seed.LOCAL_ACTOR_ID not in sql
+    assert "SET LOCAL advertified.tenant_id" in sql
+    assert "SET LOCAL advertified.user_id" in sql
+    assert "app.current_tenant_id" not in sql
+    assert "app.current_actor_id" not in sql
     assert "status_code = 'PUBLISHED'" in sql
     assert "availability.valid_until_utc >= clock_timestamp()" in sql
     assert "ORDER BY availability.observed_at_utc DESC NULLS LAST" in sql
@@ -90,4 +94,8 @@ def test_rollback_is_non_destructive_and_history_preserving() -> None:
     assert "status_code = 'ARCHIVED'" in sql
     assert "status_code = 'INACTIVE'" in sql
     assert "DELETE FROM" not in sql
+    assert "SET LOCAL advertified.tenant_id" in sql
+    assert "SET LOCAL advertified.user_id" in sql
+    assert "app.current_tenant_id" not in sql
+    assert "app.current_actor_id" not in sql
     assert "COMMIT;" in sql

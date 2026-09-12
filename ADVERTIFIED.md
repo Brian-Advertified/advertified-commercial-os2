@@ -1174,6 +1174,24 @@ Acquire source
 → reconcile published truth and monitor later changes
 ```
 
+### 11.3.1 File security and quarantine architecture [Principle]
+
+All untrusted uploaded files must cross one shared file-security boundary before they are actionable. This applies to supplier/inventory sources, creative assets, proposal attachments, funding documents, delivery proof, measurement/performance evidence and any later upload domain.
+
+Production must **not** run a permanently resident antivirus daemon inside the Advertified application stack. Production file protection uses private AWS S3 object storage plus a governed external malware-verdict boundary. The intended AWS implementation is S3 quarantine with GuardDuty Malware Protection for S3 and trusted verdict delivery through the approved AWS event/integration boundary. Application business logic consumes the normalized Advertified verdict/state; GuardDuty-specific values do not become business-domain truth.
+
+The security invariant is fail-closed:
+
+- an untrusted object remains private/quarantined until a trusted clean verdict exists;
+- only `CLEAN` material may enter extraction, publishing, proposal delivery, creative workflow, funding processing, delivery-proof processing or measurement processing;
+- pending, missing, malformed, unsupported or failed external results remain non-actionable;
+- malicious/infected material remains rejected/quarantined;
+- verdicts must correlate to the immutable object identity/version/hash and be auditable and idempotent;
+- users and suppliers can never submit or override their own malware verdict;
+- the deterministic/EICAR provider is development/test-only and is rejected by Production startup.
+
+The production configuration contract is `InventoryProtection__ObjectStoreMode=AwsS3` plus `InventoryProtection__ScannerMode=ExternalVerdict`. The application contains no resident malware-scanner service dependency. Until the AWS asynchronous verdict path is deployed and verified end to end, the production external-verdict boundary fails closed rather than falling back to deterministic scanning or assuming an object is clean. Therefore **application boundary implemented** does not mean **AWS malware integration deployed** or **production-ready**.
+
 The extraction boundary ends with a validated, evidence-bound candidate package. Every extraction
 must behave as if Advertified has never seen an inventory file before: prior files, supplier identity,
 filenames, source hashes, learned layouts, historical outputs, gold data and earlier human corrections
@@ -2461,6 +2479,24 @@ Advertified may support configured routes such as:
 
 Specific vendors may change without redefining the lifecycle.
 
+## 20.1.1 Owner-selected manual funding routes — 2026-09-12 [Policy]
+
+The owner selected Manual EFT for launch; banking details will be supplied by the owner and must
+not be invented. VodaPay remains inactive until its provider details and integration evidence exist.
+Advertise Now, Pay Later (ANPL) is a manual referral process: an authorized human sends the exact
+issued invoice to the partner; the partner contacts the client, processes the application and notifies
+Advertified by email. An authorized admin then records the invoice payment through canonical manual
+reconciliation, retaining the partner notification, invoice/payment identity, reference and reason.
+The existing independent reviewer, tenant, idempotency and funding-before-booking guards still apply.
+Partner communication and application handling are external human steps; AI may not perform or infer
+these approvals. This decision does not authorize unsolicited partner communication by the agent.
+
+The launch duplicate-payment acceptance case exercises duplicate manual reconciliation rather than
+an unimplemented provider webhook. EFT and ANPL remain distinguishable payment-method codes;
+canonical payment confirmation records the financial disposition of the exact immutable invoice.
+VodaPay webhook integration and its duplicate-callback test are deferred until that integration is selected.
+This owner resolution supersedes the earlier requirement for ANPL provider integration activation.
+
 ## 20.2 Financial truth [Principle]
 
 Money is represented as ISO currency plus integer minor units.
@@ -2646,6 +2682,181 @@ All authenticated map surfaces must reuse the shared Advertified map component r
 Maps are decision surfaces, not decorative backgrounds. They must render canonical or explicitly draft geography and clearly distinguish unverified/draft geometry from verified commercial geography.
 
 Avoid clutter, repeated banners, decorative stock-image dependency, internal technical copy, fake metrics/progress, per-screen themes, per-screen typography scales, arbitrary component sizing, or actions shown before the user has enough information to decide.
+
+### 21.3.7 Mock-first whole-product redesign [Policy]
+
+Material redesign of the authenticated product is a whole-product exercise, not a sequence of unrelated page makeovers.
+
+Before broad frontend implementation of a new visual direction, the main screen families must be mocked and reviewed together so that navigation, density, hierarchy, interaction patterns and role-specific experiences are coherent before React/CSS work spreads across the repository. Mock approval establishes UX direction; it does not authorise fabricated backend behaviour, fake metrics or placeholder commercial truth.
+
+The redesign review set must cover, where the surface exists or is required by this specification:
+
+- Agency/Advertiser Home;
+- Advertified Admin Home;
+- Supplier Home;
+- Creator/Influencer/Specialist Home;
+- Opportunities list and Opportunity detail;
+- Briefs list, Brief intake and Brief workspace/version review;
+- Audience/STP research, segmentation, targeting and approval;
+- Strategy and media-role recommendation;
+- Planning / Media Mix;
+- Inventory search/intelligence, inventory detail and shortlist/selection;
+- Marketplace search/list/map and Marketplace listing detail;
+- OOH Inbox / supplier-response review for authorised roles;
+- Proposals list, proposal workspace, preview and client decision;
+- Campaign workspace, delivery/proof and measurement/reporting;
+- Tasks/approvals/exceptions;
+- Bookings;
+- Finance/funding where enabled;
+- role/team/access, profile/security and authorised Settings surfaces.
+
+A mock must show the real information architecture, dominant actions, important states and decision surfaces. Decorative concept art that cannot map to governed product behaviour is not an implementation specification.
+
+### 21.3.7.1 Approved September screen direction [Policy]
+
+On 2026-09-12 the owner supplied 23 approved Advertified screens covering Brief intake, interpretation,
+Audience/STP, Strategy, inventory selection, Media Plan editing and replacement, Proposal, revision review,
+Booking, Launch, Reporting and Learning. The owner explicitly authorised extending this direction to missing
+screens and wiring the whole product as one system. This approval satisfies the visual-direction review for
+this implementation programme; missing screen families may be designed using the same shared patterns
+without another preliminary mock approval. Retain the source-image hashes and screen coverage in
+`artifacts/frontend-completion/approved-screens-20260912.json`.
+
+Use the approved pale canvas, navy hierarchy, violet actions, restrained cards, consistent sidebar/top bar,
+process rails, contextual summaries and responsive decision panels. Apply the same treatment to role-specific
+Homes, work indexes, supplier responses, client decisions, manual funding, proof, access and exception states.
+The images' sample amounts, dates, forecasts, audience scores, confidence, supplier identities and live states
+are illustrative; rendered commercial claims require retained evidence. OOH_ONLY still excludes non-OOH
+channels. Process grouping never bypasses client decision, funding, booking or readiness guards. Existing
+role permissions and section 21.3.1 destination semantics remain authoritative; no placeholder navigation.
+The separately attached Backyard Connect image does not change Advertified's brand or business scope.
+
+The owner also requests a few persisted test proposals to exercise the local application. Use clearly labelled
+test work and actual available inventory/rates; retain source inputs and run evidence. Any paid AI work remains
+inside the existing aggregate US$5 ceiling, including reservations. This does not authorise external sending,
+supplier commitments, invented approvals or a production launch.
+
+### 21.3.8 Desktop composition and information density [Policy]
+
+Advertified is a commercial work surface. On ordinary desktop widths, large unexplained areas of unused canvas are a UX defect when relevant work, decisions or supporting context exist.
+
+Pages should use available width intentionally through responsive grids, secondary decision panels, maps, charts, activity, evidence or contextual summaries. This does not mean filling every pixel: whitespace must preserve hierarchy and readability, but the application must not compress all meaningful work into the upper-left quarter while leaving the rest of the screen functionally empty.
+
+Desktop layouts should generally distinguish:
+
+- the primary work/decision area;
+- supporting context or evidence;
+- current status and exceptions;
+- one dominant next action.
+
+Long forms should be broken into understandable sections with persistent orientation rather than presented as one undifferentiated column. Narrow layouts may collapse secondary content below the primary task without losing meaning or actionability.
+
+### 21.3.9 Home composition and duplicate-action prevention [Policy]
+
+The Agency/Advertiser Home should, where canonical truth exists, compose a live commercial overview from:
+
+1. commercial/work KPIs that are meaningful to the role;
+2. opportunity-to-live workflow pipeline/state;
+3. work requiring attention now;
+4. proposed/booked media investment or allocation context;
+5. geographic activity where geography is material;
+6. recent material activity/changes;
+7. contextual Adverti Intelligence and recommended next actions.
+
+The exact modules may vary by role and data availability, but Home must prioritise current work over perpetual onboarding once the tenant has active work.
+
+Do not repeat materially identical primary calls to action in adjacent sections. For example, a prominent `Start Brief` action and an immediately repeated `Create Brief` onboarding card are duplicate interaction design unless they serve clearly different purposes.
+
+Empty tenants should still communicate what Advertified will do and how value is created, without fake counts, fake campaigns or illustrative activity presented as real.
+
+### 21.3.10 Contextual Adverti Intelligence [Principle]
+
+`Adverti Assistant` is a useful conversational entry point, but it is not the sole visual expression of Advertified intelligence.
+
+Where governed evidence and persisted conclusions exist, intelligence must appear contextually on the page where it changes a decision. Relevant examples include:
+
+- audience concentration, segment fit and evidence quality on Audience/STP;
+- branch, route, POI, catchment and geographic implications on Brief, Strategy and Planning;
+- channel role, media-mix and allocation reasoning on Strategy/Planning;
+- price, benchmark, availability and suitability context on Inventory/Marketplace;
+- proposal risk, commercial balance and unresolved decisions on Proposal;
+- delivery exceptions, performance signals and measurement caveats on Campaign/Reporting.
+
+Contextual intelligence must distinguish fact, governed inference, recommendation and unresolved uncertainty. It must never manufacture an insight merely to make a page look intelligent.
+
+### 21.3.11 Role-specific dashboard architecture [Policy]
+
+All authenticated roles share the same Advertified shell and design system, but they do not share the same dashboard information architecture.
+
+The primary Home emphasis is role-specific:
+
+- **Agency/Advertiser:** pipeline, approvals, proposals, active campaigns, spend/investment, client decisions, performance and next actions;
+- **Advertified Admin:** cross-workspace operational exceptions, onboarding/review queues, supply health, workflow failures, governance and platform-level commercial oversight allowed by role;
+- **Supplier/Media owner:** own inventory health, availability, RFQs/requests, quotes, bookings, expiring rates, proof/delivery obligations and commercial opportunities;
+- **Creator/Influencer/Specialist:** profile/evidence completeness, assignment requests, deliverables, rights/exclusivity obligations, approvals and earnings/payment status where enabled.
+
+A role must never see dashboard metrics or actions that its permissions do not allow.
+
+### 21.3.12 Shared component consolidation [Policy]
+
+The visual redesign must reduce, not increase, frontend duplication.
+
+Common interaction families must be implemented through shared design-system components or shared compositions where semantics match, including as applicable:
+
+- page headers and action bars;
+- metric/KPI cards;
+- status and evidence badges;
+- cards and section containers;
+- filters and search controls;
+- tabs and process rails;
+- tables and result rows;
+- list/map split layouts;
+- activity feeds and attention queues;
+- Adverti Intelligence cards;
+- empty/loading/error/retry states;
+- drawers/modals;
+- shortlist/selection controls;
+- charts and legends;
+- shared map shell and map controls.
+
+Do not preserve obsolete page-local CSS, duplicated component variants or legacy styling solely to avoid deleting code. When a new shared implementation fully supersedes a legacy visual path and no governed behaviour depends on it, remove the superseded code in the same controlled redesign programme.
+
+### 21.3.13 Marketplace buyer experience [Policy]
+
+Marketplace is a buyer decision surface, not a supplier-database table.
+
+The buyer experience should support, where the canonical listing data and permissions allow:
+
+- global and Marketplace-local search across relevant media/location fields;
+- channel/media-type navigation;
+- useful filters such as geography, radius where meaningful, format, audience/evidence attributes, buying basis, price/budget, supplier and current availability;
+- responsive list/map exploration using the shared Mapbox component;
+- real approved inventory/site/media imagery where rights and source evidence permit;
+- clear media owner/supplier identity where disclosure is permitted;
+- canonical rate, currency, buying period/unit and VAT treatment without misleading simplification;
+- truthful current availability or explicit unknown/not-confirmed state according to the governing availability policy;
+- retained audience, traffic, reach or contextual evidence only when defensible for that listing;
+- shortlist/save/select actions with clear selected state;
+- listing detail with commercial facts, location, media specifications, evidence, imagery, rate/availability lineage and appropriate RFQ/booking action;
+- campaign-context recommendations and `Why this?` explanations when an approved Brief/Strategy/Plan context exists;
+- similar alternatives based on governed comparable attributes rather than superficial visual similarity.
+
+Map and list must represent the same filtered result set or clearly explain any intentional difference. Search result counts, availability, prices and audience/traffic figures must come from persisted truth; illustrative Marketplace numbers are prohibited in the authenticated product.
+
+### 21.3.14 Visual assets as product content [Principle]
+
+Advertified should be visually rich because advertising and media are inherently visual, not because generic imagery has been added to decorate empty layouts.
+
+First-class visual content may include:
+
+- approved inventory/site photos;
+- supplier/media-owner and client/agency logos with retained rights/approval evidence;
+- maps and geographic overlays;
+- campaign creative and generated/supplied concept previews where the creative workflow authorises them;
+- media-allocation, spend, reach, frequency, benchmark, performance and delivery charts when supported by defensible data;
+- channel icons and stable visual coding.
+
+Prefer authentic commercial assets and data visualisation over generic stock photography. A missing asset must degrade gracefully to a purposeful placeholder or information-led layout; the frontend must not invent a billboard image, supplier logo, campaign creative or audience chart and present it as real.
 
 ## 21.4 Validation and notifications [Policy]
 
@@ -2834,7 +3045,7 @@ Moving to RDS is a later migration requiring measured need, restore rehearsal an
 documentation and deployment configuration must not imply that an RDS instance already exists.
 
 Original inventory sources, evidence and generated documents use private AWS S3 through an EC2 IAM
-instance profile. Resend, EventBridge, Docling and the Bedrock runtime are external dependencies.
+instance profile. Resend, EventBridge and the Bedrock runtime are external dependencies. Inventory document preprocessing is native in the Commercial API; governed semantic schema discovery, transcription and enrichment use the Bedrock runtime.
 Redis is not a production dependency until measured need and an approved design establish one.
 
 The current non-production EC2 instances are not promotable as-is. Production requires encrypted
@@ -2870,9 +3081,11 @@ prior supplier release and flags affected uncommitted proposals.
 
 For a stuck agent, first inspect queue depth, lease expiry, retry count and the worker readiness
 endpoint. Preserve the run record and correlation ID. Allow bounded lease recovery before restarting
-the worker; never create a duplicate run manually. Failed payment operations remain disabled at
-launch until an approved provider exists. After activation, webhook evidence and reconciliation must
-be retained before any manual commercial correction.
+the worker; never create a duplicate run manually. Provider-backed payment operations remain disabled
+until their approved integration exists. After activation, webhook evidence and reconciliation must
+be retained before any manual commercial correction. The owner-selected Manual EFT and manual ANPL
+routes in Section 20.1.1 instead retain the exact human reconciliation evidence and reject duplicate
+commercial confirmation.
 
 ## 23.3 Modular-monolith default [Principle]
 
@@ -3053,7 +3266,7 @@ Relevant integration classes include:
 
 - OIDC identity;
 - AWS Bedrock or other approved AI provider;
-- Docling/document extraction;
+- native document preprocessing plus governed Bedrock inventory schema discovery/transcription/enrichment;
 - S3-compatible object storage;
 - transactional email (currently Resend direction);
 - maps/geocoding/routes/POIs;
@@ -3677,6 +3890,22 @@ Only the transitions below, or deliberately added governed extensions, are valid
 | `WON`/`LOST` | `Archive` | no unresolved consequential task | `ARCHIVED` | `OpportunityArchived` |
 
 An Opportunity path may generate strategy before Brief creation. A supplied Brief does not need an Opportunity.
+
+### 39.1.1 Exact duplicate submission [Policy]
+
+Owner decision, 2026-09-12: reject a new Opportunity submission when an existing Opportunity has
+exactly the same tenant, client account, source type and supplied source reference. Apply existing
+input normalization (trim the reference; normalize the governed source-type code); compare the
+reference case-sensitively. An absent reference does not establish an exact duplicate. Authorize
+access before checking identity, retain existing records, and serialize concurrent submissions for
+the same identity. Replay of the same idempotent command returns its original result. This rule
+does not merge similar opportunities or turn a supplied Brief into an Opportunity.
+
+Decision record: Brian Rabuthu answered “Reject the exact duplicate” for the Phase E duplicate
+scenario. Acceptance requires new-command rejection, unchanged replay, concurrency protection
+and isolation across tenant/client/source identities. Implementation evidence is retained under
+`artifacts/backend-production-completion/scenario-executor-01a094cd`; this decision alone is not
+verification or a production GO.
 
 ## 39.2 BriefVersion lifecycle
 
@@ -4698,7 +4927,7 @@ for this investigation is approximately USD 0.09093446.
 
 The final focused verification passed the API build with zero warnings and zero errors, the complete
 Docling/Office extraction class 22/22, the agent-runtime suite 50/50, and file-gold/corpus/
-architecture checks 32/32. Web, API, runtime, Docling, PostgreSQL, MinIO, Redis, ClamAV and Mailhog
+architecture checks 32/32. Web, API, runtime, Docling, PostgreSQL, MinIO, Redis and Mailhog
 were healthy in the single `advertified-os2-dev` project. Temporary `advertified-dev` containers,
 networks and volumes were removed; unused build cache fell from 4.161 GB to 2.623 GB and local
 volumes from 972.2 MB to 764.5 MB, with zero volume bytes reported reclaimable afterward.
@@ -4909,7 +5138,7 @@ reviewable automated deployment definition. It must include:
   connection resilience and a documented migration path;
 - private versioned object storage with encryption, public-access blocking, retention/lifecycle and
   recovery behavior;
-- production-capable ClamAV and Docling placement, updates, limits and health;
+- production-capable external malware-verdict integration and Docling placement, updates, limits and health;
 - the selected durable worker/outbox mechanism without creating a second source of truth;
 - production-like staging using the same images and configuration shape;
 - automated database and object backups, declared retention, RPO/RTO, restore procedure and a
@@ -6780,6 +7009,432 @@ alerts and deployment rehearsal are not evidenced; and the retained 10 Rapid OOH
 10 unbriefed-opportunity and 30 commercially and visually approved PDF acceptance pack does not
 exist. Legal, privacy, asset-rights, role, finance and operational approvers have not signed off.
 No explicit final GO is recorded.
+
+### 49.3.2 Frontend stabilisation checkpoint — 2026-09-11 [Evidence]
+
+The owner-requested frontend inspection and repair pass preserved the substantial concurrent
+intelligence/API work. This is a verified repair of existing screens, not completion or approval of
+the whole-product visual redesign under section 21.3.7.
+
+Home now loads only the data used by its role and exposes a failed authorised request as an explicit
+error with retry, not an empty workspace or zero total. Confirmed booking values are separated by
+currency; missing/invalid prices remain unknown. Fixed sparklines, unsupported cross-campaign
+reach/CPM aggregation, arbitrary campaign photographs, invented inventory event labels and adjacent
+duplicate brief-start actions were removed. Role dashboards reuse the same role and booking-value
+helpers. Audience/STP again binds the shared campaign-progress rail to the loaded canonical mode.
+The compact inventory-detail grid was corrected so benchmark and evidence controls remain reachable
+without horizontal document overflow.
+
+Browser fixtures were reconciled with inspected current contracts, including required media
+requirements, location anchors, reference observations and intelligence-artifact identifiers. Strict
+production validation, human approval, source retention, supplier confirmation and immutable
+OOH/full-campaign behaviour were not weakened to make the tests pass.
+
+Verification for this pass: 19 web unit tests passed; TypeScript and lint passed with no lint warnings;
+the production web build and all 95 JavaScript-asset size budgets passed. The ordinary deterministic
+browser suite passed 43 desktop tests with one intentionally mobile-only test skipped, and all 44
+compact tests passed across two bounded sequential shards. These are fixture-backed browser checks,
+not proof of live API/database/runtime integration or whole-product visual acceptance.
+
+The repository architecture suite remains red: 73 tests pass and two fail. The current shared tree
+contains a 405-line location-intelligence validation file, a 407-line shared workflow stylesheet and
+Python runtime/scenario functions exceeding the existing 60-authored-line limit. Those overlapping
+files were not refactored by this frontend pass, and the gates were not disabled. Production remains
+NO-GO pending these and the separately specified release gates.
+
+The existing storage-headroom helper now has an optional read-only report exposed as
+`npm run local:storage`. Host storage and Docker accounting were checked before and after web builds;
+the final observed host free space was approximately 30.37 GiB, with Docker image, container, volume
+and build-cache totals unchanged. All nine existing development containers remained stopped. No
+Docker build/start, database migration, inventory extraction/seed, live provider call, external send,
+production deployment, Git stage, commit or push was performed by this pass.
+
+Only the Home and Marketplace concept mocks were produced earlier in the conversation. The remaining
+screen-family mock set, explicit visual review and broad frontend redesign are still outstanding;
+passing functional tests does not substitute for that approval. Resume from the existing components
+and current contracts rather than creating another UI or workflow implementation.
+
+The bounded work packet and detailed commands, outcomes, changed-file scope and remaining gates are
+retained in `artifacts/frontend-completion/work-packet.json` and
+`artifacts/frontend-completion/verification.json`. Browser result folders are retained under
+`artifacts/frontend-completion/test-results/`; superseded investigation failures are labelled
+separately from the final passing desktop/compact results. No shared generated artifacts were deleted.
+
+### 49.3.3 Backend/platform continuation checkpoint — 2026-09-11 [Evidence]
+
+The owner's subsequent directive is full Commercial OS backend/platform completion, not a reduced
+launch. Frontend implementation is excluded from this phase; the frontend redesign and full
+100-scenario end-to-end campaign follow backend completion. This checkpoint records verified repairs
+and does not declare that programme, the intelligence kernel or production readiness complete.
+
+Market Intelligence previously supplied evidence identifiers without the approved source content.
+The existing CommercialProblemReader now reads exact tenant- and Brief-bound reviewed structured
+values and excerpts before invocation. Missing, unreviewed or over-limit evidence is rejected rather
+than silently truncated. The C# runtime request carries the actual approved snapshots; Python checks
+snapshot authority and retains their content in the model packet while excluding the internal
+invocation envelope. The stored input hash incorporates the evidence content. Artifact persistence
+continues to use the existing IntelligenceArtifactStore, not a second market database or workflow.
+
+One C# MarketIntelligenceValidator is shared by the adapter and canonical persistence boundary.
+Finding references must identify supplied approved content; an evidence-free finding cannot be a
+fact/inference or carry invented numeric confidence. Market findings/opportunities may be empty with
+an explicit evidence gap. The deterministic test mode no longer fabricates a scored market finding
+or growth opportunity. The adapter reuses the public finding/opportunity records instead of duplicate
+transport models. These checks establish source-boundary integrity, not universal factual entailment
+or live model reliability across the remaining programme.
+
+The complete current C# test assembly compiled through Docker-pinned SDK 10.0.400 and executed
+359 tests: all 359 passed, with zero failed or unexecuted. This includes isolated PostgreSQL/object
+storage acceptance and current migration, RLS, transaction, delivery and measurement assertions,
+with deterministic external-provider fixtures. The Python runtime suite passed 112 tests. An actual
+C# Market request export passed the production Python request model and model-packet check; a
+substituted evidence identity was rejected. The existing Opportunity acceptance journey now carries
+reviewed evidence through an approved Brief to a persisted Market draft and verifies advertiser and
+cross-tenant access denial, without database patches between business steps.
+
+The two failing database fixtures were repaired without weakening startup guards. Outbox and
+restored-API tests now use the current HTTP runtime test configuration. Recovery no longer assumes
+the historical 101-table baseline: it compares source/restored migration identifiers, exact extension
+versions, table RLS flags and policy definitions. The current source and restored manifests retain
+109 forced-RLS tables. Protected-object restoration/hash and authenticated tenant boundaries also
+pass. The retained recovery receipt measures backup/restore/verification on pre-provisioned isolated
+synthetic test resources. It is not production RTO evidence; RPO was not measured because no concurrent
+write workload was used. Live deployment, rollback and production-shaped cloud recovery remain open.
+
+The architecture/platform run passed 82 of 84 checks: all nine production-preflight fixture tests
+and 73 architecture tests passed. Two architecture gates remain failing: the 407-line existing web
+workflow stylesheet, which this backend-only phase leaves untouched, and twelve over-limit Python
+runtime/scenario functions. The exact functions and lengths are retained in the checkpoint evidence.
+Neither gate was disabled, and functional test success does not waive them.
+
+A fresh read-only AWS identity/infrastructure audit succeeded, superseding the earlier expired-SSO
+blocker as current status. The inspected hosts still have unencrypted attached volumes and disabled
+detailed monitoring; no Route 53 hosted zones were returned, and the older application registries do
+not all have immutable tags and scan-on-push. No production target was selected or cloud resource
+changed by this work. Required provider activation and named human release approvals remain open.
+
+Future frontend consumers must accept nullable Market confidence and zero findings/opportunities
+with evidence gaps. The approved_evidence addition belongs to the internal C#-to-Python request;
+the browser does not acquire evidence authority. No React/CSS changes, live paid AI calls, external
+sends, development-data resets, commit or push were performed by this continuation. Temporary test
+resources were removed; the nine existing development containers remain stopped. Final observed host
+free space was about 30.07 GiB, with the retained image/volume/build-cache totals unchanged.
+
+Commands, changed-file scope, earlier failed investigations, final results and remaining programme
+gates are retained under artifacts/backend-production-completion/. The current summary is
+continuation-verification.json; the full passing API receipt is
+backend-combined-regression-check/api.trx, with run.json and recovery-evidence.json beside it.
+The architecture/platform receipt is continuation-architecture-platform.xml. The shared connector
+diff output truncates, so this checkpoint does not claim a complete audit of unrelated shared-tree
+changes. Production remains NO-GO and the remaining intelligence, inventory, planning, negotiation,
+Commercial Memory, replanning, progress, document and platform gates retain their required acceptance.
+
+### 49.3.4 Location grounding and live-certification budget checkpoint — 2026-09-12 [Evidence]
+
+The owner requested continuation of the existing dirty tree and confirmed that the aggregate US$5
+AI ceiling remains effective, directing repair if its enforcement was removed. The canonical
+C# migration-owned budget ledger and handler remain present. A read of the existing development
+database found zero reservations; that was not evidence that earlier direct live-provider tests
+cost zero. After the owner renewed the audit SSO session, account-level Bedrock token metrics were
+reconciled against September 8 and 10 Cost Explorer charges, including the separately billed Claude
+Sonnet service. September 12 adds observed usage not yet present in billing. The token-derived total
+is US$2.16961696; billing remains estimated. A conservative US$3 historical hold, including allowance
+for two cost-audit queries, is now retained in the existing ledger. New runs reserve their complete
+maximum separately; this does not reset the aggregate US$5 ceiling.
+
+Location research now has regression evidence that forged reference IDs are rejected even when
+the containing query would be filtered, supplied references for another anchor are removed, and
+matching references remain attached to an inference. The mixed-reference case exposed misleading
+gap wording that described every affected query as a hypothesis; wording now correctly limits that
+statement to queries without matching evidence. Contextual POI research still does not establish
+audience presence or visitation. Location and Media Strategy certification use Nova Lite by default
+through the common ADVERTIFIED_BUSINESS_SCENARIO_MODEL override.
+
+The direct business-scenario pytest path now gates each provider dispatch with a durable one-shot
+permit. The local PowerShell launcher reserves the complete maximum call allowance through the
+existing governance.reserve_ai_monthly_budget function before starting Python. It requires hashed
+evidence reconciling prior unreserved calls, retains failed/uncertain reservations and does not reset
+or replace the shared ledger. Python consumes allocation slots only; it does not access PostgreSQL
+or own the global budget. Copied permits share the same reservation-indexed claim directory.
+This is local certification tooling, not a new production approval or commercial API surface.
+
+Verification: 145 runtime tests passed; two launcher tests passed with simulated Docker/Python
+commands, and ten canonical API budget tests passed through Docker-pinned SDK 10.0.400. The
+architecture/platform checkpoint passed 99 checks and failed the existing 407-line stylesheet
+limit in web/src/approved-workflow-extensions.css. The overall diff whitespace check also reports
+a pre-existing extra blank line at the end of web/src/home/DashboardCommercialProof.tsx.
+The launcher rejects unknown historical spending before reservation or provider dispatch.
+Receipts and the bounded work packet are under
+artifacts/backend-production-completion/location-continuation-20260912-01a094cd/; the separate
+canonical budget receipt is location-budget-verification-01a094cd/api.trx. The single Nova Lite
+Location research live case passed (location-research-live-01a094cd/live.xml), reporting 3,118 input
+and 983 output tokens, 423 US-dollar micros calculated cost; its full US$0.02 reservation remains.
+Location complexity initially passed two cases and rejected Rayetsa after incomplete POI discovery:
+the model reconstructed queries instead of retaining the empty approved research plan. A request-bound
+schema then passed the vaccination and property cases but Rayetsa twice failed inside Bedrock with
+ModelErrorException (invalid ToolUse sequence), with no returned usage; all maximum reservations remain.
+The final provider contract now requests only typed summary, opportunities and generated evidence gaps.
+Advertified composes the final artifact with exact request-owned research queries, places and deterministic
+gaps. Provider attempts to return immutable fields are rejected before composition, and opportunity
+reference checks still run. The canonical final artifact fields and Commercial API contracts are unchanged.
+All 145 runtime tests pass, including strict decoding and retained-fact regressions. Exact non-secret
+provider inputs and failure types are retained for certification attempts. All three Location complexity
+cases now pass on Nova Lite under this final contract (location-complexity-proposal-only-01a094cd/live.xml):
+Rayetsa retained 12 real POIs, Indlu retained 5, and the vaccination case retained no opportunity without
+bounded supporting evidence. No model upgrade was required. Mukuru end-to-end initially rejected
+an unsupported geography alias. Its provider schema now binds geography and citation choices to the
+same canonical allowed values. The rerun passed (mukuru-location-geography-live-01a094cd/live.xml):
+5 executed research queries, 19 source-backed POIs and 2 hypothesis opportunity areas. Administrative-area
+membership remains unverified because discovery uses bounding rectangles; parser geometry and missing-address
+wording now state this limitation. The harness rejects invalid or out-of-bounds coordinates. All 153 runtime
+tests and 8 Docker-pinned API discovery tests passed after these changes. Earlier fixture compilation failures
+remain retained; location-geography-api-verified-01a094cd/api.trx is the passing replacement.
+
+An independent inventory source-boundary regression reproduced three failures: excluded rows and
+rows beyond the final record could supply field values, and empty quotations could establish
+interpretation evidence. The canonical C# projector now rejects blank citations and omits record
+values outside the permitted rows. All six projection tests pass in inventory-boundary-verified-01a094cd.
+This is deterministic regression evidence, not unseen-format or live inventory certification.
+
+The monolithic current API baseline aborted after 356 passing test results with a crashed testhost
+and aggregate exit code 1 (current-backend-baseline-01a094cd). It remains a failed complete run.
+The pinned memory-backed runner now supports sequential disjoint category partitions, compiling
+once and stopping build servers before fresh testhosts; results are retained per partition. That
+replacement baseline passed: 308 unit, 3 database, 56 migration and 1 recovery test. All 368
+discovered test names reconcile exactly with 368 passing results, with no omissions or duplicate
+execution (current-backend-partitioned-01a094cd/reconciliation.json; aggregate exit code 0).
+The retained reconciliation script reads the UTF-8 discovery list explicitly on Windows and fails
+closed on incomplete discovery, failed results or partition exit codes. Host free bytes were
+28,422,893,568 before and 28,416,843,776 after the run. This is the current API baseline;
+remaining inventory holdout, 100-scenario, frontend and production gates are still outstanding.
+
+Media Strategy continuation reproduced a rejected CLIENT_REQUIREMENT input, a strict-DOOH code error and
+unsupported Nova Lite audience/traffic claims. Its input now shares the canonical audience classification;
+provider schemas constrain channel choices and present their existing labels. Deterministic fallback usage is
+fixture-v1 and explicitly requires review. After corrected-contract Nova Lite failures, the owner-authorised
+Nova Pro comparison passed budgetless Mukuru and strict DOOH Takealot (media-strategy-pro-compare-01a094cd).
+Reported comparison cost is 6,912 US-dollar micros; the full 100,000-micro reservation remains. Only the
+Media Strategy route in base and explicit development-preview configuration now selects Nova Pro, with a
+five-cent per-request cap. Other model routes remain unchanged. This is not a production deployment.
+
+The subsequent Market probe passed. Audience probes rejected wrong-namespace citations and forbidden
+context-only segment evidence. Provider schema and projection now share the existing segment-support
+policy, retain the original canonical request, and omit context-only records with an explicit gap. Mukuru
+then passed on Nova Lite (audience-projection-live-01a094cd), preserving three CLIENT_REQUIREMENT audiences
+and unknown unsupplied traits. The synthetic Inventory probe retained eligible and rejected candidate IDs.
+The first Proposal probe passed weak assertions but business review found a minor-unit/major-unit error;
+that receipt is not certification. Provider input now contains rendered approved amounts, and deterministic
+grounding rejects numeric or currency-amount claims absent from the approved display facts. The corrected
+Proposal probe passed on Nova Lite (proposal-money-projection-live-01a094cd). These are representative
+provider probes, not execution of the 100-case lifecycle campaign or final production approval.
+
+Renewed read-only AWS inventory confirms the hardened launch topology remains absent: existing EC2 root
+volumes are unencrypted, detailed monitoring is disabled, and no production stack or Route53 hosted zone
+was returned in af-south-1. Raw metadata and the limited comparison are retained in
+aws-audit-refreshed-01a094cd/. No cloud mutation was performed; production authority and activation evidence
+remain separate requirements.
+
+Docker disk accounting was recovered by removing one dead Testcontainers container whose only
+database mount was tmpfs; no persistent volume was removed. The existing development PostgreSQL
+service was started for read-only ledger inspection. No seed, data reset, commit, push, external
+communication, production deployment or human release approval occurred. Live certification,
+unseen inventory holdouts, the executed 100-scenario campaign, frontend completion and production
+release evidence remain open. Production remains NO-GO.
+
+### 49.3.5 Generated inventory holdout checkpoint — 2026-09-12 [Evidence]
+
+Nineteen small synthetic unfamiliar files now exercise canonical extraction: eight XLSX, four CSV,
+three PPTX and four PDF cases. The checksummed manifest and generator are retained with the API tests.
+The existing source-binding protocol now supports explicit COLUMN traversal for transposed records;
+physical raw values, source locators and positions remain unchanged. Missing axis retains legacy ROW
+behavior and is omitted during serialization so old canonical JSON hashes do not change. Blank CSV
+cells remain structural evidence without being mistaken for lost commercial fields. These are internal
+implementation details of the owner-requested generic extraction, not new commercial rules.
+
+All 35 targeted Docker-pinned API checks passed, including 19 format cases, source boundaries, durable
+single-call schema replay and unchanged legacy JSON. All 174 runtime tests passed. Table checks verify
+exact minor-unit amounts, conflicting-rate review, missing dates and filename-independent supplier
+identity. Planning availability is verified as the existing Section 11.16 derived policy with no raw
+supplier confirmation. PDF/PPTX checks exercise canonical transcription, normalization and review;
+an amount absent from source text is rejected. Deterministic mappings do not certify LLM generalization,
+resolve ambiguous narrative identity or authorise publication. The final receipt is
+artifacts/backend-production-completion/inventory-holdouts-transcription-01a094cd/api.trx; the detailed
+commands, earlier failures, corrections and limitations are retained in inventory-holdouts-01a094cd/verification.json.
+
+Architecture/platform verification passed 99 checks and failed the existing authored-source line limit:
+web/src/approved-workflow-extensions.css has 407 lines. The exact approved model-route assertion now
+checks the evidenced Media Strategy Nova Pro exception and five-cent cap; all other routes remain Lite.
+Host free space after the final holdout build was 28,345,847,808 bytes. No paid calls or deployment occurred.
+The shared aggregate budget remains US$5, with US$4.23 held and US$0.77 unreserved. The executed
+100-scenario campaign, final aggregate backend run, frontend and production release evidence remain open.
+
+### 49.3.6 Executed scenario checkpoint — 2026-09-12 [Evidence]
+
+Phase E now executes deterministic cases through canonical ASGI/API behavior and reconciles C#
+receipts against their exact passing TRX results. The retained `scenario-checkpoint60-01a094cd`
+summary accounts for all 100 IDs: 60 executed/passed and 40 explicitly not executed/failed.
+It combines 35 runtime executions with 25 retained API executions; it is not a fresh full API run.
+The remaining adapters are planning (15), proposal/transaction (10), funding/delivery (10) and
+measurement/learning (5). Catalogue enumeration never constitutes scenario acceptance.
+
+The forwarded-email scenario exposed current-budget/channel contamination from earlier messages.
+Supplied-Brief canonicalization now derives implicit current constraints and exact budget from the
+primary message and explicit clarification, retaining the earlier source chain as history. The
+20 supplied-Brief and 15 intelligence scenarios pass with deterministic typed proposals. Inventory
+executes 15 distinct file/commercial-shape cases through native preprocessing, projection or
+transcription, source accounting and review admission; no supplier-specific production branch or
+automatic publication was added. These fixtures establish boundary behavior, not live-model quality.
+
+All 10 opportunity scenarios pass, including the owner-approved duplicate policy in Section 39.1.1.
+The canonical create command rejects an exact duplicate after authorization, serializes concurrent
+identical submissions, retains idempotent replay and preserves distinct/absent source identities.
+A non-unique lookup index retains historical records, and the rejection reason is versioned/audited
+master data. `scenario-opportunity-contract-aligned-01a094cd/api.trx` contains the ten passing results.
+Prior startup, compile/analyzer and incorrect test-contract assertions remain retained as failures;
+they were corrected without relaxing the canonical lifecycle or tenant guards.
+
+The latest runtime/receipt regression passes 219 checks. Root checks pass 142 and fail the retained
+407-line frontend CSS violation. Affected master-data migration, pricing and OpenAPI regression
+passes 14 checks in `duplicate-governance-regression-01a094cd/api.trx`. Exact commands and limitations
+are in `artifacts/backend-production-completion/scenario-executor-01a094cd/opportunity-checkpoint.json`.
+The sequential `tools/run-backend-scenarios.ps1` entrypoint is created and syntax-checked; its full
+campaign remains pending completion of the 40 adapters. No paid calls or production mutation occurred.
+The aggregate US$5 budget still has US$4.23 held and US$0.77 unreserved. This is no production GO.
+
+### 49.3.7 Planning scenario checkpoint — 2026-09-12 [Evidence]
+
+All 15 planning scenarios pass in `scenario-planning-reviewed15-01a094cd/api.trx`.
+They execute canonical eligibility, pricing, human selection and approval, including four-channel
+coverage, collective geography, missing/unavailable supply, incompatible creative, exact budget
+revisions and retained historical plans. Mixed-channel and geographic portfolios first prove that
+unresolved material objections block approval, then record the human acceptance of the specific
+supply/benchmark limitations through the canonical resolution command. No approval guard was relaxed.
+
+`scenario-checkpoint75-01a094cd/summary.json` accounts for 100 catalogue cases: 75 executed/passed
+and 25 explicitly not executed/failed. It combines 35 runtime executions with 40 retained API cases,
+with receipt/TRX hashes and provenance; it is not a fresh full backend run. Transaction (10),
+funding/delivery (10) and measurement (5) execution remains pending at this checkpoint. Earlier failed
+planning runs remain retained. Host free bytes after the successful verifier were 28,354,367,488.
+No paid invocation, deployment or production GO occurred; the shared budget remains unchanged.
+
+### 49.3.8 Transaction and manual funding checkpoint — 2026-09-12 [Evidence]
+
+The 20 transaction and funding/delivery catalogue cases pass in
+`scenario-manual-funding-delivery-01a094cd/api.trx`. Three-option proposals use three independently
+approved media mixes with different exact purchase quantities; fixture VAT is reconciled using the
+canonical rounding rule. Expired RFQs/quotes, superseded quotes, unavailable supply, client decisions,
+funding-before-booking, tenant attacks, creative readiness and immutable proof review are exercised
+through canonical API commands. No database state is patched between business steps.
+
+The owner decision in Section 20.1.1 changes FUND-003 to duplicate manual reconciliation.
+Replaying the exact command returns its original result; a new duplicate command cannot confirm
+again or create a second campaign. The invoice mismatch case supplies incorrect client amount/currency
+fields and verifies that the canonical invoice retains its authoritative ZAR amounts from the approved
+purchase order. Such client fields do not determine an invoice total.
+
+`scenario-checkpoint95-01a094cd/summary.json` accounts for 95 executed/passed catalogue cases and
+five explicitly unexecuted measurement cases. This combines new runtime execution with retained API
+receipts and their TRX provenance; it is not the final fresh full campaign. The same API run passes
+23 checks and fails its additional ANPL-route check: the new ANPL command was persisted as Manual EFT.
+The persistence mapping is corrected to retain the validated chosen method; verification remains
+pending in `scenario-measurement-manual-anpl-01a094cd` at this checkpoint.
+
+Runtime and receipt regression passes 219 checks. Root regression retained 140 passes and three
+failures: the existing 407-line frontend CSS violation plus two child-shell module-path failures in
+the launcher tests. Isolating the child PowerShell environment makes both launcher tests pass in
+`scenario-executor-01a094cd/launcher-shell-environment.xml`; no budget guard was changed.
+The ANPL UI and release evidence policy still require alignment with the owner decision. No paid
+calls, production mutation or production GO occurred.
+
+### 49.3.9 Complete deterministic backend scenario campaign — 2026-09-12 [Evidence]
+
+The fresh command `tools/run-backend-scenarios.ps1 -EvidenceName scenario-partitioned100-01a094cd`
+passes all 100 catalogue cases: 100 executed, 100 passed, zero failed and zero not executed.
+The pinned API build has zero warnings/errors; 68 discovered API checks execute exactly once and pass
+(65 catalogue cases, two manual funding route checks and the ANPL upgrade/down/up migration check).
+The remaining 35 catalogue cases execute against the deterministic runtime boundary. Retained receipts,
+TRX hashes and discovery reconciliation are in `artifacts/backend-production-completion/scenario-partitioned100-01a094cd*`.
+No paid provider calls or production mutation occurred. Host free space changed from 28,216,430,592
+to 28,191,653,888 bytes, within the bounded verifier allowance.
+
+The preceding unpartitioned campaign remains failed evidence: the test host hit its Docker memory
+limit after 23 passing API checks. The replacement compiles once and runs disjoint scenario families
+in fresh test hosts under the same fixed memory allowance; it does not skip or weaken checks.
+Receipt provenance tests pass seven checks and partition reconciliation tests pass six. Architecture
+passes 74 checks and fails only the existing 407-line frontend stylesheet guard. Full backend regression,
+frontend implementation/verification and production release evidence remain outstanding.
+
+### 49.3.10 Backend regression corrections — 2026-09-12 [Evidence]
+
+Final regression exposed and corrected a strict wire mismatch: the canonical C# Inventory Intelligence
+request sends `INVENTORY_INTERPRETATION`, which Python now explicitly accepts while rejecting unknown
+operations. Actual retained C# inventory, market and supplied-brief exports pass Python validation;
+the inventory export also executes through the deterministic runtime with unchanged candidate identity
+and zero provider cost. The runtime suite passes 222 checks.
+
+Readiness previously accepted any master-data collection, including an incomplete registry created by
+migration alone. It now requires all current registry collections at the current version and every
+required record; inactive governed records remain valid. The retained readiness/outbox run passes
+three checks, including incomplete collections, absent records, complete bootstrap and stale versions.
+The failed intermediate deletion fixture remains evidence; the corrected fixture establishes incomplete
+initial state and never disables the database's master-data deletion guard.
+
+Default local Compose explicitly selects the deterministic provider, fixture model, zero cost caps
+and no live calls. The separately selected preview overlay retains its existing five-cent Media Strategy
+cap. Both resolved profiles pass configuration checks; no preview provider was activated by these checks.
+Production release evidence schema `advertified-production-release-evidence/v2` requires verified Manual
+EFT and manual ANPL reconciliation plus the retained owner VodaPay deferral, alongside the unchanged
+non-payment integrations and release approvals. Its 14 checks pass. The detailed production certification
+schema is `advertified.production-certification.v2`; its OOH journey is `OOH_ONLY` and requires immutable
+campaign-mode evidence. Eight certification checks pass. Its 30 detailed proposal records do not replace
+the owner's separate 100 connected-journey release campaign requirement.
+
+The full current API assembly run remains in progress in
+`artifacts/backend-production-completion/final-backend-readiness-corrected-01a094cd`; completion is not
+inferred from intermediate passing partitions. Frontend visual review, implementation, connected
+journeys and actual production setup/recovery/approvals remain outstanding.
+
+### 49.3.11 Final backend execution and frontend transition — 2026-09-12 [Evidence]
+
+The current full API assembly completed 463 of 463 discovered checks exactly once, all passing, including
+migration, database recovery and all six business-scenario partitions. Evidence is retained in
+`artifacts/backend-production-completion/final-backend-readiness-corrected-01a094cd`. Runtime checks pass
+222/222, and the earlier consolidated backend business catalogue passes 100/100. Current actual C# wire
+exports pass the five inventory, market and supplied-brief checks. These are backend results, not connected
+frontend or production approval.
+
+The API wrapper exited unsuccessfully because its host-storage growth guard measured 28,050,350,080 to
+27,745,034,240 free bytes (305,315,840 bytes consumed against a 64 MiB limit). Retained run receipts occupy
+5,796,395 bytes; Docker logical image, volume and build-cache totals and VHD file length were unchanged at
+inspection. Only the existing development PostgreSQL service remained running and healthy. The cause of
+host-wide growth is unproven; this failed check is retained and the guard has not been weakened. The root
+suite also retains the frontend 407-line CSS failure pending source consolidation.
+
+The owner's newly supplied screen approval and missing-screen implementation direction is retained in
+section 21.3.7.1 and `artifacts/frontend-completion/approved-screens-20260912.json`. The frontend work packet
+records the passing backend evidence and outstanding checks explicitly. No production GO is asserted.
+
+### 49.3.12 Backend startup, Marketplace RLS and production credential correction — 2026-09-12 [Evidence]
+
+A backend-only local startup rehearsal exposed unnecessary coupling between the Commercial API and optional development infrastructure. Redis and Mailhog had no API/runtime references, while Redis is explicitly not a production dependency under section 30. The API Compose dependency graph now excludes both services. They remain optional development utilities and cannot block API startup. The local restore helper now uses Compose-managed dependency order instead of blindly restarting named containers, so migrations and the core seed cannot be skipped when restoring the current backend stack.
+
+The same rehearsal showed that `development-seed` coupled canonical local workspace/bootstrap state to a large generated inventory corpus. The core workspace seed now contains only canonical local identity/workspace/policy/demo prerequisites. The generated inventory corpus runs through a separate `development-inventory-seed` service, so stale or experimental inventory input cannot prevent migrations or the Commercial API from starting. Optional local Marketplace projection is separate from startup. The manually reviewed production launch seed remains the governed transactional initial-data path in section 49.2.24; this change does not create a second runtime publication workflow.
+
+Real-corpus Marketplace publication exposed an RLS defect hidden by the earlier superuser-backed fixture: the seed/projection SQL set `app.current_tenant_id` and `app.current_actor_id`, while canonical RLS reads `advertified.tenant_id` and `advertified.user_id`. The development projection, development-seed generator and production-seed/rollback generator now use the canonical session keys. The checked-in development SQL was regenerated from `data/production/inventory-bootstrap.v1.json`. The Marketplace projection regression now executes under `SET ROLE advertified_app` so FORCE RLS is exercised rather than bypassed.
+
+The real reviewed corpus now publishes 6,885 eligible Marketplace listings and 6,885 listing versions successfully. An immediate second execution produces zero pending versions, zero inserts and zero listing updates while retaining the same 6,885/6,885 totals. The affected Marketplace API tests pass 2/2 and the production inventory seed guardrails pass 9/9.
+
+Production credential validation was also completed. `ADVERTIFIED_WORKER_ENV_FILE` is now actually consumed by the production worker, while the API environment no longer receives `ConnectionStrings__WorkerSchedulerDatabase`. Preflight validates that the worker-only environment contains only that scheduler connection, that the API/worker/migrator database credentials are distinct, and that each host file binding resolves to the exact file validated. The real preflight suite passes 25/25. The combined platform and architecture gate passes 146/146.
+
+Verification used the base + application Compose files plus an isolated development-only PostgreSQL host-port override because an older local Compose project still held port 55432. Release API, migrator and agent runtime images built successfully. The current stack reached healthy PostgreSQL, agent runtime, MinIO and Commercial API; database role bootstrap, migrator and core workspace seed completed with exit 0. The separate inventory bootstrap also completed with exit 0. The current `pytest tests/platform tests/architecture -q` gate passes 146/146 after the startup, RLS, production seed and credential-boundary corrections. The older local PostgreSQL container was not deleted or its data modified. This is local backend evidence only and does not assert production GO.
+
+### 49.3.13 Resident malware-daemon removal and external verdict boundary — 2026-09-12 [Evidence]
+
+The application no longer contains or requires a resident malware-scanner daemon. The old scanner implementation, host/port configuration, Compose service, persistent signature volume, health checks, API/worker dependencies, local startup requirements, production environment settings and CI packaging assumptions were removed. The shared application contract is now `IFileMalwareProtection`; deterministic EICAR behaviour remains development/test-only, while Production startup requires private `AwsS3` object storage plus `ExternalVerdict` protection and fails closed until a trusted external verdict path is available.
+
+This change protects the existing upload domains without silently downgrading security: inventory, creative, proposal branding/attachments, funding documents, delivery proof and performance evidence continue to cross the shared malware-protection boundary. No production fallback treats an unscanned object as clean. The intended production integration is GuardDuty Malware Protection for S3 with trusted asynchronous verdict delivery/correlation to the immutable object identity/version/hash. **AWS integration is application-ready but not yet deployed or end-to-end verified; production readiness remains blocked on a real clean-object and malicious-object verification through that AWS path.**
+
+The resource rationale was measured locally before removal: the resident scanner process was using approximately 951 MB RSS, so removing the always-on daemon materially reduces the minimum EC2 memory footprint. Verification after removal passed the Release API build with 0 warnings/0 errors, `BrowserSessionSecurityTests` 10/10, production Compose dependency tests 5/5, and production preflight tests 25/25. This evidence does not claim that GuardDuty/S3 malware scanning is already live.
 
 ## 49.4 Handoff completeness test [Principle]
 

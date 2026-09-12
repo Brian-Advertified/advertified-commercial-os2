@@ -282,33 +282,26 @@ def test_ci_runs_a_pinned_blocking_secret_scan_and_retains_the_report() -> None:
     assert "source-secret-scan-${{ github.sha }}" in workflow
 
 
-def test_local_seed_projects_reviewed_inventory_into_marketplace() -> None:
-    seed = read("infrastructure/development/seed-local-workspace.sql")
-    projection = read(
-        "infrastructure/development/publish-current-inventory-to-marketplace.sql"
-    )
+def test_local_inventory_seed_is_optional_and_does_not_publish_marketplace_state() -> None:
+    workspace_seed = read("infrastructure/development/seed-local-workspace.sql")
+    inventory_seed = read("infrastructure/development/seed-local-inventory.sql")
+    compose = read("infrastructure/docker-compose.app.yml")
 
     inventory_include = "\\ir inventory-bootstrap.generated.sql"
     marketplace_include = "\\ir publish-current-inventory-to-marketplace.sql"
-    assert inventory_include in seed
-    assert marketplace_include in seed
-    assert seed.index(inventory_include) < seed.index(marketplace_include)
-    assert "ON CONFLICT (supplier_tenant_id, product_id) DO NOTHING" in projection
-    assert "product_version.published_at_utc IS NOT NULL" in projection
-    assert "availability.availability_code <> 'UNAVAILABLE'" in projection
-    assert "availability.valid_until_utc >= clock_timestamp()" in projection
-    assert "ORDER BY availability.observed_at_utc DESC NULLS LAST" in projection
-    assert "rate.effective_to >= CURRENT_DATE" in projection
-    assert "INSERT INTO commercial.marketplace_listing_versions" in projection
-    assert "status_code = 'PUBLISHED'" in projection
-    assert "status_code = 'ARCHIVED'" in projection
+    assert inventory_include not in workspace_seed
+    assert marketplace_include not in workspace_seed
+    assert inventory_include in inventory_seed
+    assert marketplace_include not in inventory_seed
+    assert "development-inventory-seed:" in compose
+    assert "development-marketplace-seed:" not in compose
 
     runner = read("tools/apply-local-development-seed.mjs")
     assert "includeRelative.startsWith('..')" in runner
     assert "readFileSync(includePath, 'utf8')" in runner
 
 
-def test_production_stack_is_hardened_and_manual_inventory_is_fail_closed() -> None:
+def test_production_stack_is_hardened_and_live_inventory_is_fail_closed() -> None:
     compose = read("infrastructure/docker-compose.production.yml")
     environment = read("infrastructure/env.production.example")
     startup = read("api/Startup/StartupConfigurationValidator.cs")
@@ -332,8 +325,10 @@ def test_production_stack_is_hardened_and_manual_inventory_is_fail_closed() -> N
         for name in ("API", "MIGRATOR", "AGENT_RUNTIME", "WEB")
     )
     assert "@sha256:" in environment
-    assert "InventoryProcessing__Paused=true" in environment
-    assert "ADVERTIFIED_INVENTORY_PROCESSING_PAUSED=true" in environment
+    assert "InventoryExtraction__Mode=Native" in environment
+    assert "InventoryProcessing__Paused=false" in environment
+    assert "InventorySemantic__Enabled=true" in environment
+    assert "ADVERTIFIED_INVENTORY_PROCESSING_PAUSED=false" in environment
     assert "Production requires separate API and worker processes." in startup
     assert "PersistKeysToFileSystem" in data_protection
     assert "ProtectKeysWithCertificate" in data_protection
@@ -341,7 +336,10 @@ def test_production_stack_is_hardened_and_manual_inventory_is_fail_closed() -> N
     validator = read("tools/validate-production-configuration.ps1")
     assert "@sha256:[0-9a-f]{64}" in validator
     assert "Assert-AdvertifiedNoDevelopmentValue" in validator
-    assert '"InventoryProcessing__Paused" "true"' in validator
+    assert '"InventoryExtraction__Mode" "Native"' in validator
+    assert '"InventoryProcessing__Paused" "false"' in validator
+    assert '"InventorySemantic__Enabled" "true"' in validator
+    assert "Inventory semantic per-call cost and inventory-intelligence runtime cost cap do not reconcile." in validator
     assert "docker compose --env-file" in validator
 
     workflow = read(".github/workflows/ci.yml")

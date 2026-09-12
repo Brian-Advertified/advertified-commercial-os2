@@ -17,7 +17,7 @@ public interface IInventoryObjectStore
     Task<bool> ExistsAsync(string objectKey, CancellationToken cancellationToken);
 }
 
-public interface IInventoryMalwareScanner
+public interface IFileMalwareProtection
 {
     Task<MalwareScanResult> ScanAsync(
         ReadOnlyMemory<byte> content,

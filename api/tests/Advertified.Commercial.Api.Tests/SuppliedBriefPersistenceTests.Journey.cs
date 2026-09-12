@@ -40,9 +40,8 @@ public sealed partial class SuppliedBriefPersistenceTests
             builder.UseSetting("Authentication:DevelopmentIdentity:UserId", actor.ToString());
             builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", actor.ToString());
             builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
-            builder.UseDeterministicInventoryProtection();
+            builder.UseDeterministicTestDependencies();
             builder.UseSetting("InventoryProcessing:Paused", "true");
-            builder.UseSetting("SuppliedBrief:Mode", "Disabled");
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<ISuppliedBriefAgentClient>();
@@ -70,23 +69,13 @@ public sealed partial class SuppliedBriefPersistenceTests
         Assert.Equal(HttpStatusCode.BadRequest, changed.StatusCode);
         var brief = await PostAsync(client, prefix + "/briefs", create);
         var briefId = brief.GetProperty("id").GetGuid();
-        var version = await ApproveDraftAsync(client, prefix, briefId, understood.Draft, db, tenant, actor);
+        var version = await ApproveDraftAsync(client, prefix, briefId, understood.Draft);
         await AssertModeAsync(client, prefix, version, mode);
         Assert.Equal(1, await db.Database.SqlQuery<int>($"""
             SELECT count(*)::integer AS "Value" FROM commercial.brief_sources
             WHERE tenant_id = {tenant} AND interpretation_id = {understood.Interpretation.Id}
                 AND content = {source}
             """).SingleAsync());
-    }
-
-    private static string JourneyConnection()
-    {
-        var database = Environment.GetEnvironmentVariable("PGDATABASE") ?? "";
-        Assert.StartsWith("advertified_brief_test_", database);
-        return new NpgsqlConnectionStringBuilder {
-            Host = Environment.GetEnvironmentVariable("PGHOST"), Database = database,
-            Username = Environment.GetEnvironmentVariable("PGUSER"),
-            Password = Environment.GetEnvironmentVariable("PGPASSWORD") }.ConnectionString;
     }
 
     private static async Task<SuppliedBriefUnderstandingView> UnderstandAsync(HttpClient client,
@@ -98,18 +87,18 @@ public sealed partial class SuppliedBriefPersistenceTests
     }
 
     private static async Task<JsonElement> ApproveDraftAsync(HttpClient client, string prefix,
-        Guid briefId, SuppliedBriefDraftView draft, GovernanceDbContext db, Guid tenant, Guid actor)
+        Guid briefId, SuppliedBriefDraftView draft)
     {
         var command = new CreateBriefVersionCommand(briefId, null, draft.BusinessProblem, draft.Objective,
             draft.Audiences, draft.Geographies, draft.Timing, draft.BudgetMinor, draft.BudgetUnknown,
-            draft.Currency, draft.VatStatus, draft.FeesMinor, draft.Constraints, draft.Measurement,
+            draft.Currency, draft.VatStatus, draft.FeesMinor, draft.MediaRequirements, draft.Constraints, draft.Measurement,
             draft.Facts, draft.Unknowns, draft.Assumptions, draft.Conflicts, []);
         var version = await PostAsync(client, $"{prefix}/briefs/{briefId}/versions", command);
         var path = $"{prefix}/brief-versions/{version.GetProperty("id").GetGuid()}";
         using var denied = await SendAsync(client, path + ":submit", new SubmitBriefVersionCommand(null, null),
             version.GetProperty("version").GetInt64());
         Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
-        await SeedApprovalPolicyAsync(db, tenant, actor);
+        await SaveApprovalPolicyAsync(client, prefix);
         version = await PostAsync(client, path + ":submit", new SubmitBriefVersionCommand(null, null),
             version.GetProperty("version").GetInt64());
         version = await PostAsync(client, path + ":approve", new ApproveBriefVersionCommand("Human reviewed source"),
@@ -118,22 +107,18 @@ public sealed partial class SuppliedBriefPersistenceTests
         return version;
     }
 
-    private static Task<int> SeedApprovalPolicyAsync(GovernanceDbContext db, Guid tenant, Guid actor)
+    private static async Task SaveApprovalPolicyAsync(HttpClient client, string prefix)
     {
-        var policy = Guid.NewGuid();
-        var version = Guid.NewGuid();
-        return db.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO commercial.commercial_policies (id, tenant_id, version, created_at_utc, updated_at_utc)
-            VALUES ({policy}, {tenant}, 1, now(), now());
-            INSERT INTO commercial.commercial_policy_versions (id, tenant_id, policy_id, version_number,
-                markup_basis_points, management_fee_basis_points, commission_basis_points, vat_status_code,
-                vat_rate_basis_points, prices_include_vat, currency_code, booking_approval_threshold_minor,
-                allow_self_approval, created_by, created_at_utc)
-            VALUES ({version}, {tenant}, {policy}, 1, 0, 0, 0, {MasterDataCodes.VatStatuses.Registered},
-                1500, false, {MasterDataCodes.Currencies.Zar}, 1000000, true, {actor}, now());
-            UPDATE commercial.commercial_policies SET current_version_id = {version}
-            WHERE tenant_id = {tenant} AND id = {policy};
-            """);
+        using var request = new HttpRequestMessage(HttpMethod.Put, prefix + "/commercial-policy")
+        {
+            Content = JsonContent.Create(new Advertified.Commercial.Application.CommercialSettings.SaveCommercialPolicyCommand(
+                0, 0, 0, MasterDataCodes.VatStatuses.Registered, 1500, false,
+                MasterDataCodes.Currencies.Zar, 1000000, true)),
+        };
+        request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+        request.Headers.TryAddWithoutValidation("If-Match", "\"0\"");
+        using var response = await client.SendAsync(request);
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
     }
 
     private static async Task AssertModeAsync(HttpClient client, string prefix, JsonElement version, string selectedMode)

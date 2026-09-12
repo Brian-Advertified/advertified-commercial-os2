@@ -34,7 +34,9 @@ public sealed partial class ProposalCommands
             ? (await store.FindBrandAssetAsync(envelope.TenantId,
                 proposal.ClientBrandAssetId.Value, cancellationToken))?.Content
             : null;
-        var rendered = ProposalPdfRenderer.Render(view, agencyLogo, clientLogo);
+        var campaignContext = await BuildCampaignContextAsync(
+            envelope.TenantId, view, cancellationToken);
+        var rendered = ProposalPdfRenderer.Render(view, agencyLogo, clientLogo, campaignContext);
         var documentId = Guid.NewGuid();
         var now = timeProvider.GetUtcNow();
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""

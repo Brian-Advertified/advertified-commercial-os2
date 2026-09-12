@@ -93,6 +93,21 @@ public sealed class MarketplaceReader(
         return row.ToView();
     }
 
+    public async Task<MarketplaceResponseHistoryView> ListResponsesAsync(
+        ActorId actorId, TenantId tenantId, Guid rfqId,
+        CancellationToken cancellationToken)
+    {
+        await EnsureRfqReadAllowedAsync(actorId, tenantId, cancellationToken);
+        await using var transaction = await store.BeginSessionAsync(
+            actorId, tenantId, cancellationToken);
+        _ = await store.FindRfqAsync(rfqId, timeProvider.GetUtcNow(), cancellationToken)
+            ?? throw new UnauthorizedAccessException("Marketplace request access denied.");
+        var responses = await store.ListResponsesAsync(rfqId, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new MarketplaceResponseHistoryView(
+            rfqId, responses.Select(item => item.ToView()).ToArray());
+    }
+
     private Task<List<MarketplaceListingRow>> SearchListingRowsAsync(
         MarketplaceSearchFilters filters, MarketplaceCursorValue? cursor, int take,
         Guid[]? supplierScope, DateTimeOffset now,

@@ -38,7 +38,7 @@ public sealed partial class ProposalAcceptanceTests
         builder.UseSetting("Authentication:DevelopmentIdentity:UserId", userId.ToString());
         builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", userId.ToString());
         builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
-        builder.UseDeterministicInventoryProtection();
+        builder.UseDeterministicTestDependencies();
         builder.UseSetting("EmailAutomation:Mode", "Deterministic");
         builder.UseSetting("EmailAutomation:SenderAddress", "proposals@advertified.test");
         builder.UseSetting("Logging:LogLevel:Default", "Warning");
@@ -147,6 +147,12 @@ public sealed partial class ProposalAcceptanceTests
         }
         return await client.SendAsync(request);
     }
+
+    private static void AssertContainsPdfText(string expected, string actual) =>
+        Assert.Contains(NormalizePdfText(expected), NormalizePdfText(actual), StringComparison.OrdinalIgnoreCase);
+
+    private static string NormalizePdfText(string value) =>
+        new(value.Where(character => !char.IsWhiteSpace(character) && character != '·').ToArray());
 
     private static async Task AssertProblemAsync(
         HttpResponseMessage response,

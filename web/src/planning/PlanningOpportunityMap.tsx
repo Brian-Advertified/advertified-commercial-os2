@@ -28,7 +28,6 @@ function shortlistMapFeatures(candidates: ShortlistCandidate[]): MapFeature[] {
   const seenPois = new Set<string>()
   candidates.forEach((candidate, candidateIndex) => {
     const spatial = candidate.spatial
-    if (!spatial) return
     const status = candidate.isSelected === true ? 'Selected' : candidate.isEligible ? 'Eligible' : 'Rejected'
     const properties = {
       verified: true,
@@ -45,6 +44,7 @@ function shortlistMapFeatures(candidates: ShortlistCandidate[]): MapFeature[] {
         properties,
       })
     }
+    if (!spatial) return
     spatialGeometryEntries(candidate).forEach(([kind, value], geometryIndex) => {
       const geometry = parseGeometry(value)
       if (!geometry) return

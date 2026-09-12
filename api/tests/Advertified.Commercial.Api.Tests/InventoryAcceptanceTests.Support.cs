@@ -45,10 +45,7 @@ public sealed partial class InventoryAcceptanceTests
         builder.UseSetting("Authentication:DevelopmentIdentity:UserId", userId.ToString());
         builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", userId.ToString());
         builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
-        builder.UseSetting("InventoryProtection:ObjectStoreMode", "InMemory");
-        builder.UseSetting("InventoryProtection:ScannerMode", "Deterministic");
-        builder.UseSetting("InventoryExtraction:Mode", "Deterministic");
-        builder.UseSetting("InventoryProcessing:Paused", "false");
+        builder.UseDeterministicTestDependencies();
         builder.UseSetting("InventoryEmbedding:Mode", "Deterministic");
         builder.UseSetting("Logging:LogLevel:Default", "Warning");
         builder.UseSetting("Logging:LogLevel:Microsoft.EntityFrameworkCore", "Warning");

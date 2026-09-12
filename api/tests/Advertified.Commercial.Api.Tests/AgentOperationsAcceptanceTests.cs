@@ -24,6 +24,12 @@ public sealed class AgentOperationsAcceptanceTests
         Guid.Parse("aa200000-0000-0000-0000-000000000002");
     private static readonly Guid OtherAdminId =
         Guid.Parse("aa200000-0000-0000-0000-000000000003");
+    private static readonly Guid RunId =
+        Guid.Parse("aa500000-0000-0000-0000-000000000001");
+    private static readonly Guid InventoryImportId =
+        Guid.Parse("aa310000-0000-0000-0000-000000000001");
+    private static readonly Guid InventoryAttemptId =
+        Guid.Parse("aa510000-0000-0000-0000-000000000001");
     private static readonly DateTimeOffset Now =
         new(2026, 9, 3, 9, 0, 0, TimeSpan.Zero);
 
@@ -50,6 +56,8 @@ public sealed class AgentOperationsAcceptanceTests
         AssertSummary(json.RootElement);
         AssertAgentBudget(json.RootElement);
         AssertUsageAndRun(json.RootElement);
+        await AssertProgressAsync(admin);
+        await AssertInventoryExtractionProgressAsync(admin);
 
         await AssertProblemAsync(
             await campaignUser.GetAsync(OperationsPath(TenantId)),
@@ -67,7 +75,7 @@ public sealed class AgentOperationsAcceptanceTests
         Assert.Equal(3, root.GetProperty("totalIncrementalCostMinor").GetInt64());
         Assert.Equal(1, root.GetProperty("durableRunCount").GetInt32());
         Assert.Equal(1, root.GetProperty("attentionRunCount").GetInt32());
-        Assert.Equal(11, root.GetProperty("agents").GetArrayLength());
+        Assert.Equal(13, root.GetProperty("agents").GetArrayLength());
     }
 
     private static void AssertAgentBudget(JsonElement root)
@@ -92,6 +100,53 @@ public sealed class AgentOperationsAcceptanceTests
         Assert.Equal("AGENT_OUTPUT_INVALID", run.GetProperty("errorCode").GetString());
     }
 
+    private static async Task AssertProgressAsync(HttpClient admin)
+    {
+        using var response = await admin.GetAsync($"{OperationsPath(TenantId)}/{RunId}");
+        using var json = await ReadJsonAsync(response);
+        var root = json.RootElement;
+        Assert.Equal(RunId, root.GetProperty("id").GetGuid());
+        Assert.Equal("opportunity", root.GetProperty("subject").GetProperty("resourceType").GetString());
+        Assert.Equal("INTERPRETATION", root.GetProperty("currentStep").GetString());
+        Assert.Equal("INTERPRETATION", root.GetProperty("reviewRequiredStep").GetString());
+        Assert.Equal("bedrock", root.GetProperty("provider").GetString());
+        Assert.Equal("anthropic.claude-test-v1", root.GetProperty("model").GetString());
+        Assert.Equal(3, root.GetProperty("incrementalCostMinor").GetInt64());
+        var step = Assert.Single(root.GetProperty("steps").EnumerateArray());
+        Assert.Equal(1, step.GetProperty("order").GetInt32());
+        Assert.Equal("FAILED", step.GetProperty("status").GetString());
+        Assert.Equal("INTERPRETATION", step.GetProperty("safeMessageCode").GetString());
+        using var replay = await admin.GetAsync($"{OperationsPath(TenantId)}/{RunId}");
+        using var replayJson = await ReadJsonAsync(replay);
+        Assert.Equal(root.GetProperty("updatedAtUtc").GetDateTimeOffset(),
+            replayJson.RootElement.GetProperty("updatedAtUtc").GetDateTimeOffset());
+    }
+
+    private static async Task AssertInventoryExtractionProgressAsync(HttpClient admin)
+    {
+        using var response = await admin.GetAsync(
+            $"{OperationsPath(TenantId)}/{InventoryAttemptId}");
+        using var json = await ReadJsonAsync(response);
+        var root = json.RootElement;
+        Assert.Equal(InventoryAttemptId, root.GetProperty("id").GetGuid());
+        var subject = root.GetProperty("subject");
+        Assert.Equal("inventory_import", subject.GetProperty("resourceType").GetString());
+        Assert.Equal(InventoryImportId, subject.GetProperty("resourceId").GetGuid());
+        Assert.Equal("RUNNING", root.GetProperty("status").GetString());
+        Assert.Equal("bedrock", root.GetProperty("provider").GetString());
+        Assert.Equal("amazon.nova-lite-v1:0", root.GetProperty("model").GetString());
+        Assert.Equal(2, root.GetProperty("incrementalCostMinor").GetInt64());
+        var steps = root.GetProperty("steps").EnumerateArray().ToArray();
+        Assert.Equal(2, steps.Length);
+        Assert.Equal("ORIGINAL_SOURCE", steps[0].GetProperty("stepCode").GetString());
+        Assert.Contains("SEMANTIC_ENRICHMENT", steps[1].GetProperty("stepCode").GetString());
+        using var replay = await admin.GetAsync(
+            $"{OperationsPath(TenantId)}/{InventoryAttemptId}");
+        using var replayJson = await ReadJsonAsync(replay);
+        Assert.Equal(root.GetProperty("updatedAtUtc").GetDateTimeOffset(),
+            replayJson.RootElement.GetProperty("updatedAtUtc").GetDateTimeOffset());
+    }
+
     private static PostgreSqlContainer CreatePostgres() => DisposablePostgres.Create(
         "advertified_agent_operations",
         "advertified_agent_operations",
@@ -107,7 +162,7 @@ public sealed class AgentOperationsAcceptanceTests
         builder.UseSetting("Authentication:DevelopmentIdentity:UserId", userId.ToString());
         builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", userId.ToString());
         builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
-        builder.UseDeterministicInventoryProtection();
+        builder.UseDeterministicTestDependencies();
         builder.UseSetting("Logging:LogLevel:Default", "Warning");
     });
 
@@ -179,6 +234,42 @@ public sealed class AgentOperationsAcceptanceTests
             'aa500000-0000-0000-0000-000000000001',
             'aa700000-0000-0000-0000-000000000001', 'bedrock',
             'anthropic.claude-test-v1', 10, 0, 3, 'LIVE', 'provider-request-1', @now);
+        INSERT INTO commercial.inventory_imports (
+            id, tenant_id, source_file_name, declared_media_type,
+            document_class_collection_code, document_class_code, status_code,
+            scan_status_code, quarantine_object_key, protected_object_key,
+            source_hash, source_size, created_by, version, created_at_utc, updated_at_utc)
+        VALUES ('aa310000-0000-0000-0000-000000000001', @tenant,
+            'progress-holdout.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'documentClasses', 'XLSX', 'EXTRACTING', 'CLEAN',
+            'quarantine/progress-holdout.xlsx', 'protected/progress-holdout.xlsx',
+            repeat('b', 64), 10, @admin, 2, @now, @now);
+        INSERT INTO commercial.inventory_extraction_attempts (
+            id, tenant_id, import_id, source_file_version, source_hash,
+            stable_submission_key, provider_name, provider_version, status_code,
+            external_task_id, submitted_at_utc, started_at_utc, polling_checkpoint,
+            attempt_number, correlation_id, command_id, requested_by,
+            version, created_at_utc, updated_at_utc)
+        VALUES ('aa510000-0000-0000-0000-000000000001', @tenant,
+            'aa310000-0000-0000-0000-000000000001', 1, repeat('b', 64),
+            'progress-extraction-1', 'native-source-extraction', '1.0.0', 'RUNNING',
+            'progress-task-1', @now, @now, '{}'::jsonb, 1,
+            'aa610000-0000-0000-0000-000000000001',
+            'aa620000-0000-0000-0000-000000000001', @admin, 1, @now, @now);
+        INSERT INTO commercial.inventory_semantic_runs (
+            id, tenant_id, import_id, extraction_attempt_id, source_hash, input_hash,
+            budget_scope, prompt_version, model_code, chunk_number, chunk_count,
+            status_code, request_json, response_json, maximum_cost_usd_micros,
+            incremental_cost_usd_micros, input_tokens, output_tokens,
+            provider_request_id, requested_by, created_at_utc, started_at_utc,
+            completed_at_utc, version)
+        VALUES ('aa810000-0000-0000-0000-000000000001', @tenant,
+            'aa310000-0000-0000-0000-000000000001',
+            'aa510000-0000-0000-0000-000000000001', repeat('b', 64), repeat('c', 64),
+            'inventory-test', '1.0.0', 'amazon.nova-lite-v1:0', 1, 1,
+            'COMPLETED', '{"operation":"SEMANTIC_ENRICHMENT"}'::jsonb,
+            '{"artifact":{}}'::jsonb, 100000, 12500, 100, 50,
+            'progress-provider-request-1', @admin, @now, @now, @now, 1);
         """;
 
     private static Tenant Tenant(Guid id, string slug) => new(

@@ -8,7 +8,7 @@ from decimal import Decimal
 from fastapi import HTTPException
 
 from supplied_brief_contracts import SuppliedBriefRequest
-from supplied_brief_model_input import source_segments
+from supplied_brief_model_input import PRIMARY_LOCATOR, source_segments
 
 INSTRUCTION = (
     "Extract and classify the supplied Brief; do not create an Opportunity. The source title, "
@@ -162,11 +162,18 @@ def _canonicalize_constraints(request: SuppliedBriefRequest, artifact):
 
 def _current_constraint_sources(request: SuppliedBriefRequest):
     return (
-        request.source.source_content,
+        *_primary_message_content(request),
         *(
             item.value for item in request.source.clarifications
             if item.field_path in {"constraints", "mediaRequirements"}
         ),
+    )
+
+
+def _primary_message_content(request: SuppliedBriefRequest):
+    return tuple(
+        segment["content"] for segment in source_segments(request)
+        if segment["segment_id"] == PRIMARY_LOCATOR
     )
 
 
@@ -179,7 +186,8 @@ def _exact_budget(request: SuppliedBriefRequest):
     if not candidates:
         candidates = [
             line
-            for line in request.source.source_content.splitlines()
+            for content in _primary_message_content(request)
+            for line in content.splitlines()
             if line.strip().casefold().startswith("budget:")
         ]
     matches = []

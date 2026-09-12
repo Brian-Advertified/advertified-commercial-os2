@@ -16,6 +16,7 @@ import { MediaPlanPanel } from '../planning/MediaPlanPanel'
 import { PlanningDecisionContext } from '../planning/PlanningDecisionContext'
 import { MediaTimeline } from '../planning/MediaTimeline'
 import { PlanningCommercialProof } from '../planning/PlanningCommercialProof'
+import { PlanningMeasurementReadiness } from '../planning/PlanningMeasurementReadiness'
 import { PlanningOpportunityMap } from '../planning/PlanningOpportunityMap'
 import { ShortlistPanel } from '../planning/ShortlistPanel'
 import { announcePlanningChanged } from '../planning/planning-events'
@@ -92,6 +93,7 @@ function PlanningWorkspaceContent(props: PlanningContext & {
     <ExperienceSignals title="Planning intelligence" signals={planningSignals(workspace, mix, shortlist, plan)} />
     <PlanningCommercialProof workspace={workspace} mix={mix} shortlist={shortlist} plan={plan} />
     <PlanningOpportunityMap shortlist={shortlist} />
+    <PlanningMeasurementReadiness workspace={workspace} shortlist={shortlist} />
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
     {mix && <ApprovedPlanningOverview mix={mix} shortlist={shortlist} plan={plan} />}
     <PlanningStages {...props} mix={mix} shortlist={shortlist} plan={plan} />
@@ -192,7 +194,7 @@ function ShortlistStage(props: PlanningContext & {
     onAction={() => props.act(() => planningApi.generateShortlist(
       props.tenantId, props.briefVersionId, props.token))} />
   return <ShortlistPanel key={`${props.shortlist.id}-${props.shortlist.version}`}
-    shortlist={props.shortlist}
+    tenantId={props.tenantId} token={props.token} shortlist={props.shortlist}
     requiredChannels={props.mix.allocations
       .filter(item => item.budgetMinor > 0).map(item => item.channel)}
     busy={props.busy}

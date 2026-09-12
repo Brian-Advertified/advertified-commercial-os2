@@ -54,6 +54,19 @@ public sealed partial class MarketplaceAcceptanceTests
                 'documentClasses', 'CSV', 'COMPLETED', 'CLEAN', 'private/quarantine',
                 'private/protected-rate-card', repeat('a', 64), 100, $4, 2, $5, $5)
             """, ImportId, SupplierTenantId, InventorySupplierId, SupplierUserId, InitialTime);
+        Add(batch, """
+            INSERT INTO commercial.inventory_supplier_releases (
+                id, tenant_id, supplier_id, source_import_id, version_number,
+                replacement_mode_code, status_code, effective_at_utc,
+                created_by, version, created_at_utc, updated_at_utc)
+            VALUES ($1, $2, $3, $4, 1, 'FULL_REPLACEMENT', 'CURRENT',
+                $5, $6, 1, $5, $5)
+            """, OldReleaseId, SupplierTenantId, InventorySupplierId,
+            ImportId, InitialTime, SupplierUserId);
+        Add(batch,
+            "UPDATE commercial.inventory_suppliers SET current_inventory_release_id = $1 " +
+            "WHERE tenant_id = $2 AND id = $3",
+            OldReleaseId, SupplierTenantId, InventorySupplierId);
         var projectionId = InventoryProjectionSeed.Add(
             batch, SupplierTenantId, ImportId, SupplierUserId,
             InitialTime, 'a');
@@ -83,25 +96,27 @@ public sealed partial class MarketplaceAcceptanceTests
             supplierVersionId, SupplierTenantId, InventorySupplierId);
         Add(batch, """
             INSERT INTO commercial.inventory_products (
-                id, tenant_id, supplier_id, supplier_product_code, status_code,
+                id, tenant_id, supplier_id, supplier_product_code,
+                current_release_id, status_code,
                 version, created_at_utc, updated_at_utc)
-            VALUES ($1, $2, $3, 'JHB-N1-001', 'ACTIVE', 1, $4, $4)
-            """, ProductId, SupplierTenantId, InventorySupplierId, InitialTime);
+            VALUES ($1, $2, $3, 'JHB-N1-001', $4, 'ACTIVE', 1, $5, $5)
+            """, ProductId, SupplierTenantId, InventorySupplierId,
+            OldReleaseId, InitialTime);
         Add(batch, """
             INSERT INTO commercial.inventory_product_versions (
                 id, tenant_id, product_id, version_number, name, channel_code,
                 product_type_code, geography, address, latitude, longitude,
                 verification_code, deliverable_json, spatial_json,
-                source_import_id, source_candidate_id,
+                inventory_release_id, source_import_id, source_candidate_id,
                 published_by, published_at_utc)
             VALUES ($1, $2, $3, 1, 'N1 Highway Digital Billboard', 'OOH',
                 'OOH_SITE', 'Johannesburg', 'Private supplier address', -26.100000,
                 28.100000, 'HUMAN_VERIFIED',
                 '{"format":"Digital billboard","buyingUnit":"screen/month","dimensions":"4m x 8m","placement":"Highway","loopLengthSeconds":60,"slotLengthSeconds":10,"playsPerLoop":1,"quantity":1}'::jsonb,
                 '{"country":"South Africa","province":"Gauteng","municipality":"Johannesburg","locality":"Johannesburg","road":"N1","trafficDirection":"Southbound","pointsOfInterest":[{"name":"Sandton business district","category":"BUSINESS_DISTRICT","latitude":-26.1076,"longitude":28.0567}]}'::jsonb,
-                $4, $5, $6, $7)
-            """, ProductVersionId, SupplierTenantId, ProductId, ImportId,
-            CandidateId, SupplierUserId, InitialTime);
+                $4, $5, $6, $7, $8)
+            """, ProductVersionId, SupplierTenantId, ProductId, OldReleaseId,
+            ImportId, CandidateId, SupplierUserId, InitialTime);
         Add(batch,
             "UPDATE commercial.inventory_products SET current_version_id = $1 WHERE id = $2",
             ProductVersionId, ProductId);

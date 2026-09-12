@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Advertified.Commercial.Application.Intelligence;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.MasterData;
@@ -17,6 +18,7 @@ public sealed class InventoryPurchasePersistenceTests
         new(JsonSerializerDefaults.Web);
 
     [Fact]
+    [Trait("Category", "Migration")]
     public async Task ApprovedBuyingQuantityControlsShortlistPlanAndProposalSnapshot()
     {
         await using var postgres = CanonicalPlanningAcceptanceTests.CreatePostgres();
@@ -30,17 +32,8 @@ public sealed class InventoryPurchasePersistenceTests
         await using var factory = CanonicalPlanningAcceptanceTests.CreateFactory(connection,
             CanonicalPlanningAcceptanceTests.OperatorId,
             configureServices: CanonicalPlanningAcceptanceTests.ConfigureDeterministicPlanningClock)
-            .WithWebHostBuilder(builder => {
-                builder.UseSetting("AgentRuntime:Mode", "Disabled");
-                builder.UseSetting("InventoryProcessing:Paused", "true");
-                builder.ConfigureServices(services =>
-                {
-                    services.RemoveAll<IPlanningAgentClient>();
-                    services.AddScoped<
-                        IPlanningAgentClient,
-                        PlanningAgentFixture>();
-                });
-            });
+            .WithWebHostBuilder(builder =>
+                builder.UseSetting("InventoryProcessing:Paused", "true"));
         using var client = factory.CreateClient();
         var prefix = $"/api/v1/tenants/{CanonicalPlanningAcceptanceTests.TenantId}";
         var brief = $"{prefix}/brief-versions/{CanonicalPlanningAcceptanceTests.BriefVersionId}";
@@ -57,6 +50,10 @@ public sealed class InventoryPurchasePersistenceTests
                 positioningStatement = audience.RootElement.GetProperty("positioningStatement").GetString(),
                 reason = "Human reviewed the generated audience strategy.",
             });
+        using var approvedMediaStrategy = await CanonicalPlanningAcceptanceTests
+            .AnalyseAndApproveMediaStrategyAsync(
+                client, CanonicalPlanningAcceptanceTests.BriefVersionId);
+        Assert.Equal("APPROVED", approvedMediaStrategy.RootElement.GetProperty("status").GetString());
         using var mix = await Command(client, brief + "/media-mixes:generate", new { });
         var mixPath = $"{prefix}/media-mix-versions/{mix.RootElement.GetProperty("id").GetGuid()}";
         var purchase = new InventoryPurchaseQuantity(CanonicalPlanningAcceptanceTests.TenantId,

@@ -26,53 +26,69 @@ public sealed partial class InventoryCommands
         var retained = artifact.Extraction();
         if (retained.SourceHash != source.SourceHash || artifact.SourceFileVersion <= 0)
             throw new InventoryExtractionUnavailableException();
-        if (envelope.Command.ExpectedMappingRevision != InventoryInterpretationRevision.Revision(retained))
+        if (envelope.Command.ExpectedMappingRevision != retained.CanonicalOutputHash)
             throw new VersionConflictException();
         if (string.IsNullOrWhiteSpace(envelope.Command.Reason) || envelope.Command.Reason.Length > 2000)
             throw new ArgumentException("An interpretation review reason is required.");
         var codes = await InventoryCodeSets.LoadAsync(store.DbContext, cancellationToken);
         var now = timeProvider.GetUtcNow();
-        var corrected = envelope.Command.CorrectedSchema is null ? retained : InventoryInterpretationRevision.Correct(
-            retained, new(MasterDataCodes.InventoryReviewDecisions.Edit, null, envelope.Command.Reason,
-                null, envelope.Command.CorrectedSchema, envelope.Command.ExpectedMappingRevision),
-            envelope.ActorId.Value, now, codes);
-        await PersistInterpretationAsync(source, artifact, corrected, envelope.ActorId.Value,
+        await PersistReevaluationAsync(source, artifact, retained, envelope.ActorId.Value,
             codes, now, cancellationToken);
         return await BuildExtractionOutcomeAsync(source, envelope,
             MasterDataReferences.CommercialActions.InventoryExtractionReprojected,
             MasterDataReferences.CommercialEventTypes.InventoryExtractionReprojected, cancellationToken);
     }
 
-    private async Task PersistInterpretationAsync(InventoryImportRow source, InventoryAcceptanceArtifact artifact,
-        InventoryExtractionResult corrected, Guid actorId, InventoryCodeSets codes,
+    private async Task PersistReevaluationAsync(InventoryImportRow source, InventoryAcceptanceArtifact artifact,
+        InventoryExtractionResult retained, Guid actorId, InventoryCodeSets codes,
         DateTimeOffset now, CancellationToken cancellationToken)
     {
         var tenant = new TenantId(source.TenantId);
-        var candidates = InventoryCandidateAdmissionPolicy.Prepare(corrected.Rows, source.SourceHash,
+        var candidates = InventoryCandidateAdmissionPolicy.Prepare(retained.Rows, source.SourceHash,
             source.SupplierName, codes, now);
-        candidates = InventoryAcceptancePolicy.Apply(corrected, source.SourceHash,
+        candidates = InventoryAcceptancePolicy.Apply(retained, source.SourceHash,
             artifact.SourceFileVersion, codes, candidates, now);
         var rejected = await InventoryRejectionCarryForward.FromHistoryAsync(store.DbContext,
-            tenant, source.Id, corrected, candidates, cancellationToken);
+            tenant, source.Id, retained, candidates, cancellationToken);
         await InventoryProjectionPersistence.SupersedeCurrentCandidatesAsync(store.DbContext,
-            tenant, source.Id, actorId, now, cancellationToken, interpretationCorrection: true);
-        var projectionId = corrected.CanonicalOutputHash == artifact.CanonicalHash ? artifact.ProjectionId :
+            tenant, source.Id, actorId, now, cancellationToken, interpretationCorrection: false);
+        var projectionId = retained.CanonicalOutputHash == artifact.CanonicalHash ? artifact.ProjectionId :
             await InventoryProjectionPersistence.InsertReprojectionAsync(store.DbContext,
-                tenant, source.Id, artifact.ExtractionId, null, corrected, candidates.Length, actorId, now, cancellationToken);
+                tenant, source.Id, artifact.ExtractionId, null, retained, candidates.Length, actorId, now, cancellationToken);
         await InventoryCandidateBatchPersistence.PersistAsync(store.DbContext, tenant, source.Id,
             projectionId, actorId, now, candidates, cancellationToken, rejected);
         var documentFailure =
-            corrected.Document.SchemaDiscoveryFailure is not null ||
+            retained.Document.SchemaDiscoveryFailure is not null ||
             candidates.Length == 0;
         await CompleteDocumentInterpretationAsync(source, actorId, now, cancellationToken);
         if (documentFailure)
             await InventoryDocumentReviewPersistence.InsertAsync(store.DbContext, source, actorId, source.Version + 1,
-                corrected.Document.SchemaDiscoveryFailure ?? "No inventory records can be validated from the retained interpretation.",
+                retained.Document.SchemaDiscoveryFailure ?? "No inventory records can be validated from the retained interpretation.",
                 now, cancellationToken);
-        await UpdateInterpretationReviewStepAsync(tenant, source.Id, documentFailure || candidates
+        await SetReevaluationReviewStepAsync(tenant, source.Id, documentFailure || candidates
             .Any(candidate => !rejected.Contains(candidate.Id) && InventoryCandidateReviewPolicy.RequiresReview(candidate)),
             now, cancellationToken);
     }
+
+    private Task<int> SetReevaluationReviewStepAsync(
+        TenantId tenant,
+        Guid importId,
+        bool needsReview,
+        DateTimeOffset now,
+        CancellationToken cancellationToken) =>
+        store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO commercial.inventory_import_steps (
+                id, tenant_id, import_id, step_type_code, status_code,
+                outcome_json, started_at_utc, completed_at_utc)
+            VALUES (gen_random_uuid(), {tenant.Value}, {importId}, {MasterDataCodes.InventoryImportStepTypes.Review},
+                {(needsReview ? MasterDataCodes.LifecycleStatuses.ReviewRequired : MasterDataCodes.LifecycleStatuses.Completed)},
+                jsonb_build_object('acceptancePolicyVersion', {InventoryAcceptancePolicy.Version}), {now},
+                {(needsReview ? (DateTimeOffset?)null : now)})
+            ON CONFLICT (tenant_id, import_id, step_type_code) DO UPDATE
+            SET status_code = EXCLUDED.status_code,
+                outcome_json = EXCLUDED.outcome_json,
+                completed_at_utc = EXCLUDED.completed_at_utc
+            """, cancellationToken);
 
     private Task<int> CompleteDocumentInterpretationAsync(InventoryImportRow source, Guid actorId,
         DateTimeOffset now, CancellationToken cancellationToken) =>

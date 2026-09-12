@@ -4,7 +4,7 @@ namespace Advertified.Commercial.Api.Tests;
 
 public sealed partial class ProposalAcceptanceTests
 {
-    private static readonly Guid AudienceSetId = Guid.Parse("86000000-0000-0000-0000-000000000001");
+    private static readonly Guid AudienceArtifactId = Guid.Parse("86000000-0000-0000-0000-000000000001");
     private static readonly Guid SupplierId = Guid.Parse("87000000-0000-0000-0000-000000000001");
     private static readonly Guid ImportId = Guid.Parse("87000000-0000-0000-0000-000000000002");
     private static readonly Guid CandidateId = Guid.Parse("87000000-0000-0000-0000-000000000003");
@@ -46,11 +46,16 @@ public sealed partial class ProposalAcceptanceTests
                 SET current_draft_version_id = $1, approved_version_id = $1 WHERE id = $2
                 """, BriefVersionId, BriefId);
             Add(batch, """
-                INSERT INTO commercial.audience_definition_sets (
-                    id, tenant_id, brief_version_id, version_no, input_hash, status_code,
-                    created_by, created_at_utc, approved_by, approved_at_utc)
-                VALUES ($1, $2, $3, 1, repeat('b', 64), 'APPROVED', $4, $5, $4, $5)
-                """, AudienceSetId, TenantId, BriefVersionId, OperatorId, Now);
+                INSERT INTO commercial.intelligence_artifacts (
+                    id, tenant_id, subject_type, subject_id, subject_version, service_code,
+                    artifact_schema_version, version_no, artifact_json, unknowns_json,
+                    assumptions_json, input_hash, status_code, created_by, created_at_utc,
+                    approved_by, approved_at_utc, version)
+                VALUES ($1, $2, 'BriefVersion', $3, 1, 'audience_intelligence',
+                    'audience-strategy.v1', 1,
+                    '{"targetAudienceIds":["86000000-0000-0000-0000-000000000002"],"targetingRationale":"Prioritise the client-supplied business buyer audience for the approved objective.","positioningStatement":null,"segments":[{"id":"86000000-0000-0000-0000-000000000002","name":"Business buyers","description":"Brief-supplied audience: Business buyers. Additional motivations and behaviours are not established.","needState":null,"buyingContext":null,"geographies":["Johannesburg"],"language":null,"lifeStage":null,"lsmSem":null,"lsmSemTaxonomy":null,"lsmSemTaxonomyVersion":null,"classification":"HYPOTHESIS","exclusions":[],"evidenceItemIds":[],"referenceObservationIds":[],"confidence":null,"lsmSemMandatory":false}]}'::jsonb,
+                    '[]', '[]', repeat('b', 64), 'APPROVED', $4, $5, $4, $5, 1)
+                """, AudienceArtifactId, TenantId, BriefVersionId, OperatorId, Now);
             Add(batch, """
                 INSERT INTO commercial.inventory_suppliers (
                     id, tenant_id, name, version, created_at_utc, updated_at_utc)
@@ -134,13 +139,13 @@ public sealed partial class ProposalAcceptanceTests
             """, availabilityId, TenantId, productVersionId, Now, Now.AddYears(1));
         Add(batch, """
             INSERT INTO commercial.media_mix_versions (
-                id, tenant_id, brief_version_id, audience_set_id, version_no,
+                id, tenant_id, brief_version_id, audience_artifact_id, version_no,
                 total_budget_minor, currency_code, allocations_json, channel_roles_json,
                 assumptions_json, evidence_item_ids_json, input_hash, status_code,
                 created_by, approved_by, approved_at_utc, version, created_at_utc)
             VALUES ($1, $2, $3, $4, $5, 35000000, 'ZAR', $6::jsonb, $7::jsonb,
                 '[]', '[]', repeat('d', 64), 'APPROVED', $8, $8, $9, 2, $9)
-            """, mixId, TenantId, BriefVersionId, AudienceSetId, route.Ordinal,
+            """, mixId, TenantId, BriefVersionId, AudienceArtifactId, route.Ordinal,
             $"[{{\"channel\":\"{route.Channel}\",\"budgetMinor\":35000000,\"role\":\"{route.Name}\",\"runningPeriods\":[{{\"start\":\"2026-09-01\",\"end\":\"2026-09-30\"}}]}}]",
             $"{{\"{route.Channel}\":\"{route.Name}\"}}", OperatorId, Now);
         Add(batch, """

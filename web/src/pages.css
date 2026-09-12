@@ -171,12 +171,17 @@
 .evidence-table { margin-top: 0.75rem; display: grid; gap: 0.35rem; }
 .evidence-table div { display: grid; grid-template-columns: 0.7fr 1fr 1.4fr; gap: 0.5rem; padding: 0.6rem; background: var(--canvas); }
 .evidence-table small { color: var(--muted); overflow-wrap: anywhere; }
-.candidate-actions { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: end; }
-.reject-action { margin-left: auto; display: flex; gap: 0.5rem; align-items: end; }
+.candidate-actions { margin-top: 1rem; display: grid; gap: 0.9rem; }
+.candidate-review-primary-actions { display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; }
+.candidate-review-primary-actions small { flex-basis: 100%; color: var(--muted); }
+.candidate-correction-panel { padding: 1rem; border: 1px solid var(--line-strong); background: var(--surface-subtle); display: grid; gap: 0.9rem; }
+.candidate-correction-panel header { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(16rem, 1.2fr); gap: 1rem; align-items: start; }
+.candidate-correction-panel header h3 { margin: 0.1rem 0 0; color: var(--navy); }
+.candidate-correction-panel header p { margin: 0; color: var(--muted); }
+.candidate-correction-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+.reject-action { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: end; padding-top: 0.8rem; border-top: 1px solid var(--line); }
 .reject-action label { display: grid; gap: 0.2rem; color: var(--muted); font-size: 0.75rem; }
 .reject-action select { padding: 0.45rem; border: 1px solid var(--line-strong); border-radius: 0.25rem; }
-.correction-form { margin-top: 1rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
-.correction-form .candidate-actions { grid-column: 1 / -1; }
 .publish-panel { margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .publish-panel h2 { margin: 0; }
 .product-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
@@ -221,8 +226,9 @@
   .inventory-search,
   .import-summary,
   .candidate-facts,
-  .correction-form,
+  .candidate-correction-grid,
   .product-detail-grid { grid-template-columns: 1fr; }
+  .candidate-correction-panel header { grid-template-columns: 1fr; }
   .inventory-upload { position: static; }
   .evidence-table div { grid-template-columns: 1fr; }
   .reject-action { margin-left: 0; }

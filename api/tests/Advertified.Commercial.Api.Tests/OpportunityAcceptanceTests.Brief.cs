@@ -29,7 +29,8 @@ public sealed partial class OpportunityAcceptanceTests
                 sourceTitle = "Client email pasted by the operator",
                 sourceContent = original,
             });
-        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        Assert.True(created.StatusCode == HttpStatusCode.Created,
+            await created.Content.ReadAsStringAsync());
         using var createdJson = await ReadJsonAsync(created);
         Assert.Equal("Opportunity Test Client",
             createdJson.RootElement.GetProperty("clientName").GetString());
@@ -39,7 +40,8 @@ public sealed partial class OpportunityAcceptanceTests
             $"/api/v1/tenants/{TenantId}/briefs/{briefId}/versions",
             "brief-supplied-version-1",
             SuppliedVersion(briefId, null, "Generate qualified enquiries."));
-        Assert.Equal(HttpStatusCode.Created, draftResponse.StatusCode);
+        Assert.True(draftResponse.StatusCode == HttpStatusCode.Created,
+            await draftResponse.Content.ReadAsStringAsync());
         using var draftJson = await ReadJsonAsync(draftResponse);
         var draft = draftJson.RootElement.Clone();
         var ready = await MarkBriefReadyAsync(solo, draft, "brief-solo");
@@ -93,7 +95,7 @@ public sealed partial class OpportunityAcceptanceTests
         Assert.Contains(
             draft.GetProperty("unknowns").EnumerateArray(),
             item => item.GetProperty("fieldPath").GetString() == "budget");
-        await ConfirmBriefAsync(
+        var confirmed = await ConfirmBriefAsync(
             owner, agencyOperator, draft, SoloOperatorId, "brief-opportunity", advertiser);
 
         var final = await GetOpportunityAsync(owner, opportunityId);
@@ -101,6 +103,7 @@ public sealed partial class OpportunityAcceptanceTests
         Assert.Equal("The Brief is confirmed and ready for planning.",
             final.GetProperty("nextAction").GetString());
         await AssertBriefLineageAsync(connectionString, opportunityId);
+        await AssertMarketEvidenceJourneyAsync(owner, advertiser, confirmed.GetProperty("id").GetGuid());
     }
 
     private static async Task<JsonElement> MarkBriefReadyAsync(
@@ -195,6 +198,7 @@ public sealed partial class OpportunityAcceptanceTests
         currency = "ZAR",
         vatStatus = (string?)null,
         feesMinor = (long?)null,
+        mediaRequirements = Array.Empty<string>(),
         constraints = Array.Empty<string>(),
         measurement = new[] { "Qualified enquiries" },
         facts = new[] { "The supplied source names Gauteng, December and a media budget." },

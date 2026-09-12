@@ -3,23 +3,35 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import Field, NonNegativeInt, model_validator
+from pydantic import Field, NonNegativeInt, field_validator, model_validator
 
 from contracts import AgentInvocationEnvelope, ContractModel, StableCode
+from master_data_codes import EvidenceClassifications
 from inventory_strategy_contracts import InventoryStrategyContext
 from audience_evidence import AudienceEvidenceFact
+from reference_evidence import ReferenceObservation
+from supplied_brief_contracts import BriefConflict
 from buy_assessment_contracts import InventoryBuyAssessmentFacts
 
 
 class PlanningBriefContext(ContractModel):
     brief_version_id: UUID
+    client_name: Annotated[str, Field(min_length=1, max_length=500)]
+    business_problem: Annotated[str, Field(min_length=1, max_length=4_000)]
     objective: Annotated[str, Field(min_length=1, max_length=4_000)]
-    audiences: Annotated[tuple[str, ...], Field(min_length=1, max_length=20)]
+    audiences: Annotated[tuple[str, ...], Field(max_length=20)]
     geographies: Annotated[tuple[str, ...], Field(min_length=1, max_length=50)]
+    media_requirements: tuple[Annotated[str, Field(min_length=1, max_length=1_000)], ...] = ()
+    constraints: tuple[Annotated[str, Field(min_length=1, max_length=1_000)], ...] = ()
+    conflicts: tuple[BriefConflict, ...] = ()
+    success_measures: tuple[Annotated[str, Field(min_length=1, max_length=1_000)], ...] = ()
+    budget_minor: Annotated[int | None, Field(ge=0)] = None
+    currency: Annotated[str | None, Field(pattern=r"^[A-Z]{3}$")] = None
     audience_evidence: tuple[AudienceEvidenceFact, ...] | None = None
+    reference_evidence: tuple[ReferenceObservation, ...] = ()
 
 
 class AudienceAgentRequest(ContractModel):
@@ -28,24 +40,6 @@ class AudienceAgentRequest(ContractModel):
 
     @model_validator(mode="after")
     def validate_brief_reference(self) -> AudienceAgentRequest:
-        _require_resource_reference(
-            self.invocation, "BriefVersion", self.planning.brief_version_id
-        )
-        return self
-
-
-class MediaPlanningContext(PlanningBriefContext):
-    budget_minor: Annotated[int, Field(ge=0)]
-    currency: Annotated[str, Field(pattern=r"^[A-Z]{3}$")]
-    available_channels: Annotated[tuple[StableCode, ...], Field(min_length=1)]
-
-
-class MediaPlanningAgentRequest(ContractModel):
-    invocation: AgentInvocationEnvelope
-    planning: MediaPlanningContext
-
-    @model_validator(mode="after")
-    def validate_brief_reference(self) -> MediaPlanningAgentRequest:
         _require_resource_reference(
             self.invocation, "BriefVersion", self.planning.brief_version_id
         )
@@ -151,7 +145,7 @@ class InventoryIntelligenceContext(ContractModel):
     brief_version_id: UUID
     shortlist_version_id: UUID
     candidates: Annotated[tuple[InventoryCandidateFacts, ...], Field(min_length=1)]
-    strategy: InventoryStrategyContext | None = None
+    strategy: InventoryStrategyContext
 
     @model_validator(mode="after")
     def validate_unique_candidates(self) -> InventoryIntelligenceContext:
@@ -162,6 +156,7 @@ class InventoryIntelligenceContext(ContractModel):
 
 
 class InventoryIntelligenceAgentRequest(ContractModel):
+    operation: Literal["INVENTORY_INTERPRETATION"] = "INVENTORY_INTERPRETATION"
     invocation: AgentInvocationEnvelope
     inventory: InventoryIntelligenceContext
 
@@ -177,7 +172,8 @@ class InventoryIntelligenceAgentRequest(ContractModel):
         )
         if strategy := self.inventory.strategy:
             for resource_type, resource_id, version in (
-                ("AudienceDefinitionSet", strategy.audience_set_id, strategy.audience_set_version),
+                ("IntelligenceArtifact", strategy.audience_artifact_id, strategy.audience_artifact_version),
+                ("IntelligenceArtifact", strategy.media_strategy_artifact_id, strategy.media_strategy_artifact_version),
                 ("MediaMixVersion", strategy.media_mix_version_id, strategy.media_mix_version),
             ):
                 if not any(item.resource_type == resource_type and item.resource_id == resource_id
@@ -186,11 +182,18 @@ class InventoryIntelligenceAgentRequest(ContractModel):
         return self
 
 
+AudienceClassification = Literal[
+    EvidenceClassifications.CLIENT_REQUIREMENT,
+    EvidenceClassifications.INFERENCE,
+    EvidenceClassifications.HYPOTHESIS,
+]
+
+
 class AudienceDefinition(ContractModel):
     name: Annotated[str, Field(min_length=1, max_length=300)]
     description: Annotated[str, Field(min_length=1, max_length=2_000)]
-    need_state: Annotated[str, Field(min_length=1, max_length=1_000)]
-    buying_context: Annotated[str, Field(min_length=1, max_length=1_000)]
+    need_state: Annotated[str | None, Field(max_length=1_000)] = None
+    buying_context: Annotated[str | None, Field(max_length=1_000)] = None
     geographies: tuple[str, ...]
     language: str | None
     life_stage: str | None
@@ -198,33 +201,37 @@ class AudienceDefinition(ContractModel):
     lsm_sem_taxonomy: str | None = None
     lsm_sem_taxonomy_version: str | None = None
     lsm_sem_mandatory: bool = False
-    classification: StableCode
+    classification: AudienceClassification
     exclusions: tuple[str, ...]
     evidence_item_ids: tuple[UUID, ...]
-    confidence: Annotated[Decimal, Field(ge=0, le=1)]
+    reference_observation_ids: tuple[UUID, ...] = ()
+    confidence: Annotated[Decimal, Field(ge=0, le=1)] | None = None
     is_target: bool
+
+    @field_validator(
+        "need_state", "buying_context", "language", "life_stage", "lsm_sem",
+        "lsm_sem_taxonomy", "lsm_sem_taxonomy_version", "confidence",
+        mode="before",
+    )
+    @classmethod
+    def normalize_nullable_wire_value(cls, value):
+        if isinstance(value, str) and value.strip().casefold() == "null":
+            return None
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return Decimal(str(value))
+        return value
 
 
 class AudienceDefinitionSetArtifact(ContractModel):
-    audiences: Annotated[tuple[AudienceDefinition, ...], Field(min_length=1)]
-    targeting_rationale: Annotated[str, Field(min_length=1, max_length=4_000)]
-    positioning_statement: Annotated[str, Field(min_length=1, max_length=4_000)]
-
-
-class MediaAllocation(ContractModel):
-    channel: StableCode
-    budget_minor: Annotated[int, Field(ge=0)]
-    role: Annotated[str, Field(min_length=1, max_length=1_000)]
-
-
-class MediaMixDraftArtifact(ContractModel):
-    allocations: Annotated[tuple[MediaAllocation, ...], Field(min_length=1)]
-    assumptions: tuple[str, ...]
+    audiences: Annotated[tuple[AudienceDefinition, ...], Field(max_length=20)]
+    targeting_rationale: Annotated[str | None, Field(max_length=4_000)] = None
+    positioning_statement: Annotated[str | None, Field(max_length=4_000)] = None
 
 
 class InventoryCandidateInterpretation(ContractModel):
     candidate_id: UUID
     rationale: Annotated[str, Field(min_length=1, max_length=1_000)]
+    classification: StableCode
 
 
 class InventoryShortlistDraftArtifact(ContractModel):

@@ -20,6 +20,9 @@ public sealed partial class BookingRecordStore
                 plan.commercial_policy_version_id AS "CommercialPolicyVersionId",
                 line.inventory_tenant_id AS "SupplierTenantId",
                 line.marketplace_listing_version_id AS "MarketplaceListingVersionId",
+                accepted_quote.response_id AS "AcceptedMarketplaceResponseId",
+                accepted_quote.response_version AS "AcceptedMarketplaceResponseVersion",
+                accepted_quote.terms AS "AcceptedMarketplaceResponseTerms",
                 snapshot.supplier_id AS "SupplierId",
                 line.inventory_product_id AS "InventoryProductId",
                 line.product_version_id AS "ProductVersionId", line.rate_id AS "RateId",
@@ -66,6 +69,28 @@ public sealed partial class BookingRecordStore
               ON listing.supplier_tenant_id = snapshot.supplier_tenant_id
              AND listing.id = snapshot.listing_id
              AND listing.current_version_id = snapshot.id
+            JOIN LATERAL (
+                SELECT response.id AS response_id, response.response_version, response.terms
+                FROM commercial.marketplace_rfqs rfq
+                JOIN commercial.marketplace_supplier_responses response
+                  ON response.rfq_id = rfq.id
+                 AND response.buyer_tenant_id = rfq.buyer_tenant_id
+                 AND response.supplier_tenant_id = rfq.supplier_tenant_id
+                JOIN commercial.marketplace_response_acceptances acceptance
+                  ON acceptance.response_id = response.id
+                 AND acceptance.buyer_tenant_id = rfq.buyer_tenant_id
+                 AND acceptance.supplier_tenant_id = rfq.supplier_tenant_id
+                WHERE rfq.buyer_tenant_id = line.tenant_id
+                  AND rfq.supplier_tenant_id = line.inventory_tenant_id
+                  AND rfq.listing_version_id = line.marketplace_listing_version_id
+                  AND rfq.requested_start = line.flight_start
+                  AND rfq.requested_end = line.flight_end
+                  AND rfq.quantity = line.quantity
+                  AND response.amount_minor = line.supplier_cost_minor
+                  AND response.currency_code = plan.currency_code
+                  AND response.availability_code = {MasterDataCodes.AvailabilityStatuses.Available}
+                ORDER BY acceptance.accepted_at_utc DESC, response.response_version DESC
+                LIMIT 1) accepted_quote ON true
             WHERE proposal.tenant_id = {tenantId.Value}
               AND proposal.id = {command.ProposalVersionId}
               AND option.id = {command.ProposalOptionId}

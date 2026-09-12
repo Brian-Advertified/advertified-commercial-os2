@@ -135,7 +135,7 @@ function CampaignTabContent(props: WorkspaceProps & { activeTab: CampaignDeliver
     canApprove={creativeApproverRoles.has(props.roleCode)} />
   if (props.activeTab === 'live') return <LiveDeliverySection {...common}
     canOperate={campaignDeliveryOperatorRoles.has(props.roleCode)} />
-  if (props.activeTab === 'proof') return <DeliveryProofSection {...common}
+  if (props.activeTab === 'proof') return <DeliveryProofSection {...common} bookings={bookings}
     canReviewProof={deliveryProofReviewerRoles.has(props.roleCode)} />
   return <MeasurementSection {...common} reviewers={reviewers}
     canSubmitEvidence={performanceEvidenceSubmitterRoles.has(props.roleCode)}

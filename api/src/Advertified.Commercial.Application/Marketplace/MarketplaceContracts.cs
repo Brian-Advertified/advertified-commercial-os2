@@ -9,6 +9,8 @@ public sealed record CreateMarketplaceListingCommand(
 
 public sealed record PublishMarketplaceListingCommand;
 
+public sealed record RelistMarketplaceListingCommand(string Terms);
+
 public sealed record ArchiveMarketplaceListingCommand(string Reason);
 
 public sealed record CreateMarketplaceRfqCommand(
@@ -118,11 +120,31 @@ public sealed record MarketplaceRfqView(
     Guid? SentBy,
     DateTimeOffset? SentAtUtc,
     long Version,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    MarketplaceNegotiationSummaryView? Negotiation = null);
 
 public sealed record MarketplaceRfqPage(
     IReadOnlyList<MarketplaceRfqView> Items,
     string? NextCursor);
+
+public sealed record MarketplaceResponseHistoryView(
+    Guid RfqId,
+    IReadOnlyList<MarketplaceResponseView> Responses);
+
+public sealed record MarketplaceNegotiationSummaryView(
+    int QuoteVersionCount,
+    long ListedAmountMinor,
+    string ListedCurrency,
+    long? FirstQuoteAmountMinor,
+    string? FirstQuoteCurrency,
+    long? CurrentQuoteAmountMinor,
+    string? CurrentQuoteCurrency,
+    long? AcceptedAmountMinor,
+    string? AcceptedCurrency,
+    decimal? FirstToCurrentVariancePercent,
+    decimal? FirstToAcceptedVariancePercent,
+    int? AcceptedResponseVersion,
+    string? ComparabilityLimitation);
 
 public interface IMarketplaceCommands
 {
@@ -133,6 +155,11 @@ public interface IMarketplaceCommands
     Task<CommandResult<MarketplaceListingView>> PublishListingAsync(
         Guid listingId,
         CommandEnvelope<PublishMarketplaceListingCommand> envelope,
+        CancellationToken cancellationToken);
+
+    Task<CommandResult<MarketplaceListingView>> RelistListingAsync(
+        Guid listingId,
+        CommandEnvelope<RelistMarketplaceListingCommand> envelope,
         CancellationToken cancellationToken);
 
     Task<CommandResult<MarketplaceListingView>> ArchiveListingAsync(
@@ -185,8 +212,16 @@ public interface IMarketplaceReader
         TenantId tenantId,
         Guid rfqId,
         CancellationToken cancellationToken);
+
+    Task<MarketplaceResponseHistoryView> ListResponsesAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        Guid rfqId,
+        CancellationToken cancellationToken);
 }
 
 public sealed class MarketplaceListingUnavailableException : Exception;
 
 public sealed class MarketplaceResponseExpiredException : Exception;
+
+public sealed class MarketplaceResponseUnavailableException : Exception;

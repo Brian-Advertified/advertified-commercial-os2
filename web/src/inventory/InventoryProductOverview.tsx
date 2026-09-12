@@ -16,8 +16,8 @@ export function ProductCommercial({ record }: { record: InventoryProduct }) {
       <Fact label="Availability observed" value={optionalDate(record.availability.observedAtUtc)} />
       <Fact label="Availability valid until" value={optionalDate(record.availability.validUntilUtc)} />
       <Fact label="Rate VAT treatment" value={productVatTreatment(record)} /></dl>
-    {record.availability.status === inventoryCodes.availability.unknown &&
-      <p className="approved-reconfirm-note">⚠ Confirm availability before booking.</p>}
+    {record.availability.status === inventoryCodes.availability.planningAvailable &&
+      <p className="approved-reconfirm-note">⚠ Supplier confirmation is required before booking.</p>}
   </article><article><header><h2>Commercial history</h2></header>
     <div className="approved-rate-history">
       <div><span>Current published rate</span><strong>{record.rate ? rateAmount : 'Not supplied'}</strong></div>

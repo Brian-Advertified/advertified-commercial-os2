@@ -27,6 +27,6 @@ export const discoveredPlaceSchema = z.object({
 })
 export type DiscoveredPlace = z.infer<typeof discoveredPlaceSchema>
 export async function discoverPlaces(tenantId: string, search: string) {
-  return (await request(`/api/v1/tenants/${tenantId}/place-discovery?${new URLSearchParams({ search })}`,
-    z.object({ available: z.boolean(), places: z.array(discoveredPlaceSchema) }))).data
+  return (await request(`/api/v1/tenants/${tenantId}/location-anchors?${new URLSearchParams({ search })}`,
+    z.array(discoveredPlaceSchema))).data
 }

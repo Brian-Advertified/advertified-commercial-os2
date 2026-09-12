@@ -162,6 +162,21 @@ export const proposalInventoryImpactSchema = z.object({
   version: z.number().int().positive(),
 }).strict()
 
+const proposalCampaignContextSchema = z.object({
+  businessProblem: requiredText,
+  objective: requiredText,
+  targetAudiences: z.array(requiredText),
+  targetingRationale: z.string().nullable(),
+  positioningStatement: z.string().nullable(),
+  geographies: z.array(requiredText),
+  successMeasures: z.array(requiredText),
+  audienceDirectionConsistent: z.boolean(),
+  inventoryOptionsEvaluated: z.number().int().nonnegative().default(0),
+  eligibleInventoryOptions: z.number().int().nonnegative().default(0),
+  suppliersEvaluated: z.number().int().nonnegative().default(0),
+  selectedPlacements: z.number().int().nonnegative().default(0),
+}).strict()
+
 export const proposalSchema = z.object({
   id: z.guid(),
   briefId: z.guid(),
@@ -190,6 +205,8 @@ export const proposalSchema = z.object({
   branding: proposalBrandingSchema,
   version: z.number().int().positive(),
   createdAtUtc: z.iso.datetime({ offset: true }),
+  campaignContext: proposalCampaignContextSchema.nullable().optional()
+    .transform(value => value ?? null),
 }).strict()
 
 export const proposalSummariesSchema = z.array(proposalSummarySchema)

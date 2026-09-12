@@ -1,0 +1,2514 @@
+{
+  "generated_by": "tools/generate_backend_scenario_catalog.py",
+  "source": "agent-runtime/business_scenarios/backend_acceptance_catalog.py",
+  "scenarios": [
+    {
+      "scenario_id": "BRIEF-001",
+      "category": "SUPPLIED_BRIEF",
+      "name": "simple OOH",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "simple OOH",
+        "mode": "OOH_ONLY"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-002",
+      "category": "SUPPLIED_BRIEF",
+      "name": "complex OOH",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "complex OOH",
+        "mode": "OOH_ONLY",
+        "complexity": "HIGH"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-003",
+      "category": "SUPPLIED_BRIEF",
+      "name": "full campaign",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "full campaign",
+        "mode": "FULL_CAMPAIGN"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-004",
+      "category": "SUPPLIED_BRIEF",
+      "name": "fixed budget",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "fixed budget",
+        "budget_mode": "FIXED"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-005",
+      "category": "SUPPLIED_BRIEF",
+      "name": "no budget",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "no budget",
+        "budget_mode": "ABSENT"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-006",
+      "category": "SUPPLIED_BRIEF",
+      "name": "range budget",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "range budget",
+        "budget_mode": "RANGE"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-007",
+      "category": "SUPPLIED_BRIEF",
+      "name": "impossible budget constraint",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "impossible budget constraint",
+        "budget_mode": "IMPOSSIBLE"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-008",
+      "category": "SUPPLIED_BRIEF",
+      "name": "mandatory channels",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "mandatory channels",
+        "channel_policy": "MANDATORY"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-009",
+      "category": "SUPPLIED_BRIEF",
+      "name": "prohibited channels",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "prohibited channels",
+        "channel_policy": "PROHIBITED"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-010",
+      "category": "SUPPLIED_BRIEF",
+      "name": "mandatory locations",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "mandatory locations",
+        "location_policy": "MANDATORY"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-011",
+      "category": "SUPPLIED_BRIEF",
+      "name": "exclusions",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "exclusions",
+        "constraints": "EXCLUSIONS"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-012",
+      "category": "SUPPLIED_BRIEF",
+      "name": "national",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "national",
+        "geography_scope": "NATIONAL"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-013",
+      "category": "SUPPLIED_BRIEF",
+      "name": "hyper-local",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "hyper-local",
+        "geography_scope": "HYPER_LOCAL"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-014",
+      "category": "SUPPLIED_BRIEF",
+      "name": "mixed language",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "mixed language",
+        "language_shape": "MIXED"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-015",
+      "category": "SUPPLIED_BRIEF",
+      "name": "badly formatted email",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "badly formatted email",
+        "source_shape": "MALFORMED_EMAIL"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-016",
+      "category": "SUPPLIED_BRIEF",
+      "name": "forwarded chain",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "forwarded chain",
+        "source_shape": "FORWARDED_CHAIN"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-017",
+      "category": "SUPPLIED_BRIEF",
+      "name": "attachment plus email",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "attachment plus email",
+        "source_shape": "EMAIL_ATTACHMENT"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-018",
+      "category": "SUPPLIED_BRIEF",
+      "name": "contradictory requirements",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "contradictory requirements",
+        "conflict": true
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-019",
+      "category": "SUPPLIED_BRIEF",
+      "name": "missing dates",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "missing dates",
+        "missing": "DATES"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "BRIEF-020",
+      "category": "SUPPLIED_BRIEF",
+      "name": "missing audience",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "missing audience",
+        "missing": "AUDIENCE"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_FACTS_RETAINED",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        },
+        {
+          "code": "MODE_DOES_NOT_SILENTLY_EXPAND",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "OPP-001",
+      "category": "OPPORTUNITY_DISCOVERY",
+      "name": "evidence-rich",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "evidence-rich",
+        "evidence": "RICH"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_REQUIRED_FOR_ASSERTION",
+          "expected": true
+        },
+        {
+          "code": "SUPPLIED_BRIEF_REMAINS_DISTINCT",
+          "expected": true
+        },
+        {
+          "code": "NO_FAKE_CLIENT_REQUEST",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "OPP-002",
+      "category": "OPPORTUNITY_DISCOVERY",
+      "name": "weak evidence",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "weak evidence",
+        "evidence": "WEAK"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_REQUIRED_FOR_ASSERTION",
+          "expected": true
+        },
+        {
+          "code": "SUPPLIED_BRIEF_REMAINS_DISTINCT",
+          "expected": true
+        },
+        {
+          "code": "NO_FAKE_CLIENT_REQUEST",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "OPP-003",
+      "category": "OPPORTUNITY_DISCOVERY",
+      "name": "no evidence",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "no evidence",
+        "evidence": "NONE"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_REQUIRED_FOR_ASSERTION",
+          "expected": true
+        },
+        {
+          "code": "SUPPLIED_BRIEF_REMAINS_DISTINCT",
+          "expected": true
+        },
+        {
+          "code": "NO_FAKE_CLIENT_REQUEST",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "OPP-004",
+      "category": "OPPORTUNITY_DISCOVERY",
+      "name": "multiple angles",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "multiple angles",
+        "angle_count": "MULTIPLE"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_REQUIRED_FOR_ASSERTION",
+          "expected": true
+        },
+        {
+          "code": "SUPPLIED_BRIEF_REMAINS_DISTINCT",
+          "expected": true
+        },
+        {
+          "code": "NO_FAKE_CLIENT_REQUEST",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "OPP-005",
+      "category": "OPPORTUNITY_DISCOVERY",
+      "name": "duplicate opportunity detection",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "duplicate opportunity detection",
+        "duplicate": true
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_REQUIRED_FOR_ASSERTION",
+          "expected": true
+        },
+        {
+          "code": "SUPPLIED_BRIEF_REMAINS_DISTINCT",
+          "expected": true
+        },
+        {
+          "code": "NO_FAKE_CLIENT_REQUEST",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "OPP-006",
+      "category": "OPPORTUNITY_DISCOVERY",
+      "name": "stale signal",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "stale signal",
+        "signal_freshness": "STALE"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_REQUIRED_FOR_ASSERTION",
+          "expected": true
+        },
+        {
+          "code": "SUPPLIED_BRIEF_REMAINS_DISTINCT",
+          "expected": true
+        },
+        {
+          "code": "NO_FAKE_CLIENT_REQUEST",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "OPP-007",
+      "category": "OPPORTUNITY_DISCOVERY",
+      "name": "existing client/campaign context",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "existing client/campaign context",
+        "context": "EXISTING"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_REQUIRED_FOR_ASSERTION",
+          "expected": true
+        },
+        {
+          "code": "SUPPLIED_BRIEF_REMAINS_DISTINCT",
+          "expected": true
+        },
+        {
+          "code": "NO_FAKE_CLIENT_REQUEST",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "OPP-008",
+      "category": "OPPORTUNITY_DISCOVERY",
+      "name": "supply change",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "supply change",
+        "change": "SUPPLY"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_REQUIRED_FOR_ASSERTION",
+          "expected": true
+        },
+        {
+          "code": "SUPPLIED_BRIEF_REMAINS_DISTINCT",
+          "expected": true
+        },
+        {
+          "code": "NO_FAKE_CLIENT_REQUEST",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "OPP-009",
+      "category": "OPPORTUNITY_DISCOVERY",
+      "name": "geography change",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "geography change",
+        "change": "GEOGRAPHY"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_REQUIRED_FOR_ASSERTION",
+          "expected": true
+        },
+        {
+          "code": "SUPPLIED_BRIEF_REMAINS_DISTINCT",
+          "expected": true
+        },
+        {
+          "code": "NO_FAKE_CLIENT_REQUEST",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "OPP-010",
+      "category": "OPPORTUNITY_DISCOVERY",
+      "name": "non-actionable hypothesis",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "non-actionable hypothesis",
+        "actionability": "NONE"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_REQUIRED_FOR_ASSERTION",
+          "expected": true
+        },
+        {
+          "code": "SUPPLIED_BRIEF_REMAINS_DISTINCT",
+          "expected": true
+        },
+        {
+          "code": "NO_FAKE_CLIENT_REQUEST",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-001",
+      "category": "INTELLIGENCE",
+      "name": "broad audience",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "broad audience",
+        "audience_scope": "BROAD"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-002",
+      "category": "INTELLIGENCE",
+      "name": "niche audience",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "niche audience",
+        "audience_scope": "NICHE"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-003",
+      "category": "INTELLIGENCE",
+      "name": "cultural/community targeting",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "cultural/community targeting",
+        "audience_scope": "COMMUNITY"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-004",
+      "category": "INTELLIGENCE",
+      "name": "age/lifestage",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "age/lifestage",
+        "audience_scope": "AGE_LIFESTAGE"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-005",
+      "category": "INTELLIGENCE",
+      "name": "B2B",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "B2B",
+        "audience_scope": "B2B"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-006",
+      "category": "INTELLIGENCE",
+      "name": "POI-dependent",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "POI-dependent",
+        "location_basis": "POI"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-007",
+      "category": "INTELLIGENCE",
+      "name": "corridor/movement",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "corridor/movement",
+        "location_basis": "CORRIDOR"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-008",
+      "category": "INTELLIGENCE",
+      "name": "no reliable geo evidence",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "no reliable geo evidence",
+        "geo_evidence": "NONE"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-009",
+      "category": "INTELLIGENCE",
+      "name": "conflicting evidence",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "conflicting evidence",
+        "evidence_conflict": true
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-010",
+      "category": "INTELLIGENCE",
+      "name": "evidence age conflict",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "evidence age conflict",
+        "evidence_freshness": "CONFLICT"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-011",
+      "category": "INTELLIGENCE",
+      "name": "multiple provinces",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "multiple provinces",
+        "geography_scope": "MULTI_PROVINCE"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-012",
+      "category": "INTELLIGENCE",
+      "name": "township",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "township",
+        "geography_context": "TOWNSHIP"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-013",
+      "category": "INTELLIGENCE",
+      "name": "premium urban",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "premium urban",
+        "geography_context": "PREMIUM_URBAN"
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-014",
+      "category": "INTELLIGENCE",
+      "name": "audience overlap",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "audience overlap",
+        "audience_overlap": true
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INTEL-015",
+      "category": "INTELLIGENCE",
+      "name": "unsupported claim rejection",
+      "execution_surface": "AGENT_RUNTIME",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "unsupported claim rejection",
+        "forged_claim": true
+      },
+      "expected_invariants": [
+        {
+          "code": "EVIDENCE_BINDINGS_VALID",
+          "expected": true
+        },
+        {
+          "code": "UNKNOWN_REMAINS_UNKNOWN",
+          "expected": true
+        },
+        {
+          "code": "NO_UNSUPPORTED_FACTS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-001",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "XLSX flat table",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "XLSX flat table",
+        "document": "XLSX",
+        "shape": "FLAT"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-002",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "XLSX merged headers",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "XLSX merged headers",
+        "document": "XLSX",
+        "shape": "MERGED_HEADERS"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-003",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "transposed matrix",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "transposed matrix",
+        "document": "XLSX",
+        "shape": "TRANSPOSED"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-004",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "multi-section worksheet",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "multi-section worksheet",
+        "document": "XLSX",
+        "shape": "MULTI_SECTION"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-005",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "package rates",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "package rates",
+        "commercial_shape": "PACKAGE"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-006",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "discounts",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "discounts",
+        "commercial_shape": "DISCOUNT"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-007",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "missing rates",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "missing rates",
+        "missing": "RATE"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-008",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "overlapping dates",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "overlapping dates",
+        "date_shape": "OVERLAPPING"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-009",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "PPTX",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "PPTX",
+        "document": "PPTX"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-010",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "PDF rate card",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "PDF rate card",
+        "document": "PDF",
+        "shape": "RATE_CARD"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-011",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "PDF brochure/catalogue",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "PDF brochure/catalogue",
+        "document": "PDF",
+        "shape": "CATALOGUE"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-012",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "mixed narrative/table",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "mixed narrative/table",
+        "document": "PDF",
+        "shape": "MIXED"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-013",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "missing supplier identity",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "missing supplier identity",
+        "missing": "SUPPLIER_IDENTITY"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-014",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "duplicate product rows",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "duplicate product rows",
+        "duplicate_rows": true
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "INV-015",
+      "category": "INVENTORY_EXTRACTION",
+      "name": "malformed/ambiguous source",
+      "execution_surface": "INTEGRATED",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "malformed/ambiguous source",
+        "source_quality": "AMBIGUOUS"
+      },
+      "expected_invariants": [
+        {
+          "code": "SOURCE_ACCOUNTING_COMPLETE",
+          "expected": true
+        },
+        {
+          "code": "NO_SUPPLIER_FILE_HARDCODING",
+          "expected": true
+        },
+        {
+          "code": "AUTO_PUBLISH_DISABLED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-001",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "one channel",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "one channel",
+        "channels": 1
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-002",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "multi-channel",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "multi-channel",
+        "channels": 4
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-003",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "insufficient inventory",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "insufficient inventory",
+        "inventory": "INSUFFICIENT"
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-004",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "stale inventory",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "stale inventory",
+        "inventory": "STALE"
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-005",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "unavailable site",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "unavailable site",
+        "availability": "UNAVAILABLE"
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-006",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "missing cost",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "missing cost",
+        "missing": "COST"
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-007",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "multi-geography collective coverage",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "multi-geography collective coverage",
+        "coverage": "COLLECTIVE"
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-008",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "creative incompatibility",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "creative incompatibility",
+        "creative_fit": "INCOMPATIBLE"
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-009",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "lower-cost alternative",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "lower-cost alternative",
+        "alternative": "LOWER_COST"
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-010",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "max measured reach where evidence exists",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "max measured reach where evidence exists",
+        "objective": "MAX_MEASURED_REACH"
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-011",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "reach unknown",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "reach unknown",
+        "reach": "UNKNOWN"
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-012",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "substitution",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "substitution",
+        "substitution": true
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-013",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "fixed-budget optimisation",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "fixed-budget optimisation",
+        "budget_change": "NONE"
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-014",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "budget increase",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "budget increase",
+        "budget_change": "INCREASE"
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "PLAN-015",
+      "category": "PLANNING_OPTIMISATION",
+      "name": "budget decrease",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "budget decrease",
+        "budget_change": "DECREASE"
+      },
+      "expected_invariants": [
+        {
+          "code": "CANONICAL_ELIGIBILITY_USED",
+          "expected": true
+        },
+        {
+          "code": "CANONICAL_CLIENT_PRICE_USED",
+          "expected": true
+        },
+        {
+          "code": "NO_ASSUMED_REACH",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "TXN-001",
+      "category": "PROPOSAL_TRANSACTION",
+      "name": "single option",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "single option",
+        "option_count": 1
+      },
+      "expected_invariants": [
+        {
+          "code": "HISTORICAL_VERSION_IMMUTABLE",
+          "expected": true
+        },
+        {
+          "code": "TRANSACTION_ORDER_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "NEGOTIATION_LINEAGE_RETAINED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "TXN-002",
+      "category": "PROPOSAL_TRANSACTION",
+      "name": "three options",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "three options",
+        "option_count": 3
+      },
+      "expected_invariants": [
+        {
+          "code": "HISTORICAL_VERSION_IMMUTABLE",
+          "expected": true
+        },
+        {
+          "code": "TRANSACTION_ORDER_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "NEGOTIATION_LINEAGE_RETAINED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "TXN-003",
+      "category": "PROPOSAL_TRANSACTION",
+      "name": "proposal inventory goes stale",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "proposal inventory goes stale",
+        "inventory_change": "STALE"
+      },
+      "expected_invariants": [
+        {
+          "code": "HISTORICAL_VERSION_IMMUTABLE",
+          "expected": true
+        },
+        {
+          "code": "TRANSACTION_ORDER_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "NEGOTIATION_LINEAGE_RETAINED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "TXN-004",
+      "category": "PROPOSAL_TRANSACTION",
+      "name": "client selects",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "client selects",
+        "decision": "SELECTED"
+      },
+      "expected_invariants": [
+        {
+          "code": "HISTORICAL_VERSION_IMMUTABLE",
+          "expected": true
+        },
+        {
+          "code": "TRANSACTION_ORDER_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "NEGOTIATION_LINEAGE_RETAINED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "TXN-005",
+      "category": "PROPOSAL_TRANSACTION",
+      "name": "client declines",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "client declines",
+        "decision": "DECLINED"
+      },
+      "expected_invariants": [
+        {
+          "code": "HISTORICAL_VERSION_IMMUTABLE",
+          "expected": true
+        },
+        {
+          "code": "TRANSACTION_ORDER_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "NEGOTIATION_LINEAGE_RETAINED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "TXN-006",
+      "category": "PROPOSAL_TRANSACTION",
+      "name": "RFQ expires",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "RFQ expires",
+        "rfq_state": "EXPIRED"
+      },
+      "expected_invariants": [
+        {
+          "code": "HISTORICAL_VERSION_IMMUTABLE",
+          "expected": true
+        },
+        {
+          "code": "TRANSACTION_ORDER_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "NEGOTIATION_LINEAGE_RETAINED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "TXN-007",
+      "category": "PROPOSAL_TRANSACTION",
+      "name": "supplier response expires",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "supplier response expires",
+        "response_state": "EXPIRED"
+      },
+      "expected_invariants": [
+        {
+          "code": "HISTORICAL_VERSION_IMMUTABLE",
+          "expected": true
+        },
+        {
+          "code": "TRANSACTION_ORDER_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "NEGOTIATION_LINEAGE_RETAINED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "TXN-008",
+      "category": "PROPOSAL_TRANSACTION",
+      "name": "counter/accept",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "counter/accept",
+        "negotiation": "COUNTER_ACCEPT"
+      },
+      "expected_invariants": [
+        {
+          "code": "HISTORICAL_VERSION_IMMUTABLE",
+          "expected": true
+        },
+        {
+          "code": "TRANSACTION_ORDER_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "NEGOTIATION_LINEAGE_RETAINED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "TXN-009",
+      "category": "PROPOSAL_TRANSACTION",
+      "name": "supplier changes availability",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "supplier changes availability",
+        "change": "AVAILABILITY"
+      },
+      "expected_invariants": [
+        {
+          "code": "HISTORICAL_VERSION_IMMUTABLE",
+          "expected": true
+        },
+        {
+          "code": "TRANSACTION_ORDER_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "NEGOTIATION_LINEAGE_RETAINED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "TXN-010",
+      "category": "PROPOSAL_TRANSACTION",
+      "name": "booking confirmation",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "booking confirmation",
+        "booking": "CONFIRMED"
+      },
+      "expected_invariants": [
+        {
+          "code": "HISTORICAL_VERSION_IMMUTABLE",
+          "expected": true
+        },
+        {
+          "code": "TRANSACTION_ORDER_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "NEGOTIATION_LINEAGE_RETAINED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "FUND-001",
+      "category": "FUNDING_CAMPAIGN_DELIVERY",
+      "name": "EFT",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "EFT",
+        "funding_route": "EFT"
+      },
+      "expected_invariants": [
+        {
+          "code": "FUNDING_BEFORE_BOOKING",
+          "expected": true
+        },
+        {
+          "code": "CONSEQUENCE_AUTHORITY_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "TENANT_SECURITY_PASS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "FUND-002",
+      "category": "FUNDING_CAMPAIGN_DELIVERY",
+      "name": "inactive provider rejected",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "inactive provider rejected",
+        "provider_state": "INACTIVE"
+      },
+      "expected_invariants": [
+        {
+          "code": "FUNDING_BEFORE_BOOKING",
+          "expected": true
+        },
+        {
+          "code": "CONSEQUENCE_AUTHORITY_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "TENANT_SECURITY_PASS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "FUND-003",
+      "category": "FUNDING_CAMPAIGN_DELIVERY",
+      "name": "duplicate manual payment reconciliation",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "duplicate manual payment reconciliation",
+        "manual_reconciliation": "DUPLICATE"
+      },
+      "expected_invariants": [
+        {
+          "code": "FUNDING_BEFORE_BOOKING",
+          "expected": true
+        },
+        {
+          "code": "CONSEQUENCE_AUTHORITY_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "TENANT_SECURITY_PASS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "FUND-004",
+      "category": "FUNDING_CAMPAIGN_DELIVERY",
+      "name": "PO mismatch",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "PO mismatch",
+        "mismatch": "PURCHASE_ORDER"
+      },
+      "expected_invariants": [
+        {
+          "code": "FUNDING_BEFORE_BOOKING",
+          "expected": true
+        },
+        {
+          "code": "CONSEQUENCE_AUTHORITY_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "TENANT_SECURITY_PASS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "FUND-005",
+      "category": "FUNDING_CAMPAIGN_DELIVERY",
+      "name": "invoice mismatch",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "invoice mismatch",
+        "mismatch": "INVOICE"
+      },
+      "expected_invariants": [
+        {
+          "code": "FUNDING_BEFORE_BOOKING",
+          "expected": true
+        },
+        {
+          "code": "CONSEQUENCE_AUTHORITY_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "TENANT_SECURITY_PASS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "FUND-006",
+      "category": "FUNDING_CAMPAIGN_DELIVERY",
+      "name": "booking before funding rejected",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "booking before funding rejected",
+        "ordering_violation": "BOOKING_BEFORE_FUNDING"
+      },
+      "expected_invariants": [
+        {
+          "code": "FUNDING_BEFORE_BOOKING",
+          "expected": true
+        },
+        {
+          "code": "CONSEQUENCE_AUTHORITY_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "TENANT_SECURITY_PASS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "FUND-007",
+      "category": "FUNDING_CAMPAIGN_DELIVERY",
+      "name": "readiness missing",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "readiness missing",
+        "readiness": "MISSING"
+      },
+      "expected_invariants": [
+        {
+          "code": "FUNDING_BEFORE_BOOKING",
+          "expected": true
+        },
+        {
+          "code": "CONSEQUENCE_AUTHORITY_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "TENANT_SECURITY_PASS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "FUND-008",
+      "category": "FUNDING_CAMPAIGN_DELIVERY",
+      "name": "delivery proof accepted",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "delivery proof accepted",
+        "proof": "APPROVED"
+      },
+      "expected_invariants": [
+        {
+          "code": "FUNDING_BEFORE_BOOKING",
+          "expected": true
+        },
+        {
+          "code": "CONSEQUENCE_AUTHORITY_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "TENANT_SECURITY_PASS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "FUND-009",
+      "category": "FUNDING_CAMPAIGN_DELIVERY",
+      "name": "delivery proof rejected",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "delivery proof rejected",
+        "proof": "REJECTED"
+      },
+      "expected_invariants": [
+        {
+          "code": "FUNDING_BEFORE_BOOKING",
+          "expected": true
+        },
+        {
+          "code": "CONSEQUENCE_AUTHORITY_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "TENANT_SECURITY_PASS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "FUND-010",
+      "category": "FUNDING_CAMPAIGN_DELIVERY",
+      "name": "supplier tenant attack",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "supplier tenant attack",
+        "security_attack": "SUPPLIER_CROSS_TENANT"
+      },
+      "expected_invariants": [
+        {
+          "code": "FUNDING_BEFORE_BOOKING",
+          "expected": true
+        },
+        {
+          "code": "CONSEQUENCE_AUTHORITY_ENFORCED",
+          "expected": true
+        },
+        {
+          "code": "TENANT_SECURITY_PASS",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "MEASURE-001",
+      "category": "MEASUREMENT_LEARNING",
+      "name": "complete evidence",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "complete evidence",
+        "evidence": "COMPLETE"
+      },
+      "expected_invariants": [
+        {
+          "code": "APPROVED_EVIDENCE_ONLY",
+          "expected": true
+        },
+        {
+          "code": "LIMITATIONS_PRESERVED",
+          "expected": true
+        },
+        {
+          "code": "COMMERCIAL_MEMORY_DERIVED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "MEASURE-002",
+      "category": "MEASUREMENT_LEARNING",
+      "name": "missing proof",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "missing proof",
+        "evidence": "MISSING_PROOF"
+      },
+      "expected_invariants": [
+        {
+          "code": "APPROVED_EVIDENCE_ONLY",
+          "expected": true
+        },
+        {
+          "code": "LIMITATIONS_PRESERVED",
+          "expected": true
+        },
+        {
+          "code": "COMMERCIAL_MEMORY_DERIVED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "MEASURE-003",
+      "category": "MEASUREMENT_LEARNING",
+      "name": "incompatible methodology",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "incompatible methodology",
+        "methodology": "INCOMPATIBLE"
+      },
+      "expected_invariants": [
+        {
+          "code": "APPROVED_EVIDENCE_ONLY",
+          "expected": true
+        },
+        {
+          "code": "LIMITATIONS_PRESERVED",
+          "expected": true
+        },
+        {
+          "code": "COMMERCIAL_MEMORY_DERIVED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "MEASURE-004",
+      "category": "MEASUREMENT_LEARNING",
+      "name": "limitations preserved",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "limitations preserved",
+        "limitations": "REQUIRED"
+      },
+      "expected_invariants": [
+        {
+          "code": "APPROVED_EVIDENCE_ONLY",
+          "expected": true
+        },
+        {
+          "code": "LIMITATIONS_PRESERVED",
+          "expected": true
+        },
+        {
+          "code": "COMMERCIAL_MEMORY_DERIVED",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "scenario_id": "MEASURE-005",
+      "category": "MEASUREMENT_LEARNING",
+      "name": "derived commercial benchmark recomputation",
+      "execution_surface": "COMMERCIAL_API",
+      "source_inputs": {
+        "synthetic": true,
+        "case": "derived commercial benchmark recomputation",
+        "memory": "RECOMPUTE"
+      },
+      "expected_invariants": [
+        {
+          "code": "APPROVED_EVIDENCE_ONLY",
+          "expected": true
+        },
+        {
+          "code": "LIMITATIONS_PRESERVED",
+          "expected": true
+        },
+        {
+          "code": "COMMERCIAL_MEMORY_DERIVED",
+          "expected": true
+        }
+      ]
+    }
+  ]
+}

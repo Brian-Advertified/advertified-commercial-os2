@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Advertified.Commercial.Api.Startup;
 using Advertified.Commercial.Application.Opportunity;
+using Advertified.Commercial.Application.Intelligence;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Infrastructure.MasterData;
@@ -51,14 +52,17 @@ public sealed partial class OpportunityAcceptanceTests
             builder.UseSetting("Authentication:DevelopmentIdentity:UserId", userId.ToString());
             builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", userId.ToString());
             builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
-            builder.UseSetting(
-                "AgentRuntime:Mode",
-                enableRuntime
-                    ? AgentRuntimeOptions.HttpDeterministicMode
-                    : AgentRuntimeOptions.DisabledMode);
+            builder.UseSetting("AgentRuntime:Mode", AgentRuntimeOptions.HttpDeterministicMode);
+            builder.UseSetting("AgentRuntime:BaseUrl", "http://agent-runtime.test");
+            builder.UseSetting("AgentRuntime:ServiceKey", "opportunity-test-only");
+            builder.UseSetting("AgentRuntime:Provider", AgentRuntimeOptions.DeterministicProvider);
+            builder.UseSetting("AgentRuntime:DefaultModel", "fixture-v1");
+            builder.UseSetting("AgentRuntime:DefaultCostCapMinor", "0");
+            builder.UseSetting("AgentRuntime:CostCapsMinor:media_strategy", "0");
+            builder.UseSetting("AgentRuntime:AllowLive", "false");
+            builder.UseSetting("AgentRuntime:MaxAttempts", "1");
             if (enableRuntime)
             {
-                builder.UseSetting("AgentRuntime:ServiceKey", "opportunity-test-only");
                 builder.UseSetting("Process:Role", ProcessRoleOptions.CombinedRole);
                 builder.UseSetting(
                     "ConnectionStrings:WorkerSchedulerDatabase", connectionString);
@@ -74,6 +78,8 @@ public sealed partial class OpportunityAcceptanceTests
                     services.AddScoped<
                         IOpportunityAgentClient,
                         OpportunityAgentFixture>();
+                    services.RemoveAll<IMarketIntelligenceAgentClient>();
+                    services.AddScoped<IMarketIntelligenceAgentClient>(_ => new RetainedMarketEvidenceFixture());
                 });
             }
         });

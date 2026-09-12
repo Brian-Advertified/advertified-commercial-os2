@@ -52,7 +52,7 @@ export const emailAutomationRunSchema = z.object({
   clientAccountId: nullableGuid,
   briefId: nullableGuid,
   briefVersionId: nullableGuid,
-  stpVersionId: nullableGuid,
+  audienceArtifactId: nullableGuid,
   mediaMixVersionId: nullableGuid,
   shortlistVersionId: nullableGuid,
   mediaPlanVersionId: nullableGuid,

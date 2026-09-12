@@ -1,0 +1,968 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Advertified af-south-1 launch topology. Uses existing VPC/subnets and creates hardened app/data EC2 resources, private storage, immutable ECR, EventBridge, DNS, monitoring and automated EBS snapshots. No production deployment is performed by this template file itself.",
+  "Parameters": {
+    "VpcId": {
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "PublicSubnetId": {
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "PrivateSubnetId": {
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "AppAmiId": {
+      "Type": "AWS::EC2::Image::Id",
+      "Description": "Ubuntu Server 24.04 LTS x86_64 AMI; UserData fails closed on another OS."
+    },
+    "DataAmiId": {
+      "Type": "AWS::EC2::Image::Id",
+      "Description": "Ubuntu Server 24.04 LTS x86_64 AMI; UserData fails closed on another OS."
+    },
+    "AppInstanceType": {
+      "Type": "String",
+      "Default": "t3.small"
+    },
+    "DataInstanceType": {
+      "Type": "String",
+      "Default": "t3.small"
+    },
+    "DatabaseVolumeSizeGiB": {
+      "Type": "Number",
+      "Default": 50,
+      "MinValue": 20
+    },
+    "HostedZoneId": {
+      "Type": "AWS::Route53::HostedZone::Id"
+    },
+    "DomainName": {
+      "Type": "String",
+      "MinLength": 3
+    },
+    "NotificationTopicArn": {
+      "Type": "String",
+      "MinLength": 20
+    },
+    "ApplicationSecretsArn": {
+      "Type": "String",
+      "MinLength": 20,
+      "NoEcho": true
+    },
+    "AgentSecretsArn": {
+      "Type": "String",
+      "MinLength": 20,
+      "NoEcho": true
+    },
+    "DatabaseSecretsArn": {
+      "Type": "String",
+      "MinLength": 20,
+      "NoEcho": true
+    },
+    "SnapshotRetentionCount": {
+      "Type": "Number",
+      "MinValue": 1,
+      "MaxValue": 100
+    },
+    "LogicalBackupRetentionDays": {
+      "Type": "Number",
+      "MinValue": 1,
+      "MaxValue": 3650
+    }
+  },
+  "Resources": {
+    "ApplicationSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Advertified TLS edge only",
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "advertified-production-app"
+          }
+        ]
+      }
+    },
+    "DatabaseSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Advertified private PostgreSQL from application host only",
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 5432,
+            "ToPort": 5432,
+            "SourceSecurityGroupId": {
+              "Ref": "ApplicationSecurityGroup"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "advertified-production-data"
+          }
+        ]
+      }
+    },
+    "InventoryBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        }
+      }
+    },
+    "BackupBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "Id": "OwnerApprovedLogicalBackupRetention",
+              "Status": "Enabled",
+              "ExpirationInDays": {
+                "Ref": "LogicalBackupRetentionDays"
+              },
+              "NoncurrentVersionExpiration": {
+                "NoncurrentDays": {
+                  "Ref": "LogicalBackupRetentionDays"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ApiRepository": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": "advertified/commercial-api",
+        "ImageTagMutability": "IMMUTABLE",
+        "ImageScanningConfiguration": {
+          "ScanOnPush": true
+        },
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        }
+      }
+    },
+    "MigratorRepository": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": "advertified/database-migrator",
+        "ImageTagMutability": "IMMUTABLE",
+        "ImageScanningConfiguration": {
+          "ScanOnPush": true
+        },
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        }
+      }
+    },
+    "AgentRuntimeRepository": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": "advertified/agent-runtime",
+        "ImageTagMutability": "IMMUTABLE",
+        "ImageScanningConfiguration": {
+          "ScanOnPush": true
+        },
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        }
+      }
+    },
+    "WebRepository": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": "advertified/web",
+        "ImageTagMutability": "IMMUTABLE",
+        "ImageScanningConfiguration": {
+          "ScanOnPush": true
+        },
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        }
+      }
+    },
+    "DatabaseRepository": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": "advertified/postgres",
+        "ImageTagMutability": "IMMUTABLE",
+        "ImageScanningConfiguration": {
+          "ScanOnPush": true
+        },
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        }
+      }
+    },
+    "CommercialEventBus": {
+      "Type": "AWS::Events::EventBus",
+      "Properties": {
+        "Name": "advertified-commercial"
+      }
+    },
+    "ApplicationRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "AdvertifiedApplicationRuntime",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject",
+                    "s3:PutObject",
+                    "s3:DeleteObject"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "${InventoryBucket.Arn}/*"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:ListBucket"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "InventoryBucket",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "events:PutEvents",
+                    "events:DescribeEventBus"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "CommercialEventBus",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "bedrock:InvokeModel"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "secretsmanager:GetSecretValue"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "ApplicationSecretsArn"
+                    },
+                    {
+                      "Ref": "AgentSecretsArn"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "ApiRepository",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "MigratorRepository",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "AgentRuntimeRepository",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "WebRepository",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudwatch:PutMetricData",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ApplicationInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Roles": [
+          {
+            "Ref": "ApplicationRole"
+          }
+        ]
+      }
+    },
+    "DatabaseRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "AdvertifiedDatabaseBackup",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:ListBucket"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "BackupBucket",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject",
+                    "s3:PutObject"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "${BackupBucket.Arn}/*"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "secretsmanager:GetSecretValue"
+                  ],
+                  "Resource": {
+                    "Ref": "DatabaseSecretsArn"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "DatabaseRepository",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudwatch:PutMetricData",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "DatabaseInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Roles": [
+          {
+            "Ref": "DatabaseRole"
+          }
+        ]
+      }
+    },
+    "ApplicationHost": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "AppAmiId"
+        },
+        "InstanceType": {
+          "Ref": "AppInstanceType"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnetId"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "ApplicationSecurityGroup"
+          }
+        ],
+        "IamInstanceProfile": {
+          "Ref": "ApplicationInstanceProfile"
+        },
+        "Monitoring": true,
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "Encrypted": true,
+              "VolumeType": "gp3",
+              "DeleteOnTermination": true
+            }
+          }
+        ],
+        "MetadataOptions": {
+          "HttpTokens": "required",
+          "HttpEndpoint": "enabled"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "advertified-production-app"
+          },
+          {
+            "Key": "AdvertifiedEnvironment",
+            "Value": "production"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/usr/bin/env bash\nset -euo pipefail\n",
+                "install -d -m 0755 /opt/advertified/bootstrap\n",
+                "printf '%s' '",
+                "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",
+                "' | base64 --decode | tar -xz -C /opt/advertified/bootstrap\n",
+                "export ADVERTIFIED_AWS_REGION='",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "'\n",
+                "/opt/advertified/bootstrap/bootstrap-application-host.sh\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "ApplicationElasticIp": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+      }
+    },
+    "ApplicationElasticIpAssociation": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "ApplicationElasticIp",
+            "AllocationId"
+          ]
+        },
+        "InstanceId": {
+          "Ref": "ApplicationHost"
+        }
+      }
+    },
+    "DatabaseHost": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "DataAmiId"
+        },
+        "InstanceType": {
+          "Ref": "DataInstanceType"
+        },
+        "SubnetId": {
+          "Ref": "PrivateSubnetId"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "DatabaseSecurityGroup"
+          }
+        ],
+        "IamInstanceProfile": {
+          "Ref": "DatabaseInstanceProfile"
+        },
+        "Monitoring": true,
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "Encrypted": true,
+              "VolumeType": "gp3",
+              "DeleteOnTermination": true
+            }
+          }
+        ],
+        "MetadataOptions": {
+          "HttpTokens": "required",
+          "HttpEndpoint": "enabled"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "advertified-production-data"
+          },
+          {
+            "Key": "AdvertifiedEnvironment",
+            "Value": "production"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/usr/bin/env bash\nset -euo pipefail\n",
+                "install -d -m 0755 /opt/advertified/bootstrap\n",
+                "printf '%s' '",
+                "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",
+                "' | base64 --decode | tar -xz -C /opt/advertified/bootstrap\n",
+                "export ADVERTIFIED_AWS_REGION='",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "'\n",
+                "export ADVERTIFIED_BACKUP_BUCKET='",
+                {
+                  "Ref": "BackupBucket"
+                },
+                "'\nexport ADVERTIFIED_DATABASE_SECRET_ARN='",
+                {
+                  "Ref": "DatabaseSecretsArn"
+                },
+                "'\n",
+                "/opt/advertified/bootstrap/bootstrap-database-host.sh\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "DatabaseVolume": {
+      "Type": "AWS::EC2::Volume",
+      "DeletionPolicy": "Snapshot",
+      "UpdateReplacePolicy": "Snapshot",
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::GetAtt": [
+            "DatabaseHost",
+            "AvailabilityZone"
+          ]
+        },
+        "Encrypted": true,
+        "Size": {
+          "Ref": "DatabaseVolumeSizeGiB"
+        },
+        "VolumeType": "gp3",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "advertified-production-postgres"
+          },
+          {
+            "Key": "AdvertifiedBackup",
+            "Value": "Database"
+          }
+        ]
+      }
+    },
+    "DatabaseVolumeAttachment": {
+      "Type": "AWS::EC2::VolumeAttachment",
+      "Properties": {
+        "Device": "/dev/sdf",
+        "InstanceId": {
+          "Ref": "DatabaseHost"
+        },
+        "VolumeId": {
+          "Ref": "DatabaseVolume"
+        }
+      }
+    },
+    "SnapshotLifecycleRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "dlm.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "AdvertifiedDatabaseSnapshots",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:CreateSnapshot",
+                    "ec2:DeleteSnapshot",
+                    "ec2:DescribeVolumes",
+                    "ec2:DescribeSnapshots",
+                    "ec2:CreateTags"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "DatabaseSnapshotPolicy": {
+      "Type": "AWS::DLM::LifecyclePolicy",
+      "Properties": {
+        "Description": "Advertified automated database EBS snapshots",
+        "State": "ENABLED",
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "SnapshotLifecycleRole",
+            "Arn"
+          ]
+        },
+        "PolicyDetails": {
+          "ResourceTypes": [
+            "VOLUME"
+          ],
+          "TargetTags": [
+            {
+              "Key": "AdvertifiedBackup",
+              "Value": "Database"
+            }
+          ],
+          "Schedules": [
+            {
+              "Name": "DailyDatabaseSnapshots",
+              "CreateRule": {
+                "Interval": 24,
+                "IntervalUnit": "HOURS",
+                "Times": [
+                  "02:00"
+                ]
+              },
+              "RetainRule": {
+                "Count": {
+                  "Ref": "SnapshotRetentionCount"
+                }
+              },
+              "CopyTags": true
+            }
+          ]
+        }
+      }
+    },
+    "ProductionDns": {
+      "Type": "AWS::Route53::RecordSet",
+      "Properties": {
+        "HostedZoneId": {
+          "Ref": "HostedZoneId"
+        },
+        "Name": {
+          "Ref": "DomainName"
+        },
+        "Type": "A",
+        "TTL": "60",
+        "ResourceRecords": [
+          {
+            "Fn::GetAtt": [
+              "ApplicationElasticIp",
+              "PublicIp"
+            ]
+          }
+        ]
+      }
+    },
+    "ApplicationStatusAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Advertified application EC2 status check failed",
+        "Namespace": "AWS/EC2",
+        "MetricName": "StatusCheckFailed",
+        "Dimensions": [
+          {
+            "Name": "InstanceId",
+            "Value": {
+              "Ref": "ApplicationHost"
+            }
+          }
+        ],
+        "Statistic": "Maximum",
+        "Period": 60,
+        "EvaluationPeriods": 2,
+        "Threshold": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "breaching",
+        "AlarmActions": [
+          {
+            "Ref": "NotificationTopicArn"
+          }
+        ]
+      }
+    },
+    "DatabaseStatusAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Advertified data EC2 status check failed",
+        "Namespace": "AWS/EC2",
+        "MetricName": "StatusCheckFailed",
+        "Dimensions": [
+          {
+            "Name": "InstanceId",
+            "Value": {
+              "Ref": "DatabaseHost"
+            }
+          }
+        ],
+        "Statistic": "Maximum",
+        "Period": 60,
+        "EvaluationPeriods": 2,
+        "Threshold": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "breaching",
+        "AlarmActions": [
+          {
+            "Ref": "NotificationTopicArn"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "ApplicationHostId": {
+      "Value": {
+        "Ref": "ApplicationHost"
+      }
+    },
+    "DatabaseHostId": {
+      "Value": {
+        "Ref": "DatabaseHost"
+      }
+    },
+    "DatabaseVolumeId": {
+      "Value": {
+        "Ref": "DatabaseVolume"
+      }
+    },
+    "ApplicationElasticIp": {
+      "Value": {
+        "Ref": "ApplicationElasticIp"
+      }
+    },
+    "InventoryBucketName": {
+      "Value": {
+        "Ref": "InventoryBucket"
+      }
+    },
+    "BackupBucketName": {
+      "Value": {
+        "Ref": "BackupBucket"
+      }
+    },
+    "EventBusName": {
+      "Value": {
+        "Ref": "CommercialEventBus"
+      }
+    },
+    "EventBusArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "CommercialEventBus",
+          "Arn"
+        ]
+      }
+    },
+    "ApiRepositoryUri": {
+      "Value": {
+        "Fn::GetAtt": [
+          "ApiRepository",
+          "RepositoryUri"
+        ]
+      }
+    },
+    "MigratorRepositoryUri": {
+      "Value": {
+        "Fn::GetAtt": [
+          "MigratorRepository",
+          "RepositoryUri"
+        ]
+      }
+    },
+    "AgentRuntimeRepositoryUri": {
+      "Value": {
+        "Fn::GetAtt": [
+          "AgentRuntimeRepository",
+          "RepositoryUri"
+        ]
+      }
+    },
+    "WebRepositoryUri": {
+      "Value": {
+        "Fn::GetAtt": [
+          "WebRepository",
+          "RepositoryUri"
+        ]
+      }
+    },
+    "DatabaseRepositoryUri": {
+      "Value": {
+        "Fn::GetAtt": [
+          "DatabaseRepository",
+          "RepositoryUri"
+        ]
+      }
+    }
+  },
+  "Metadata": {
+    "AdvertifiedBootstrap": {
+      "CommonSha256": "a5f3f5e5ed77249b312651ea0b93ed15533d7296a2472e25b034179e65f4c883",
+      "ApplicationSha256": "c0aa6625f82700832979fd41229c0edc16313cf995d43f396b3f9c3a8286a631",
+      "DatabaseSha256": "31b21f30d495c7f04e79e649dfa8ee5c9a46e576dfd153d64624853eeda9c2f4",
+      "DatabaseActivationSha256": "c026c188ab26bd350581656cde659a04b177a7731fed218b11385de9f7e2bff9",
+      "DatabaseBackupSha256": "a8f2d9ad19484e5b10a8267b8cc0c3109cebb6c70c5b953b8782fe1c59e718dd",
+      "DatabaseRestoreSha256": "3d97a87c27e599488efd0e4be330fc9041abfa2a6c9d4064acf64183212a07a2",
+      "DatabaseLoginProvisionerSha256": "7059436ed25de2ef71ff824ca6d4e7b17ad5f81b3893a4fd3dc1ee7c15f51934",
+      "DatabaseGroupRolesSqlSha256": "df7ac837f50b7113fa7ada829cb4a8332cd97b04567fd466d48dd95aa3e171fa"
+    }
+  }
+}

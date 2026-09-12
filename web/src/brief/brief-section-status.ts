@@ -31,8 +31,8 @@ function sectionCompletion(
     overview: completeOverview(record, version),
     objectives: Boolean(version.objective.trim()) &&
       !hasOpenItem(version, ['objective']),
-    [masterDataCodes.agentTypes.audience]: version.audiences.length > 0 &&
-      !hasOpenItem(version, [masterDataCodes.agentTypes.audience]),
+    [masterDataCodes.agentTypes.audienceIntelligence]: version.audiences.length > 0 &&
+      !hasOpenItem(version, [masterDataCodes.agentTypes.audienceIntelligence]),
     geography: version.geographies.length > 0 &&
       !hasOpenItem(version, ['geograph', 'location']),
     timing: Boolean(version.timing.trim()) &&

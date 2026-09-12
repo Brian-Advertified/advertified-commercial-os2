@@ -12,13 +12,7 @@ internal static class PlanAmounts
         PlanningPolicy policy)
     {
         var priced = scheduledInventory.Select(item => Price(item, policy)).ToArray();
-        var clientPolicy = new CommercialRatePolicy(
-            commercialPolicy.MarkupBasisPoints,
-            commercialPolicy.ManagementFeeBasisPoints,
-            commercialPolicy.CommissionBasisPoints,
-            commercialPolicy.VatStatus,
-            commercialPolicy.VatRateBasisPoints,
-            commercialPolicy.PricesIncludeVat);
+        var clientPolicy = ClientPolicy(commercialPolicy);
         var lines = priced.Select(item => ApplyClientPolicy(item, clientPolicy)).ToArray();
         var totalFees = checked(lines.Sum(item => item.FeesMinor));
         var vatTotal = checked(lines.Sum(item => item.VatMinor));
@@ -40,6 +34,21 @@ internal static class PlanAmounts
             scheduled.Purchase is null ? null : scheduled.Purchase with {
                 Quantity = supplier.Quantity, Denominator = policy.RateQuantityDenominators[scheduled.Purchase.RateType] });
     }
+
+    internal static long ClientPriceMinor(
+        long supplierCostMinor,
+        CommercialPolicyRow commercialPolicy) =>
+        CommercialMoneyCalculator.Calculate(
+            supplierCostMinor, 0, ClientPolicy(commercialPolicy)).TotalMinor;
+
+    private static CommercialRatePolicy ClientPolicy(
+        CommercialPolicyRow commercialPolicy) => new(
+            commercialPolicy.MarkupBasisPoints,
+            commercialPolicy.ManagementFeeBasisPoints,
+            commercialPolicy.CommissionBasisPoints,
+            commercialPolicy.VatStatus,
+            commercialPolicy.VatRateBasisPoints,
+            commercialPolicy.PricesIncludeVat);
 
     private static CalculatedLineAmounts ApplyClientPolicy(
         CalculatedLineAmounts item,

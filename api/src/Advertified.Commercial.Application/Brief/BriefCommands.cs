@@ -58,6 +58,7 @@ public sealed record CreateBriefVersionCommand(
     string? Currency,
     string? VatStatus,
     long? FeesMinor,
+    IReadOnlyList<string> MediaRequirements,
     IReadOnlyList<string> Constraints,
     IReadOnlyList<string> Measurement,
     IReadOnlyList<string> Facts,

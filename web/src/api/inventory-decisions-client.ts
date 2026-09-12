@@ -5,7 +5,7 @@ const decisionSchema = z.object({
   eventId: z.guid(), previousEventId: z.guid().nullable(), productId: z.guid(),
   productVersionId: z.guid(), previousProductVersionId: z.guid().nullable(),
   productName: z.string(), isSelected: z.boolean(), wasSelected: z.boolean().nullable(),
-  presentInCurrentShortlist: z.boolean(), agentInterpreted: z.boolean().nullable(),
+  presentInCurrentShortlist: z.boolean(),
   decidedAtUtc: z.iso.datetime({ offset: true }), actorId: z.guid().nullable(),
   reason: z.string().nullable(), briefVersionId: z.guid().nullable(),
   shortlistVersionId: z.guid().nullable(),

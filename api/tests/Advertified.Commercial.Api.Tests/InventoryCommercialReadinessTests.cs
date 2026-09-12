@@ -17,6 +17,7 @@ public sealed class InventoryCommercialReadinessTests
             ProductId: Guid.NewGuid(),
             ProductVersionId: Guid.NewGuid(),
             SupplierId: Guid.NewGuid(),
+            SupplierName: "Evidence-backed supplier",
             Name: "Evidence-backed daily placement",
             Channel: MasterDataCodes.Channels.Social,
             ProductType: MasterDataCodes.InventoryProductTypes.SocialPlacement,
@@ -130,7 +131,7 @@ public sealed class InventoryCommercialReadinessTests
     private static PlanningInventoryRow CreateReadyInventory() => new(
         InventoryTenantId: Guid.NewGuid(), MarketplaceListingVersionId: null,
         ProductId: Guid.NewGuid(), ProductVersionId: Guid.NewGuid(), SupplierId: Guid.NewGuid(),
-        Name: "Source-priced placement", Channel: MasterDataCodes.Channels.Social,
+        SupplierName: "Source-priced supplier", Name: "Source-priced placement", Channel: MasterDataCodes.Channels.Social,
         ProductType: MasterDataCodes.InventoryProductTypes.SocialPlacement,
         Geography: "South Africa", Latitude: null, Longitude: null, RateId: Guid.NewGuid(),
         RateType: MasterDataCodes.RateTypes.DayRate, Currency: MasterDataCodes.Currencies.Zar,

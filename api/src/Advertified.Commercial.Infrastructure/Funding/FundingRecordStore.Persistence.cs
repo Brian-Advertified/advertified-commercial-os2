@@ -87,7 +87,7 @@ public sealed partial class FundingRecordStore
                 currency_code, status_code, started_by, started_at_utc, version, updated_at_utc)
             VALUES ({id}, {envelope.TenantId.Value}, {invoice.ProposalVersionId},
                 {invoice.ProposalOptionId}, {invoice.PurchaseOrderId}, {invoice.Id},
-                {MasterDataCodes.PaymentMethods.ManualEft}, {invoice.TotalMinor},
+                {envelope.Command.MethodCode}, {invoice.TotalMinor},
                 {invoice.Currency}, {MasterDataCodes.LifecycleStatuses.Pending},
                 {envelope.ActorId.Value}, {now}, 1, {now})
             ON CONFLICT (tenant_id, invoice_id) DO NOTHING

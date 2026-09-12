@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Npgsql;
 using Xunit;
@@ -71,6 +72,21 @@ public sealed partial class MarketplaceAcceptanceTests
         await batch.ExecuteNonQueryAsync();
     }
 
+    private static async Task ApproveBuyerMediaStrategyAsync(HttpClient buyer)
+    {
+        var path = $"/api/v1/tenants/{BuyerTenantId}/brief-versions/{BuyerBriefVersionId}/intelligence/media-strategy";
+        using var analysed = await buyer.PostAsync(path, content: null);
+        var analysedBody = await analysed.Content.ReadAsStringAsync();
+        Assert.True(analysed.IsSuccessStatusCode, analysedBody);
+        using var draft = JsonDocument.Parse(analysedBody);
+        var artifactId = draft.RootElement.GetProperty("id").GetGuid();
+        var expectedVersion = draft.RootElement.GetProperty("version").GetInt64();
+        using var approved = await buyer.PostAsJsonAsync(
+            $"{path}/{artifactId}/approve",
+            new { expectedVersion });
+        Assert.True(approved.IsSuccessStatusCode, await approved.Content.ReadAsStringAsync());
+    }
+
     private static async Task<PlanFixture> BuildBuyerPlanAsync(
         HttpClient buyer,
         Guid listingVersionId)
@@ -98,6 +114,7 @@ public sealed partial class MarketplaceAcceptanceTests
                 positioningStatement = audience.RootElement.GetProperty("positioningStatement").GetString(),
                 reason = "The buyer reviewed the audience strategy.",
             });
+        await ApproveBuyerMediaStrategyAsync(buyer);
         using var mix = await CommandAsync(
             buyer, BuyerTenantId, $"brief-versions/{BuyerBriefVersionId}/media-mixes:generate",
             "marketplace-plan-mix", 1, new { });

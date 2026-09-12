@@ -1,9 +1,8 @@
-using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Infrastructure.Proposal;
+using UglyToad.PdfPig;
 using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
@@ -52,15 +51,12 @@ public sealed class ProposalPdfRendererTests
             DateTimeOffset.UtcNow);
 
         var document = ProposalPdfRenderer.Render(proposal);
-        var text = Encoding.ASCII.GetString(document.Content);
-        var pageCountMatch = Regex.Match(text, @"/Type /Pages /Kids \[[^\]]+\] /Count (\d+)");
+        var rendered = ReadPdf(document.Content);
 
-        Assert.True(pageCountMatch.Success);
-        var pageCount = int.Parse(pageCountMatch.Groups[1].Value, CultureInfo.InvariantCulture);
-        Assert.True(pageCount > 1);
-        Assert.Equal(pageCount, Regex.Count(text, "PROPOSAL FOR Client One"));
-        Assert.Contains("Unbranded proposal authorised", text);
-        Assert.Equal(pageCount, Regex.Count(text, "Confidential proposal"));
+        Assert.True(rendered.Pages.Count > 1);
+        Assert.All(rendered.Pages, page => AssertContainsNormalized("PROPOSAL FOR Client One", page));
+        AssertContainsNormalized("Unbranded proposal authorised", rendered.Text);
+        Assert.All(rendered.Pages, page => AssertContainsNormalized("Confidential proposal", page));
     }
 
     [Fact]
@@ -70,10 +66,28 @@ public sealed class ProposalPdfRendererTests
             null, null, null, null, null, null, null, [], [], null!, null,
             null, null, null);
         var inventory = new ProposalInventoryLineView(
-            Guid.NewGuid(), null, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            null, "Sandton digital screen", "DOOH", "Sandton", [], 1,
-            7_829_200, 0, 0, "AVAILABLE", "CURRENT", "CONFIRMED", "SUPPLIER",
-            null, [], CommercialTerms: terms);
+            InventoryTenantId: Guid.NewGuid(),
+            SupplierName: null,
+            MarketplaceListingVersionId: Guid.NewGuid(),
+            InventoryProductId: Guid.NewGuid(),
+            ProductVersionId: Guid.NewGuid(),
+            RateId: Guid.NewGuid(),
+            AvailabilityId: null,
+            Name: "Sandton digital screen",
+            Channel: "DOOH",
+            Geography: "Sandton",
+            RunningPeriods: [],
+            Quantity: 1,
+            ClientPriceMinor: 7_829_200,
+            FeesMinor: 0,
+            VatMinor: 0,
+            Availability: "AVAILABLE",
+            RateFreshness: "CURRENT",
+            SupplyConfidence: "CONFIRMED",
+            SupplySource: "SUPPLIER",
+            LastConfirmedAtUtc: null,
+            Uncertainties: [],
+            CommercialTerms: terms);
         var option = new ProposalOptionView(
             Guid.NewGuid(), "Integrated route 1", "Build premium awareness",
             Guid.NewGuid(), 1, 7_829_200, "ZAR", 1, ["DOOH"], [],
@@ -88,13 +102,27 @@ public sealed class ProposalPdfRendererTests
             DateTimeOffset.UtcNow);
 
         var document = ProposalPdfRenderer.Render(proposal);
-        var text = Encoding.ASCII.GetString(document.Content);
+        var rendered = ReadPdf(document.Content);
 
-        Assert.StartsWith("%PDF-1.4", text);
-        Assert.Contains("Channels: Digital screens", text);
-        Assert.DoesNotContain("Channels: DOOH", text);
-        Assert.DoesNotContain("Commercial conditions:", text);
+        Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(document.Content, 0, 5));
+        AssertContainsNormalized("Digital screens", rendered.Text);
+        Assert.DoesNotContain("DOOH", rendered.Text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Commercialcondition:", Normalize(rendered.Text), StringComparison.OrdinalIgnoreCase);
+        AssertContainsNormalized("OOH site schedule", rendered.Text);
     }
+
+    private static (IReadOnlyList<string> Pages, string Text) ReadPdf(byte[] content)
+    {
+        using var pdf = PdfDocument.Open(content);
+        var pages = pdf.GetPages().Select(page => page.Text).ToArray();
+        return (pages, string.Join("\n", pages));
+    }
+
+    private static void AssertContainsNormalized(string expected, string actual) =>
+        Assert.Contains(Normalize(expected), Normalize(actual), StringComparison.OrdinalIgnoreCase);
+
+    private static string Normalize(string value) =>
+        new(value.Where(character => !char.IsWhiteSpace(character) && character != '·').ToArray());
 
     private static ProposalBrandingView Branding(
         string agency,

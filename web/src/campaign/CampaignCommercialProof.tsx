@@ -1,12 +1,16 @@
-import type { Campaign } from '../api/campaign-schemas'
+import type { Campaign, MeasurementReport } from '../api/campaign-schemas'
 import { CommercialValueProof, type CommercialProofMetric } from '../components/CommercialValueProof'
 import type { CampaignWorkspaceModel } from './useCampaignWorkspace'
 
 export function CampaignCommercialProof({ model }: { model: CampaignWorkspaceModel }) {
-  return <CommercialValueProof title="The commercial decision stays connected through delivery"
-    description="Advertified keeps the selected proposal, supplier commitments, creative readiness, proof and measurement on one accountable campaign journey."
-    metrics={campaignProofMetrics(model)}
-    note={`Current campaign state: ${model.campaign.status}. No delivery or performance is inferred from workflow progress alone.`} />
+  const learning = latestReviewedLearning(model.campaign)
+  return <>
+    <CommercialValueProof title="The commercial decision stays connected through delivery"
+      description="Advertified keeps the selected proposal, supplier commitments, creative readiness, proof and measurement on one accountable campaign journey."
+      metrics={campaignProofMetrics(model)}
+      note={`Current campaign state: ${model.campaign.status}. No delivery or performance is inferred from workflow progress alone.`} />
+    {learning && <CampaignLearningPanel report={learning} />}
+  </>
 }
 
 function campaignProofMetrics(model: CampaignWorkspaceModel): CommercialProofMetric[] {
@@ -16,6 +20,33 @@ function campaignProofMetrics(model: CampaignWorkspaceModel): CommercialProofMet
     deliveryMetric(model.campaign),
     measurementMetric(model.campaign),
   ]
+}
+
+function latestReviewedLearning(campaign: Campaign) {
+  return [...campaign.measurementReports]
+    .filter(item => item.reviewedAtUtc !== null)
+    .sort((left, right) => (left.reviewedAtUtc ?? '').localeCompare(right.reviewedAtUtc ?? ''))
+    .at(-1) ?? null
+}
+
+function CampaignLearningPanel({ report }: { report: MeasurementReport }) {
+  return <section className="campaign-learning-panel" aria-labelledby="campaign-learning-title">
+    <header><div><p className="eyebrow">Campaign learning</p>
+      <h2 id="campaign-learning-title">What this campaign taught Advertified</h2>
+      <p>{report.interpretation.executiveSummary}</p></div>
+      <span>{report.interpretation.causalityStatus.replaceAll('_', ' ')}</span></header>
+    <div className="campaign-learning-grid">
+      <article><h3>Evidence-backed findings</h3>
+        {report.interpretation.findings.length > 0 ? <ul>{report.interpretation.findings.slice(0, 4).map(item =>
+          <li key={item.title}><strong>{item.title}</strong><span>{item.summary}</span></li>)}</ul> :
+          <p>No reviewed findings are retained.</p>}</article>
+      <article><h3>What should change next time</h3>
+        {report.interpretation.learningProposals.length > 0 ? <ul>{report.interpretation.learningProposals.slice(0, 4).map((item, index) =>
+          <li key={`${item.text}-${index}`}><strong>{item.requiresNewApproval ? 'New approval required' : 'Learning retained'}</strong><span>{item.text}</span></li>)}</ul> :
+          <p>No learning proposal is retained yet.</p>}</article>
+    </div>
+    {report.interpretation.limitations.length > 0 && <footer><strong>Measurement limits:</strong> {report.interpretation.limitations.slice(0, 3).join(' · ')}</footer>}
+  </section>
 }
 
 function bookingMetric(model: CampaignWorkspaceModel): CommercialProofMetric {

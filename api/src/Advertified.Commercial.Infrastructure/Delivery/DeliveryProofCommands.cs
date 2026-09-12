@@ -13,7 +13,7 @@ public sealed class DeliveryProofCommands(
     DeliveryProofRecordStore store,
     CommandDispatcher dispatcher,
     IInventoryObjectStore objectStore,
-    IInventoryMalwareScanner malwareScanner,
+    IFileMalwareProtection malwareScanner,
     TimeProvider timeProvider) : IDeliveryProofCommands
 {
     public async Task<CommandResult<DeliveryProofView>> SubmitAsync(

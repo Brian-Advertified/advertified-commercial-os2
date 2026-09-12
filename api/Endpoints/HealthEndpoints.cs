@@ -39,7 +39,7 @@ public static partial class HealthEndpoints
                 return Unavailable("database-unavailable");
             }
 
-            if (!await database.MasterDataSets.AsNoTracking().AnyAsync(cancellationToken))
+            if (!await MasterDataReadiness.IsReadyAsync(database, cancellationToken))
             {
                 LogMasterDataUnavailable(logger);
                 return Unavailable("master-data-unavailable", "database");

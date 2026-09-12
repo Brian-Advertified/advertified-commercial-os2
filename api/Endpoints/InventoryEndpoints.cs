@@ -13,10 +13,13 @@ public static class InventoryEndpoints
 {
     public static IEndpointRouteBuilder MapInventoryEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapPlaceDiscoveryEndpoints();
         endpoints.MapInventoryResearchEndpoints();
         var group = endpoints.MapGroup("/api/v1/tenants/{tenantId:guid}")
             .WithTags("Inventory truth").RequireAuthorization();
+        group.MapGet("/inventory-places", SearchInventoryPlacesAsync)
+            .WithName("SearchInventoryPlaces")
+            .Produces<IReadOnlyList<InventoryPlaceView>>()
+            .WithQueryProblems();
         group.MapPost("/inventory-imports", CreateImportAsync)
             .WithName("CreateInventoryImport")
             .RequireRateLimiting(RequestRateLimitPolicies.InventoryUpload)
@@ -120,6 +123,18 @@ public static class InventoryEndpoints
         endpoints.MapInventoryReleaseEndpoints();
         return endpoints;
     }
+
+    private static async Task<IResult> SearchInventoryPlacesAsync(
+        Guid tenantId,
+        string search,
+        ICurrentIdentity identity,
+        IInventoryReader reader,
+        CancellationToken cancellationToken) =>
+        Results.Ok(await reader.SearchPlacesAsync(
+            identity.ActorId,
+            new TenantId(tenantId),
+            search,
+            cancellationToken));
 
     private static async Task<IResult> CreateImportAsync(
         Guid tenantId, HttpContext context, ICurrentIdentity identity,

@@ -60,7 +60,7 @@ function DecisionRow({ item, supplierSafe }: { item: InventoryDecision; supplier
   const removed = item.wasSelected === true && !item.isSelected
   return <li className={removed ? 'decision-removed' : undefined}>
     <div className="decision-row-heading"><h3>{item.productName}</h3><strong>{decisionLabel(item)}</strong></div>
-    <p>{formatDateTime(item.decidedAtUtc)} · {interpretationLabel(item.agentInterpreted)}</p>
+    <p>{formatDateTime(item.decidedAtUtc)}</p>
     <p>{supplierSafe ? copy.privateReason : item.reason ?? copy.missingReason}</p>
     {!item.presentInCurrentShortlist && <p>{copy.omitted}</p>}
     <DecisionReferences item={item} />
@@ -71,11 +71,6 @@ function decisionLabel(item: InventoryDecision) {
   if (!item.isSelected) return item.wasSelected === true ? copy.removed : copy.declined
   if (item.wasSelected === true) return copy.retained
   return item.wasSelected === false ? copy.added : copy.selected
-}
-
-function interpretationLabel(interpreted: boolean | null) {
-  if (interpreted === null) return copy.legacy
-  return interpreted ? copy.interpreted : copy.rules
 }
 
 function DecisionReferences({ item }: { item: InventoryDecision }) {

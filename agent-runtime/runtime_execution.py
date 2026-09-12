@@ -10,7 +10,6 @@ from fastapi import HTTPException
 from pydantic import BaseModel, ValidationError
 
 from agent_registry import AgentCode
-from audience_candidates import DISCOVERY_INSTRUCTION
 from bedrock_provider import (
     BEDROCK_MODE,
     BedrockProviderError,
@@ -41,35 +40,63 @@ from measurement_contracts import (
     MeasurementInterpretationArtifact,
 )
 from measurement_service import interpret_measurement
-from media_presentation import CLIENT_WORDING_INSTRUCTION
-from opportunity_contracts import (
-    BriefDraftArtifact,
-    BusinessInterpretationArtifact,
-    CriticReportArtifact,
-    OpportunityAgentRequest,
-    OpportunityAngleSetArtifact,
-    StrategyArtifact,
+from location_intelligence_contracts import (
+    RESEARCH_OPERATION as LOCATION_RESEARCH,
+    SYNTHESIS_OPERATION as LOCATION_SYNTHESIS,
+    LocationIntelligenceArtifact,
+    LocationResearchPlanArtifact,
+    LocationResearchPlanRequest,
+    LocationSynthesisRequest,
 )
+from location_intelligence_service import (
+    RESEARCH_INSTRUCTION as LOCATION_RESEARCH_INSTRUCTION,
+    SYNTHESIS_INSTRUCTION as LOCATION_SYNTHESIS_INSTRUCTION,
+    propose_location_research,
+    synthesize_location,
+)
+from location_research_validation import (
+    canonicalize_location_research,
+    validate_location_research_grounding,
+)
+from location_intelligence_validation import (
+    canonicalize_location_synthesis,
+    validate_location_synthesis_grounding,
+)
+from market_intelligence_contracts import MarketIntelligenceAgentRequest, MarketIntelligenceArtifact
+from market_intelligence_service import (
+    INSTRUCTION as MARKET_INTELLIGENCE_INSTRUCTION,
+    canonicalize_market_intelligence,
+    propose_market_intelligence,
+    validate_market_grounding,
+)
+from media_strategy_contracts import OPERATION as MEDIA_STRATEGY_ANALYSIS, MediaStrategyArtifact, MediaStrategyRequest
+from media_strategy_service import (
+    INSTRUCTION as MEDIA_STRATEGY_INSTRUCTION,
+    canonicalize_media_strategy,
+    unavailable_media_strategy,
+    validate_media_strategy_grounding,
+)
+from opportunity_contracts import OpportunityAgentRequest
 from opportunity_service import HANDLERS
 from planning_contracts import (
     AudienceAgentRequest,
     AudienceDefinitionSetArtifact,
     InventoryIntelligenceAgentRequest,
     InventoryShortlistDraftArtifact,
-    MediaMixDraftArtifact,
-    MediaPlanningAgentRequest,
 )
+from planning_inventory_interpretation import interpret_inventory
 from planning_service import (
     canonicalize_audiences,
-    interpret_inventory,
     propose_audiences,
-    propose_media_mix,
+    validate_audience_grounding,
 )
 from proposal_contracts import (
     ProposalNarrativeAgentRequest,
     ProposalNarrativeDraftArtifact,
 )
 from proposal_service import propose_narrative
+from proposal_provider_facts import proposal_model_input, validate_proposal_numeric_claims
+from inventory_model_input import _inventory_model_input
 from supplied_brief_contracts import OPERATION as SUPPLIED_BRIEF, SuppliedBriefRequest, SuppliedBriefArtifact
 from supplied_brief_model_input import build_model_input as build_brief_model_input
 from supplied_brief_service import (
@@ -82,84 +109,15 @@ logger = logging.getLogger(__name__)
 
 DETERMINISTIC_MODE = "deterministic"
 
-ArtifactType = type[BaseModel]
 Handler = Callable[[BaseModel], BaseModel]
 
-
-OPPORTUNITY_ARTIFACTS: dict[AgentCode, ArtifactType] = {
-    AgentCode.BUSINESS_INTERPRETATION: BusinessInterpretationArtifact,
-    AgentCode.OPPORTUNITY_INTELLIGENCE: OpportunityAngleSetArtifact,
-    AgentCode.STRATEGY: StrategyArtifact,
-    AgentCode.CRITIC_READINESS: CriticReportArtifact,
-    AgentCode.BRIEF_DRAFTING: BriefDraftArtifact,
-}
-
-
-ENRICHMENT_INSTRUCTION = (
-    "Enrich only the deterministic inventory rows supplied in existing_rows. "
-    "Do not create inventory and do not repeat, replace or reinterpret supplier, "
-    "price, currency, buying basis, validity, availability, geography, format, "
-    "placement, dimensions or other commercial facts. Each candidate "
-    "source_locator must exactly equal the target existing-row locator. You may "
-    "return only channel, product_type and description fields. Mark every field "
-    "DERIVED_POLICY. For channel and product_type, normalized_value must be one "
-    "exact code from governed_codes. For description, raw_value must be a "
-    "verbatim source excerpt and normalized_value may be concise searchable copy "
-    "that does not add facts. YouTube inventory classifies as SOCIAL and "
-    "SOCIAL_PLACEMENT; Google Search and Display inventory classify as DIGITAL "
-    "and DIGITAL_PLACEMENT when the source supports it. Never infer FLAT_RATE "
-    "or any rate_type. "
-    "Never add dates. Omit a field when evidence is insufficient. Account for "
-    "every attached image by citing it or listing its locator in "
-    "omitted_source_locators. Return only the requested artifact; deterministic "
-    "code owns status, governance and acceptance."
+from audience_model_input import audience_model_input
+from runtime_instructions import (
+    ENRICHMENT_INSTRUCTION,
+    INSTRUCTIONS,
+    OPPORTUNITY_ARTIFACTS,
+    TRANSCRIPTION_INSTRUCTION,
 )
-
-TRANSCRIPTION_INSTRUCTION = (
-    "Transcribe only supplier facts visible in the supplied source items and images. "
-    "Preserve raw wording, numbers and source locators exactly. Do not infer semantic "
-    "classification, rate type, currency, availability or dates. Return no candidate "
-    "without a name or product code, and account for every supplied image by citing "
-    "its exact locator or listing it in omitted_source_locators. Deterministic code "
-    "owns normalization, acceptance and publication."
-)
-
-INSTRUCTIONS: dict[AgentCode, str] = {
-    AgentCode.BUSINESS_INTERPRETATION: (
-        "Interpret the business from approved evidence only."
-    ),
-    AgentCode.OPPORTUNITY_INTELLIGENCE: (
-        "Propose ranked commercial opportunity angles grounded in approved "
-        "evidence."
-    ),
-    AgentCode.STRATEGY: (
-        "Propose a growth strategy from approved evidence and selected prior "
-        "artefacts."
-    ),
-    AgentCode.CRITIC_READINESS: (
-        "Critique the proposed strategy and identify material evidence gaps."
-    ),
-    AgentCode.BRIEF_DRAFTING: (
-        "Draft the canonical campaign brief proposal without inventing missing "
-        "facts."
-    ),
-    AgentCode.AUDIENCE: DISCOVERY_INSTRUCTION,
-    AgentCode.MEDIA_PLANNING: (
-        "Propose a budget-reconciled media mix using only the allowed channels."
-    ),
-    AgentCode.INVENTORY_INTELLIGENCE: INTERPRETATION_INSTRUCTION,
-    AgentCode.PROPOSAL_NARRATIVE: (
-        "Draft proposal wording that preserves every supplied commercial fact "
-        "exactly. " + CLIENT_WORDING_INSTRUCTION
-    ),
-    AgentCode.CREATIVE: (
-        "Propose creative territories using only rights-cleared assets and "
-        "verified facts."
-    ),
-    AgentCode.MEASUREMENT: (
-        "Interpret reviewed performance evidence without unsupported causality."
-    ),
-}
 
 
 def execute_agent(
@@ -193,6 +151,9 @@ def execute_agent(
             )
         instruction = (
             SUPPLIED_BRIEF_INSTRUCTION if isinstance(request, SuppliedBriefRequest) else
+            LOCATION_RESEARCH_INSTRUCTION if isinstance(request, LocationResearchPlanRequest) else
+            LOCATION_SYNTHESIS_INSTRUCTION if isinstance(request, LocationSynthesisRequest) else
+            MEDIA_STRATEGY_INSTRUCTION if isinstance(request, MediaStrategyRequest) else
             SCHEMA_INSTRUCTION if isinstance(request, SchemaDiscoveryRequest) else ENRICHMENT_INSTRUCTION
             if isinstance(request, InventorySemanticAgentRequest)
             and request.operation == SEMANTIC_ENRICHMENT else TRANSCRIPTION_INSTRUCTION
@@ -212,6 +173,10 @@ def _grounded_bedrock_output(agent_code, request, artifact_type, instruction):
         model_input = (
             build_brief_model_input(request)
             if isinstance(request, SuppliedBriefRequest)
+            else proposal_model_input(request)
+            if isinstance(request, ProposalNarrativeAgentRequest)
+            else audience_model_input(request)
+            if isinstance(request, AudienceAgentRequest)
             else _inventory_model_input(request)
             if isinstance(request, InventoryIntelligenceAgentRequest)
             else None
@@ -223,29 +188,25 @@ def _grounded_bedrock_output(agent_code, request, artifact_type, instruction):
             instruction,
             model_input=model_input,
         )
-        if isinstance(request, SuppliedBriefRequest):
-            output = canonicalize_brief_grounding(request, output)
-        elif isinstance(request, AudienceAgentRequest):
-            output = canonicalize_audiences(request, output)
+        provider_output = output
         try:
+            output = _canonicalize_operation_output(request, output)
             _validate_operation_output(request, output)
         except ValueError as error:
             raise BedrockProviderError(
                 str(error),
                 stage="GROUNDING_VALIDATION",
                 acceptance="ACCEPTED",
-                usage=output.usage,
-                rejected_output=output.model_dump(
-                    mode="json",
-                    exclude={"usage"},
+                usage=provider_output.usage,
+                rejected_output=provider_output.model_dump(
+                    mode="json", exclude={"usage"},
                 ),
             ) from error
     except BedrockProviderError as error:
         logger.warning(
-            "Bedrock provider rejected output: stage=%s acceptance=%s message=%s",
+            "Bedrock provider rejected output: stage=%s acceptance=%s",
             error.stage,
             error.acceptance,
-            str(error),
         )
         raise HTTPException(
             status_code=503,
@@ -254,57 +215,29 @@ def _grounded_bedrock_output(agent_code, request, artifact_type, instruction):
     return output
 
 
-def _inventory_model_input(request: InventoryIntelligenceAgentRequest) -> dict:
-    return {
-        "inventory": {
-            "brief_version_id": str(request.inventory.brief_version_id),
-            "shortlist_version_id": str(request.inventory.shortlist_version_id),
-            "strategy": request.inventory.strategy.model_dump(mode="json")
-            if request.inventory.strategy else None,
-            "candidates": [
-                _compact_inventory_candidate(candidate)
-                for candidate in request.inventory.candidates
-            ],
-        },
-    }
-
-
-def _compact_inventory_candidate(candidate) -> dict:
-    raw = candidate.model_dump(mode="json")
-    benchmark = raw["benchmark"]
-    return {
-        "candidate_id": raw["candidate_id"],
-        "name": raw["name"],
-        "channel": raw["channel"],
-        "geography": raw["geography"],
-        "rate_amount_minor": raw["rate_amount_minor"],
-        "currency": raw["currency"],
-        "is_eligible": raw["is_eligible"],
-        "rejection_reason": raw["rejection_reason"],
-        "rejection_detail": raw["rejection_detail"],
-        "score": raw["score"],
-        "suitability_total": raw["suitability"]["total"],
-        "suitability": raw["suitability"],
-        "audience_fit": raw["audience_fit"],
-        "benchmark": None if benchmark is None else {
-            key: benchmark[key]
-            for key in (
-                "geography_basis",
-                "cohort_size",
-                "median_minor",
-                "percentile",
-                "position",
-                "confidence",
-            )
-        },
-    }
+def _canonicalize_operation_output(request, output):
+    if isinstance(request, SuppliedBriefRequest):
+        return canonicalize_brief_grounding(request, output)
+    if isinstance(request, AudienceAgentRequest):
+        return canonicalize_audiences(request, output)
+    if isinstance(request, MarketIntelligenceAgentRequest):
+        return canonicalize_market_intelligence(request, output)
+    if isinstance(request, LocationResearchPlanRequest):
+        return canonicalize_location_research(request, output)
+    if isinstance(request, LocationSynthesisRequest):
+        return canonicalize_location_synthesis(request, output)
+    if isinstance(request, MediaStrategyRequest):
+        return canonicalize_media_strategy(request, output)
+    return output
 
 
 def implemented_agents() -> set[AgentCode]:
     return {
         *HANDLERS,
-        AgentCode.AUDIENCE,
-        AgentCode.MEDIA_PLANNING,
+        AgentCode.MARKET_INTELLIGENCE,
+        AgentCode.AUDIENCE_INTELLIGENCE,
+        AgentCode.LOCATION_INTELLIGENCE,
+        AgentCode.MEDIA_STRATEGY,
         AgentCode.INVENTORY_INTELLIGENCE,
         AgentCode.PROPOSAL_NARRATIVE,
         AgentCode.CREATIVE,
@@ -322,10 +255,14 @@ def _contract(
         types = (OpportunityAgentRequest, OPPORTUNITY_ARTIFACTS[agent_code], HANDLERS[agent_code])
     elif agent_code == AgentCode.INVENTORY_INTELLIGENCE:
         types = _inventory_contract_types(body)
+    elif agent_code == AgentCode.LOCATION_INTELLIGENCE:
+        types = _location_contract_types(body)
+    elif agent_code == AgentCode.MEDIA_STRATEGY and _operation(body) == MEDIA_STRATEGY_ANALYSIS:
+        types = (MediaStrategyRequest, MediaStrategyArtifact, unavailable_media_strategy)
     else:
         types = {
-            AgentCode.AUDIENCE: (AudienceAgentRequest, AudienceDefinitionSetArtifact, propose_audiences),
-            AgentCode.MEDIA_PLANNING: (MediaPlanningAgentRequest, MediaMixDraftArtifact, propose_media_mix),
+            AgentCode.MARKET_INTELLIGENCE: (MarketIntelligenceAgentRequest, MarketIntelligenceArtifact, propose_market_intelligence),
+            AgentCode.AUDIENCE_INTELLIGENCE: (AudienceAgentRequest, AudienceDefinitionSetArtifact, propose_audiences),
             AgentCode.PROPOSAL_NARRATIVE: (ProposalNarrativeAgentRequest, ProposalNarrativeDraftArtifact, propose_narrative),
             AgentCode.CREATIVE: (CreativeAgentRequest, CreativeConceptSetArtifact, generate_creative_concepts),
             AgentCode.MEASUREMENT: (MeasurementAgentRequest, MeasurementInterpretationArtifact, interpret_measurement),
@@ -336,6 +273,15 @@ def _contract(
     request = _validate(request_type, body)
     _require_agent_match(request.invocation.agent_code, agent_code)
     return request, artifact_type, handler
+
+
+def _location_contract_types(body: bytes):
+    operation = _operation(body)
+    if operation == LOCATION_RESEARCH:
+        return LocationResearchPlanRequest, LocationResearchPlanArtifact, propose_location_research
+    if operation == LOCATION_SYNTHESIS:
+        return LocationSynthesisRequest, LocationIntelligenceArtifact, synthesize_location
+    return None
 
 
 def _inventory_contract_types(body: bytes):
@@ -357,6 +303,18 @@ def _validate_operation_output(request: BaseModel, output: BaseModel) -> None:
         validate_schema_grounding(request, output)
     elif isinstance(request, SuppliedBriefRequest):
         validate_brief_grounding(request, output)
+    elif isinstance(request, MarketIntelligenceAgentRequest):
+        validate_market_grounding(request, output)  # type: ignore[arg-type]
+    elif isinstance(request, AudienceAgentRequest):
+        validate_audience_grounding(request, output)  # type: ignore[arg-type]
+    elif isinstance(request, LocationResearchPlanRequest):
+        validate_location_research_grounding(request, output)  # type: ignore[arg-type]
+    elif isinstance(request, LocationSynthesisRequest):
+        validate_location_synthesis_grounding(request, output)  # type: ignore[arg-type]
+    elif isinstance(request, ProposalNarrativeAgentRequest):
+        validate_proposal_numeric_claims(request, output)
+    elif isinstance(request, MediaStrategyRequest):
+        validate_media_strategy_grounding(request, output)  # type: ignore[arg-type]
 
 
 def _operation(body: bytes) -> str | None:

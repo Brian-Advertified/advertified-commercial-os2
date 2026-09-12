@@ -2,12 +2,12 @@ using Advertified.Commercial.Application.Inventory;
 
 namespace Advertified.Commercial.Application.Planning;
 
-public sealed record AudienceDefinitionView(
+public sealed record AudienceSegmentView(
     Guid Id,
     string Name,
     string Description,
-    string NeedState,
-    string BuyingContext,
+    string? NeedState,
+    string? BuyingContext,
     IReadOnlyList<string> Geographies,
     string? Language,
     string? LifeStage,
@@ -17,20 +17,21 @@ public sealed record AudienceDefinitionView(
     string Classification,
     IReadOnlyList<string> Exclusions,
     IReadOnlyList<Guid> EvidenceItemIds,
-    decimal Confidence,
+    IReadOnlyList<Guid> ReferenceObservationIds,
+    decimal? Confidence,
     string Status,
     bool LsmSemMandatory = false);
 
-public sealed record AudienceDefinitionSetView(
+public sealed record AudienceStrategyView(
     Guid Id,
     Guid BriefVersionId,
     int VersionNumber,
     IReadOnlyList<Guid> TargetAudienceIds,
-    string TargetingRationale,
-    string PositioningStatement,
+    string? TargetingRationale,
+    string? PositioningStatement,
     string InputHash,
     string Status,
-    IReadOnlyList<AudienceDefinitionView> Definitions,
+    IReadOnlyList<AudienceSegmentView> Definitions,
     Guid CreatedBy,
     Guid? ApprovedBy,
     long Version,
@@ -52,7 +53,8 @@ public sealed record MediaAllocationView(
 public sealed record MediaMixVersionView(
     Guid Id,
     Guid BriefVersionId,
-    Guid AudienceSetId,
+    Guid AudienceArtifactId,
+    Guid? MediaStrategyArtifactId,
     int VersionNumber,
     long TotalBudgetMinor,
     string Currency,
@@ -138,7 +140,9 @@ public sealed record InventoryShortlistCandidateView(
     Guid InventoryTenantId,
     Guid? SupplierId,
     string? SupplierName,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     decimal? Latitude,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     decimal? Longitude,
     Guid? MarketplaceListingVersionId,
     Guid InventoryProductId,
@@ -272,7 +276,7 @@ public sealed record PlanningWorkspaceView(
     Guid BriefVersionId,
     string ClientName,
     CampaignModeSelectionView? CampaignMode,
-    AudienceDefinitionSetView? Audience,
+    AudienceStrategyView? Audience,
     MediaMixVersionView? MediaMix,
     InventoryShortlistVersionView? Shortlist,
     MediaPlanVersionView? MediaPlan,

@@ -5,10 +5,10 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-SCHEMA_VERSION = "advertified.production-certification.v1"
+SCHEMA_VERSION = "advertified.production-certification.v2"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MASTER_DATA = REPO_ROOT / "shared" / "contracts" / "master-data.json"
-OOH_JOURNEY = "_".join(("RAPID", "OOH"))
+OOH_JOURNEY = "OOH_ONLY"
 JOURNEY_COUNTS = {
     OOH_JOURNEY: 10,
     "FULL_CAMPAIGN": 10,
@@ -17,7 +17,7 @@ JOURNEY_COUNTS = {
 LIFECYCLE_CHECKS = {
     OOH_JOURNEY: (
         "brief_capture_approval",
-        "immutable_ooh_routing",
+        "immutable_campaign_mode",
         "geography_routes_pois",
         "inventory_eligibility",
         "scored_shortlist",

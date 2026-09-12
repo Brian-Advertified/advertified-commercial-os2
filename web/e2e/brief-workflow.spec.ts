@@ -55,7 +55,7 @@ test('a reviewed supplied Brief proceeds to Audience Strategy', async ({ page })
   expect(submitted.isVerified).toBe(true)
 
   await expect(page).toHaveURL(new RegExp(`/stp/${versionId}$`))
-  await expect(page.getByRole('heading', { name: 'Audience Strategy' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Decide who the campaign should prioritise' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Outdoor advertising campaign' }))
     .toHaveAttribute('data-campaign-mode', 'OOH_ONLY')
   await expect(page.getByRole('button', { name: 'Discover candidate audiences' })).toBeVisible()
@@ -95,7 +95,7 @@ test('Brief sections show progress and provide a governed continuation', async (
   await expect(page.getByRole('button', { name: /Continue to/ })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Audience', exact: true })).toBeVisible()
   await page.getByRole('link', { name: /Audience Complete/ }).click()
-  await expect(page).toHaveURL(new RegExp('#brief-audience$'))
+  await expect(page).toHaveURL(/#brief-audience_intelligence$/)
 
   await page.getByRole('link', { name: /Attachments Complete/ }).click()
   await page.getByText('View original source', { exact: true }).click()
@@ -335,6 +335,7 @@ function versionFixture(state: State) {
     audiences: ['Workspace furniture buyers'], geographies: ['Gauteng'], timing: 'By December 2026',
     budgetMinor: 10000000, budgetUnknown: false, currency: 'ZAR',
     vatStatus: null, feesMinor: null,
+    mediaRequirements: state.campaignMode === 'OOH_ONLY' ? ['OOH'] : [],
     constraints: [], measurement: [], facts: [], unknowns: [], assumptions: [], conflicts: [],
     evidenceItemIds: [], spatialRequirements: [], status: state.status, createdBy: userId,
     submittedBy: state.status === 'IN_REVIEW' || state.status === 'APPROVED' ? userId : null,

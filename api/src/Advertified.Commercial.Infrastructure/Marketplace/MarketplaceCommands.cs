@@ -29,6 +29,13 @@ public sealed partial class MarketplaceCommands(
             token => PublishListingOutcomeAsync(listingId, envelope, token), cancellationToken,
             token => EnsureListingAccessAsync(envelope.ActorId, envelope.TenantId, listingId, token));
 
+    public Task<CommandResult<MarketplaceListingView>> RelistListingAsync(
+        Guid listingId, CommandEnvelope<RelistMarketplaceListingCommand> envelope,
+        CancellationToken cancellationToken) => DispatchAsync<RelistMarketplaceListingCommand, MarketplaceListingView>(
+            envelope, MasterDataReferences.Permissions.SupplierInventoryManage,
+            token => RelistListingOutcomeAsync(listingId, envelope, token), cancellationToken,
+            token => EnsureListingAccessAsync(envelope.ActorId, envelope.TenantId, listingId, token));
+
     public Task<CommandResult<MarketplaceListingView>> ArchiveListingAsync(
         Guid listingId, CommandEnvelope<ArchiveMarketplaceListingCommand> envelope,
         CancellationToken cancellationToken) => DispatchAsync<ArchiveMarketplaceListingCommand, MarketplaceListingView>(

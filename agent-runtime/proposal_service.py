@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from media_presentation import channel_labels
+from proposal_provider_facts import format_money
 from contracts import (
     AgentOutputEnvelope,
     EvidenceBinding,
@@ -20,7 +21,7 @@ def propose_narrative(
     request: ProposalNarrativeAgentRequest,
 ) -> AgentOutputEnvelope[ProposalNarrativeDraftArtifact]:
     options = " ".join(
-        f"{item.label} invests {_money(item.budget_minor, item.currency)} across "
+        f"{item.label} invests {format_money(item.budget_minor, item.currency)} across "
         f"{channel_labels(item.channels)} to {_lower_first(item.outcome)}."
         for item in request.proposal.options
     )
@@ -62,11 +63,6 @@ def propose_narrative(
         ),
         usage=_usage(),
     )
-
-
-def _money(amount_minor: int, currency: str) -> str:
-    major, minor = divmod(amount_minor, 100)
-    return f"{currency} {major:,}" if minor == 0 else f"{currency} {major:,}.{minor:02d}"
 
 
 def _lower_first(value: str) -> str:

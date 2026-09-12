@@ -8,6 +8,8 @@ public sealed class MasterDataBootstrapper(
     GovernanceDbContext dbContext,
     TimeProvider timeProvider)
 {
+    private const int RetiredSortOrderFloor = 1_000_000;
+
     public async Task<MasterDataBootstrapResult> ApplyAsync(
         CancellationToken cancellationToken = default)
     {
@@ -19,6 +21,8 @@ public sealed class MasterDataBootstrapper(
             .ToDictionaryAsync(item => item.Code, cancellationToken);
         var items = await dbContext.MasterDataItems
             .ToDictionaryAsync(item => (item.CollectionCode, item.Code), cancellationToken);
+
+        RetireRemovedItems(registry, changedAtUtc, items);
 
         foreach (var registryCollection in registry.Collections)
         {
@@ -41,6 +45,46 @@ public sealed class MasterDataBootstrapper(
         return new MasterDataBootstrapResult(
             registry.Collections.Count,
             registry.Collections.Sum(collection => collection.Items.Count));
+    }
+
+    private static void RetireRemovedItems(
+        MasterDataRegistry registry,
+        DateTimeOffset changedAtUtc,
+        Dictionary<(string CollectionCode, string Code), MasterDataItem> items)
+    {
+        var registryByCollection = registry.Collections.ToDictionary(
+            collection => collection.Code,
+            collection => collection.Items.Select(item => item.Code)
+                .ToHashSet(StringComparer.Ordinal),
+            StringComparer.Ordinal);
+
+        foreach (var collectionGroup in items.Values.GroupBy(item => item.CollectionCode))
+        {
+            var currentCodes = registryByCollection.TryGetValue(collectionGroup.Key, out var codes)
+                ? codes
+                : new HashSet<string>(StringComparer.Ordinal);
+            var existing = collectionGroup.ToArray();
+            var nextRetirementSortOrder = Math.Max(
+                RetiredSortOrderFloor,
+                existing.Max(item => item.SortOrder) + 1);
+
+            foreach (var item in existing
+                         .Where(item => !currentCodes.Contains(item.Code))
+                         .OrderBy(item => item.Code, StringComparer.Ordinal))
+            {
+                if (!item.IsActive &&
+                    item.EffectiveTo.HasValue &&
+                    item.SortOrder >= RetiredSortOrderFloor)
+                {
+                    continue;
+                }
+
+                item.Retire(
+                    nextRetirementSortOrder++,
+                    registry.EffectiveFrom,
+                    changedAtUtc);
+            }
+        }
     }
 
     private void UpsertCollection(

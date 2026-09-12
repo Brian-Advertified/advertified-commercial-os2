@@ -13,11 +13,11 @@ namespace Advertified.Commercial.Infrastructure.Inventory;
 public sealed partial class InventoryRecordStore(
     GovernanceDbContext dbContext,
     IInventoryObjectStore objectStore,
-    IInventoryMalwareScanner malwareScanner)
+    IFileMalwareProtection malwareScanner)
 {
     internal GovernanceDbContext DbContext => dbContext;
     internal IInventoryObjectStore ObjectStore => objectStore;
-    internal IInventoryMalwareScanner MalwareScanner => malwareScanner;
+    internal IFileMalwareProtection MalwareScanner => malwareScanner;
 
     internal async Task<IDbContextTransaction> BeginSessionAsync(
         ActorId actorId,
@@ -237,7 +237,7 @@ public sealed partial class InventoryRecordStore(
         if (artifact is null) return null;
         var extraction = artifact.Extraction();
         var schema = extraction.Document.DiscoveredSchema;
-        return new(InventoryInterpretationRevision.Revision(extraction),
+        return new(extraction.CanonicalOutputHash,
             schema is null ? null : System.Text.Json.JsonSerializer.Serialize(schema, InventoryRowMapper.StoredJson),
             System.Text.Json.JsonSerializer.Serialize(
                 extraction.Document.SourceElements ?? [],

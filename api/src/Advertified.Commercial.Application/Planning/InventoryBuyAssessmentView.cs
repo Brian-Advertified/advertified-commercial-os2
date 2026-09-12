@@ -33,7 +33,7 @@ public sealed record InventoryPlannerReasoningView(
     IReadOnlyList<string> SupportedReasons,
     IReadOnlyList<string> BuyingWarnings);
 
-public sealed record PlannerAudienceContextView(string Name, string NeedState, string BuyingContext);
+public sealed record PlannerAudienceContextView(string Name, string? NeedState, string? BuyingContext);
 
 public sealed record InventoryDigitalExposureView(
     int? SpotLengthSeconds,

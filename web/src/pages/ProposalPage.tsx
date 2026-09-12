@@ -12,6 +12,7 @@ import { masterDataCodes } from '../generated/master-data-codes'
 import { ProposalAgencyActions } from '../proposal/ProposalAgencyActions'
 import { ProposalClientDecision } from '../proposal/ProposalClientDecision'
 import { ProposalCommercialProof } from '../proposal/ProposalCommercialProof'
+import { ProposalCampaignDirection } from '../proposal/ProposalCampaignDirection'
 import { ProposalChoiceComparison } from '../proposal/ProposalChoiceComparison'
 import { ProposalEditor } from '../proposal/ProposalEditor'
 import { clientMediaCopy } from '../presentation/media-labels'
@@ -127,6 +128,7 @@ function ProposalContent(props: ProposalContentProps) {
     <ProposalNavigation canPrepare={canPrepare} hasFunding={Boolean(proposal.decision?.optionId)}
       choiceCount={proposal.options.length} />
     <ProposalCommercialProof proposal={proposal} />
+    <ProposalCampaignDirection proposal={proposal} />
     <ProposalChoiceComparison proposal={proposal} />
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
     <ProposalInventoryUpdateNotice proposal={proposal} />

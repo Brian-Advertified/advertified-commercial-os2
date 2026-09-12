@@ -18,7 +18,20 @@
     <PackageReference Include="Npgsql" Version="10.0.3" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="Minio" Version="7.0.0" />
+    <PackageReference Include="PDFsharp-MigraDoc" Version="6.2.4" />
     <PackageReference Include="PdfPig" Version="0.1.16" />
+    <PackageReference Include="Uno.Fonts.OpenSans" Version="2.9.4" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(PkgUno_Fonts_OpenSans)/lib/net7.0/Uno.Fonts.OpenSans/Fonts/OpenSans-Regular.ttf"
+      Link="ProposalFonts/OpenSans-Regular.ttf"
+      CopyToOutputDirectory="PreserveNewest"
+      CopyToPublishDirectory="PreserveNewest" />
+    <None Include="$(PkgUno_Fonts_OpenSans)/lib/net7.0/Uno.Fonts.OpenSans/Fonts/OpenSans-Bold.ttf"
+      Link="ProposalFonts/OpenSans-Bold.ttf"
+      CopyToOutputDirectory="PreserveNewest"
+      CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

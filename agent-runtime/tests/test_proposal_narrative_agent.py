@@ -116,7 +116,7 @@ def test_proposal_contract_rejects_unknown_or_mismatched_input(
     assert malformed_response.status_code == 422
 
     mismatch = deepcopy(payload())
-    mismatch["invocation"]["agent_code"] = "media_planning"
+    mismatch["invocation"]["agent_code"] = "media_strategy"
     mismatch_response = asyncio.run(post(mismatch))
     assert mismatch_response.status_code == 400
 

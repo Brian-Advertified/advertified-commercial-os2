@@ -26,19 +26,28 @@ type Props = {
 }
 
 export function CreativeSection(props: Props) {
-  const status = props.campaign.status
-  const unlocked = status !== masterDataCodes.lifecycleStatuses.planned
-  const hasRequirements = Boolean(props.campaign.creative?.requirements.length)
   return <section id="creative-stage" className="campaign-workspace-section">
     <CreativeHeading campaign={props.campaign} />
-    {!unlocked && <LockedCreative />}
-    {status === masterDataCodes.lifecycleStatuses.booked && !hasRequirements &&
-      <CreativeRequestBoundary {...props} />}
-    {hasRequirements && <CreativeRequirements {...props} />}
-    {status === masterDataCodes.lifecycleStatuses.creativePending &&
-      props.campaign.creative?.readyForApproval && props.canApprove &&
-      <CreativeApprovalForm {...props} />}
+    <CreativeStageContent {...props} />
   </section>
+}
+
+function CreativeStageContent(props: Props) {
+  const status = props.campaign.status
+  const hasRequirements = Boolean(props.campaign.creative?.requirements.length)
+  if (status === masterDataCodes.lifecycleStatuses.planned) return <LockedCreative />
+  return <>
+    {hasRequirements && <CreativeReadinessSummary campaign={props.campaign} />}
+    {status === masterDataCodes.lifecycleStatuses.booked && !hasRequirements && <CreativeRequestBoundary {...props} />}
+    {hasRequirements && <CreativeRequirements {...props} />}
+    <CreativeApprovalBoundary {...props} />
+  </>
+}
+
+function CreativeApprovalBoundary(props: Props) {
+  if (props.campaign.status !== masterDataCodes.lifecycleStatuses.creativePending) return null
+  if (!props.campaign.creative?.readyForApproval || !props.canApprove) return null
+  return <CreativeApprovalForm {...props} />
 }
 
 function CreativeHeading({ campaign }: { campaign: Campaign }) {
@@ -49,6 +58,49 @@ function CreativeHeading({ campaign }: { campaign: Campaign }) {
     <p>Each confirmed booking receives an exact format requirement, versioned file and separate buyer and supplier review.</p></div>
     <span className={`status-chip ${ready ? 'status-positive' : 'status-neutral'}`}>
       {requirements === 0 ? 'Not requested' : `${requirements} requirements`}</span></header>
+}
+
+function CreativeReadinessSummary({ campaign }: { campaign: Campaign }) {
+  const requirements = campaign.creative?.requirements ?? []
+  const uploaded = requirements.filter(item => item.asset !== null).length
+  const brandApproved = requirements.filter(item =>
+    item.asset?.currentVersion.brandReview?.decision === masterDataCodes.lifecycleStatuses.approved).length
+  const supplierApproved = requirements.filter(item =>
+    item.asset?.currentVersion.supplierReview?.decision === masterDataCodes.lifecycleStatuses.approved).length
+  const fullyReady = requirements.filter(item => {
+    const version = item.asset?.currentVersion
+    return version?.brandReview?.decision === masterDataCodes.lifecycleStatuses.approved &&
+      version.supplierReview?.decision === masterDataCodes.lifecycleStatuses.approved
+  }).length
+  return <section className="creative-readiness-summary" aria-labelledby="creative-readiness-title">
+    <header><div><p className="eyebrow">Launch readiness</p>
+      <h3 id="creative-readiness-title">Can the booked media go live?</h3>
+      <p>{creativeReadinessSentence(requirements.length, uploaded, fullyReady)}</p></div>
+      <span className={`status-chip ${fullyReady === requirements.length ? 'status-positive' : 'status-warning'}`}>
+        {fullyReady}/{requirements.length} formats ready</span></header>
+    <div>
+      <ReadinessMetric label="Booked formats" value={requirements.length} detail="Exact production requirements" />
+      <ReadinessMetric label="Files supplied" value={uploaded} detail="Current production assets" />
+      <ReadinessMetric label="Brand / rights cleared" value={brandApproved} detail="Buyer-side reviews approved" />
+      <ReadinessMetric label="Supplier cleared" value={supplierApproved} detail="Technical reviews approved" />
+    </div>
+  </section>
+}
+
+function ReadinessMetric({ label, value, detail }: { label: string; value: number; detail: string }) {
+  return <article><small>{label}</small><strong>{value}</strong><p>{detail}</p></article>
+}
+
+function creativeReadinessSentence(required: number, uploaded: number, ready: number) {
+  if (required === 0) return 'Production requirements have not been created yet.'
+  if (ready === required) return `All ${required} booked format${required === 1 ? '' : 's'} have a current file with both required reviews approved.`
+  const missingFiles = required - uploaded
+  const reviewBlockers = required - ready - Math.max(0, missingFiles)
+  const blockers = [
+    missingFiles > 0 ? `${missingFiles} format${missingFiles === 1 ? '' : 's'} still need a production file` : null,
+    reviewBlockers > 0 ? `${reviewBlockers} format${reviewBlockers === 1 ? '' : 's'} still need review clearance` : null,
+  ].filter(Boolean)
+  return blockers.length > 0 ? `${blockers.join(' and ')} before launch readiness can be approved.` : 'Creative review is still in progress.'
 }
 
 function LockedCreative() {

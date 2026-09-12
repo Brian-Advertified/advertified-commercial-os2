@@ -1,7 +1,12 @@
 using System.Net;
 using System.Text.Json;
+using Advertified.Commercial.Api.Startup;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Infrastructure.EmailAutomation;
+using Advertified.Commercial.Infrastructure.Inventory;
+using Advertified.Commercial.Infrastructure.Opportunity;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -18,21 +23,26 @@ public sealed class HumanSafeApiBoundaryTests
     [InlineData("DeterministicSession")]
     public void DeterministicAuthenticationCannotStartInProduction(string mode)
     {
-        using var factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
-                builder.UseEnvironment("Production");
-                builder.UseSetting("Authentication:Mode", mode);
-                builder.UseSetting(
-                    "ConnectionStrings:CommercialDatabase",
-                    "Host=localhost;Database=closed;Username=closed");
-            });
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            EnvironmentName = "Production",
+        });
+        builder.Configuration["ConnectionStrings:CommercialDatabase"] =
+            "Host=localhost;Database=closed;Username=closed";
 
-        var exception = Assert.ThrowsAny<Exception>(() => factory.CreateClient());
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            StartupConfigurationValidator.ValidateAndGetConnectionString(
+                builder,
+                new ProcessRoleOptions { Role = ProcessRoleOptions.ApiRole },
+                mode,
+                new AgentRuntimeOptions(),
+                new InventoryProtectionOptions(),
+                new InventoryExtractionOptions(),
+                new EmailAutomationOptions()));
 
         Assert.Contains(
             "Deterministic authentication and sessions are restricted to development and test.",
-            exception.ToString(),
+            exception.Message,
             StringComparison.Ordinal);
     }
 
@@ -41,7 +51,7 @@ public sealed class HumanSafeApiBoundaryTests
     {
         await using var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(
-                builder => builder.UseDeterministicInventoryProtection());
+                builder => builder.UseDeterministicTestDependencies());
         using var unauthenticated = factory.WithWebHostBuilder(builder =>
             builder.ConfigureAppConfiguration((_, configuration) =>
                 configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -116,6 +126,7 @@ public sealed class HumanSafeApiBoundaryTests
         return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Test");
+            builder.UseDeterministicAgentRuntime();
             builder.UseSetting("ConnectionStrings:CommercialDatabase", "Host=localhost;Database=closed;Username=closed");
             builder.UseSetting("Authentication:Mode", "Deterministic");
             builder.UseSetting(

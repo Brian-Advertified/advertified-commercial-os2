@@ -87,6 +87,8 @@ public sealed partial class CanonicalPlanningAcceptanceTests
                 positioningStatement = audience.RootElement.GetProperty("positioningStatement").GetString(),
                 reason = "The owner reviewed the audience strategy.",
             });
+        using var approvedMediaStrategy = await AnalyseAndApproveMediaStrategyAsync(client, BriefVersionId);
+        Assert.Equal("APPROVED", approvedMediaStrategy.RootElement.GetProperty("status").GetString());
         using var mix = await CommandAsync(
             client,
             Path($"brief-versions/{BriefVersionId}/media-mixes:generate"),

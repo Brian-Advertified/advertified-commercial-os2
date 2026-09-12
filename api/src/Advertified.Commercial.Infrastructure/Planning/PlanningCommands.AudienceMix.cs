@@ -1,10 +1,13 @@
+using System.Text.Json;
 using Advertified.Commercial.Application.Commands;
+using Advertified.Commercial.Application.Intelligence;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Application.Opportunity;
 using Advertified.Commercial.Domain.Constants;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Infrastructure.Intelligence;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,68 +20,97 @@ public sealed partial class PlanningCommands
         CommandEnvelope<GenerateAudiencesCommand> envelope,
         CancellationToken cancellationToken)
     {
-        var brief = await LoadPlanningReadyBriefAsync(
+        var brief = await LoadIntelligenceReadyBriefAsync(
             briefVersionId, envelope, cancellationToken);
-        var input = BuildBriefInput(brief, envelope);
-        input = input with { AudienceEvidence = await PlanningAudienceEvidenceReader.ReadAsync(
-            store.DbContext, input, cancellationToken) };
-        var proposal = await planningAgent.ProposeAudiencesAsync(input, cancellationToken);
-        if (proposal.Audiences.Count == 0 || proposal.IncrementalCostMinor < 0)
-        {
+        var problem = BuildCommercialProblemInput(brief, envelope);
+        var evidence = await AudienceEvidenceReader.ReadAsync(
+            store.DbContext, problem, cancellationToken);
+        var referenceEvidence = await ReferenceObservationReader.ReadAsync(
+            store.DbContext,
+            problem.Geographies,
+            "AUDIENCE",
+            ["AUDIENCE_SEGMENT_SUPPORT", "AGGREGATE_PLANNING_ONLY", "SENSITIVE_CONTEXT_ONLY"],
+            600,
+            cancellationToken);
+        var proposal = await audienceIntelligenceAgent.ProposeAudiencesAsync(
+            new AudienceIntelligenceInput(problem, evidence, referenceEvidence), cancellationToken);
+        if (proposal.Usage.IncrementalCostMinor < 0)
             throw new InvalidOperationException("The audience proposal is invalid.");
-        }
-        PlanningAudienceProposalValidator.Validate(
+        AudienceIntelligenceValidator.Validate(
             proposal.Audiences,
             Read<string[]>(brief.GeographiesJson),
-            Read<Guid[]>(brief.EvidenceIdsJson), input.AudienceEvidence);
-        PlanningAudienceEvidenceGuard.Validate(proposal.Audiences, input.AudienceEvidence);
-        var targetingRationale = OpportunityCommandSupport.Required(
+            Read<Guid[]>(brief.EvidenceIdsJson),
+            evidence,
+            referenceEvidence,
+            problem.Audiences);
+        AudienceEvidenceGuard.Validate(proposal.Audiences, evidence);
+        var targetingRationale = OpportunityCommandSupport.Optional(
             proposal.TargetingRationale, 4000, nameof(proposal.TargetingRationale));
-        var positioningStatement = OpportunityCommandSupport.Required(
+        var positioningStatement = OpportunityCommandSupport.Optional(
             proposal.PositioningStatement, 4000, nameof(proposal.PositioningStatement));
-        var audienceRecords = proposal.Audiences
-            .Select(item => new PlannedAudienceRecord(Guid.NewGuid(), item))
-            .ToArray();
-        var targetAudienceIds = audienceRecords
-            .Where(item => item.Proposal.IsTarget)
-            .Select(item => item.Id)
-            .ToArray();
-        if (targetAudienceIds.Length == 0)
+        var proposedSegments = proposal.Audiences.Select(item => new
         {
-            throw new InvalidOperationException(
-                "The targeting proposal must identify at least one audience segment.");
-        }
-        var targetAudienceIdsJson = Write(targetAudienceIds);
-        var latest = await store.FindLatestAudienceAsync(
-            envelope.TenantId, briefVersionId, cancellationToken);
-        var id = Guid.NewGuid();
-        var versionNumber = (latest?.VersionNumber ?? 0) + 1;
+            Segment = new AudienceSegmentArtifact(
+                Guid.NewGuid(), item.Name, item.Description, item.NeedState,
+                item.BuyingContext, item.Geographies, item.Language, item.LifeStage,
+                item.LsmSem, item.LsmSemTaxonomy, item.LsmSemTaxonomyVersion,
+                item.Classification, item.Exclusions, item.EvidenceItemIds,
+                item.ReferenceObservationIds, item.Confidence, item.LsmSemMandatory),
+            item.IsTarget,
+        }).ToArray();
+        var targetAudienceIds = proposedSegments
+            .Where(item => item.IsTarget)
+            .Select(item => item.Segment.Id)
+            .ToArray();
+        var artifact = new AudienceStrategyArtifact(
+            targetAudienceIds, targetingRationale, positioningStatement,
+            proposedSegments.Select(item => item.Segment).ToArray());
         var inputHash = PlanningHash.ForBrief(brief);
         var now = timeProvider.GetUtcNow();
-        await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO commercial.audience_definition_sets (
-                id, tenant_id, brief_version_id, version_no,
-                target_audience_ids_json, targeting_rationale,
-                positioning_statement, input_hash, agent_provider_code, agent_model_code,
-                agent_incremental_cost_minor, agent_provider_request_id,
-                status_code, created_by, version, created_at_utc)
-            VALUES ({id}, {envelope.TenantId.Value}, {briefVersionId}, {versionNumber},
-                {targetAudienceIdsJson}::jsonb, {targetingRationale},
-                {positioningStatement}, {inputHash}, {proposal.Provider}, {proposal.Model},
-                {proposal.IncrementalCostMinor}, {proposal.ProviderRequestId},
-                {MasterDataCodes.LifecycleStatuses.Draft}, {envelope.ActorId.Value}, 1, {now})
-            """, cancellationToken);
-        await PlanningAudiencePersistence.InsertAsync(
-            store.DbContext, envelope.TenantId, id, audienceRecords,
-            MasterDataCodes.LifecycleStatuses.Draft, cancellationToken);
-        var row = await store.FindLatestAudienceAsync(
-            envelope.TenantId, briefVersionId, cancellationToken)
-            ?? throw new InvalidOperationException("The audience set was not persisted.");
-        var view = await store.BuildAudienceViewAsync(
-            envelope.TenantId, row, cancellationToken);
+        var stored = await IntelligenceArtifactStore.InsertDraftAsync(
+            store.DbContext,
+            envelope.TenantId,
+            envelope.ActorId,
+            new IntelligenceArtifactDraft(
+                "BriefVersion",
+                briefVersionId,
+                brief.Version,
+                MasterDataCodes.AgentTypes.AudienceIntelligence,
+                "audience-strategy.v1",
+                Write(artifact),
+                proposal.Unknowns,
+                [],
+                inputHash,
+                [proposal.Usage],
+                [new IntelligenceArtifactDependencyInput(
+                    "BriefVersion", briefVersionId, brief.Version, "commercial_problem")],
+                proposedSegments.SelectMany(item =>
+                    item.Segment.EvidenceItemIds.Select(evidenceId =>
+                        new IntelligenceArtifactEvidenceInput(
+                            $"artifact.segments.{item.Segment.Id:N}",
+                            item.Segment.Classification,
+                            evidenceId,
+                            null,
+                            "Approved Brief evidence used by Audience Intelligence."))
+                    .Concat(item.Segment.ReferenceObservationIds.Select(observationId =>
+                        new IntelligenceArtifactEvidenceInput(
+                            $"artifact.segments.{item.Segment.Id:N}",
+                            item.Segment.Classification,
+                            null,
+                            observationId,
+                            "Governed aggregate reference observation used by Audience Intelligence."))))
+                    .ToArray()),
+            now,
+            cancellationToken);
+        var row = await store.FindAudienceAsync(
+            envelope.TenantId, stored.Id, cancellationToken)
+            ?? throw new InvalidOperationException("The Audience Intelligence artifact was not persisted.");
+        var view = PlanningRecordStore.BuildAudienceView(row);
         return OpportunityCommandSupport.Outcome(
-            envelope, view, id, 1, MasterDataReferences.CommercialResourceTypes.AudienceDefinitionSet,
-            MasterDataReferences.CommercialActions.AudienceDefinitionsGenerated, MasterDataReferences.CommercialEventTypes.AudienceDefinitionsGenerated, now);
+            envelope, view, stored.Id, stored.Version,
+            MasterDataReferences.CommercialResourceTypes.IntelligenceArtifact,
+            MasterDataReferences.CommercialActions.AudienceIntelligenceGenerated,
+            MasterDataReferences.CommercialEventTypes.AudienceIntelligenceGenerated, now);
     }
 
     private async Task<CommandOutcome> GenerateMediaMixOutcomeAsync(
@@ -86,50 +118,46 @@ public sealed partial class PlanningCommands
         CommandEnvelope<GenerateMediaMixCommand> envelope,
         CancellationToken cancellationToken)
     {
-        var brief = await LoadPlanningReadyBriefAsync(
+        var brief = await LoadBudgetReadyBriefAsync(
             briefVersionId, envelope, cancellationToken);
-        var audience = await store.FindLatestAudienceAsync(
-            envelope.TenantId, briefVersionId, cancellationToken);
-        if (audience is null ||
-            audience.Status != MasterDataCodes.LifecycleStatuses.Approved)
-        {
-            throw new InvalidLifecycleTransitionException();
-        }
-        var proposal = await planningAgent.ProposeMediaMixAsync(
-            await BuildMediaInputAsync(brief, envelope, cancellationToken),
+        var (mediaStrategy, audience) = await RequireCurrentApprovedMediaStrategyAsync(
+            envelope.TenantId,
+            briefVersionId,
+            brief.Version,
             cancellationToken);
-        EnsureAllocations(proposal, brief.BudgetMinor!.Value);
+        var mediaStrategyArtifact = JsonSerializer.Deserialize<MediaStrategyIntelligenceArtifact>(
+            mediaStrategy.ArtifactJson, StoredJson)
+            ?? throw new InvalidOperationException("The approved Media Strategy Intelligence artifact is invalid.");
+        var allocations = BuildWorksheetAllocations(
+            mediaStrategyArtifact,
+            brief.BudgetMinor!.Value);
+        EnsureAllocations(allocations, brief.BudgetMinor.Value);
         var latest = await store.FindLatestMixAsync(
             envelope.TenantId, briefVersionId, cancellationToken);
         var id = Guid.NewGuid();
         var versionNumber = (latest?.VersionNumber ?? 0) + 1;
-        var allocations = proposal.Allocations.Select(item => new MediaAllocationView(
-            item.Channel,
-            item.BudgetMinor,
-            item.Role,
-            item.RunningPeriods.Select(period =>
-                new MediaRunningPeriodView(period.Start, period.End)).ToArray())).ToArray();
         var campaignMode = await RequireCampaignModeAsync(
             envelope.TenantId, briefVersionId, cancellationToken);
         campaignModePolicy.EnsureAllocations(campaignMode.Mode, allocations);
         var allocationsJson = Write(allocations);
         var rolesJson = Write(allocations.ToDictionary(item => item.Channel, item => item.Role));
-        var assumptionsJson = Write(proposal.Assumptions.Concat(proposal.Unknowns).ToArray());
+        var assumptionsJson = Write(mediaStrategyArtifact.EvidenceGaps.ToArray());
         var evidenceJson = brief.EvidenceIdsJson;
-        var inputHash = PlanningHash.ForMix(brief, audience.Id, allocationsJson);
+        var inputHash = IntelligenceInputHash.Combine(
+            PlanningHash.ForMix(brief, audience.Id, allocationsJson),
+            mediaStrategy.Id.ToString("N"),
+            mediaStrategy.Version.ToString(System.Globalization.CultureInfo.InvariantCulture));
         var now = timeProvider.GetUtcNow();
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO commercial.media_mix_versions (
-                id, tenant_id, brief_version_id, audience_set_id, version_no,
+                id, tenant_id, brief_version_id, audience_artifact_id, media_strategy_artifact_id, version_no,
                 total_budget_minor, currency_code, allocations_json, channel_roles_json,
                 assumptions_json, evidence_item_ids_json, input_hash,
-                agent_provider_code, agent_model_code, agent_incremental_cost_minor,
-                agent_provider_request_id, status_code, created_by, version, created_at_utc)
-            VALUES ({id}, {envelope.TenantId.Value}, {briefVersionId}, {audience.Id},
+                status_code, created_by, version, created_at_utc)
+            VALUES ({id}, {envelope.TenantId.Value}, {briefVersionId}, {audience.Id}, {mediaStrategy.Id},
                 {versionNumber}, {brief.BudgetMinor.Value}, {brief.Currency},
                 {allocationsJson}::jsonb, {rolesJson}::jsonb, {assumptionsJson}::jsonb,
-                {evidenceJson}::jsonb, {inputHash}, {proposal.Provider}, {proposal.Model},
-                {proposal.IncrementalCostMinor}, {proposal.ProviderRequestId},
+                {evidenceJson}::jsonb, {inputHash},
                 {MasterDataCodes.LifecycleStatuses.Draft}, {envelope.ActorId.Value}, 1, {now})
             """, cancellationToken);
         var row = await store.FindMixAsync(envelope.TenantId, id, cancellationToken)
@@ -140,224 +168,4 @@ public sealed partial class PlanningCommands
             MasterDataReferences.CommercialActions.MediaMixGenerated, MasterDataReferences.CommercialEventTypes.MediaMixGenerated, now);
     }
 
-    private async Task<CommandOutcome> UpdateMediaMixOutcomeAsync(
-        Guid mixVersionId,
-        CommandEnvelope<UpdateMediaMixCommand> envelope,
-        CancellationToken cancellationToken)
-    {
-        var mix = await store.FindMixAsync(
-            envelope.TenantId, mixVersionId, cancellationToken)
-            ?? throw new UnauthorizedAccessException("Media mix access denied.");
-        var brief = await LoadPlanningReadyBriefAsync(
-            mix.BriefVersionId, envelope, cancellationToken);
-        if (mix.Status != MasterDataCodes.LifecycleStatuses.Draft)
-        {
-            throw new InvalidLifecycleTransitionException();
-        }
-        var allocations = envelope.Command.Allocations.Select(ToAllocationView).ToArray();
-        EnsureAllocations(allocations, brief.BudgetMinor!.Value);
-        EnsureRunningPeriods(allocations);
-        await EnsurePurchasesAsync(envelope.TenantId, allocations, cancellationToken);
-        var campaignMode = await RequireCampaignModeAsync(
-            envelope.TenantId, mix.BriefVersionId, cancellationToken);
-        campaignModePolicy.EnsureAllocations(campaignMode.Mode, allocations);
-        var allocationsJson = Write(allocations);
-        var rolesJson = Write(allocations.ToDictionary(item => item.Channel, item => item.Role));
-        var inputHash = PlanningHash.ForMix(brief, mix.AudienceSetId, allocationsJson);
-        var now = timeProvider.GetUtcNow();
-        var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            UPDATE commercial.media_mix_versions
-            SET allocations_json = {allocationsJson}::jsonb,
-                channel_roles_json = {rolesJson}::jsonb,
-                input_hash = {inputHash}, version = version + 1
-            WHERE tenant_id = {envelope.TenantId.Value} AND id = {mixVersionId}
-              AND status_code = {MasterDataCodes.LifecycleStatuses.Draft}
-              AND version = {envelope.ExpectedVersion}
-            """, cancellationToken);
-        if (changed != 1)
-        {
-            throw new VersionConflictException();
-        }
-        var updated = mix with
-        {
-            AllocationsJson = allocationsJson,
-            InputHash = inputHash,
-            Version = mix.Version + 1,
-        };
-        var view = PlanningRecordStore.BuildMixView(updated);
-        return OpportunityCommandSupport.Outcome(
-            envelope, view, mixVersionId, updated.Version,
-            MasterDataReferences.CommercialResourceTypes.MediaMixVersion,
-            MasterDataReferences.CommercialActions.MediaMixUpdated,
-            MasterDataReferences.CommercialEventTypes.MediaMixUpdated, now);
-    }
-
-    private async Task<CommandOutcome> ApproveMediaMixOutcomeAsync(
-        Guid mixVersionId,
-        CommandEnvelope<ApproveMediaMixCommand> envelope,
-        CancellationToken cancellationToken)
-    {
-        var mix = await store.FindMixAsync(
-            envelope.TenantId, mixVersionId, cancellationToken)
-            ?? throw new UnauthorizedAccessException("Media mix access denied.");
-        var brief = await LoadPlanningReadyBriefAsync(
-            mix.BriefVersionId, envelope, cancellationToken);
-        var allocations = Read<MediaAllocationView[]>(mix.AllocationsJson);
-        EnsureAllocations(allocations, brief.BudgetMinor!.Value);
-        EnsureRunningPeriods(allocations);
-        await EnsurePurchasesAsync(envelope.TenantId, allocations, cancellationToken);
-        var campaignMode = await RequireCampaignModeAsync(
-            envelope.TenantId, mix.BriefVersionId, cancellationToken);
-        campaignModePolicy.EnsureAllocations(campaignMode.Mode, allocations);
-        if (mix.Status != MasterDataCodes.LifecycleStatuses.Draft)
-        {
-            throw new InvalidLifecycleTransitionException();
-        }
-        var now = timeProvider.GetUtcNow();
-        var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-            UPDATE commercial.media_mix_versions
-            SET status_code = {MasterDataCodes.LifecycleStatuses.Approved}, approved_by = {envelope.ActorId.Value},
-                approved_at_utc = {now}, version = version + 1
-            WHERE tenant_id = {envelope.TenantId.Value} AND id = {mixVersionId}
-              AND status_code = {MasterDataCodes.LifecycleStatuses.Draft} AND version = {envelope.ExpectedVersion}
-            """, cancellationToken);
-        if (changed != 1)
-        {
-            throw new VersionConflictException();
-        }
-        var updated = mix with
-        {
-            Status = MasterDataCodes.LifecycleStatuses.Approved,
-            ApprovedBy = envelope.ActorId.Value,
-            Version = mix.Version + 1,
-        };
-        var view = PlanningRecordStore.BuildMixView(updated);
-        return OpportunityCommandSupport.Outcome(
-            envelope, view, mixVersionId, updated.Version,
-            MasterDataReferences.CommercialResourceTypes.MediaMixVersion, MasterDataReferences.CommercialActions.MediaMixApproved,
-            MasterDataReferences.CommercialEventTypes.MediaMixApproved, now);
-    }
-
-    private async Task<PlanningBriefRow> LoadPlanningReadyBriefAsync<TCommand>(
-        Guid briefVersionId,
-        CommandEnvelope<TCommand> envelope,
-        CancellationToken cancellationToken)
-        where TCommand : notnull
-    {
-        var brief = await store.FindBriefAsync(
-            envelope.TenantId, briefVersionId, cancellationToken)
-            ?? throw new UnauthorizedAccessException("Planning access denied.");
-        if (brief.OwnerUserId != envelope.ActorId.Value)
-        {
-            throw new UnauthorizedAccessException("Planning assignment denied.");
-        }
-        if ((brief.Status != MasterDataCodes.LifecycleStatuses.Ready &&
-                brief.Status != MasterDataCodes.LifecycleStatuses.Approved) ||
-            brief.BudgetUnknown || !brief.BudgetMinor.HasValue ||
-            string.IsNullOrWhiteSpace(brief.Currency))
-        {
-            throw new InvalidLifecycleTransitionException();
-        }
-        return brief;
-    }
-
-    private async Task<MediaPlanningInput> BuildMediaInputAsync<TCommand>(
-        PlanningBriefRow brief,
-        CommandEnvelope<TCommand> envelope,
-        CancellationToken cancellationToken)
-        where TCommand : notnull
-    {
-        var campaignMode = await RequireCampaignModeAsync(
-            envelope.TenantId, brief.Id, cancellationToken);
-        var availableChannels = await store.ListAvailableChannelsAsync(
-            envelope.TenantId, cancellationToken);
-        var channels = campaignModePolicy.FilterAvailableChannels(
-            campaignMode.Mode, availableChannels);
-        if (channels.Length == 0)
-        {
-            throw new InvalidLifecycleTransitionException();
-        }
-        return new MediaPlanningInput(
-            BuildBriefInput(brief, envelope), brief.BudgetMinor!.Value,
-            brief.Currency!, channels);
-    }
-
-    private static PlanningBriefInput BuildBriefInput<TCommand>(
-        PlanningBriefRow brief,
-        CommandEnvelope<TCommand> envelope)
-        where TCommand : notnull => new(
-            envelope.TenantId.Value, envelope.ActorId.Value,
-            envelope.CommandId.Value, envelope.CorrelationId.Value,
-            brief.Id, brief.Version, brief.Objective,
-            Read<string[]>(brief.AudiencesJson), Read<string[]>(brief.GeographiesJson),
-            Read<Guid[]>(brief.EvidenceIdsJson));
-
-    private static void EnsureAllocations(MediaPlanningAgentProposal proposal, long budget) =>
-        EnsureAllocations(proposal.Allocations.Select(item => new MediaAllocationView(
-            item.Channel,
-            item.BudgetMinor,
-            item.Role,
-            item.RunningPeriods.Select(period =>
-                new MediaRunningPeriodView(period.Start, period.End)).ToArray())).ToArray(), budget);
-
-    private static MediaAllocationView ToAllocationView(MediaAllocationInput allocation)
-    {
-        var channel = OpportunityCommandSupport.Required(
-            allocation.Channel, 100, nameof(allocation.Channel)).ToUpperInvariant();
-        var role = OpportunityCommandSupport.Required(
-            allocation.Role, 500, nameof(allocation.Role));
-        return new MediaAllocationView(
-            channel,
-            allocation.BudgetMinor,
-            role,
-            allocation.RunningPeriods.Select(period =>
-                new MediaRunningPeriodView(period.Start, period.End)).ToArray(), allocation.Purchases);
-    }
-
-    private static void EnsureAllocations(
-        MediaAllocationView[] allocations,
-        long budget)
-    {
-        if (allocations.Length == 0 || allocations.Any(item => item.BudgetMinor < 0) ||
-            allocations.Select(item => item.Channel).Distinct(StringComparer.Ordinal).Count() != allocations.Length ||
-            allocations.Sum(item => item.BudgetMinor) != budget)
-        {
-            throw new ArgumentException("Media allocations must reconcile to the planning budget.");
-        }
-    }
-
-    private static void EnsureRunningPeriods(MediaAllocationView[] allocations)
-    {
-        foreach (var allocation in allocations)
-        {
-            if (allocation.RunningPeriods.Count == 0 ||
-                allocation.RunningPeriods.Any(period => period.End < period.Start))
-            {
-                throw new ArgumentException("Each media type needs at least one valid running period.");
-            }
-            var ordered = allocation.RunningPeriods.OrderBy(period => period.Start).ToArray();
-            if (ordered.Zip(ordered.Skip(1)).Any(pair => pair.First.End >= pair.Second.Start))
-            {
-                throw new ArgumentException("Running periods for one media type cannot overlap.");
-            }
-        }
-    }
-}
-
-internal sealed record PlannedAudienceRecord(
-    Guid Id,
-    AudienceDefinitionProposal Proposal);
-
-internal static partial class PlanningHash
-{
-    internal static string ForBrief(PlanningBriefRow brief) =>
-        OpportunityCommandSupport.Hash(
-            $"{brief.Id:N}|{brief.Version}|{brief.Objective}|{brief.AudiencesJson}|" +
-            $"{brief.GeographiesJson}|{brief.BudgetMinor}|{brief.Currency}|{brief.EvidenceIdsJson}");
-
-    internal static string ForMix(
-        PlanningBriefRow brief,
-        Guid audienceId,
-        string allocationsJson) => OpportunityCommandSupport.Hash(
-            $"{ForBrief(brief)}|{audienceId:N}|{allocationsJson}");
 }

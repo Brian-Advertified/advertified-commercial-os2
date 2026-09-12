@@ -1,6 +1,8 @@
 using System.Text.Json;
+using Advertified.Commercial.Application.Intelligence;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Infrastructure.CommercialSettings;
 using Microsoft.EntityFrameworkCore;
 
 namespace Advertified.Commercial.Infrastructure.Planning;
@@ -23,43 +25,27 @@ public sealed partial class PlanningRecordStore
             row.SelectedBy,
             row.SelectedAtUtc);
 
-    internal async Task<AudienceDefinitionSetView> BuildAudienceViewAsync(
-        TenantId tenantId,
-        AudienceSetRow set,
-        CancellationToken cancellationToken)
+    internal static AudienceStrategyView BuildAudienceView(
+        AudienceArtifactRow set)
     {
-        var rows = await DbContext.Database.SqlQuery<AudienceDefinitionRow>($"""
-            SELECT id AS "Id", name AS "Name", description AS "Description",
-                need_state AS "NeedState", buying_context AS "BuyingContext",
-                geography_json::text AS "GeographiesJson", language AS "Language",
-                life_stage AS "LifeStage", lsm_sem AS "LsmSem",
-                lsm_sem_taxonomy AS "LsmSemTaxonomy",
-                lsm_sem_taxonomy_version AS "LsmSemTaxonomyVersion",
-                lsm_sem_mandatory AS "LsmSemMandatory",
-                classification_code AS "Classification", exclusions_json::text AS "ExclusionsJson",
-                evidence_item_ids_json::text AS "EvidenceIdsJson",
-                confidence AS "Confidence", status_code AS "Status"
-            FROM commercial.audience_definitions
-            WHERE tenant_id = {tenantId.Value} AND audience_set_id = {set.Id}
-            ORDER BY name, id
-            """).ToListAsync(cancellationToken);
-        var definitions = rows.Select(row => new AudienceDefinitionView(
-            row.Id, row.Name, row.Description, row.NeedState, row.BuyingContext,
-            Read<string[]>(row.GeographiesJson), row.Language, row.LifeStage, row.LsmSem,
-            row.LsmSemTaxonomy, row.LsmSemTaxonomyVersion,
-            row.Classification, Read<string[]>(row.ExclusionsJson),
-            Read<Guid[]>(row.EvidenceIdsJson), row.Confidence, row.Status,
-            row.LsmSemMandatory)).ToArray();
-        return new AudienceDefinitionSetView(
+        var artifact = JsonSerializer.Deserialize<AudienceStrategyArtifact>(set.ArtifactJson, StoredJson)
+            ?? throw new InvalidOperationException("Stored Audience Intelligence JSON is invalid.");
+        var definitions = artifact.Segments.Select(item => new AudienceSegmentView(
+            item.Id, item.Name, item.Description, item.NeedState, item.BuyingContext,
+            item.Geographies, item.Language, item.LifeStage, item.LsmSem,
+            item.LsmSemTaxonomy, item.LsmSemTaxonomyVersion,
+            item.Classification, item.Exclusions, item.EvidenceItemIds,
+            item.ReferenceObservationIds, item.Confidence, set.Status, item.LsmSemMandatory)).ToArray();
+        return new AudienceStrategyView(
             set.Id, set.BriefVersionId, set.VersionNumber,
-            Read<Guid[]>(set.TargetAudienceIdsJson),
-            set.TargetingRationale, set.PositioningStatement,
-            set.InputHash, set.Status, definitions, set.CreatedBy,
-            set.ApprovedBy, set.Version, set.ApprovedAtUtc, set.CreatedAtUtc);
+            artifact.TargetAudienceIds, artifact.TargetingRationale,
+            artifact.PositioningStatement, set.InputHash, set.Status,
+            definitions, set.CreatedBy, set.ApprovedBy, set.Version,
+            set.ApprovedAtUtc, set.CreatedAtUtc);
     }
 
     internal static MediaMixVersionView BuildMixView(MediaMixRow row) => new(
-        row.Id, row.BriefVersionId, row.AudienceSetId, row.VersionNumber,
+        row.Id, row.BriefVersionId, row.AudienceArtifactId, row.MediaStrategyArtifactId, row.VersionNumber,
         row.TotalBudgetMinor, row.Currency,
         Read<MediaAllocationView[]>(row.AllocationsJson),
         Read<string[]>(row.AssumptionsJson), row.InputHash, row.Status,
@@ -120,7 +106,10 @@ public sealed partial class PlanningRecordStore
         var candidates = rows.Select(ToCandidateView).ToArray();
         var mix = await FindMixAsync(tenantId, shortlist.MixVersionId, cancellationToken)
             ?? throw new InvalidOperationException("The shortlist media mix is unavailable.");
-        var combinations = CampaignCombinationAssessment.Evaluate(candidates, BuildMixView(mix));
+        var commercialPolicy = await new CommercialPolicyRecordStore(dbContext)
+            .FindCurrentAsync(tenantId, cancellationToken);
+        var combinations = CampaignCombinationAssessment.Evaluate(
+            candidates, BuildMixView(mix), commercialPolicy);
         var research = await PlanningResearchPortfolioReader.ReadAsync(
             dbContext, tenantId, cancellationToken);
         var forecasted = CampaignAudienceForecast.Attach(

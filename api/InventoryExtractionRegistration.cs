@@ -60,12 +60,10 @@ internal static class InventoryExtractionRegistration
         {
             return;
         }
-        if (settings.Mode == InventoryExtractionOptions.DeterministicMode &&
-            !builder.Configuration.GetValue<bool>(
-                $"{InventoryProcessingOptions.SectionName}:Paused"))
+        if (settings.Mode != InventoryExtractionOptions.NativeMode)
         {
             throw new InvalidOperationException(
-                "Production deterministic extraction is permitted only while inventory processing is paused.");
+                "Production inventory extraction must use the native source-preprocessing mode.");
         }
     }
 }

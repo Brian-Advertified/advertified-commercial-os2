@@ -33,6 +33,7 @@ RUN dotnet publish api/src/Advertified.Commercial.DatabaseMigrator/Advertified.C
 FROM build AS tests
 COPY shared/ shared/
 COPY infrastructure/development/publish-current-inventory-to-marketplace.sql infrastructure/development/
+COPY infrastructure/production/appsettings.Production.example.json infrastructure/production/
 COPY ["AGENTS.md", "ADVERTIFIED.md", "./"]
 ARG TEST_FILTER
 RUN test -n "$TEST_FILTER"
@@ -58,6 +59,11 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 ENTRYPOINT ["dotnet", "Advertified.Commercial.Api.dll"]
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0.11-noble@sha256:a365ce6a50b09176855d085c69da3fc1204a48432e36087e9a208f6e5860e235 AS migrator
+
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY --from=build --chown=app:app /out/migrator/ ./

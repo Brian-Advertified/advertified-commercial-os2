@@ -8,14 +8,19 @@ DISCOVERY_INSTRUCTION = (
     "Evaluate supplied audiences and propose distinct candidate segments only where "
     "the approved Brief supports a commercial rationale; do not pad to a fixed count. "
     "Recommend primary and secondary targets, leave unsuitable or "
-    "weakly supported candidates untargeted, and explain needs, buying contexts, "
-    "exclusions and positioning. Treat derived segments as evidence-labelled "
+    "weakly supported candidates untargeted, and explain exclusions. Treat derived segments as evidence-labelled "
     "inferences or hypotheses, never as verified demographic facts. "
+    "Need state, buying context and positioning are nullable evidence fields: return null when they are not "
+    "supported, never substitute plausible psychology, a placeholder sentence or the word 'Unknown'. "
     "Distinguish the campaign objective from a consumer need. Identify missing "
     "product, price, purchase occasion and decision-making context explicitly. "
-    "Explain what audience research, media-use, daypart and location evidence would "
-    "validate each hypothesis; do not claim it was researched when it was not supplied. "
-    "Never infer affluence, language, travel routines or media habits from a persona label."
+    "Use supplied reference observations where they materially support an audience or contextual "
+    "inference, and cite their exact reference_observation_ids. Preserve source period, stability, "
+    "sensitivity and activation-policy limits when reasoning from them. Explain what additional "
+    "audience research, media-use, daypart and location evidence would validate each hypothesis; "
+    "do not claim it was researched when it was not supplied. Never infer affluence, language, "
+    "travel routines, religion, nationality or media habits from a persona label or from aggregate "
+    "sensitive-context evidence."
 )
 
 
@@ -25,9 +30,15 @@ def candidate_audience_names(request: AudienceAgentRequest) -> list[str]:
 
 def audience_research_unknowns(existing=()) -> tuple[UnknownItem, ...]:
     questions = {
+        "artifact.audiences.need_state": (
+            "What verified consumer need, if any, is distinct from the campaign objective for each target audience?"
+        ),
         "artifact.audiences.buying_context": (
             "What product, price, purchase occasion and decision-making role support "
             "each audience, and which are supplied facts versus hypotheses?"
+        ),
+        "artifact.positioning_statement": (
+            "What evidence-backed proposition, benefit or message can support positioning without inventing a brand claim?"
         ),
         "artifact.audiences.media_evidence": (
             "Which dated aggregate audience studies establish target size, media use, "

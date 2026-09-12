@@ -12,7 +12,6 @@ public sealed record InventoryDecisionView(
     bool IsSelected,
     bool? WasSelected,
     bool PresentInCurrentShortlist,
-    bool? AgentInterpreted,
     DateTimeOffset DecidedAtUtc,
     Guid? ActorId,
     string? Reason,

@@ -194,7 +194,7 @@ export const inventoryApi = {
   reprojectExtraction(
     tenantId: string, record: InventoryImport,
     token: string, reason: string,
-    interpretation?: { reevaluateAcceptance: true; expectedMappingRevision: string; correctedSchema?: unknown },
+    interpretation?: { reevaluateAcceptance: true; expectedMappingRevision: string },
   ) {
     return command(
       `/api/v1/tenants/${tenantId}/inventory-imports/${record.id}:reproject-extraction`,
@@ -224,14 +224,14 @@ export const inventoryApi = {
     decision: InventoryDecision,
     correctedValues: InventoryValues | null,
     rejectionReason: string | null,
-    interpretation?: { correctedSchema: unknown; expectedMappingRevision: string; notes: string },
   ) {
     return command(
       `/api/v1/tenants/${tenantId}/inventory-candidates/${candidateId}:review`,
       inventoryCandidateSchema,
       { decision, correctedValues, rejectionReason,
         notes: decision === inventoryCodes.decision.reject
-          ? 'Rejected during source review.' : 'Source checked.', ...interpretation },
+          ? 'Rejected during source review.' : decision === inventoryCodes.decision.edit
+            ? 'Candidate facts corrected during source review.' : 'Source checked and approved.' },
       token, candidateVersion)
   },
 

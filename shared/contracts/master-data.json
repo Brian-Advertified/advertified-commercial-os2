@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/master-data-registry.schema.json",
-  "registryVersion": "2.37.0",
-  "effectiveFrom": "2026-09-08",
+  "registryVersion": "2.43.0",
+  "effectiveFrom": "2026-09-12",
   "description": "Canonical bootstrap reference data. Database migrations must preserve these stable codes and audit later changes.",
   "collections": {
     "channels": [
@@ -1912,22 +1912,40 @@
     ],
     "evidenceClassifications": [
       {
+        "code": "CLIENT_REQUIREMENT",
+        "displayLabel": "Client Requirement",
+        "isActive": true,
+        "sortOrder": 10
+      },
+      {
         "code": "FACT",
         "displayLabel": "Confirmed Fact",
         "isActive": true,
-        "sortOrder": 10
+        "sortOrder": 20
       },
       {
         "code": "INFERENCE",
         "displayLabel": "Evidence-backed Inference",
         "isActive": true,
-        "sortOrder": 20
+        "sortOrder": 30
       },
       {
         "code": "HYPOTHESIS",
         "displayLabel": "Planning Hypothesis",
         "isActive": true,
-        "sortOrder": 30
+        "sortOrder": 40
+      },
+      {
+        "code": "AI_RECOMMENDATION",
+        "displayLabel": "AI Recommendation",
+        "isActive": true,
+        "sortOrder": 50
+      },
+      {
+        "code": "UNKNOWN",
+        "displayLabel": "Unknown",
+        "isActive": true,
+        "sortOrder": 60
       }
     ],
     "benchmarkPositions": [
@@ -2225,21 +2243,10 @@
     ],
     "availabilityStatuses": [
       {
-        "code": "UNKNOWN",
-        "displayLabel": "Legacy Availability Unknown",
-        "isActive": true,
-        "sortOrder": 10,
-        "metadata": {
-          "planningEligible": true,
-          "defaultsToAvailable": true,
-          "legacyOnly": true
-        }
-      },
-      {
         "code": "AVAILABLE",
         "displayLabel": "Available",
         "isActive": true,
-        "sortOrder": 20,
+        "sortOrder": 10,
         "metadata": {
           "planningEligible": true,
           "supplyConfidence": "CONFIRMED"
@@ -2249,7 +2256,7 @@
         "code": "LIMITED",
         "displayLabel": "Limited Availability",
         "isActive": true,
-        "sortOrder": 30,
+        "sortOrder": 20,
         "metadata": {
           "planningEligible": true,
           "supplyConfidence": "INDICATIVE"
@@ -2259,7 +2266,7 @@
         "code": "UNAVAILABLE",
         "displayLabel": "Unavailable",
         "isActive": true,
-        "sortOrder": 40,
+        "sortOrder": 30,
         "metadata": {
           "planningEligible": false,
           "supplyConfidence": "UNKNOWN"
@@ -2269,7 +2276,7 @@
         "code": "PLANNING_AVAILABLE",
         "displayLabel": "Planning Available — Supplier Confirmation Required",
         "isActive": true,
-        "sortOrder": 50,
+        "sortOrder": 40,
         "metadata": {
           "planningEligible": true,
           "supplyConfidence": "UNCONFIRMED",
@@ -2929,40 +2936,52 @@
         "sortOrder": 50
       },
       {
-        "code": "audience",
-        "displayLabel": "Audience Agent",
+        "code": "market_intelligence",
+        "displayLabel": "Market Intelligence Agent",
         "isActive": true,
         "sortOrder": 60
+      },
+      {
+        "code": "audience_intelligence",
+        "displayLabel": "Audience Intelligence Agent",
+        "isActive": true,
+        "sortOrder": 70
+      },
+      {
+        "code": "location_intelligence",
+        "displayLabel": "Location Intelligence Agent",
+        "isActive": true,
+        "sortOrder": 80
+      },
+      {
+        "code": "media_strategy",
+        "displayLabel": "Media Strategy Agent",
+        "isActive": true,
+        "sortOrder": 90
       },
       {
         "code": "inventory_intelligence",
         "displayLabel": "Inventory Intelligence Agent",
         "isActive": true,
-        "sortOrder": 70
-      },
-      {
-        "code": "media_planning",
-        "displayLabel": "Media Planning Agent",
-        "isActive": true,
-        "sortOrder": 80
+        "sortOrder": 100
       },
       {
         "code": "proposal_narrative",
         "displayLabel": "Proposal Narrative Agent",
         "isActive": true,
-        "sortOrder": 90
+        "sortOrder": 110
       },
       {
         "code": "creative",
         "displayLabel": "Creative Intelligence Agent",
         "isActive": true,
-        "sortOrder": 100
+        "sortOrder": 120
       },
       {
         "code": "measurement",
-        "displayLabel": "Measurement Agent",
+        "displayLabel": "Measurement Intelligence Agent",
         "isActive": true,
-        "sortOrder": 110
+        "sortOrder": 130
       }
     ],
     "workflowStepTypes": [
@@ -3884,6 +3903,15 @@
         "sortOrder": 140
       }
     ],
+    "opportunityRejectionReasons": [
+      {
+        "code": "DUPLICATE_OPPORTUNITY",
+        "displayLabel": "This opportunity already exists",
+        "isActive": true,
+        "sortOrder": 10,
+        "metadata": { "httpStatus": 409 }
+      }
+    ],
     "agentFailureReasons": [
       {
         "code": "AGENT_OUTPUT_INVALID",
@@ -4026,8 +4054,8 @@
         "sortOrder": 190
       },
       {
-        "code": "audience_definition_set",
-        "displayLabel": "Audience Definition Set",
+        "code": "intelligence_artifact",
+        "displayLabel": "Intelligence Artifact",
         "isActive": true,
         "sortOrder": 200
       },
@@ -4054,6 +4082,12 @@
         "displayLabel": "Proposal Version",
         "isActive": true,
         "sortOrder": 240
+      },
+      {
+        "code": "proposal_replan_revision",
+        "displayLabel": "Proposal Replan Revision",
+        "isActive": true,
+        "sortOrder": 245
       },
       {
         "code": "proposal_document",
@@ -4442,10 +4476,16 @@
         "sortOrder": 308
       },
       {
-        "code": "audience_definitions.generated",
-        "displayLabel": "Audience Definitions Generated",
+        "code": "audience_intelligence.generated",
+        "displayLabel": "Audience Intelligence Generated",
         "isActive": true,
         "sortOrder": 310
+      },
+      {
+        "code": "audience_intelligence.approved",
+        "displayLabel": "Audience Intelligence Approved",
+        "isActive": true,
+        "sortOrder": 315
       },
       {
         "code": "media_mix.generated",
@@ -5128,10 +5168,16 @@
         "sortOrder": 309
       },
       {
-        "code": "AudienceDefinitionsGenerated",
-        "displayLabel": "Audience Definitions Generated",
+        "code": "AudienceIntelligenceGenerated",
+        "displayLabel": "Audience Intelligence Generated",
         "isActive": true,
         "sortOrder": 310
+      },
+      {
+        "code": "AudienceIntelligenceApproved",
+        "displayLabel": "Audience Intelligence Approved",
+        "isActive": true,
+        "sortOrder": 315
       },
       {
         "code": "MediaMixGenerated",
@@ -5839,6 +5885,12 @@
         "displayLabel": "Percent",
         "isActive": true,
         "sortOrder": 30
+      },
+      {
+        "code": "HOURS",
+        "displayLabel": "Hours",
+        "isActive": true,
+        "sortOrder": 40
       }
     ],
     "measurementQualityStatuses": [
@@ -6476,11 +6528,13 @@
       {
         "code": "ADVERTISE_NOW_PAY_LATER",
         "displayLabel": "Advertise Now, Pay Later",
-        "isActive": false,
+        "isActive": true,
         "sortOrder": 30,
         "metadata": {
-          "activationRequiresProviderIntegration": true,
-          "mode": "REFERRAL"
+          "activationRequiresProviderIntegration": false,
+          "mode": "MANUAL_PARTNER_REFERRAL",
+          "reconciliationEvidence": "PARTNER_EMAIL",
+          "independentHumanReconciliationRequired": true
         }
       }
     ],

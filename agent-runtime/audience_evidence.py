@@ -47,18 +47,34 @@ def supported_values(request, name):
 
 
 def grounded_audience(request, item):
-    values, evidence_ids = supported_values(request, item.name)
+    values, structured_evidence_ids = supported_values(request, item.name)
     context = [values.pop("buying_context")]
     for field, label in (("message_context", "Message context"), ("moment_context", "Moment")):
         value = values.pop(field)
         if value:
             context.append(f"{label}: {value}")
     need = values.pop("need_state")
+    evidence_item_ids = structured_evidence_ids
+    reference_observation_ids = tuple(dict.fromkeys(item.reference_observation_ids))
+    is_client_requirement = any(
+        supplied.strip().casefold() == item.name.strip().casefold()
+        for supplied in request.planning.audiences
+        if supplied.strip()
+    )
+    classification = (
+        EvidenceClassifications.CLIENT_REQUIREMENT.value
+        if is_client_requirement
+        else EvidenceClassifications.INFERENCE.value
+        if evidence_item_ids or reference_observation_ids
+        else EvidenceClassifications.HYPOTHESIS.value
+    )
     return item.model_copy(update={
         **values,
-        "need_state": need or item.need_state,
-        "buying_context": " · ".join(value for value in context if value) or item.buying_context,
+        "need_state": need,
+        "buying_context": " · ".join(value for value in context if value) or None,
         "lsm_sem_mandatory": False,
-        "classification": EvidenceClassifications.INFERENCE.value if approved_facts(request, item.name) else item.classification,
-        "evidence_item_ids": evidence_ids or request.invocation.approved_evidence_item_ids,
+        "classification": classification,
+        "evidence_item_ids": evidence_item_ids,
+        "reference_observation_ids": reference_observation_ids,
+        "confidence": item.confidence if evidence_item_ids or reference_observation_ids else None,
     })

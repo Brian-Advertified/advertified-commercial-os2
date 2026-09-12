@@ -125,8 +125,9 @@ function Rail({ title, ariaLabel, subtitle, steps, active, tone, mode }: {
     aria-label={ariaLabel ?? title} data-campaign-mode={mode}>
     <div className="approved-flow-title"><strong>{title}</strong><p>{subtitle}</p></div>
     <ol>{steps.map((step, index) => <li key={step.label}
-      className={index === active ? 'is-active' : index < active ? 'is-complete' : ''}>
-      <span className="approved-flow-step-icon">{index < active ? '✓' : <Icon name={step.icon} />}</span>
+      className={index === active ? 'is-active' : ''}
+      aria-current={index === active ? 'step' : undefined}>
+      <span className="approved-flow-step-icon"><Icon name={step.icon} /></span>
       <span>{step.label}</span>
     </li>)}</ol>
   </section>

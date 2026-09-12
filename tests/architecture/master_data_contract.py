@@ -76,6 +76,7 @@ REQUIRED_MASTER_COLLECTIONS = {
     "supplySourceTypes",
     "validationIssueTypes",
     "agentFailureReasons",
+    "opportunityRejectionReasons",
     "creativeTextRoles",
     "creativeWarningTypes",
     "creativeReviewTypes",

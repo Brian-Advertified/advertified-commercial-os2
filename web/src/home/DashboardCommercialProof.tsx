@@ -4,6 +4,7 @@ import type { ProposalSummary } from '../api/proposal-schemas'
 import type { Booking } from '../api/booking-schemas'
 import { CommercialValueProof, type CommercialProofMetric } from '../components/CommercialValueProof'
 import { masterDataCodes } from '../generated/master-data-codes'
+import { isConfirmedBooking } from './dashboard-metrics'
 
 export function DashboardCommercialProof({ planning, proposals, campaigns, bookings }: {
   planning: PlanningSummary[]
@@ -50,10 +51,4 @@ function pipelineSentence(planning: number, plans: number, proposals: number, ca
     return 'Start with a client requirement. Commercial progress will appear here as Advertified turns it into audience decisions, plans, proposals and executable campaigns.'
   }
   return `${planning} planning workspace${planning === 1 ? '' : 's'} have produced ${plans} approved media plan${plans === 1 ? '' : 's'}, ${proposals} client proposal${proposals === 1 ? '' : 's'} and ${campaigns} active campaign${campaigns === 1 ? '' : 's'}.`
-}
-
-function isConfirmedBooking(status: string) {
-  return status === masterDataCodes.lifecycleStatuses.approved ||
-    status === masterDataCodes.lifecycleStatuses.confirmed ||
-    status === masterDataCodes.lifecycleStatuses.active
 }

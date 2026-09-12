@@ -51,8 +51,10 @@ public sealed class ProposalReader(
             ?? throw new UnauthorizedAccessException("Proposal access denied.");
         EnsureVisible(actorId, proposal, canPrepare);
         var view = await store.BuildViewAsync(tenantId, proposal, cancellationToken);
+        var campaignContext = await ProposalCampaignContextBuilder.BuildAsync(
+            planningStore, tenantId, view, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return view;
+        return view with { CampaignContext = campaignContext };
     }
 
     public async Task<IReadOnlyList<ApprovedPlanChoiceView>> ListApprovedPlansAsync(

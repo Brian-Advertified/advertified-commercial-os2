@@ -49,9 +49,11 @@ def load_fixture() -> EvaluationFixture[ContractProbeArtifact]:
     return FixtureAdapter.validate_json(FIXTURE_PATH.read_text(encoding="utf-8"))
 
 
-def test_closed_agent_roster_contains_exactly_the_eleven_approved_agents() -> None:
-    assert len(AgentCode) == 11
+def test_closed_agent_roster_contains_exactly_the_thirteen_approved_agents() -> None:
+    assert len(AgentCode) == 13
     assert AgentCode.BUSINESS_INTERPRETATION.value == "business_interpretation"
+    assert AgentCode.MARKET_INTELLIGENCE.value == "market_intelligence"
+    assert AgentCode.LOCATION_INTELLIGENCE.value == "location_intelligence"
     assert AgentCode.MEASUREMENT.value == "measurement"
 
 

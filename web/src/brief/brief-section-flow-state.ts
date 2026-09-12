@@ -4,7 +4,7 @@ import { masterDataCodes } from '../generated/master-data-codes'
 export const briefSections = [
   ['overview', 'Overview'],
   ['objectives', 'Objectives'],
-  [masterDataCodes.agentTypes.audience, 'Audience'],
+  [masterDataCodes.agentTypes.audienceIntelligence, 'Audience'],
   ['geography', 'Geography'],
   ['timing', 'Timing'],
   ['budget', 'Budget'],

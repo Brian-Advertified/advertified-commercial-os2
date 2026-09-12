@@ -9,9 +9,8 @@ from bedrock_artifact_output import artifact_schema, wrap_artifact_output
 from main import DETERMINISTIC_MODE, RUNTIME_MODE_KEY, SERVICE_KEY, app
 from planning_contracts import (
     AudienceAgentRequest,
+    AudienceDefinition,
     AudienceDefinitionSetArtifact,
-    MediaMixDraftArtifact,
-    MediaPlanningAgentRequest,
 )
 from planning_service import canonicalize_audiences, propose_audiences
 
@@ -65,6 +64,8 @@ def invocation(agent_code: str) -> dict:
 def planning() -> dict:
     return {
         "brief_version_id": BRIEF_ID,
+        "client_name": "Test Furniture Client",
+        "business_problem": "The client needs more qualified furniture enquiries.",
         "objective": "Increase qualified furniture enquiries",
         "audiences": ["Small business furniture buyers"],
         "geographies": ["Gauteng"],
@@ -72,14 +73,7 @@ def planning() -> dict:
 
 
 def payload(agent_code: str) -> dict:
-    context = planning()
-    if agent_code == "media_planning":
-        context |= {
-            "budget_minor": 10_000_01,
-            "currency": "ZAR",
-            "available_channels": ["RADIO", "OOH", "DIGITAL", "OOH"],
-        }
-    return {"invocation": invocation(agent_code), "planning": context}
+    return {"invocation": invocation(agent_code), "planning": planning()}
 
 
 async def post(agent_code: str, body: dict) -> httpx.Response:
@@ -94,19 +88,66 @@ def enable(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(SERVICE_KEY, SERVICE_SECRET)
 
 
-def test_audience_proposal_is_evidence_bound_without_sensitive_inference(
+def test_audience_contract_normalizes_only_literal_null_serialization() -> None:
+    raw = {
+        "name": "Furniture shoppers",
+        "description": "Audience hypothesis supplied by the provider.",
+        "need_state": " null ",
+        "buying_context": "NULL",
+        "geographies": ("Gauteng",),
+        "language": "null",
+        "life_stage": "null",
+        "lsm_sem": "null",
+        "lsm_sem_taxonomy": "null",
+        "lsm_sem_taxonomy_version": "null",
+        "classification": "HYPOTHESIS",
+        "exclusions": (),
+        "evidence_item_ids": (),
+        "reference_observation_ids": (),
+        "confidence": "null",
+        "is_target": True,
+    }
+
+    audience = AudienceDefinition.model_validate(raw)
+    assert audience.need_state is None
+    assert audience.buying_context is None
+    assert audience.language is None
+    assert audience.life_stage is None
+    assert audience.lsm_sem is None
+    assert audience.lsm_sem_taxonomy is None
+    assert audience.lsm_sem_taxonomy_version is None
+    assert audience.confidence is None
+
+    preserved = AudienceDefinition.model_validate({
+        **raw,
+        "need_state": "N/A",
+        "buying_context": "none",
+        "confidence": None,
+    })
+    assert preserved.need_state == "N/A"
+    assert preserved.buying_context == "none"
+
+    numeric_wire = AudienceDefinition.model_validate_json(json.dumps({
+        **raw,
+        "confidence": 0.7,
+    }))
+    assert str(numeric_wire.confidence) == "0.7"
+
+
+def test_audience_proposal_does_not_globally_bind_brief_evidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     enable(monkeypatch)
-    response = asyncio.run(post("audience", payload("audience")))
+    response = asyncio.run(post("audience_intelligence", payload("audience_intelligence")))
 
     assert response.status_code == 200, response.text
     output = response.json()
     audiences = output["artifact"]["audiences"]
     audience = audiences[0]
     assert [item["name"] for item in audiences] == planning()["audiences"]
-    assert audience["classification"] == "INFERENCE"
-    assert audience["evidence_item_ids"] == [EVIDENCE_ID]
+    assert audience["classification"] == "CLIENT_REQUIREMENT"
+    assert audience["evidence_item_ids"] == []
+    assert audience["confidence"] is None
     assert audience["language"] is None
     assert audience["life_stage"] is None
     assert audience["lsm_sem"] is None
@@ -120,8 +161,8 @@ def test_audience_proposal_is_evidence_bound_without_sensitive_inference(
     ["Parents", "Caregivers", "Teachers", "Parents"],
     [f"Supplied audience {index}" for index in range(8)],
 ])
-def test_fallback_preserves_supplied_audiences_without_fabricated_discovery(names) -> None:
-    body = payload("audience")
+def test_deterministic_audience_path_preserves_supplied_audiences_without_fabrication(names) -> None:
+    body = payload("audience_intelligence")
     body["planning"]["audiences"] = names
     request = AudienceAgentRequest.model_validate_json(json.dumps(body))
 
@@ -130,64 +171,22 @@ def test_fallback_preserves_supplied_audiences_without_fabricated_discovery(name
     assert [item.name for item in output.artifact.audiences] == list(dict.fromkeys(names))
     assert all(item.language is None and item.life_stage is None
                and item.lsm_sem is None for item in output.artifact.audiences)
-    assert all("intent are not supplied" in item.buying_context
-               for item in output.artifact.audiences)
-    assert all(item.need_state != request.planning.objective
-               for item in output.artifact.audiences)
+    assert all(item.buying_context is None for item in output.artifact.audiences)
+    assert all(item.need_state is None for item in output.artifact.audiences)
+    assert all(item.confidence is None for item in output.artifact.audiences)
     assert {item.field_path for item in output.unknowns} == {
+        "artifact.audiences.need_state",
         "artifact.audiences.buying_context",
+        "artifact.positioning_statement",
         "artifact.audiences.media_evidence",
         "artifact.audiences.structured_evidence",
     }
     assert canonicalize_audiences(request, output).unknowns == output.unknowns
 
 
-def test_media_mix_uses_allowed_channels_and_exact_budget(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    enable(monkeypatch)
-    response = asyncio.run(post("media_planning", payload("media_planning")))
-
-    assert response.status_code == 200, response.text
-    allocations = response.json()["artifact"]["allocations"]
-    assert {item["channel"] for item in allocations} <= {"RADIO", "OOH", "DIGITAL"}
-    assert len({item["channel"] for item in allocations}) == len(allocations)
-    assert sum(item["budget_minor"] for item in allocations) == 10_000_01
-
-
-def test_bedrock_media_mix_reconciles_provider_weights_to_exact_budget() -> None:
-    request = MediaPlanningAgentRequest.model_validate_json(
-        json.dumps(payload("media_planning"))
-    )
-    provider_artifact = {
-        "allocations": [
-            {"channel": "DIGITAL", "budget_minor": 400_000,
-             "role": "Primary response channel"},
-            {"channel": "OOH", "budget_minor": 200_000,
-             "role": "Physical awareness"},
-            {"channel": "RADIO", "budget_minor": 299_999,
-             "role": "Broad frequency"},
-        ],
-        "assumptions": ["Human review required."],
-    }
-
-    output = wrap_artifact_output(
-        MediaMixDraftArtifact,
-        provider_artifact,
-        request,
-    )
-
-    allocations = output.artifact.allocations
-    assert sum(item.budget_minor for item in allocations) == 10_000_01
-    assert all(item.budget_minor > 0 for item in allocations)
-    assert [item.channel for item in allocations] == [
-        "DIGITAL", "OOH", "RADIO",
-    ]
-
-
 def test_bedrock_audience_boundary_accepts_only_artifact_and_adds_evidence_binding() -> None:
     request = AudienceAgentRequest.model_validate_json(
-        json.dumps(payload("audience"))
+        json.dumps(payload("audience_intelligence"))
     )
     deterministic = propose_audiences(request)
     schema = json.loads(artifact_schema(AudienceDefinitionSetArtifact))
@@ -197,10 +196,11 @@ def test_bedrock_audience_boundary_accepts_only_artifact_and_adds_evidence_bindi
 
     provider_artifact = deterministic.artifact.model_dump(mode="json")
     provider_artifact["audiences"][0].update({
-        "classification": "Primary Audience",
-        "geographies": ["Mars"],
+        "classification": "HYPOTHESIS",
+        "geographies": list(request.planning.geographies),
         "language": "Invented",
         "evidence_item_ids": [],
+        "confidence": 0.7,
         "is_target": False,
     })
     output = wrap_artifact_output(
@@ -209,28 +209,25 @@ def test_bedrock_audience_boundary_accepts_only_artifact_and_adds_evidence_bindi
         request,
     )
 
+    output = canonicalize_audiences(request, output)
     audience = output.artifact.audiences[0]
-    assert audience.classification == "INFERENCE"
+    assert audience.classification == "CLIENT_REQUIREMENT"
     assert audience.geographies == request.planning.geographies
     assert audience.language is None
-    assert audience.evidence_item_ids == (
-        request.invocation.approved_evidence_item_ids
-    )
-    assert audience.is_target is False
+    assert audience.evidence_item_ids == ()
+    assert audience.confidence is None
+    assert audience.is_target is True
     assert output.status == "COMPLETED"
-    assert output.evidence_bindings[0].field_path == "artifact.audiences"
-    assert output.evidence_bindings[0].evidence_item_ids == (
-        request.invocation.approved_evidence_item_ids
-    )
+    assert output.evidence_bindings == ()
 
 
 def test_audience_canonicalizer_removes_unsupported_structured_facts() -> None:
     request = AudienceAgentRequest.model_validate_json(
-        json.dumps(payload("audience"))
+        json.dumps(payload("audience_intelligence"))
     )
     provider_output = propose_audiences(request)
     audience = provider_output.artifact.audiences[0].model_copy(update={
-        "geographies": ("Mars",),
+        "geographies": tuple(value.upper() for value in request.planning.geographies),
         "language": "Invented",
         "life_stage": "Invented",
         "lsm_sem": "10",
@@ -252,23 +249,24 @@ def test_audience_canonicalizer_removes_unsupported_structured_facts() -> None:
     assert repaired.language is None
     assert repaired.life_stage is None
     assert repaired.lsm_sem is None
-    assert repaired.classification == "INFERENCE"
-    assert repaired.evidence_item_ids == request.invocation.approved_evidence_item_ids
-    assert repaired.is_target is False
+    assert repaired.classification == "CLIENT_REQUIREMENT"
+    assert repaired.evidence_item_ids == ()
+    assert repaired.confidence is None
+    assert repaired.is_target is True
 
 
 def test_planning_contract_rejects_route_mismatch_and_unknown_fields(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     enable(monkeypatch)
-    mismatch = payload("media_planning")
-    mismatch["invocation"]["agent_code"] = "audience"
-    mismatch_response = asyncio.run(post("media_planning", mismatch))
+    mismatch = payload("audience_intelligence")
+    mismatch["invocation"]["agent_code"] = "media_strategy"
+    mismatch_response = asyncio.run(post("audience_intelligence", mismatch))
     assert mismatch_response.status_code == 400
 
-    malformed = deepcopy(payload("audience"))
+    malformed = deepcopy(payload("audience_intelligence"))
     malformed["planning"]["invented_reach"] = 1_000_000
-    malformed_response = asyncio.run(post("audience", malformed))
+    malformed_response = asyncio.run(post("audience_intelligence", malformed))
     assert malformed_response.status_code == 422
 
 
@@ -276,11 +274,11 @@ def test_planning_contract_requires_exact_brief_resource(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     enable(monkeypatch)
-    body = payload("audience")
+    body = payload("audience_intelligence")
     body["invocation"]["resource_refs"][0]["resource_id"] = (
         "99999999-9999-9999-9999-999999999999"
     )
 
-    response = asyncio.run(post("audience", body))
+    response = asyncio.run(post("audience_intelligence", body))
 
     assert response.status_code == 422

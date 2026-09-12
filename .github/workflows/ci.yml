@@ -66,6 +66,8 @@ jobs:
           -r agent-runtime/requirements-dev.lock
       - name: Enforce repository boundaries
         run: python -m pytest tests/architecture -q
+      - name: Enforce production platform gates
+        run: python -m pytest tests/platform -q
 
   web:
     name: React web
@@ -213,15 +215,10 @@ jobs:
             --env ReleaseSmoke__Enabled=true \
             --env 'AllowedHosts=localhost;127.0.0.1' \
             --env ReverseProxy__KnownProxies__0=127.0.0.1 \
-            --env InventoryProtection__ObjectStoreMode=Minio \
-            --env InventoryProtection__ScannerMode=ClamAv \
-            --env InventoryProtection__Endpoint=closed.invalid:443 \
-            --env InventoryProtection__AccessKey=closed \
-            --env InventoryProtection__SecretKey=closed \
+            --env InventoryProtection__ObjectStoreMode=AwsS3 \
+            --env InventoryProtection__ScannerMode=ExternalVerdict \
             --env InventoryProtection__Bucket=closed \
-            --env InventoryProtection__UseTls=true \
-            --env InventoryProtection__ClamAvHost=closed.invalid \
-            --env InventoryProtection__ClamAvPort=3310 \
+            --env InventoryProtection__AwsRegion=af-south-1 \
             --env InventoryExtraction__Mode=Deterministic \
             advertified/commercial-api:ci-verification
           docker run --detach --name "$worker" --network "$network" --publish 127.0.0.1:18083:8080 \
@@ -233,15 +230,10 @@ jobs:
             --env ReleaseSmoke__Enabled=true \
             --env 'AllowedHosts=localhost;127.0.0.1' \
             --env ReverseProxy__KnownProxies__0=127.0.0.1 \
-            --env InventoryProtection__ObjectStoreMode=Minio \
-            --env InventoryProtection__ScannerMode=ClamAv \
-            --env InventoryProtection__Endpoint=closed.invalid:443 \
-            --env InventoryProtection__AccessKey=closed \
-            --env InventoryProtection__SecretKey=closed \
+            --env InventoryProtection__ObjectStoreMode=AwsS3 \
+            --env InventoryProtection__ScannerMode=ExternalVerdict \
             --env InventoryProtection__Bucket=closed \
-            --env InventoryProtection__UseTls=true \
-            --env InventoryProtection__ClamAvHost=closed.invalid \
-            --env InventoryProtection__ClamAvPort=3310 \
+            --env InventoryProtection__AwsRegion=af-south-1 \
             --env InventoryExtraction__Mode=Deterministic \
             advertified/commercial-api:ci-verification
           docker run --detach --name "$runtime" --network "$network" --publish 127.0.0.1:18081:8080 \

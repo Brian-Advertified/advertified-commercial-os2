@@ -1,5 +1,6 @@
 using System.Text;
 using Advertified.Commercial.Application.Inventory;
+using Microsoft.VisualBasic.FileIO;
 using Advertified.Commercial.Domain.MasterData;
 using UglyToad.PdfPig;
 
@@ -78,17 +79,32 @@ internal static class NativeInventorySourcePreprocessor
         {
             throw new InventoryExtractionUnavailableException();
         }
-        var elements = text.Split(['\r', '\n'],
-                StringSplitOptions.RemoveEmptyEntries)
-            .Select((line, index) => new InventoryExtractedSourceElement(
-                $"csv:row={index + 1}",
-                "csv:document",
-                "row",
-                index + 1,
-                1,
-                line))
-            .ToArray();
-        return (elements, []);
+        try
+        {
+            using var parser = new TextFieldParser(new StringReader(text))
+            {
+                TextFieldType = FieldType.Delimited,
+                HasFieldsEnclosedInQuotes = true,
+                TrimWhiteSpace = false,
+            };
+            parser.SetDelimiters(",");
+            var elements = new List<InventoryExtractedSourceElement>();
+            var row = 0;
+            while (!parser.EndOfData)
+            {
+                row++;
+                var fields = parser.ReadFields() ?? [];
+                elements.AddRange(fields.Select((value, column) =>
+                    new InventoryExtractedSourceElement(
+                        $"csv:row={row};column={column + 1}",
+                        "csv:document", "cell", row, column + 1, value)));
+            }
+            return (elements, []);
+        }
+        catch (MalformedLineException)
+        {
+            throw new InventoryExtractionUnavailableException();
+        }
     }
 
     private static (IReadOnlyList<InventoryExtractedSourceElement>,

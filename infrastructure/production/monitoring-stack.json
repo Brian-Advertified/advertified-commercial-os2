@@ -1,0 +1,280 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Advertified production application monitoring. Deploy after the production domain resolves with valid TLS and before application containers are activated.",
+  "Parameters": {
+    "DomainName": { "Type": "String", "MinLength": 3 },
+    "NotificationTopicArn": { "Type": "String", "MinLength": 20 },
+    "ApplicationInstanceId": { "Type": "String", "AllowedPattern": "^i-[0-9a-f]+$" },
+    "DatabaseInstanceId": { "Type": "String", "AllowedPattern": "^i-[0-9a-f]+$" },
+    "LogRetentionDays": {
+      "Type": "Number",
+      "Default": 30,
+      "AllowedValues": [7, 14, 30, 60, 90, 120, 150, 180, 365]
+    },
+    "CanaryArtifactRetentionDays": {
+      "Type": "Number",
+      "Default": 30,
+      "MinValue": 1,
+      "MaxValue": 365
+    }
+  },
+  "Resources": {
+    "ApplicationLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "LogGroupName": "/advertified/production/application",
+        "RetentionInDays": { "Ref": "LogRetentionDays" }
+      }
+    },
+    "SyntheticsArtifactBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [{
+            "ServerSideEncryptionByDefault": { "SSEAlgorithm": "AES256" }
+          }]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "LifecycleConfiguration": {
+          "Rules": [{
+            "Id": "BoundedCanaryArtifacts",
+            "Status": "Enabled",
+            "ExpirationInDays": { "Ref": "CanaryArtifactRetentionDays" }
+          }]
+        }
+      }
+    },
+    "CanaryExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": { "Service": "lambda.amazonaws.com" },
+            "Action": "sts:AssumeRole"
+          }]
+        },
+        "Policies": [{
+          "PolicyName": "AdvertifiedProductionCanary",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": ["s3:PutObject", "s3:GetObject"],
+                "Resource": { "Fn::Sub": "${SyntheticsArtifactBucket.Arn}/*" }
+              },
+              {
+                "Effect": "Allow",
+                "Action": "s3:GetBucketLocation",
+                "Resource": { "Fn::GetAtt": ["SyntheticsArtifactBucket", "Arn"] }
+              },
+              {
+                "Effect": "Allow",
+                "Action": ["s3:ListAllMyBuckets", "xray:PutTraceSegments"],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+                "Resource": { "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/cwsyn-advertified-api-*" }
+              },
+              {
+                "Effect": "Allow",
+                "Action": "cloudwatch:PutMetricData",
+                "Resource": "*",
+                "Condition": {
+                  "StringEquals": { "cloudwatch:namespace": "CloudWatchSynthetics" }
+                }
+              }
+            ]
+          }
+        }]
+      }
+    },
+    "ApiReadinessCanary": {
+      "Type": "AWS::Synthetics::Canary",
+      "Properties": {
+        "Name": "advertified-api",
+        "ExecutionRoleArn": { "Fn::GetAtt": ["CanaryExecutionRole", "Arn"] },
+        "ArtifactS3Location": { "Fn::Sub": "s3://${SyntheticsArtifactBucket}/canary/" },
+        "RuntimeVersion": "syn-nodejs-5.2",
+        "Code": {
+          "Handler": "health.handler",
+          "Script": {
+            "Fn::Sub": "const https = require('https');\nexports.handler = async () => new Promise((resolve, reject) => {\n  const request = https.get({ hostname: '${DomainName}', port: 443, path: '/health/ready', method: 'GET', timeout: 10000, headers: { 'User-Agent': 'Advertified-Production-Readiness-Canary/1.0' } }, response => {\n    let body = '';\n    response.setEncoding('utf8');\n    response.on('data', chunk => { body += chunk; if (body.length > 65536) { request.destroy(new Error('Health response exceeded limit')); } });\n    response.on('end', () => {\n      if (response.statusCode !== 200) return reject(new Error('Readiness returned HTTP ' + response.statusCode));\n      try {\n        const value = JSON.parse(body);\n        const checks = Array.isArray(value.checks) ? value.checks : [];\n        if (value.status !== 'ready' || !checks.includes('database') || !checks.includes('master-data') || !checks.includes('outbox-transport')) {\n          return reject(new Error('Readiness response is incomplete'));\n        }\n        resolve('ready');\n      } catch (error) { reject(error); }\n    });\n  });\n  request.on('timeout', () => request.destroy(new Error('Readiness request timed out')));\n  request.on('error', reject);\n});\n"
+          }
+        },
+        "Schedule": { "Expression": "rate(5 minutes)", "DurationInSeconds": 0 },
+        "RunConfig": { "TimeoutInSeconds": 20, "ActiveTracing": true },
+        "FailureRetentionPeriod": 30,
+        "SuccessRetentionPeriod": 7,
+        "StartCanaryAfterCreation": true
+      }
+    },
+    "ApiHealthAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": "Synthetics-Alarm-advertified-api-readiness",
+        "AlarmDescription": "Advertified public readiness endpoint is unavailable or a required dependency is not ready.",
+        "Namespace": "CloudWatchSynthetics",
+        "MetricName": "SuccessPercent",
+        "Dimensions": [{ "Name": "CanaryName", "Value": { "Ref": "ApiReadinessCanary" } }],
+        "Statistic": "Average",
+        "Period": 300,
+        "EvaluationPeriods": 2,
+        "Threshold": 100,
+        "ComparisonOperator": "LessThanThreshold",
+        "TreatMissingData": "breaching",
+        "AlarmActions": [{ "Ref": "NotificationTopicArn" }]
+      }
+    },
+    "WorkerFailureMetric": {
+      "Type": "AWS::Logs::MetricFilter",
+      "Properties": {
+        "LogGroupName": { "Ref": "ApplicationLogGroup" },
+        "FilterPattern": "\"Commercial worker cycle failed; durable work remains queued.\"",
+        "MetricTransformations": [{
+          "MetricNamespace": "Advertified/Production",
+          "MetricName": "WorkerCycleFailures",
+          "MetricValue": "1",
+          "DefaultValue": 0
+        }]
+      }
+    },
+    "WorkerFailureAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Advertified commercial worker cycle failed.",
+        "Namespace": "Advertified/Production",
+        "MetricName": "WorkerCycleFailures",
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [{ "Ref": "NotificationTopicArn" }]
+      }
+    },
+    "DatabaseReadinessFailureMetric": {
+      "Type": "AWS::Logs::MetricFilter",
+      "Properties": {
+        "LogGroupName": { "Ref": "ApplicationLogGroup" },
+        "FilterPattern": "\"Canonical database readiness failed.\"",
+        "MetricTransformations": [{
+          "MetricNamespace": "Advertified/Production",
+          "MetricName": "DatabaseReadinessFailures",
+          "MetricValue": "1",
+          "DefaultValue": 0
+        }]
+      }
+    },
+    "DatabaseReadinessAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Advertified canonical database readiness check failed.",
+        "Namespace": "Advertified/Production",
+        "MetricName": "DatabaseReadinessFailures",
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [{ "Ref": "NotificationTopicArn" }]
+      }
+    },
+    "ApplicationDiskCapacityAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Advertified application host disk utilisation is above 85 percent or telemetry is missing.",
+        "Namespace": "Advertified/Production",
+        "MetricName": "HostDiskUsedPercent",
+        "Dimensions": [
+          { "Name": "HostRole", "Value": "application" },
+          { "Name": "InstanceId", "Value": { "Ref": "ApplicationInstanceId" } }
+        ],
+        "Statistic": "Maximum",
+        "Period": 300,
+        "EvaluationPeriods": 2,
+        "Threshold": 85,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "breaching",
+        "AlarmActions": [{ "Ref": "NotificationTopicArn" }]
+      }
+    },
+    "DatabaseDiskCapacityAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Advertified database volume utilisation is above 85 percent or telemetry is missing.",
+        "Namespace": "Advertified/Production",
+        "MetricName": "HostDiskUsedPercent",
+        "Dimensions": [
+          { "Name": "HostRole", "Value": "database" },
+          { "Name": "InstanceId", "Value": { "Ref": "DatabaseInstanceId" } }
+        ],
+        "Statistic": "Maximum",
+        "Period": 300,
+        "EvaluationPeriods": 2,
+        "Threshold": 85,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "breaching",
+        "AlarmActions": [{ "Ref": "NotificationTopicArn" }]
+      }
+    },
+    "DatabaseLogicalBackupAgeAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Advertified logical database backup is older than 25 hours or backup-age telemetry is missing.",
+        "Namespace": "Advertified/Production",
+        "MetricName": "DatabaseLogicalBackupAgeSeconds",
+        "Dimensions": [
+          { "Name": "HostRole", "Value": "database" },
+          { "Name": "InstanceId", "Value": { "Ref": "DatabaseInstanceId" } }
+        ],
+        "Statistic": "Maximum",
+        "Period": 300,
+        "EvaluationPeriods": 2,
+        "Threshold": 90000,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "breaching",
+        "AlarmActions": [{ "Ref": "NotificationTopicArn" }]
+      }
+    },
+    "DatabaseLogicalBackupFailureAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Advertified logical database backup failed.",
+        "Namespace": "Advertified/Production",
+        "MetricName": "DatabaseLogicalBackupFailures",
+        "Dimensions": [
+          { "Name": "HostRole", "Value": "database" },
+          { "Name": "InstanceId", "Value": { "Ref": "DatabaseInstanceId" } }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [{ "Ref": "NotificationTopicArn" }]
+      }
+    }
+  },
+  "Outputs": {
+    "ApplicationLogGroupName": { "Value": { "Ref": "ApplicationLogGroup" } },
+    "ApiReadinessCanaryName": { "Value": { "Ref": "ApiReadinessCanary" } },
+    "SyntheticsArtifactBucketName": { "Value": { "Ref": "SyntheticsArtifactBucket" } }
+  }
+}

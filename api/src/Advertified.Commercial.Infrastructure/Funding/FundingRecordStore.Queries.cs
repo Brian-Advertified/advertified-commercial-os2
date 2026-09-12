@@ -34,6 +34,31 @@ public sealed partial class FundingRecordStore
               AND plan.status_code = {MasterDataCodes.LifecycleStatuses.Approved}
               AND option.budget_minor = plan.total_minor
               AND option.currency_code = plan.currency_code
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM commercial.media_plan_lines required_line
+                  WHERE required_line.tenant_id = plan.tenant_id
+                    AND required_line.plan_version_id = plan.id
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM commercial.marketplace_rfqs rfq
+                        JOIN commercial.marketplace_supplier_responses response
+                          ON response.rfq_id = rfq.id
+                         AND response.buyer_tenant_id = rfq.buyer_tenant_id
+                         AND response.supplier_tenant_id = rfq.supplier_tenant_id
+                        JOIN commercial.marketplace_response_acceptances acceptance
+                          ON acceptance.response_id = response.id
+                         AND acceptance.buyer_tenant_id = rfq.buyer_tenant_id
+                         AND acceptance.supplier_tenant_id = rfq.supplier_tenant_id
+                        WHERE rfq.buyer_tenant_id = plan.tenant_id
+                          AND rfq.supplier_tenant_id = required_line.inventory_tenant_id
+                          AND rfq.listing_version_id = required_line.marketplace_listing_version_id
+                          AND rfq.requested_start = required_line.flight_start
+                          AND rfq.requested_end = required_line.flight_end
+                          AND rfq.quantity = required_line.quantity
+                          AND response.amount_minor = required_line.supplier_cost_minor
+                          AND response.currency_code = plan.currency_code
+                          AND response.availability_code = {MasterDataCodes.AvailabilityStatuses.Available}))
             """).SingleOrDefaultAsync(cancellationToken);
 
     internal Task<PurchaseOrderRow?> FindPurchaseOrderAsync(

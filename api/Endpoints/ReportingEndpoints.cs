@@ -17,6 +17,12 @@ public static class ReportingEndpoints
             .RequireAuthorization()
             .Produces<OperationalReportingView>()
             .WithQueryProblems();
+        endpoints.MapGet("/api/v1/tenants/{tenantId:guid}/reporting/commercial-memory", GetCommercialMemoryAsync)
+            .WithName("GetCommercialMemory")
+            .WithTags("Operational and commercial reporting")
+            .RequireAuthorization()
+            .Produces<CommercialMemoryView>()
+            .WithQueryProblems();
         return endpoints;
     }
 
@@ -26,6 +32,21 @@ public static class ReportingEndpoints
         CancellationToken cancellationToken) => Results.Ok(await reader.ReadAsync(
             identity.ActorId, new TenantId(tenantId), briefVersionId,
             inventoryProductId, cursor, cancellationToken));
+
+    private static async Task<IResult> GetCommercialMemoryAsync(
+        Guid tenantId,
+        DateOnly? from,
+        DateOnly? to,
+        Guid? supplierTenantId,
+        string? channel,
+        ICurrentIdentity identity,
+        ICommercialMemoryReader reader,
+        CancellationToken cancellationToken) =>
+        Results.Ok(await reader.GetAsync(
+            identity.ActorId,
+            new TenantId(tenantId),
+            new CommercialMemoryQuery(from, to, supplierTenantId, channel),
+            cancellationToken));
 
     private static async Task<IResult> GetAsync(
         Guid tenantId,

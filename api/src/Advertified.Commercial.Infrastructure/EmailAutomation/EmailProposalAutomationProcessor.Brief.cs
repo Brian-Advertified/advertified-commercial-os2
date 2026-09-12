@@ -197,7 +197,7 @@ public sealed partial class EmailProposalAutomationProcessor
             context.InboundEmailId,
             current => current with
             {
-                StpVersionId = stp.Id,
+                AudienceArtifactId = stp.Id,
                 Checkpoint = MasterDataCodes.EmailAutomationCheckpoints.StpApproved,
                 UpdatedAtUtc = timeProvider.GetUtcNow(),
             },
@@ -219,6 +219,7 @@ public sealed partial class EmailProposalAutomationProcessor
             draft.Currency,
             draft.VatStatus,
             draft.FeesMinor,
+            draft.MediaRequirements,
             draft.Constraints,
             draft.Measurement,
             draft.Facts,

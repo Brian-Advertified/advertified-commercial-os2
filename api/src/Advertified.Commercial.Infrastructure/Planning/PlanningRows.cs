@@ -23,7 +23,9 @@ internal sealed record PlanningBriefRow(
     string Objective,
     string AudiencesJson,
     string GeographiesJson,
+    string MediaRequirementsJson,
     string ConstraintsJson,
+    string ConflictsJson,
     string MeasurementJson,
     long? BudgetMinor,
     bool BudgetUnknown,
@@ -44,13 +46,12 @@ internal sealed record CampaignModeRow(
     long Version,
     DateTimeOffset SelectedAtUtc);
 
-internal sealed record AudienceSetRow(
+internal sealed record AudienceArtifactRow(
     Guid Id,
     Guid BriefVersionId,
+    long BriefVersion,
     int VersionNumber,
-    string TargetAudienceIdsJson,
-    string TargetingRationale,
-    string PositioningStatement,
+    string ArtifactJson,
     string InputHash,
     string Status,
     Guid CreatedBy,
@@ -59,29 +60,11 @@ internal sealed record AudienceSetRow(
     DateTimeOffset? ApprovedAtUtc,
     DateTimeOffset CreatedAtUtc);
 
-internal sealed record AudienceDefinitionRow(
-    Guid Id,
-    string Name,
-    string Description,
-    string NeedState,
-    string BuyingContext,
-    string GeographiesJson,
-    string? Language,
-    string? LifeStage,
-    string? LsmSem,
-    string? LsmSemTaxonomy,
-    string? LsmSemTaxonomyVersion,
-    string Classification,
-    string ExclusionsJson,
-    string EvidenceIdsJson,
-    decimal Confidence,
-    string Status,
-    bool LsmSemMandatory);
-
 internal sealed record MediaMixRow(
     Guid Id,
     Guid BriefVersionId,
-    Guid AudienceSetId,
+    Guid AudienceArtifactId,
+    Guid? MediaStrategyArtifactId,
     int VersionNumber,
     long TotalBudgetMinor,
     string Currency,

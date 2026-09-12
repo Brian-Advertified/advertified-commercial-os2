@@ -81,11 +81,6 @@ public sealed class HumanSafeExceptionHandler(
                 "Inventory processing is paused",
                 "Pending work and existing inventory are retained. An authorised operator must resume processing.",
                 "INVENTORY_PROCESSING_PAUSED"),
-            SuppliedBriefInterpretationUnavailableException => new(
-                StatusCodes.Status503ServiceUnavailable,
-                "Brief interpretation is unavailable",
-                "The brief interpretation service is not configured. No AI interpretation was performed.",
-                "BRIEF_INTERPRETATION_UNAVAILABLE"),
             BrowserAntiforgeryException => new(
                 StatusCodes.Status403Forbidden,
                 "Request could not be verified",
@@ -196,6 +191,11 @@ public sealed class HumanSafeExceptionHandler(
                 "Request key required",
                 "Add a request key and try again.",
                 "IDEMPOTENCY_KEY_REQUIRED"),
+            DuplicateOpportunityException => new(
+                StatusCodes.Status409Conflict,
+                "This opportunity already exists",
+                "Open the existing opportunity for this client and source reference.",
+                MasterDataCodes.OpportunityRejectionReasons.DuplicateOpportunity),
             EvidenceRequiredException => new(
                 StatusCodes.Status409Conflict,
                 "Approved evidence required",
@@ -301,6 +301,11 @@ public sealed class HumanSafeExceptionHandler(
                 "Supplier response expired",
                 "Ask the supplier for a current response before accepting it.",
                 "MARKETPLACE_RESPONSE_EXPIRED"),
+            MarketplaceResponseUnavailableException => new(
+                StatusCodes.Status409Conflict,
+                "Supplier response is not available",
+                "Ask the supplier for a response that confirms current availability before accepting it.",
+                "MARKETPLACE_RESPONSE_UNAVAILABLE"),
             ProposalStaleException => new(
                 StatusCodes.Status409Conflict,
                 "Proposal inputs changed",

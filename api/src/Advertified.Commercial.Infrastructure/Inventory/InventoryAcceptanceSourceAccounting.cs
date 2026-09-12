@@ -24,7 +24,8 @@ internal static class InventoryAcceptanceSourceAccounting
             retained.Add(locator);
         var unaccounted = new List<string>(document.ExtractionGaps ?? []);
         long inBoundary = 0, excluded = 0, context = 0;
-        var structure = document.Structures.Single(item => item.Id == record.SourceStructure);
+        var structure = InventoryRecordOrientation.Apply(
+            document.Structures.Single(item => item.Id == record.SourceStructure), record);
         var boundary = record.RecordBoundary;
         var excludedRows = boundary.ExcludedRows.ToHashSet();
         foreach (var cell in structure.Cells)
@@ -34,7 +35,7 @@ internal static class InventoryAcceptanceSourceAccounting
         return new(InventoryAcceptanceCheck.SourceContentAccounting,
             passed ? InventoryAcceptanceCheckResult.Passed : InventoryAcceptanceCheckResult.Failed,
             record.SourceStructure, passed
-                ? $"{inBoundary} in-boundary source values are retained in projected records, {excluded} fall in explicitly excluded rows, and {context} boundary-context values are referenced by the interpretation or empty."
+                ? $"{inBoundary} in-boundary source values are retained in projected records, {excluded} fall in explicitly excluded record-axis positions, and {context} source positions contain referenced context or empty text."
                 : string.Join(" ", unaccounted.Take(3)));
     }
 
@@ -42,6 +43,12 @@ internal static class InventoryAcceptanceSourceAccounting
         HashSet<int> excludedRows, HashSet<string> referenced, HashSet<string> retained,
         List<string> unaccounted, ref long inBoundary, ref long excluded, ref long context)
     {
+        // Blank cells remain in structural evidence and cannot produce a commercial value.
+        if (string.IsNullOrWhiteSpace(cell.RawText))
+        {
+            context++;
+            return;
+        }
         if (cell.Row < boundary.FirstRow || cell.Row > boundary.LastRow)
         {
             context++;

@@ -28,8 +28,12 @@ def test_opportunity_fixture_enables_dispatcher_without_live_ai() -> None:
         / "OpportunityAcceptanceTests.Support.cs"
     ).read_text(encoding="utf-8")
 
+    # AgentRuntimeOptions.DisabledMode was retired: the fixture enables the
+    # dispatcher through the deterministic HTTP provider, which cannot reach a
+    # live model or mutate commercial state. Assert the safe wiring explicitly.
     assert "AgentRuntimeOptions.HttpDeterministicMode" in support
-    assert "AgentRuntimeOptions.DisabledMode" in support
+    assert "AgentRuntimeOptions.DeterministicProvider" in support
+    assert "AgentRuntimeOptions.DisabledMode" not in support
     assert 'builder.UseSetting("Process:Role", ProcessRoleOptions.CombinedRole);' in support
     assert "services.RemoveAll<IOpportunityAgentClient>();" in support
     assert "OpportunityAgentFixture" in support

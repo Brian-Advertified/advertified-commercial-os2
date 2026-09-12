@@ -10,19 +10,50 @@ public sealed class PlanningDecisionContextTests
     public void ReusesApprovedBriefMeasurementAudienceDirectionAndMediaRoles()
     {
         var briefVersionId = Guid.NewGuid();
-        var brief = new PlanningBriefRow(
-            briefVersionId, Guid.NewGuid(), Guid.NewGuid(), "Fixture client", Guid.NewGuid(), "APPROVED",
-            "Store visits have declined.", "Increase qualified store visits.", "[]", "[]", "[]",
-            "[\"Store visits\",\"Qualified enquiries\"]", 500_000, false, "ZAR", null, null, "[]", 3);
-        var audience = new AudienceDefinitionSetView(
-            Guid.NewGuid(), briefVersionId, 1, [], "Prioritise high-intent local buyers.",
-            "Make the offer easy to act on near the buying moment.", "fixture", "APPROVED", [],
-            Guid.NewGuid(), Guid.NewGuid(), 1, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch);
+        var audienceId = Guid.NewGuid();
+        var brief = Brief(
+            briefVersionId,
+            "Store visits have declined.",
+            "Increase qualified store visits.",
+            "[\"Store visits\",\"Qualified enquiries\"]",
+            500_000,
+            false,
+            "ZAR",
+            3);
+        var audience = new AudienceStrategyView(
+            audienceId,
+            briefVersionId,
+            1,
+            [],
+            "Prioritise high-intent local buyers.",
+            "Make the offer easy to act on near the buying moment.",
+            "fixture",
+            "APPROVED",
+            [],
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            1,
+            DateTimeOffset.UnixEpoch,
+            DateTimeOffset.UnixEpoch);
         var mix = new MediaMixVersionView(
-            Guid.NewGuid(), briefVersionId, audience.Id, 1, 500_000, "ZAR",
-            [new("OOH", 300_000, "Build local salience", []),
-             new("RADIO", 200_000, "Explain the offer", [])], [], "fixture", "APPROVED",
-            Guid.NewGuid(), Guid.NewGuid(), 1, DateTimeOffset.UnixEpoch);
+            Guid.NewGuid(),
+            briefVersionId,
+            audience.Id,
+            Guid.NewGuid(),
+            1,
+            500_000,
+            "ZAR",
+            [
+                new("OOH", 300_000, "Build local salience", []),
+                new("RADIO", 200_000, "Explain the offer", []),
+            ],
+            [],
+            "fixture",
+            "APPROVED",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            1,
+            DateTimeOffset.UnixEpoch);
 
         var result = PlanningDecisionContext.Build(brief, audience, mix);
 
@@ -42,9 +73,15 @@ public sealed class PlanningDecisionContextTests
     [Fact]
     public void MissingCanonicalInputsRemainVisibleAsGapsInsteadOfBeingInvented()
     {
-        var brief = new PlanningBriefRow(
-            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Fixture client", Guid.NewGuid(), "APPROVED",
-            "Problem", "Objective", "[]", "[]", "[]", "[]", null, true, null, null, null, "[]", 1);
+        var brief = Brief(
+            Guid.NewGuid(),
+            "Problem",
+            "Objective",
+            "[]",
+            null,
+            true,
+            null,
+            1);
 
         var result = PlanningDecisionContext.Build(brief, null, null);
 
@@ -53,4 +90,35 @@ public sealed class PlanningDecisionContextTests
         Assert.Contains("commercialFlow.audienceStrategyMissing", result.EvidenceGaps);
         Assert.Contains("commercialFlow.mediaJobsMissing", result.EvidenceGaps);
     }
+
+    private static PlanningBriefRow Brief(
+        Guid id,
+        string problem,
+        string objective,
+        string measurementJson,
+        long? budgetMinor,
+        bool budgetUnknown,
+        string? currency,
+        long version) => new(
+            Id: id,
+            TenantId: Guid.NewGuid(),
+            BriefId: Guid.NewGuid(),
+            ClientName: "Fixture client",
+            OwnerUserId: Guid.NewGuid(),
+            Status: "APPROVED",
+            BusinessProblem: problem,
+            Objective: objective,
+            AudiencesJson: "[]",
+            GeographiesJson: "[]",
+            MediaRequirementsJson: "[]",
+            ConstraintsJson: "[]",
+            ConflictsJson: "[]",
+            MeasurementJson: measurementJson,
+            BudgetMinor: budgetMinor,
+            BudgetUnknown: budgetUnknown,
+            Currency: currency,
+            VatStatus: null,
+            FeesMinor: null,
+            EvidenceIdsJson: "[]",
+            Version: version);
 }

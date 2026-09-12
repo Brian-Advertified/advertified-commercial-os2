@@ -1,5 +1,7 @@
 using System.Net;
+using System.Text;
 using System.Text.Json;
+using UglyToad.PdfPig;
 using Npgsql;
 using Xunit;
 
@@ -117,12 +119,13 @@ public sealed partial class ProposalAcceptanceTests
             Assert.Equal(HttpStatusCode.OK, pdf.StatusCode);
             Assert.Equal("application/pdf", pdf.Content.Headers.ContentType?.MediaType);
             var bytes = await pdf.Content.ReadAsByteArrayAsync();
-            var pdfText = System.Text.Encoding.ASCII.GetString(bytes);
-            Assert.StartsWith("%PDF-", pdfText);
-            Assert.Contains("Proposal Agency", pdfText, StringComparison.Ordinal);
-            Assert.Contains("PROPOSAL FOR Proposal Client", pdfText, StringComparison.Ordinal);
-            Assert.Contains("Unbranded proposal authorised", pdfText, StringComparison.Ordinal);
-            Assert.Contains("Confidential proposal", pdfText, StringComparison.Ordinal);
+            Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(bytes, 0, 5));
+            using var parsed = PdfDocument.Open(bytes);
+            var pdfText = string.Join("\n", parsed.GetPages().Select(page => page.Text));
+            AssertContainsPdfText("Proposal Agency", pdfText);
+            AssertContainsPdfText("PROPOSAL FOR Proposal Client", pdfText);
+            AssertContainsPdfText("Unbranded proposal authorised", pdfText);
+            AssertContainsPdfText("Confidential proposal", pdfText);
         }
 
         using var shared = await CommandAsync(

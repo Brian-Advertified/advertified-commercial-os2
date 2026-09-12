@@ -21,7 +21,7 @@ def request_with_evidence(*, direct=False):
         "buying_context": "A weekly household replenishment purchase.",
         "message_context": "Clear unit price comparison", "moment_context": "Before the weekly shop",
     }]
-    payload = {"invocation": invocation("audience"), "planning": context}
+    payload = {"invocation": invocation("audience_intelligence"), "planning": context}
     if direct:
         payload["invocation"]["approved_evidence_item_ids"] = []
     return payload

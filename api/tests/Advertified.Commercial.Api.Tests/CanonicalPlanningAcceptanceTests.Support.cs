@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Advertified.Commercial.Domain.Commercial;
 using Advertified.Commercial.Application.EmailAutomation;
+using Advertified.Commercial.Application.Intelligence;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Domain.Governance;
 using Advertified.Commercial.Domain.MasterData;
@@ -43,8 +44,12 @@ public sealed partial class CanonicalPlanningAcceptanceTests
     {
         services.RemoveAll<TimeProvider>();
         services.AddSingleton<TimeProvider>(new FixedPlanningTimeProvider());
-        services.RemoveAll<IPlanningAgentClient>();
-        services.AddScoped<IPlanningAgentClient, PlanningAgentFixture>();
+        services.RemoveAll<IAudienceIntelligenceAgentClient>();
+        services.AddScoped<IAudienceIntelligenceAgentClient, AudienceIntelligenceAgentFixture>();
+        services.RemoveAll<IInventoryIntelligenceAgentClient>();
+        services.AddScoped<IInventoryIntelligenceAgentClient, InventoryIntelligenceAgentFixture>();
+        services.RemoveAll<IMediaStrategyIntelligenceAgentClient>();
+        services.AddScoped<IMediaStrategyIntelligenceAgentClient, MediaStrategyIntelligenceAgentFixture>();
     }
 
     internal static void ConfigureDeterministicEmailInventorySelection(
@@ -69,8 +74,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         builder.UseSetting("Authentication:DevelopmentIdentity:UserId", userId.ToString());
         builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", userId.ToString());
         builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
-        builder.UseDeterministicInventoryProtection();
-        builder.UseSetting("SuppliedBrief:Mode", "Disabled");
+        builder.UseDeterministicTestDependencies();
         builder.UseSetting("EmailAutomation:Mode", "Deterministic");
         builder.UseSetting("EmailAutomation:SenderAddress", "proposals@advertified.test");
         if (enableEmailAutomation)
@@ -90,10 +94,32 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         }
     });
 
+    internal static async Task<JsonDocument> AnalyseAndApproveMediaStrategyAsync(
+        HttpClient client,
+        Guid briefVersionId)
+    {
+        using var analysed = await client.PostAsync(
+            Path($"brief-versions/{briefVersionId}/intelligence/media-strategy"),
+            content: null);
+        var analysedBody = await analysed.Content.ReadAsStringAsync();
+        Assert.True(analysed.IsSuccessStatusCode, analysedBody);
+        using var draft = JsonDocument.Parse(analysedBody);
+        var artifactId = draft.RootElement.GetProperty("id").GetGuid();
+        var expectedVersion = draft.RootElement.GetProperty("version").GetInt64();
+
+        using var approved = await client.PostAsJsonAsync(
+            Path($"brief-versions/{briefVersionId}/intelligence/media-strategy/{artifactId}/approve"),
+            new { expectedVersion });
+        var approvedBody = await approved.Content.ReadAsStringAsync();
+        Assert.True(approved.IsSuccessStatusCode, approvedBody);
+        return JsonDocument.Parse(approvedBody);
+    }
+
     internal static async Task SeedAsync(
         string connectionString,
         long briefBudgetMinor = 1_000_000,
-        bool initializeSchema = true)
+        bool initializeSchema = true,
+        bool includeInventory = true)
     {
         var options = new DbContextOptionsBuilder<GovernanceDbContext>()
             .UseNpgsql(connectionString).Options;
@@ -121,7 +147,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             "Planning Client", "Planning Client", null, null, "{}",
             new LifecycleStatusCode("ACTIVE"), Now));
         await db.SaveChangesAsync();
-        await SeedPlanningPrerequisitesAsync(connectionString, briefBudgetMinor);
+        await SeedPlanningPrerequisitesAsync(connectionString, briefBudgetMinor, includeInventory);
     }
 
     private static Tenant CreateTenant(Guid id, string slug) => new(

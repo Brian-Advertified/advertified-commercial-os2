@@ -62,7 +62,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         Assert.Equal("SENT", run.GetProperty("status").GetString());
         Assert.Equal("SENT", run.GetProperty("checkpoint").GetString());
         Assert.True(run.GetProperty("briefVersionId").GetGuid() != Guid.Empty);
-        Assert.True(run.GetProperty("stpVersionId").GetGuid() != Guid.Empty);
+        Assert.True(run.GetProperty("audienceArtifactId").GetGuid() != Guid.Empty);
         Assert.True(run.GetProperty("mediaMixVersionId").GetGuid() != Guid.Empty);
         Assert.True(run.GetProperty("shortlistVersionId").GetGuid() != Guid.Empty);
         Assert.True(run.GetProperty("mediaPlanVersionId").GetGuid() != Guid.Empty);
@@ -96,6 +96,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(delivery.Attachment),
             StringComparison.Ordinal);
         await AssertAutomationConsequencesAsync(connectionString, automationRunId);
+        await AssertEmailAutomationProgressAsync(client, automationRunId);
         await AssertExternalDecisionRecordingAsync(client, reviewer, run);
 
         using var duplicate = await SendWebhookAsync(

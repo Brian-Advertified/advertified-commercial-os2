@@ -48,3 +48,40 @@ internal sealed record AgentOperationalRunRow
     public long IncrementalCostMinor { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }
 }
+
+internal sealed record AgentOperationProgressRow
+{
+    public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
+    public Guid? OpportunityId { get; set; }
+    public Guid? CampaignId { get; set; }
+    public Guid? SuppliedBriefInterpretationId { get; set; }
+    public string? SubjectResourceType { get; set; }
+    public Guid? SubjectResourceId { get; set; }
+    public long InputVersion { get; set; }
+    public string RunKind { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string? CurrentStep { get; set; }
+    public int Attempts { get; set; }
+    public string? ErrorCode { get; set; }
+    public Guid? CorrelationId { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public DateTimeOffset UpdatedAtUtc { get; set; }
+    public DateTimeOffset? CompletedAtUtc { get; set; }
+}
+
+internal sealed record AgentOperationStepRow
+{
+    public Guid Id { get; set; }
+    public string StepCode { get; set; } = string.Empty;
+    public string? AgentCode { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public int Attempts { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public DateTimeOffset UpdatedAtUtc { get; set; }
+    public DateTimeOffset? CompletedAtUtc { get; set; }
+    public string? Provider { get; set; }
+    public string? Model { get; set; }
+    public int ToolCalls { get; set; }
+    public long IncrementalCostMinor { get; set; }
+}

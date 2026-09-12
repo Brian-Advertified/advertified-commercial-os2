@@ -163,8 +163,7 @@ public sealed partial class InventorySupplierLifecycleCommands
         await store.InventoryStore.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE commercial.proposal_versions
             SET inventory_review_status_code =
-                    {MasterDataCodes.ProposalInventoryReviewStatuses.Resolved},
-                version = version + 1
+                    {MasterDataCodes.ProposalInventoryReviewStatuses.Resolved}
             WHERE tenant_id = {proposalTenantId.Value}
               AND id = {impact.ProposalVersionId}
             """, cancellationToken);

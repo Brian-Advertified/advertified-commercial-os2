@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import type { Booking } from '../api/booking-schemas'
 import { campaignApi } from '../api/campaign-client'
 import {
   campaignReasonSchema,
@@ -20,7 +21,7 @@ type CommonProps = {
 }
 
 type LiveProps = CommonProps & { canOperate: boolean }
-type ProofProps = CommonProps & { canReviewProof: boolean }
+type ProofProps = CommonProps & { canReviewProof: boolean; bookings: Booking[] }
 
 export function LiveDeliverySection(props: LiveProps) {
   return <section id="live-stage" className="campaign-workspace-section">
@@ -41,8 +42,57 @@ export function DeliveryProofSection(props: ProofProps) {
       <span className="status-chip status-neutral">
         {props.campaign.deliveryProofs.length} submitted
       </span></header>
+    <DeliveryProofCoverage campaign={props.campaign} bookings={props.bookings} />
     {!available ? <LockedProof /> : <ProofRecords {...props} />}
   </section>
+}
+
+function DeliveryProofCoverage({ campaign, bookings }: {
+  campaign: Campaign
+  bookings: Booking[]
+}) {
+  const approved = campaign.deliveryProofs.filter(item =>
+    item.status === masterDataCodes.lifecycleStatuses.approved)
+  const submitted = campaign.deliveryProofs.filter(item =>
+    item.status === masterDataCodes.lifecycleStatuses.submitted)
+  const rejected = campaign.deliveryProofs.filter(item =>
+    item.status === masterDataCodes.lifecycleStatuses.rejected)
+  const approvedBookings = new Set(approved.map(item => item.bookingId))
+  const proven = bookings.filter(item => approvedBookings.has(item.id))
+  const missing = bookings.filter(item => !approvedBookings.has(item.id))
+  return <section className="delivery-proof-coverage" aria-labelledby="proof-coverage-title">
+    <header><div><p className="eyebrow">Delivery accountability</p>
+      <h3 id="proof-coverage-title">How much of the booked campaign is actually proven?</h3>
+      <p>{proofCoverageSentence(bookings.length, proven.length, submitted.length, rejected.length)}</p></div>
+      <span className={`status-chip ${bookings.length > 0 && proven.length === bookings.length ? 'status-positive' : 'status-warning'}`}>
+        {proven.length}/{bookings.length} bookings evidenced</span></header>
+    <div className="delivery-proof-metrics">
+      <ProofMetric label="Booked media lines" value={bookings.length} detail="Commercial commitments requiring evidence" />
+      <ProofMetric label="Approved proof" value={approved.length} detail="Reviewed delivery evidence accepted" />
+      <ProofMetric label="Awaiting review" value={submitted.length} detail="Submitted proof not yet accepted" />
+      <ProofMetric label="Rejected proof" value={rejected.length} detail="Evidence requiring correction or replacement" />
+    </div>
+    {missing.length > 0 && <details className="delivery-proof-gaps"><summary>
+      {missing.length} booking{missing.length === 1 ? '' : 's'} still lack approved delivery evidence
+    </summary><ul>{missing.map(item => <li key={item.id}>
+      <strong>{item.productName}</strong><span>{item.supplierName} · {humanizeCode(item.channel, true)}</span>
+    </li>)}</ul></details>}
+    <footer>Campaign completion records that the booked flight ended. Only approved proof establishes retained delivery evidence for a booking.</footer>
+  </section>
+}
+
+function ProofMetric({ label, value, detail }: { label: string; value: number; detail: string }) {
+  return <article><small>{label}</small><strong>{value}</strong><p>{detail}</p></article>
+}
+
+function proofCoverageSentence(bookings: number, proven: number, submitted: number, rejected: number) {
+  if (bookings === 0) return 'No booked media lines are loaded for this campaign, so proof coverage cannot be assessed.'
+  if (proven === bookings) return `Every one of the ${bookings} booked media line${bookings === 1 ? '' : 's'} has approved delivery evidence.`
+  const pending = [
+    submitted > 0 ? `${submitted} proof submission${submitted === 1 ? '' : 's'} await review` : null,
+    rejected > 0 ? `${rejected} proof submission${rejected === 1 ? '' : 's'} were rejected` : null,
+  ].filter(Boolean)
+  return `${proven} of ${bookings} booked media line${bookings === 1 ? '' : 's'} currently have approved proof${pending.length ? `; ${pending.join(' and ')}` : ''}.`
 }
 
 function DeliveryHeading({ campaign }: { campaign: Campaign }) {

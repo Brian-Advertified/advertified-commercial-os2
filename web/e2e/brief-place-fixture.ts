@@ -2,13 +2,13 @@ import { expect, type Page } from '@playwright/test'
 
 export async function addVerifiedPlace(page: Page) {
   const place = page.getByRole('region', { name: 'Find placements near a place' })
-  await page.route('**/place-discovery?*', route => route.fulfill({ json: {
-    available: true, places: [{ id: 'osm:node:123', name: 'Synthetic mapped pharmacy',
+  await page.route('**/location-anchors?*', route => route.fulfill({ json: [
+    { id: 'osm:node:123', name: 'Synthetic mapped pharmacy',
       address: 'Synthetic area, South Africa', latitude: -26.2, longitude: 28.04,
       sourceLocator: 'https://www.openstreetmap.org/node/123',
       attribution: '© OpenStreetMap contributors · ODbL', retrievedAtUtc: '2026-09-08T10:00:00Z',
-      geometryBasis: 'Mapped point; verify the exact branch' }],
-  } }))
+      geometryBasis: 'Mapped point; verify the exact branch' },
+  ] }))
   await place.getByRole('textbox', { name: 'Branch or landmark and area' }).fill('Synthetic mapped pharmacy')
   await place.getByRole('button', { name: 'Find mapped branches' }).click()
   await place.getByRole('button', { name: 'Use location: Synthetic mapped pharmacy' }).click()

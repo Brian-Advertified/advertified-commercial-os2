@@ -7,7 +7,7 @@ internal static class InventorySuitabilityScorer
     internal static PreparedShortlistCandidate[] Score(
         IReadOnlyList<PreparedShortlistCandidate> candidates,
         PlanningPolicy policy,
-        IReadOnlyList<AudienceDefinitionView>? targets = null)
+        IReadOnlyList<AudienceSegmentView>? targets = null)
         => candidates.Select(candidate => ScoreCandidate(candidate, policy, targets ?? [])).ToArray();
 
     internal static InventorySuitabilityView Empty(PlanningPolicy policy) => new(
@@ -16,7 +16,7 @@ internal static class InventorySuitabilityScorer
     private static PreparedShortlistCandidate ScoreCandidate(
         PreparedShortlistCandidate candidate,
         PlanningPolicy policy,
-        IReadOnlyList<AudienceDefinitionView> targets)
+        IReadOnlyList<AudienceSegmentView> targets)
     {
         if (!candidate.Eligibility.IsEligible)
         {

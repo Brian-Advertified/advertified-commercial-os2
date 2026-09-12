@@ -53,6 +53,39 @@ public sealed class MarketplaceRecordStore(GovernanceDbContext dbContext)
                 RfqSelect + " WHERE response.id = {6}", RfqParameters(now, responseId)))
             .SingleOrDefaultAsync(cancellationToken);
 
+    internal Task<MarketplaceResponseIdentityRow?> FindResponseIdentityAsync(
+        Guid responseId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<MarketplaceResponseIdentityRow>($"""
+            SELECT response.rfq_id AS "RfqId",
+                response.buyer_tenant_id AS "BuyerTenantId",
+                response.supplier_tenant_id AS "SupplierTenantId",
+                response.response_version AS "ResponseVersion"
+            FROM commercial.marketplace_supplier_responses response
+            WHERE response.id = {responseId}
+            """).SingleOrDefaultAsync(cancellationToken);
+
+    internal Task<List<MarketplaceResponseHistoryRow>> ListResponsesAsync(
+        Guid rfqId,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.SqlQuery<MarketplaceResponseHistoryRow>($"""
+            SELECT response.id AS "Id", response.rfq_id AS "RfqId",
+                response.response_version AS "ResponseVersion",
+                response.amount_minor AS "AmountMinor", response.currency_code AS "Currency",
+                response.availability_code AS "Availability", response.terms AS "Terms",
+                response.valid_until_utc AS "ValidUntilUtc",
+                response.evidence_references_json::text AS "EvidenceJson",
+                response.submitted_by AS "SubmittedBy",
+                response.submitted_at_utc AS "SubmittedAtUtc",
+                acceptance.accepted_by AS "AcceptedBy",
+                acceptance.accepted_at_utc AS "AcceptedAtUtc"
+            FROM commercial.marketplace_supplier_responses response
+            LEFT JOIN commercial.marketplace_response_acceptances acceptance
+              ON acceptance.response_id = response.id
+            WHERE response.rfq_id = {rfqId}
+            ORDER BY response.response_version
+            """).ToListAsync(cancellationToken);
+
     internal async Task<MarketplaceProductSnapshotRow?> FindProductSnapshotAsync(
         TenantId tenantId,
         Guid productId,
@@ -174,6 +207,11 @@ public sealed class MarketplaceRecordStore(GovernanceDbContext dbContext)
             rfq.supplier_tenant_id AS "SupplierTenantId",
             rfq.listing_version_id AS "ListingVersionId",
             listing.supplier_name AS "SupplierName", listing.product_name AS "ProductName",
+            listing.amount_minor AS "ListedAmountMinor", listing.currency_code AS "ListedCurrency",
+            response_stats.quote_version_count AS "QuoteVersionCount",
+            response_stats.first_quote_amount_minor AS "FirstQuoteAmountMinor",
+            response_stats.first_quote_currency AS "FirstQuoteCurrency",
+            CASE WHEN acceptance.id IS NULL THEN NULL ELSE response.response_version END AS "AcceptedResponseVersion",
             rfq.subject AS "Subject", rfq.requested_start AS "RequestedStart",
             rfq.requested_end AS "RequestedEnd", rfq.quantity AS "Quantity",
             rfq.due_at_utc AS "DueAtUtc",
@@ -184,7 +222,10 @@ public sealed class MarketplaceRecordStore(GovernanceDbContext dbContext)
                  WHEN rfq.due_at_utc <= {0} THEN {2} ELSE {5} END AS "Status",
             rfq.created_by AS "CreatedBy", rfq.sent_by AS "SentBy",
             rfq.sent_at_utc AS "SentAtUtc", rfq.version AS "Version",
-            rfq.updated_at_utc AS "UpdatedAtUtc", response.id AS "ResponseId",
+            GREATEST(rfq.updated_at_utc,
+                COALESCE(response.submitted_at_utc, rfq.updated_at_utc),
+                COALESCE(acceptance.accepted_at_utc, rfq.updated_at_utc)) AS "UpdatedAtUtc",
+            response.id AS "ResponseId",
             (response.response_version + CASE WHEN acceptance.id IS NULL THEN 0 ELSE 1 END)
                 AS "ResponseVersion",
             response.amount_minor AS "ResponseAmountMinor",
@@ -205,6 +246,14 @@ public sealed class MarketplaceRecordStore(GovernanceDbContext dbContext)
             SELECT value.* FROM commercial.marketplace_supplier_responses value
             WHERE value.rfq_id = rfq.id
             ORDER BY value.response_version DESC LIMIT 1) response ON true
+        LEFT JOIN LATERAL (
+            SELECT COUNT(*)::integer AS quote_version_count,
+                (ARRAY_AGG(value.amount_minor ORDER BY value.response_version))[1]
+                    AS first_quote_amount_minor,
+                (ARRAY_AGG(value.currency_code ORDER BY value.response_version))[1]
+                    AS first_quote_currency
+            FROM commercial.marketplace_supplier_responses value
+            WHERE value.rfq_id = rfq.id) response_stats ON true
         LEFT JOIN commercial.marketplace_response_acceptances acceptance
           ON acceptance.response_id = response.id
         """;

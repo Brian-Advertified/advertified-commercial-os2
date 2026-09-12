@@ -34,9 +34,11 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
                     AS "ClientName",
                 brief.title AS "BriefTitle",
                 (SELECT audience.status_code
-                    FROM commercial.audience_definition_sets audience
+                    FROM commercial.intelligence_artifacts audience
                     WHERE audience.tenant_id = version.tenant_id
-                      AND audience.brief_version_id = version.id
+                      AND audience.subject_type = 'BriefVersion'
+                      AND audience.subject_id = version.id
+                      AND audience.service_code = {MasterDataCodes.AgentTypes.AudienceIntelligence}
                     ORDER BY audience.version_no DESC
                     LIMIT 1) AS "AudienceStatus",
                 (SELECT mix.status_code
@@ -62,9 +64,11 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
             WHERE brief.tenant_id = {tenantId.Value}
               AND brief.owner_user_id = {actorId}
               AND EXISTS (
-                SELECT 1 FROM commercial.audience_definition_sets audience
+                SELECT 1 FROM commercial.intelligence_artifacts audience
                 WHERE audience.tenant_id = version.tenant_id
-                  AND audience.brief_version_id = version.id)
+                  AND audience.subject_type = 'BriefVersion'
+                  AND audience.subject_id = version.id
+                  AND audience.service_code = {MasterDataCodes.AgentTypes.AudienceIntelligence})
             ORDER BY brief.updated_at_utc DESC, brief.id
             """).ToListAsync(cancellationToken);
 
@@ -83,7 +87,9 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
                 version.objective AS "Objective",
                 version.audiences_json::text AS "AudiencesJson",
                 version.geographies_json::text AS "GeographiesJson",
+                version.media_requirements_json::text AS "MediaRequirementsJson",
                 version.constraints_json::text AS "ConstraintsJson",
+                version.conflicts_json::text AS "ConflictsJson",
                 version.measurement_json::text AS "MeasurementJson",
                 version.budget_minor AS "BudgetMinor",
                 version.budget_unknown AS "BudgetUnknown",
@@ -156,8 +162,10 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
         CancellationToken cancellationToken) =>
         dbContext.Database.SqlQuery<bool>($"""
             SELECT (
-                EXISTS (SELECT 1 FROM commercial.audience_definition_sets
-                    WHERE tenant_id = {tenantId.Value} AND brief_version_id = {briefVersionId})
+                EXISTS (SELECT 1 FROM commercial.intelligence_artifacts
+                    WHERE tenant_id = {tenantId.Value}
+                      AND subject_type = 'BriefVersion' AND subject_id = {briefVersionId}
+                      AND service_code = {MasterDataCodes.AgentTypes.AudienceIntelligence})
                 OR EXISTS (SELECT 1 FROM commercial.media_mix_versions
                     WHERE tenant_id = {tenantId.Value} AND brief_version_id = {briefVersionId})
                 OR EXISTS (SELECT 1 FROM commercial.inventory_shortlist_versions
@@ -196,43 +204,44 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
             ORDER BY "Value"
             """).ToListAsync(cancellationToken);
 
-    internal async Task<AudienceSetRow?> FindLatestAudienceAsync(
+    internal async Task<AudienceArtifactRow?> FindLatestAudienceAsync(
         TenantId tenantId,
         Guid briefVersionId,
         CancellationToken cancellationToken)
     {
-        var rows = await dbContext.Database.SqlQuery<AudienceSetRow>($"""
-            SELECT id AS "Id", brief_version_id AS "BriefVersionId",
-                version_no AS "VersionNumber",
-                target_audience_ids_json::text AS "TargetAudienceIdsJson",
-                targeting_rationale AS "TargetingRationale",
-                positioning_statement AS "PositioningStatement", input_hash AS "InputHash",
+        var rows = await dbContext.Database.SqlQuery<AudienceArtifactRow>($"""
+            SELECT id AS "Id", subject_id AS "BriefVersionId",
+                subject_version AS "BriefVersion", version_no AS "VersionNumber",
+                artifact_json::text AS "ArtifactJson", input_hash AS "InputHash",
                 status_code AS "Status", created_by AS "CreatedBy",
                 approved_by AS "ApprovedBy", version AS "Version",
                 approved_at_utc AS "ApprovedAtUtc", created_at_utc AS "CreatedAtUtc"
-            FROM commercial.audience_definition_sets
-            WHERE tenant_id = {tenantId.Value} AND brief_version_id = {briefVersionId}
+            FROM commercial.intelligence_artifacts
+            WHERE tenant_id = {tenantId.Value}
+              AND subject_type = 'BriefVersion'
+              AND subject_id = {briefVersionId}
+              AND service_code = {MasterDataCodes.AgentTypes.AudienceIntelligence}
             ORDER BY version_no DESC LIMIT 1
             """).ToListAsync(cancellationToken);
         return rows.SingleOrDefault();
     }
 
-    internal async Task<AudienceSetRow?> FindAudienceAsync(
+    internal async Task<AudienceArtifactRow?> FindAudienceAsync(
         TenantId tenantId,
-        Guid audienceSetId,
+        Guid audienceArtifactId,
         CancellationToken cancellationToken)
     {
-        var rows = await dbContext.Database.SqlQuery<AudienceSetRow>($"""
-            SELECT id AS "Id", brief_version_id AS "BriefVersionId",
-                version_no AS "VersionNumber",
-                target_audience_ids_json::text AS "TargetAudienceIdsJson",
-                targeting_rationale AS "TargetingRationale",
-                positioning_statement AS "PositioningStatement", input_hash AS "InputHash",
+        var rows = await dbContext.Database.SqlQuery<AudienceArtifactRow>($"""
+            SELECT id AS "Id", subject_id AS "BriefVersionId",
+                subject_version AS "BriefVersion", version_no AS "VersionNumber",
+                artifact_json::text AS "ArtifactJson", input_hash AS "InputHash",
                 status_code AS "Status", created_by AS "CreatedBy",
                 approved_by AS "ApprovedBy", version AS "Version",
                 approved_at_utc AS "ApprovedAtUtc", created_at_utc AS "CreatedAtUtc"
-            FROM commercial.audience_definition_sets
-            WHERE tenant_id = {tenantId.Value} AND id = {audienceSetId}
+            FROM commercial.intelligence_artifacts
+            WHERE tenant_id = {tenantId.Value} AND id = {audienceArtifactId}
+              AND subject_type = 'BriefVersion'
+              AND service_code = {MasterDataCodes.AgentTypes.AudienceIntelligence}
             """).ToListAsync(cancellationToken);
         return rows.SingleOrDefault();
     }
@@ -345,7 +354,8 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
 
     private const string MediaMixSelect = """
         SELECT id AS "Id", brief_version_id AS "BriefVersionId",
-            audience_set_id AS "AudienceSetId", version_no AS "VersionNumber",
+            audience_artifact_id AS "AudienceArtifactId",
+            media_strategy_artifact_id AS "MediaStrategyArtifactId", version_no AS "VersionNumber",
             total_budget_minor AS "TotalBudgetMinor", currency_code AS "Currency",
             allocations_json::text AS "AllocationsJson",
             assumptions_json::text AS "AssumptionsJson", input_hash AS "InputHash",

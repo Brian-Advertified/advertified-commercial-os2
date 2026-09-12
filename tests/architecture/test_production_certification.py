@@ -247,3 +247,12 @@ def test_certification_validator_stays_reviewable() -> None:
 
     assert len(source.splitlines()) <= 400
     assert not oversized
+
+
+def test_certification_uses_canonical_campaign_mode_and_rejects_old_schema(tmp_path: Path) -> None:
+    assert contract.OOH_JOURNEY == "OOH_ONLY"
+    assert "immutable_campaign_mode" in contract.LIFECYCLE_CHECKS[contract.OOH_JOURNEY]
+    _, manifest = write_fixture(tmp_path)
+    manifest["schemaVersion"] = "advertified.production-certification.v1"
+    with pytest.raises(certification.CertificationError, match="schemaVersion"):
+        certification.validate_manifest(write_manifest(tmp_path, manifest), tmp_path)

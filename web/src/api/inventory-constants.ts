@@ -27,7 +27,7 @@ export const inventoryCodes = {
     reviewRequired: masterDataCodes.lifecycleStatuses.reviewRequired,
   },
   extractionStatus: masterDataCodes.inventoryExtractionAttemptStatuses,
-  availability: { unknown: masterDataCodes.availabilityStatuses.unknown },
+  availability: { planningAvailable: masterDataCodes.availabilityStatuses.planningAvailable },
   assetRights: {
     approved: masterDataCodes.assetRightsStatuses.approved,
     restricted: masterDataCodes.assetRightsStatuses.restricted,

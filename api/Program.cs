@@ -16,6 +16,7 @@ using Advertified.Commercial.Application.Delivery;
 using Advertified.Commercial.Application.Brief;
 using Advertified.Commercial.Application.EmailAutomation;
 using Advertified.Commercial.Application.Identity;
+using Advertified.Commercial.Application.Intelligence;
 using Advertified.Commercial.Application.Foundation;
 using Advertified.Commercial.Application.Funding;
 using Advertified.Commercial.Application.Opportunity;
@@ -39,6 +40,8 @@ using Advertified.Commercial.Infrastructure.Delivery;
 using Advertified.Commercial.Infrastructure.Brief;
 using Advertified.Commercial.Infrastructure.EmailAutomation;
 using Advertified.Commercial.Infrastructure.Identity;
+using Advertified.Commercial.Infrastructure.Intelligence;
+using Advertified.Commercial.Infrastructure.LocationIntelligence;
 using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Advertified.Commercial.Infrastructure.Onboarding;
@@ -92,7 +95,7 @@ builder.Services.AddDbContext<GovernanceDbContext>(
     options => options.UseNpgsql(connectionString));
 builder.Services.AddSingleton<AiMonthlyBudgetStore>(); builder.Services.AddTransient<AiMonthlyBudgetHandler>();
 builder.AddOutboxDispatch();
-builder.Services.AddSingleton(TimeProvider.System).AddPlaceDiscovery(builder.Configuration);
+builder.Services.AddSingleton(TimeProvider.System).AddLocationIntelligence(builder.Configuration);
 builder.Services.AddScoped<IBrowserSessionStore, PostgresBrowserSessionStore>();
 builder.Services.AddScoped<AgentOperationsStore>();
 builder.Services.AddScoped<IAgentOperationsReader, AgentOperationsReader>();
@@ -110,25 +113,7 @@ builder.Services.AddScoped<ICommercialFoundationReader, CommercialFoundationRead
 builder.Services.AddScoped<CommercialPolicyRecordStore>();
 builder.Services.AddScoped<ICommercialPolicyReader, CommercialPolicyReader>();
 builder.Services.AddScoped<ICommercialPolicyCommands, CommercialPolicyCommands>();
-builder.Services.AddScoped<BookingRecordStore>();
-builder.Services.AddScoped<IBookingReader, BookingReader>();
-builder.Services.AddScoped<IBookingCommands, BookingCommands>();
-builder.Services.AddScoped<CampaignRecordStore>();
-builder.Services.AddScoped<ICampaignReader, CampaignReader>();
-builder.Services.AddScoped<ICampaignCommands, CampaignCommands>();
-builder.Services.AddScoped<CreativeRecordStore>();
-builder.Services.AddScoped<ICreativeReader, CreativeReader>();
-builder.Services.AddScoped<ICreativeCommands, CreativeCommands>();
-builder.Services.AddScoped<DeliveryProofRecordStore>();
-builder.Services.AddScoped<IDeliveryProofReader, DeliveryProofReader>();
-builder.Services.AddScoped<IDeliveryProofCommands, DeliveryProofCommands>();
-builder.Services.AddScoped<PerformanceEvidenceRecordStore>();
-builder.Services.AddScoped<IPerformanceEvidenceReader, PerformanceEvidenceReader>();
-builder.Services.AddScoped<IPerformanceEvidenceCommands, PerformanceEvidenceCommands>();
-builder.Services.AddScoped<MeasurementReportRecordStore>(); builder.Services.AddScoped<IMeasurementReportReader, MeasurementReportReader>();
-builder.Services.AddScoped<IMeasurementReportCommands, MeasurementReportCommands>();
-builder.Services.AddScoped<FundingRecordStore>(); builder.Services.AddScoped<IFundingReader, FundingReader>();
-builder.Services.AddScoped<IFundingCommands, FundingCommands>();
+builder.Services.AddCommercialExecutionStores();
 builder.Services.AddScoped<IIdentityFoundationCommands, IdentityFoundationCommands>();
 builder.Services.AddScoped<IBusinessFoundationCommands, BusinessFoundationCommands>();
 builder.Services.AddScoped<OpportunityRecordStore>();
@@ -155,6 +140,7 @@ builder.Services.AddScoped<
     InventorySupplierLifecycleCommands>();
 builder.Services.AddScoped<InventoryExtractionAttemptStore>();
 builder.Services.AddScoped<InventorySemanticStore>();
+builder.Services.AddScoped<IInventorySchemaInterpreter, InventorySchemaInterpreter>();
 builder.Services.AddScoped<InventorySemanticEnrichmentService>();
 builder.Services.AddScoped<
     IInventorySemanticPreflightReader,
@@ -173,6 +159,7 @@ builder.Services.AddScoped<MarketplaceRecordStore>();
 builder.Services.AddScoped<IMarketplaceReader, MarketplaceReader>();
 builder.Services.AddScoped<IMarketplaceCommands, MarketplaceCommands>();
 builder.Services.AddScoped<PlanningRecordStore>();
+builder.Services.AddScoped<ProposalReplanProcessor>();
 builder.Services.AddScoped<IPlanningReader, PlanningReader>();
 builder.Services.AddScoped<IInventoryBenchmarkReader, InventoryBenchmarkReader>();
 builder.Services.AddSingleton(PlanningPolicy.Load());
@@ -182,7 +169,11 @@ builder.Services.AddScoped<ProposalRecordStore>(); builder.Services.AddSingleton
 builder.Services.AddScoped<IProposalReader, ProposalReader>();
 builder.Services.AddScoped<IProposalCommands, ProposalCommands>();
 builder.Services.AddScoped<ProposalInventoryReadiness>();
-builder.Services.AddScoped<OperationalReportingStore>(); builder.Services.AddScoped<IOperationalReportingReader, OperationalReportingReader>(); builder.Services.AddScoped<IInventoryDecisionReader, InventoryDecisionReader>();
+builder.Services.AddScoped<OperationalReportingStore>();
+builder.Services.AddScoped<IOperationalReportingReader, OperationalReportingReader>();
+builder.Services.AddScoped<CommercialMemoryStore>();
+builder.Services.AddScoped<ICommercialMemoryReader, CommercialMemoryReader>();
+builder.Services.AddScoped<IInventoryDecisionReader, InventoryDecisionReader>();
 builder.AddEmailAutomation(emailAutomation);
 builder.AddCommercialWorkers(processRole);
 builder.AddInventoryExtraction(inventoryExtraction);
@@ -200,8 +191,8 @@ builder.Services.AddOptions<InventoryProtectionOptions>()
         "MinIO inventory protection requires an endpoint and credentials.")
     .Validate(InventoryProtectionOptions.HasCompleteAwsS3Configuration,
         "AWS S3 inventory protection requires a bucket and AWS region.")
-    .Validate(InventoryProtectionOptions.HasCompleteClamAvConfiguration,
-        "ClamAV inventory protection requires a valid host and port.")
+    .Validate(InventoryProtectionOptions.HasCompleteAwsS3Configuration,
+        "External malware-verdict protection requires AWS S3 object storage.")
     .ValidateOnStart();
 builder.Services.AddSingleton<IMinioClient>(serviceProvider =>
 {
@@ -226,10 +217,10 @@ builder.Services.AddSingleton<IInventoryObjectStore>(serviceProvider =>
             ActivatorUtilities.CreateInstance<AwsS3InventoryObjectStore>(serviceProvider),
         _ => new InMemoryInventoryObjectStore(),
     });
-builder.Services.AddSingleton<IInventoryMalwareScanner>(serviceProvider =>
-    inventoryProtection.ScannerMode == InventoryProtectionOptions.ClamAvScanner
-        ? ActivatorUtilities.CreateInstance<ClamAvInventoryMalwareScanner>(serviceProvider)
-        : new DeterministicInventoryMalwareScanner());
+builder.Services.AddSingleton<IFileMalwareProtection>(serviceProvider =>
+    inventoryProtection.ScannerMode == InventoryProtectionOptions.ExternalVerdictScanner
+        ? new ExternalFileMalwareProtection()
+        : new DeterministicFileMalwareProtection());
 builder.Services.AddOptions<AgentRuntimeOptions>()
     .Bind(builder.Configuration.GetSection(AgentRuntimeOptions.SectionName))
     .Validate(AgentRuntimeOptions.HasSupportedMode,
@@ -253,17 +244,24 @@ builder.Services.AddOptions<AgentRuntimeOptions>()
     .ValidateOnStart();
 builder.AddInventorySemantic(agentRuntime);
 builder.Services.AddHttpClient<HttpOpportunityAgentClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
-builder.Services.AddHttpClient<HttpPlanningAgentClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
+builder.Services.AddHttpClient<HttpMarketIntelligenceAgentClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
+builder.Services.AddHttpClient<HttpAudienceIntelligenceAgentClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
+builder.Services.AddHttpClient<HttpMediaStrategyIntelligenceAgentClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
+builder.Services.AddHttpClient<HttpLocationIntelligenceAgentClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
+builder.Services.AddHttpClient<HttpInventoryIntelligenceAgentClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
 builder.Services.AddHttpClient<HttpProposalNarrativeClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
 builder.Services.AddHttpClient<HttpMeasurementAgentClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
 builder.Services.AddHttpClient<InventorySemanticAgentClient>(AgentRuntimeClientConfiguration.Configure).AddHttpMessageHandler<AiMonthlyBudgetHandler>();
 builder.AddAgentRuntimeClients(agentRuntime);
-if (agentRuntime.Mode != AgentRuntimeOptions.DisabledMode && processRole.RunsWorkers)
+if (processRole.RunsWorkers)
 {
     builder.Services.AddHostedService<OpportunityRunDispatcher>();
 }
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentIdentity, ClaimsCurrentIdentity>();
+builder.Services.AddScoped<IMarketIntelligenceService, MarketIntelligenceService>();
+builder.Services.AddScoped<IMediaStrategyIntelligenceService, MediaStrategyIntelligenceService>();
+builder.Services.AddScoped<IInventoryIntelligenceService, InventoryIntelligenceService>();
 builder.Services.AddScoped<BrowserRequestGuard>();
 builder.Services.AddOptions<BrowserSessionOptions>()
     .Bind(builder.Configuration.GetSection(BrowserSessionOptions.SectionName))
@@ -316,7 +314,7 @@ var authentication = builder.Services
 builder.AddAdvertifiedOidc(authentication, authenticationMode);
 builder.Services.AddAuthorization();
 builder.Services.AddTrustedProxyHeaders(builder.Configuration);
-builder.Services.AddAdvertifiedRateLimits();
+builder.Services.AddAdvertifiedRateLimits(builder.Configuration);
 builder.Services.AddHsts(options =>
 {
     options.MaxAge = TimeSpan.FromDays(365);
@@ -376,6 +374,9 @@ if (processRole.RunsApi)
     app.MapFoundationEndpoints();
     app.MapOpportunityEndpoints();
     app.MapBriefEndpoints();
+    app.MapMarketIntelligenceEndpoints();
+    app.MapLocationIntelligenceEndpoints();
+    app.MapMediaStrategyIntelligenceEndpoints();
     app.MapCommercialPolicyEndpoints();
     app.MapBookingEndpoints();
     app.MapCampaignEndpoints();
@@ -392,9 +393,6 @@ if (processRole.RunsApi)
     app.MapReportingEndpoints();
     app.MapEmailAutomationEndpoints();
 }
-else
-{
-    app.MapWorkerHealthEndpoints();
-}
+else { app.MapWorkerHealthEndpoints(); }
 app.Run();
 public partial class Program;

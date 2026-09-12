@@ -154,7 +154,7 @@ public sealed class OutboxDispatchReadinessTests
                     $"{OutboxDispatchOptions.SectionName}:TenantId",
                     TenantId.ToString());
             }
-            builder.UseDeterministicInventoryProtection();
+            builder.UseDeterministicTestDependencies();
             builder.UseSetting("Logging:LogLevel:Default", "Warning");
         });
 

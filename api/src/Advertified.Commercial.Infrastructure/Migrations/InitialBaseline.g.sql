@@ -2270,8 +2270,7 @@ BEGIN
         replacement_release_id) DO NOTHING;
     GET DIAGNOSTICS inserted_count = ROW_COUNT;
     UPDATE commercial.proposal_versions proposal
-    SET inventory_review_status_code = 'REVIEW_REQUIRED',
-        version = version + 1
+    SET inventory_review_status_code = 'REVIEW_REQUIRED'
     WHERE proposal.inventory_review_status_code <> 'REVIEW_REQUIRED'
       AND EXISTS (
           SELECT 1

@@ -15,12 +15,7 @@ public sealed partial class SuppliedBriefPersistenceTests
     [Fact]
     public async Task RetainedInterpretationReplaysWithOneUsageEntryAndRejectsChangedInput()
     {
-        var database = Environment.GetEnvironmentVariable("PGDATABASE") ?? "";
-        Assert.StartsWith("advertified_brief_test_", database);
-        var connection = new NpgsqlConnectionStringBuilder {
-            Host = Environment.GetEnvironmentVariable("PGHOST"), Database = database,
-            Username = Environment.GetEnvironmentVariable("PGUSER"),
-            Password = Environment.GetEnvironmentVariable("PGPASSWORD") }.ConnectionString;
+        var connection = JourneyConnection();
         await using var db = new GovernanceDbContext(new DbContextOptionsBuilder<GovernanceDbContext>()
             .UseNpgsql(connection).Options);
         var tenant = Guid.NewGuid();

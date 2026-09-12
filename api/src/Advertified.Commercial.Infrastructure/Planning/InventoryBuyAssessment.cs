@@ -11,7 +11,7 @@ internal static class InventoryBuyAssessment
     private static readonly JsonSerializerOptions StoredJson = new(JsonSerializerDefaults.Web);
 
     internal static InventoryBuyAssessmentView Evaluate(PreparedShortlistCandidate candidate,
-        PlanningPolicy policy, IReadOnlyList<AudienceDefinitionView> targets)
+        PlanningPolicy policy, IReadOnlyList<AudienceSegmentView> targets)
     {
         var gaps = new List<string>();
         var cost = Cost(candidate, policy, gaps);
@@ -36,7 +36,7 @@ internal static class InventoryBuyAssessment
     }
 
     private static bool MatchesTarget(InventoryDeliveryMeasurementView? basis,
-        IReadOnlyList<AudienceDefinitionView> targets) => basis is not null && targets.Count == 1 &&
+        IReadOnlyList<AudienceSegmentView> targets) => basis is not null && targets.Count == 1 &&
         targets[0].EvidenceItemIds.Count > 0 && string.Equals(basis.Universe?.Trim(),
             targets[0].Name.Trim(), StringComparison.OrdinalIgnoreCase);
 

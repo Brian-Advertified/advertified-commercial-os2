@@ -14,3 +14,6 @@ public sealed class CaptureProviderDisabledException()
 
 public sealed class InvalidLifecycleTransitionException()
     : Exception("The requested lifecycle transition is not valid.");
+
+public sealed class DuplicateOpportunityException()
+    : Exception("An opportunity with the same source identity already exists.");

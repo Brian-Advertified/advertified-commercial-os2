@@ -11,6 +11,8 @@ public sealed class WorkerDispatchOptions
     public int InventoryExtractionLeaseSeconds { get; init; } = 120;
     public int InventoryExtractionMaxConcurrency { get; init; } = 1;
     public int InventoryExtractionRecoverySweepSeconds { get; init; } = 300;
+    public int ProposalReplanLeaseSeconds { get; init; } = 120;
+    public int ProposalReplanMaxAttempts { get; init; } = 5;
 
     public TimeSpan PollInterval => TimeSpan.FromMilliseconds(PollMilliseconds);
     public TimeSpan InventoryExtractionRecoverySweepInterval =>
@@ -23,7 +25,9 @@ public sealed class WorkerDispatchOptions
         options.MaxEmailAttempts is >= 1 and <= 20 &&
         options.InventoryExtractionLeaseSeconds is >= 30 and <= 600 &&
         options.InventoryExtractionMaxConcurrency is >= 1 and <= 4 &&
-        options.InventoryExtractionRecoverySweepSeconds is >= 30 and <= 3_600;
+        options.InventoryExtractionRecoverySweepSeconds is >= 30 and <= 3_600 &&
+        options.ProposalReplanLeaseSeconds is >= 30 and <= 600 &&
+        options.ProposalReplanMaxAttempts is >= 1 and <= 20;
 }
 
 
@@ -61,4 +65,17 @@ public sealed record InventoryExtractionWorkerClaim(
     Guid RequestedBy,
     Guid CommandId,
     Guid CorrelationId,
+    Guid ClaimToken);
+
+public sealed record ProposalReplanWorkerClaim(
+    Guid ReplanId,
+    Guid TenantId,
+    Guid SourceProposalVersionId,
+    Guid InventoryTenantId,
+    Guid ReplacementReleaseId,
+    Guid ReviewOwnerUserId,
+    Guid TriggeredBy,
+    string AffectedImpactIdsJson,
+    int AttemptNumber,
+    int SourceGeneration,
     Guid ClaimToken);

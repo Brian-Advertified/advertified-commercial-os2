@@ -1,8 +1,8 @@
 # Generated from shared/contracts/master-data.json. Do not edit.
-# source-sha256: 7a0d065ee13ccb5bf5f8335d38831484432b45b36c129549fa7b3dcf7d259123
+# source-sha256: 55cf19062d01d7083dfabbd30fd6088ff758b718aaefa868b6245c9e5fcca695
 from enum import StrEnum
 
-REGISTRY_VERSION = "2.37.0"
+REGISTRY_VERSION = "2.43.0"
 
 class Channels(StrEnum):
     OOH = "OOH"
@@ -200,9 +200,12 @@ class HumanTaskTypes(StrEnum):
     INVENTORY_SUPERSESSION_REVIEW = "INVENTORY_SUPERSESSION_REVIEW"
 
 class EvidenceClassifications(StrEnum):
+    CLIENT_REQUIREMENT = "CLIENT_REQUIREMENT"
     FACT = "FACT"
     INFERENCE = "INFERENCE"
     HYPOTHESIS = "HYPOTHESIS"
+    AI_RECOMMENDATION = "AI_RECOMMENDATION"
+    UNKNOWN = "UNKNOWN"
 
 class BenchmarkPositions(StrEnum):
     STRONG_VALUE = "STRONG_VALUE"
@@ -272,7 +275,6 @@ class ProposalInventoryImpactTypes(StrEnum):
     SUPPLIER_RELEASE_SUPERSEDED = "SUPPLIER_RELEASE_SUPERSEDED"
 
 class AvailabilityStatuses(StrEnum):
-    UNKNOWN = "UNKNOWN"
     AVAILABLE = "AVAILABLE"
     LIMITED = "LIMITED"
     UNAVAILABLE = "UNAVAILABLE"
@@ -415,9 +417,11 @@ class AgentTypes(StrEnum):
     STRATEGY = "strategy"
     CRITIC_READINESS = "critic_readiness"
     BRIEF_DRAFTING = "brief_drafting"
-    AUDIENCE = "audience"
+    MARKET_INTELLIGENCE = "market_intelligence"
+    AUDIENCE_INTELLIGENCE = "audience_intelligence"
+    LOCATION_INTELLIGENCE = "location_intelligence"
+    MEDIA_STRATEGY = "media_strategy"
     INVENTORY_INTELLIGENCE = "inventory_intelligence"
-    MEDIA_PLANNING = "media_planning"
     PROPOSAL_NARRATIVE = "proposal_narrative"
     CREATIVE = "creative"
     MEASUREMENT = "measurement"
@@ -570,6 +574,9 @@ class ValidationIssueTypes(StrEnum):
     EVIDENCE_POINTER_REQUIRED = "EVIDENCE_POINTER_REQUIRED"
     SUPPLIER_IDENTITY_MISMATCH = "SUPPLIER_IDENTITY_MISMATCH"
 
+class OpportunityRejectionReasons(StrEnum):
+    DUPLICATE_OPPORTUNITY = "DUPLICATE_OPPORTUNITY"
+
 class AgentFailureReasons(StrEnum):
     AGENT_OUTPUT_INVALID = "AGENT_OUTPUT_INVALID"
     AGENT_RUNTIME_UNAVAILABLE = "AGENT_RUNTIME_UNAVAILABLE"
@@ -596,11 +603,12 @@ class CommercialResourceTypes(StrEnum):
     INVENTORY_IMPORT = "inventory_import"
     INVENTORY_CANDIDATE = "inventory_candidate"
     INVENTORY_PRODUCT = "inventory_product"
-    AUDIENCE_DEFINITION_SET = "audience_definition_set"
+    INTELLIGENCE_ARTIFACT = "intelligence_artifact"
     MEDIA_MIX_VERSION = "media_mix_version"
     INVENTORY_SHORTLIST_VERSION = "inventory_shortlist_version"
     MEDIA_PLAN_VERSION = "media_plan_version"
     PROPOSAL_VERSION = "proposal_version"
+    PROPOSAL_REPLAN_REVISION = "proposal_replan_revision"
     PROPOSAL_DOCUMENT = "proposal_document"
     PROPOSAL_DECISION = "proposal_decision"
     CAMPAIGN_MODE_SELECTION = "campaign_mode_selection"
@@ -667,7 +675,8 @@ class CommercialActions(StrEnum):
     INVENTORY_DUPLICATE_NOMINATED = "inventory_duplicate.nominated"
     INVENTORY_DUPLICATE_REVIEWED = "inventory_duplicate.reviewed"
     INVENTORY_EMBEDDING_SUBMITTED = "inventory_embedding.submitted"
-    AUDIENCE_DEFINITIONS_GENERATED = "audience_definitions.generated"
+    AUDIENCE_INTELLIGENCE_GENERATED = "audience_intelligence.generated"
+    AUDIENCE_INTELLIGENCE_APPROVED = "audience_intelligence.approved"
     MEDIA_MIX_GENERATED = "media_mix.generated"
     MEDIA_MIX_APPROVED = "media_mix.approved"
     INVENTORY_SHORTLIST_GENERATED = "inventory_shortlist.generated"
@@ -783,7 +792,8 @@ class CommercialEventTypes(StrEnum):
     INVENTORY_DUPLICATE_REVIEWED = "InventoryDuplicateReviewed"
     INVENTORY_EMBEDDING_SUBMITTED = "InventoryEmbeddingSubmitted"
     INVENTORY_AVAILABILITY_EXCEPTION_RECORDED = "InventoryAvailabilityExceptionRecorded"
-    AUDIENCE_DEFINITIONS_GENERATED = "AudienceDefinitionsGenerated"
+    AUDIENCE_INTELLIGENCE_GENERATED = "AudienceIntelligenceGenerated"
+    AUDIENCE_INTELLIGENCE_APPROVED = "AudienceIntelligenceApproved"
     MEDIA_MIX_GENERATED = "MediaMixGenerated"
     MEDIA_MIX_APPROVED = "MediaMixApproved"
     INVENTORY_SHORTLIST_GENERATED = "InventoryShortlistGenerated"
@@ -918,6 +928,7 @@ class MeasurementUnits(StrEnum):
     COUNT = "COUNT"
     PEOPLE = "PEOPLE"
     PERCENT = "PERCENT"
+    HOURS = "HOURS"
 
 class MeasurementQualityStatuses(StrEnum):
     VERIFIED = "VERIFIED"

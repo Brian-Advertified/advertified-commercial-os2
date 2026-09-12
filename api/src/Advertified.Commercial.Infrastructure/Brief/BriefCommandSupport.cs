@@ -60,6 +60,7 @@ internal static class BriefCommandSupport
         return new ValidatedBriefVersion(
             problem, objective, Strings(command.Audiences, nameof(command.Audiences)),
             Strings(command.Geographies, nameof(command.Geographies)), timing, currency, vat,
+            Strings(command.MediaRequirements, nameof(command.MediaRequirements)),
             Strings(command.Constraints, nameof(command.Constraints)),
             Strings(command.Measurement, nameof(command.Measurement)),
             Strings(command.Facts, nameof(command.Facts)), unknowns, assumptions, conflicts);
@@ -145,6 +146,7 @@ internal sealed record ValidatedBriefVersion(
     string Timing,
     string? Currency,
     string? VatStatus,
+    string[] MediaRequirements,
     string[] Constraints,
     string[] Measurement,
     string[] Facts,

@@ -6,7 +6,6 @@ export const placeCopy = {
   mappedHint: 'For example: Clicks, Sandton, South Africa',
   searchMapped: 'Find mapped branches',
   mappedPrivacy: 'Only the place and area you enter are sent to the location service. Do not include client, audience or confidential campaign details. Search runs when you click, not while typing.',
-  providerUnavailable: 'The external location service is not connected. Search supplied evidence or enter verified coordinates below.',
   chooseMapped: 'These mapped places are candidates, not verified retailer records. Choose the exact branch; do not use a similarly named location.',
   noMappedResults: 'No mapped branch matched. Refine the branch and area or supply an evidenced location. This does not establish that no branch exists.',
   viewSource: 'Review mapped location',

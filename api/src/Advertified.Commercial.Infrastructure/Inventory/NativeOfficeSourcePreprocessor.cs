@@ -17,8 +17,8 @@ internal static class NativeOfficeSourcePreprocessor
             .Select(node => Text(node))
             .Where(value => value.Length > 0)
             .Select((value, index) => Element(
-                $"docx:paragraph={index + 1}", "paragraph",
-                index + 1, value))
+                $"docx:paragraph={index + 1}", "docx:document", "paragraph",
+                index + 1, 1, value))
             .ToArray();
         return (paragraphs, Images(archive, "word/media/", "docx"));
     }
@@ -40,7 +40,7 @@ internal static class NativeOfficeSourcePreprocessor
                 .ToArray();
             elements.AddRange(paragraphs.Select((value, index) => Element(
                 $"pptx:slide={number};paragraph={index + 1}",
-                "paragraph", index + 1, value)));
+                $"pptx:slide={number}", "paragraph", index + 1, 1, value)));
             images.AddRange(ReadSlideImages(archive, slide, number));
         }
         return (elements, images);
@@ -61,13 +61,13 @@ internal static class NativeOfficeSourcePreprocessor
                 var number = (int?)row.Attribute("r") ?? elements.Count + 1;
                 var cells = row.Elements()
                     .Where(node => node.Name.LocalName == "c")
-                    .Select(cell => CellText(cell, shared))
-                    .Where(value => value.Length > 0)
+                    .Select(cell => ReadCell(cell, shared))
+                    .Where(value => value.Raw.Length > 0)
                     .ToArray();
-                if (cells.Length == 0) continue;
-                elements.Add(Element(
-                    $"xlsx:sheet={sheet};row={number}",
-                    "row", number, string.Join(" | ", cells)));
+                elements.AddRange(cells.Select(cell => Element(
+                    $"xlsx:sheet={sheet};cell={cell.Reference}",
+                    $"xlsx:sheet={sheet}", "cell", number,
+                    CellColumn(cell.Reference), cell.Raw)));
             }
         }
         return (elements, Images(archive, "xl/media/", "xlsx"));
@@ -140,22 +140,33 @@ internal static class NativeOfficeSourcePreprocessor
             .ToArray();
     }
 
-    private static string CellText(XElement cell, string[] shared)
+    private static (string Reference, string Raw) ReadCell(
+        XElement cell,
+        string[] shared)
     {
-        var reference = (string?)cell.Attribute("r") ?? "cell";
+        var reference = (string?)cell.Attribute("r") ?? "A1";
         var raw = cell.Descendants()
             .FirstOrDefault(node => node.Name.LocalName is "v" or "t")?.Value
-            ?.Trim() ?? string.Empty;
+            ?? string.Empty;
         if ((string?)cell.Attribute("t") == "s" &&
             int.TryParse(raw, out var index) &&
             index >= 0 && index < shared.Length)
             raw = shared[index];
-        return raw.Length == 0 ? string.Empty : reference + "=" + raw;
+        return (reference, raw);
+    }
+
+    private static int CellColumn(string reference)
+    {
+        var value = 0;
+        foreach (var character in reference.TakeWhile(char.IsLetter))
+            value = checked(value * 26 + char.ToUpperInvariant(character) - 'A' + 1);
+        return value > 0 ? value : 1;
     }
 
     private static InventoryExtractedSourceElement Element(
-        string locator, string kind, int row, string value) =>
-        new(locator, locator, kind, row, 1, value);
+        string locator, string structureId, string kind, int row, int column,
+        string value) =>
+        new(locator, structureId, kind, row, column, value);
 
     private static string Text(XElement node) => string.Join(
         " ", node.Descendants().Where(child => child.Name.LocalName == "t")

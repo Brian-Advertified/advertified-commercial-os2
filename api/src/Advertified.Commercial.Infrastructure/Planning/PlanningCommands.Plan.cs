@@ -17,7 +17,7 @@ public sealed partial class PlanningCommands
         CommandEnvelope<GenerateMediaPlanCommand> envelope,
         CancellationToken cancellationToken)
     {
-        var brief = await LoadPlanningReadyBriefAsync(
+        var brief = await LoadBudgetReadyBriefAsync(
             briefVersionId, envelope, cancellationToken);
         var mix = await store.FindLatestMixAsync(
             envelope.TenantId, briefVersionId, cancellationToken);
@@ -210,7 +210,7 @@ public sealed partial class PlanningCommands
         var plan = await store.FindPlanAsync(
             envelope.TenantId, planVersionId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Media plan access denied.");
-        await LoadPlanningReadyBriefAsync(plan.BriefVersionId, envelope, cancellationToken);
+        await LoadBudgetReadyBriefAsync(plan.BriefVersionId, envelope, cancellationToken);
         if (plan.Status != MasterDataCodes.LifecycleStatuses.InReview)
         {
             throw new InvalidLifecycleTransitionException();

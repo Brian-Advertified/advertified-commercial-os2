@@ -57,21 +57,16 @@ public sealed partial class AgentOperationsStore
           ON run.tenant_id = usage.tenant_id AND run.id = usage.run_id
         WHERE usage.tenant_id = {tenantId.Value}
         UNION ALL
-        SELECT audience.id, {MasterDataCodes.AgentTypes.Audience},
-            {MasterDataCodes.CommercialResourceTypes.AudienceDefinitionSet},
-            audience.status_code, audience.agent_provider_code,
-            audience.agent_model_code, NULL::bigint, NULL::integer,
-            audience.agent_incremental_cost_minor, audience.created_at_utc
-        FROM commercial.audience_definition_sets audience
-        WHERE audience.tenant_id = {tenantId.Value}
-          AND audience.agent_provider_code IS NOT NULL
-        UNION ALL
-        SELECT mix.id, {MasterDataCodes.AgentTypes.MediaPlanning},
-            {MasterDataCodes.CommercialResourceTypes.MediaMixVersion}, mix.status_code,
-            mix.agent_provider_code, mix.agent_model_code, NULL::bigint, NULL::integer,
-            mix.agent_incremental_cost_minor, mix.created_at_utc
-        FROM commercial.media_mix_versions mix
-        WHERE mix.tenant_id = {tenantId.Value} AND mix.agent_provider_code IS NOT NULL
+        SELECT artifact.id, artifact.service_code,
+            {MasterDataCodes.CommercialResourceTypes.IntelligenceArtifact},
+            artifact.status_code, invocation.provider_code,
+            invocation.model_code,
+            (invocation.input_tokens + invocation.output_tokens)::bigint, 0::integer,
+            invocation.incremental_cost_minor, artifact.created_at_utc
+        FROM commercial.intelligence_artifacts artifact
+        JOIN commercial.intelligence_artifact_invocations invocation
+          ON invocation.tenant_id = artifact.tenant_id AND invocation.artifact_id = artifact.id
+        WHERE artifact.tenant_id = {tenantId.Value}
         UNION ALL
         SELECT shortlist.id, {MasterDataCodes.AgentTypes.InventoryIntelligence},
             {MasterDataCodes.CommercialResourceTypes.InventoryShortlistVersion},

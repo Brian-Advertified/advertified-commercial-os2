@@ -12,8 +12,8 @@ from contracts import ContractModel, StableCode
 class InventoryStrategyAudience(ContractModel):
     id: UUID
     name: Annotated[str, Field(min_length=1, max_length=300)]
-    need_state: Annotated[str, Field(min_length=1, max_length=1_000)]
-    buying_context: Annotated[str, Field(min_length=1, max_length=1_000)]
+    need_state: Annotated[str | None, Field(max_length=1_000)] = None
+    buying_context: Annotated[str | None, Field(max_length=1_000)] = None
     geographies: tuple[str, ...]
     classification: StableCode
     exclusions: tuple[str, ...]
@@ -39,13 +39,15 @@ class InventoryStrategyAllocation(ContractModel):
 
 
 class InventoryStrategyContext(ContractModel):
-    audience_set_id: UUID
-    audience_set_version: PositiveInt
+    audience_artifact_id: UUID
+    audience_artifact_version: PositiveInt
+    media_strategy_artifact_id: UUID
+    media_strategy_artifact_version: PositiveInt
     media_mix_version_id: UUID
     media_mix_version: PositiveInt
     objective: Annotated[str, Field(min_length=1, max_length=4_000)]
-    targeting_rationale: Annotated[str, Field(min_length=1, max_length=4_000)]
-    positioning_statement: Annotated[str, Field(min_length=1, max_length=4_000)]
+    targeting_rationale: Annotated[str | None, Field(max_length=4_000)] = None
+    positioning_statement: Annotated[str | None, Field(max_length=4_000)] = None
     audiences: Annotated[tuple[InventoryStrategyAudience, ...], Field(min_length=1)]
     allocations: Annotated[tuple[InventoryStrategyAllocation, ...], Field(min_length=1)]
 

@@ -89,8 +89,8 @@ def rollback_sql(
     return f"""-- Non-destructive rollback for manually reviewed inventory seed {checksum}.
 \\set ON_ERROR_STOP on
 BEGIN;
-SET LOCAL app.current_tenant_id = '{tenant_id}';
-SET LOCAL app.current_actor_id = '{creator_id}';
+SET LOCAL advertified.tenant_id = '{tenant_id}';
+SET LOCAL advertified.user_id = '{creator_id}';
 CREATE TEMP TABLE inventory_seed_rollback_products (id uuid) ON COMMIT DROP;
 INSERT INTO inventory_seed_rollback_products
 SELECT value::uuid FROM jsonb_array_elements_text(
@@ -101,7 +101,7 @@ SET status_code = '{codes["archived"]}',
     archived_reason = 'Manual production inventory seed rollback.',
     version = listing.version + 1,
     updated_at_utc = clock_timestamp()
-WHERE listing.supplier_tenant_id = current_setting('app.current_tenant_id')::uuid
+WHERE listing.supplier_tenant_id = current_setting('advertified.tenant_id')::uuid
   AND listing.product_id IN (SELECT id FROM inventory_seed_rollback_products)
   AND listing.status_code <> '{codes["archived"]}';
 
@@ -110,7 +110,7 @@ SET status_code = '{codes["inactive"]}',
     expired_at_utc = COALESCE(product.expired_at_utc, clock_timestamp()),
     version = product.version + 1,
     updated_at_utc = clock_timestamp()
-WHERE product.tenant_id = current_setting('app.current_tenant_id')::uuid
+WHERE product.tenant_id = current_setting('advertified.tenant_id')::uuid
   AND product.id IN (SELECT id FROM inventory_seed_rollback_products)
   AND product.status_code <> '{codes["inactive"]}';
 

@@ -48,12 +48,14 @@ public sealed class OperationalReportingStore(GovernanceDbContext dbContext)
                   AND ({query.ClientAccountId}::uuid IS NULL OR item.client_account_id = {query.ClientAccountId})
                   AND ({query.OwnerUserId}::uuid IS NULL OR item.owner_user_id = {query.OwnerUserId})
                   AND ({query.Status}::text IS NULL OR item.status_code = {query.Status})) AS "Briefs",
-              (SELECT count(*)::int FROM commercial.audience_definition_sets item
+              (SELECT count(*)::int FROM commercial.intelligence_artifacts item
                 JOIN commercial.brief_versions version ON version.tenant_id = item.tenant_id
-                  AND version.id = item.brief_version_id
+                  AND version.id = item.subject_id
                 JOIN commercial.campaign_briefs brief ON brief.tenant_id = version.tenant_id
                   AND brief.id = version.brief_id
                 WHERE item.tenant_id = {tenantId.Value}
+                  AND item.subject_type = 'BriefVersion'
+                  AND item.service_code = {MasterDataCodes.AgentTypes.AudienceIntelligence}
                   AND item.status_code = {MasterDataCodes.LifecycleStatuses.Approved}
                   AND ({query.ClientAccountId}::uuid IS NULL OR brief.client_account_id = {query.ClientAccountId})) AS "ApprovedAudiences",
               (SELECT count(*)::int FROM commercial.human_tasks item
@@ -225,8 +227,9 @@ public sealed class OperationalReportingStore(GovernanceDbContext dbContext)
             SELECT code AS "Code", label AS "Label", count_value::int AS "Count"
             FROM (VALUES
               ('AUDIENCE_APPROVAL_PENDING', 'Audience strategies awaiting approval',
-                (SELECT count(*) FROM commercial.audience_definition_sets
+                (SELECT count(*) FROM commercial.intelligence_artifacts
                  WHERE tenant_id = {tenantId.Value}
+                   AND service_code = {MasterDataCodes.AgentTypes.AudienceIntelligence}
                    AND status_code <> {MasterDataCodes.LifecycleStatuses.Approved})),
               ('PLAN_SUPPLY_UNCONFIRMED', 'Plans with supply confidence below confirmed',
                 (SELECT count(*) FROM commercial.media_plan_versions

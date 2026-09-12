@@ -25,6 +25,9 @@ public static class MarketplaceEndpoints
         group.MapPost("/marketplace-listings/{listingId:guid}:publish", PublishListingAsync)
             .WithName("PublishMarketplaceListing")
             .Produces<MarketplaceListingView>().WithCommandProblems(requiresVersion: true);
+        group.MapPost("/marketplace-listings/{listingId:guid}:relist", RelistListingAsync)
+            .WithName("RelistMarketplaceListing")
+            .Produces<MarketplaceListingView>().WithCommandProblems(requiresVersion: true);
         group.MapPost("/marketplace-listings/{listingId:guid}:archive", ArchiveListingAsync)
             .WithName("ArchiveMarketplaceListing")
             .Produces<MarketplaceListingView>().WithCommandProblems(requiresVersion: true);
@@ -34,6 +37,9 @@ public static class MarketplaceEndpoints
         group.MapGet("/marketplace-rfqs/{rfqId:guid}", GetRfqAsync)
             .WithName("GetMarketplaceRfq")
             .Produces<MarketplaceRfqView>().WithQueryProblems();
+        group.MapGet("/marketplace-rfqs/{rfqId:guid}/responses", ListResponsesAsync)
+            .WithName("ListMarketplaceResponses")
+            .Produces<MarketplaceResponseHistoryView>().WithQueryProblems();
         group.MapPost("/marketplace-rfqs", CreateRfqAsync)
             .WithName("CreateMarketplaceRfq")
             .Produces<MarketplaceRfqView>(StatusCodes.Status201Created)
@@ -43,7 +49,7 @@ public static class MarketplaceEndpoints
             .Produces<MarketplaceRfqView>().WithCommandProblems(requiresVersion: true);
         group.MapPost("/marketplace-rfqs/{rfqId:guid}/responses", SubmitResponseAsync)
             .WithName("SubmitMarketplaceResponse")
-            .Produces<MarketplaceRfqView>().WithCommandProblems(requiresVersion: false);
+            .Produces<MarketplaceRfqView>().WithCommandProblems(requiresVersion: true);
         group.MapPost("/marketplace-responses/{responseId:guid}:accept", AcceptResponseAsync)
             .WithName("AcceptMarketplaceResponse")
             .Produces<MarketplaceRfqView>().WithCommandProblems(requiresVersion: true);
@@ -100,6 +106,17 @@ public static class MarketplaceEndpoints
         return Results.Ok(result.Data);
     }
 
+    private static async Task<IResult> RelistListingAsync(
+        Guid tenantId, Guid listingId, RelistMarketplaceListingCommand command,
+        HttpContext context, ICurrentIdentity identity, IMarketplaceCommands commands,
+        TimeProvider clock, CancellationToken cancellationToken)
+    {
+        var result = await ExecuteAsync(tenantId, command, context, identity,
+            (envelope, token) => commands.RelistListingAsync(listingId, envelope, token),
+            clock, true, cancellationToken);
+        return Results.Ok(result.Data);
+    }
+
     private static async Task<IResult> ArchiveListingAsync(
         Guid tenantId, Guid listingId, ArchiveMarketplaceListingCommand command,
         HttpContext context, ICurrentIdentity identity, IMarketplaceCommands commands,
@@ -129,6 +146,12 @@ public static class MarketplaceEndpoints
         return Results.Ok(result);
     }
 
+    private static async Task<IResult> ListResponsesAsync(
+        Guid tenantId, Guid rfqId, ICurrentIdentity identity,
+        IMarketplaceReader reader, CancellationToken cancellationToken) =>
+        Results.Ok(await reader.ListResponsesAsync(
+            identity.ActorId, new TenantId(tenantId), rfqId, cancellationToken));
+
     private static async Task<IResult> CreateRfqAsync(
         Guid tenantId, CreateMarketplaceRfqCommand command, HttpContext context,
         ICurrentIdentity identity, IMarketplaceCommands commands, TimeProvider clock,
@@ -157,9 +180,10 @@ public static class MarketplaceEndpoints
         HttpContext context, ICurrentIdentity identity, IMarketplaceCommands commands,
         TimeProvider clock, CancellationToken cancellationToken)
     {
-        var result = await ExecuteAsync(tenantId, command, context, identity,
+        var result = await CommandEndpointExecutor.ExecuteResultAsync(
+            tenantId, command, context, identity, clock, requireVersion: true,
             (envelope, token) => commands.SubmitResponseAsync(rfqId, envelope, token),
-            clock, false, cancellationToken);
+            cancellationToken, allowZeroVersion: true);
         return Results.Ok(result.Data);
     }
 

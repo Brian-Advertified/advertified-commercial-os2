@@ -9,6 +9,7 @@ import {
   type PaymentIntent,
   type PurchaseOrder,
 } from '../api/funding-schemas'
+import { fundingCopy, paymentEvidenceCopy, type ManualFundingMethod } from '../content/funding-copy'
 import { Icon } from '../components/Icon'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { formatDateTime, formatMoney, humanizeCode } from '../presentation/format'
@@ -156,16 +157,24 @@ function InvoiceForm(props: Props) {
 }
 
 function StartPaymentAction(props: Props) {
-  return <div className="funding-inline-action"><div><h4>Record expected payment</h4>
-    <p>The current launch method is manual EFT. Confirmation still requires separate receipt review.</p></div>
+  const [method, setMethod] = useState<ManualFundingMethod>(masterDataCodes.paymentMethods.manualEft)
+  return <div className="funding-inline-action"><div><h4>{fundingCopy.heading}</h4>
+    <label className="field-group">{fundingCopy.method}
+      <select value={method} disabled={props.busy}
+        onChange={event => setMethod(event.target.value as ManualFundingMethod)}>
+        {Object.entries(fundingCopy.methods).map(([code, copy]) =>
+          <option key={code} value={code}>{copy.label}</option>)}
+      </select></label>
+    <p>{fundingCopy.methods[method].description}</p>
+    <small>{fundingCopy.unavailable}</small></div>
     <button className="primary-button" disabled={props.busy} onClick={() => void props.run(
-      () => fundingApi.startPayment(
-        props.tenantId, props.invoice!, masterDataCodes.paymentMethods.manualEft, props.token),
-      'The manual EFT payment record was opened for reconciliation.',
-    )}>Start payment record</button></div>
+      () => fundingApi.startPayment(props.tenantId, props.invoice!, method, props.token),
+      fundingCopy.opened,
+    )}>{fundingCopy.start}</button></div>
 }
 
 function PaymentReconciliationForm(props: Props & { payment: PaymentIntent }) {
+  const evidenceCopy = paymentEvidenceCopy(props.payment.methodCode)
   const [error, setError] = useState<string | null>(null)
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -176,7 +185,7 @@ function PaymentReconciliationForm(props: Props & { payment: PaymentIntent }) {
       reason: values.get('reason'),
     })
     if (!parsed.success || !(receipt instanceof File) || receipt.size === 0) {
-      setError('Provide the bank reference, reconciliation reason and receipt evidence.')
+      setError(evidenceCopy.invalid)
       return
     }
     setError(null)
@@ -190,9 +199,9 @@ function PaymentReconciliationForm(props: Props & { payment: PaymentIntent }) {
   return <form className="funding-inline-form" onSubmit={submit}>
     <h4>Reconcile payment evidence</h4>
     {error && <p className="inline-alert" role="alert">{error}</p>}
-    <div className="funding-form-grid"><label className="field-group">Bank reference
+    <div className="funding-form-grid"><label className="field-group">{evidenceCopy.reference}
       <input name="reconciliationReference" required maxLength={300} /></label>
-      <label className="field-group">Receipt evidence
+      <label className="field-group">{evidenceCopy.evidence}
         <input name="receipt" type="file" required accept="application/pdf,image/png,image/jpeg" /></label></div>
     <label className="field-group">Reconciliation reason
       <textarea name="reason" required maxLength={1000} rows={3} /></label>

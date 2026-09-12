@@ -28,8 +28,16 @@ public static class RequestRateLimitPolicies
         new(JsonSerializerDefaults.Web);
 
     public static IServiceCollection AddAdvertifiedRateLimits(
-        this IServiceCollection services) =>
-        services.AddRateLimiter(options =>
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var heavyWorkPermitLimit = configuration.GetValue<int?>("RateLimits:HeavyWorkPermitLimit")
+            ?? HeavyWorkPermitLimit;
+        var businessMutationPermitLimit = configuration.GetValue<int?>("RateLimits:BusinessMutationPermitLimit")
+            ?? BusinessMutationPermitLimit;
+        if (heavyWorkPermitLimit <= 0 || businessMutationPermitLimit <= 0)
+            throw new InvalidOperationException("Configured rate limits must be positive.");
+        return services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.OnRejected = WriteRejectionAsync;
@@ -50,7 +58,7 @@ public static class RequestRateLimitPolicies
                         OneMinute)
                     : FixedWindow(
                         "business:" + Actor(context),
-                        BusinessMutationPermitLimit,
+                        businessMutationPermitLimit,
                         OneMinute)));
             options.AddPolicy(BrowserSession, context => FixedWindow(
                 "session:" + RemoteAddress(context), 20, OneMinute));
@@ -65,8 +73,9 @@ public static class RequestRateLimitPolicies
             options.AddPolicy(AgentWork, context => FixedWindow(
                 "agent:" + Actor(context), AgentWorkPermitLimit, OneMinute));
             options.AddPolicy(HeavyWork, context => FixedWindow(
-                "heavy:" + Actor(context), HeavyWorkPermitLimit, FiveMinutes));
+                "heavy:" + Actor(context), heavyWorkPermitLimit, FiveMinutes));
         });
+    }
 
     private static RateLimitPartition<string> FixedWindow(
         string key,

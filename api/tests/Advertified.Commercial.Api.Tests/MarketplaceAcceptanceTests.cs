@@ -28,6 +28,7 @@ public sealed partial class MarketplaceAcceptanceTests
         await AssertSupplierDecisionReportAsync(buyer, supplier, other, connectionString);
         await CompleteAcceptedExchangeAsync(
             buyer, supplier, other, listing.ListingVersionId, clock);
+        await AssertCommercialMemoryAsync(buyer);
         await AssertExpiredResponseCannotBeAcceptedAsync(
             buyer, supplier, listing.ListingVersionId, clock);
         await AssertFilteredRequestPagingAsync(
@@ -37,6 +38,6 @@ public sealed partial class MarketplaceAcceptanceTests
         await AssertPublicInventoryUnitsAsync(supplierFactory, expectedCount: 0);
         await AssertArchivedListingInvalidatesPlanAsync(buyer, plan);
         await AssertRetainedEvidenceAsync(
-            connectionString, listing.ListingVersionId, expectedCommands: 12);
+            connectionString, listing.ListingVersionId, expectedCommands: 13);
     }
 }

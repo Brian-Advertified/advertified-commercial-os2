@@ -4,11 +4,13 @@ public sealed record CampaignCombinationsView(
     IReadOnlyList<CampaignCombinationView> Alternatives,
     bool SearchTruncated,
     int CandidatesConsidered,
-    int MissingCostCandidateCount);
+    int MissingCostCandidateCount,
+    bool ClientPriceAssessed);
 
 public sealed record CampaignCombinationView(
     IReadOnlyList<Guid> CandidateIds,
     long CampaignSupplierCostMinor,
+    long CampaignClientPriceMinor,
     string Currency,
     IReadOnlyList<CampaignChannelCostView> ChannelCosts,
     IReadOnlyList<Guid> CoveredRequirementIds,
@@ -51,4 +53,8 @@ public sealed record CampaignRelativeComparisonView(
     int DistinctInventoryWorkspaceCount,
     IReadOnlyList<string> PlannedChannelRoles);
 
-public sealed record CampaignChannelCostView(string Channel, long SupplierCostMinor, long BudgetMinor);
+public sealed record CampaignChannelCostView(
+    string Channel,
+    long SupplierCostMinor,
+    long ClientPriceMinor,
+    long BudgetMinor);

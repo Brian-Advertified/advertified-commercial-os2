@@ -20,7 +20,7 @@ public sealed partial class ProposalCommands(
     IProposalNarrativeClient narrativeClient,
     ProposalInventoryReadiness inventoryReadiness,
     DurableProposalEmailDelivery emailDelivery,
-    IInventoryMalwareScanner malwareScanner,
+    IFileMalwareProtection malwareScanner,
     IOptions<EmailAutomationOptions> emailOptions,
     ProposalPolicy proposalPolicy,
     TimeProvider timeProvider) : IProposalCommands

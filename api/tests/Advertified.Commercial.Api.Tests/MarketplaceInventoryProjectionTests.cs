@@ -77,7 +77,7 @@ public sealed partial class MarketplaceAcceptanceTests
     {
         var path = Path.Combine(
             AppContext.BaseDirectory, "Fixtures", "publish-current-inventory-to-marketplace.sql");
-        var sql = await File.ReadAllTextAsync(path);
+        var sql = "SET ROLE advertified_app;\n" + await File.ReadAllTextAsync(path);
         sql = sql.Replace("\\set ON_ERROR_STOP on", string.Empty, StringComparison.Ordinal)
             .Replace("10000000-0000-0000-0000-000000000002",
                 SupplierTenantId.ToString(), StringComparison.Ordinal)

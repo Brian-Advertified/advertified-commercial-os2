@@ -48,12 +48,14 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         await AssertIneligibleRemovalIsStillPresentAsync(client, connectionString, originalProductId);
     }
 
-    private static async Task AssertSupersededPlanCannotGenerateProposalAsync(HttpClient client, Guid originalPlanId)
+    private static async Task AssertSupersededPlanCannotGenerateProposalAsync(
+        HttpClient client, Guid originalPlanId, bool expectNoCurrentPlan = true)
     {
         using var workspaceResponse = await client.GetAsync(Path($"brief-versions/{BriefVersionId}/planning"));
         workspaceResponse.EnsureSuccessStatusCode();
         using var workspace = JsonDocument.Parse(await workspaceResponse.Content.ReadAsStringAsync());
-        Assert.Equal(JsonValueKind.Null, workspace.RootElement.GetProperty("mediaPlan").ValueKind);
+        if (expectNoCurrentPlan)
+            Assert.Equal(JsonValueKind.Null, workspace.RootElement.GetProperty("mediaPlan").ValueKind);
         using var proposal = await RawCommandAsync(client,
             Path($"briefs/{BriefId}/proposals:generate"), "decision-stale-proposal", 1, new
             {

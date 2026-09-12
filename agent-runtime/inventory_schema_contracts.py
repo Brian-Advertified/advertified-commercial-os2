@@ -50,7 +50,7 @@ class SchemaFieldMapping(ContractModel):
     source_label: Text
     source_location: Locator
     source_structure: Locator
-    source_column: Annotated[int, Field(ge=0, le=256)]
+    source_column: Annotated[int, Field(ge=0, le=1_000_000)]
     row_offset: Annotated[int, Field(ge=0, le=1_000_000)]
     is_document_metadata: bool
     interpretation: Annotated[str, Field(min_length=1, max_length=2_000)]
@@ -74,6 +74,7 @@ class RecordSchema(ContractModel):
     field_mappings: Annotated[list[SchemaFieldMapping], Field(max_length=256)]
     supplier_metadata_mappings: Annotated[list[SchemaFieldMapping], Field(max_length=256)]
     asset_mappings: Annotated[list[SchemaFieldMapping], Field(max_length=256)]
+    record_axis: Literal["ROW", "COLUMN"] = "ROW"
 
 
 class InventorySchemaProposal(ContractModel):

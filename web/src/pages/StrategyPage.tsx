@@ -54,7 +54,7 @@ function StrategyWorkspace({ strategy }: { strategy: Strategy }) {
     <ExperienceSignals title="Strategy intelligence" signals={strategySignals(artifact, unresolved.length)} />
     <div className="approved-strategy-layout">
       <aside className="approved-strategy-nav">
-        {['Summary', 'Segmentation', 'Targeting', 'Positioning', 'Insights', 'Review'].map((label, index) =>
+        {['Summary', 'Segmentation', 'Positioning', 'Insights', 'Review'].map((label, index) =>
           <a key={label} href={`#strategy-${label.toLowerCase()}`} className={index === 0 ? 'is-active' : ''}><span>{index + 1}</span>{label}</a>)}
       </aside>
       <main className="approved-strategy-content">
@@ -63,11 +63,16 @@ function StrategyWorkspace({ strategy }: { strategy: Strategy }) {
             <article><span>Growth opportunity</span><p>{artifact.growthThesis}</p></article></div></section>
         <section className="approved-strategy-audiences" id="strategy-segmentation"><header><h2>Who we will reach</h2><span>{artifact.audiences.length} audience hypothesis{artifact.audiences.length === 1 ? '' : 'es'}</span></header>
           <div>{artifact.audiences.length ? artifact.audiences.map((audience, index) => <article key={`${audience}-${index}`}>
-            <span className={`approved-audience-icon tone-${(index % 3) + 1}`}>♙</span><div><small>{index === 0 ? 'Primary Audience' : index === 1 ? 'Secondary Audience' : 'Additional Audience'}</small><strong>{audience}</strong><em>Evidence-backed hypothesis</em></div></article>) :
+            <span className={`approved-audience-icon tone-${(index % 3) + 1}`}>♙</span><div><small>Audience hypothesis {index + 1}</small><strong>{audience}</strong><em>Validate before targeting</em></div></article>) :
             <p className="approved-empty">No audience hypotheses are recorded.</p>}</div></section>
+        <section className="approved-strategy-handoff" aria-labelledby="strategy-handoff-title">
+          <div><p className="eyebrow">Next commercial decision</p><h2 id="strategy-handoff-title">Strategy proposes audiences; Audience Strategy decides who to target</h2>
+            <p>These groups are hypotheses from the strategy stage. They do not become primary or secondary targets until the governed Audience Strategy step compares their need state, buying context, geography and retained evidence.</p></div>
+          <span>Hypothesis → validation → targeting → media allocation</span>
+        </section>
         <div className="approved-strategy-bottom-grid">
-          <section className="approved-positioning-card" id="strategy-positioning"><header><h2>Positioning Statement</h2><span>Edit</span></header><p>{artifact.proposition}</p><blockquote>{artifact.message}</blockquote></section>
-          <section className="approved-pillars-card" id="strategy-insights"><header><h2>Campaign Pillars</h2><span>Edit</span></header><div>{artifact.objectives.map(item => <span key={item}>{item}</span>)}</div></section>
+          <section className="approved-positioning-card" id="strategy-positioning"><header><h2>Positioning statement</h2><span>Strategy direction</span></header><p>{artifact.proposition}</p><blockquote>{artifact.message}</blockquote></section>
+          <section className="approved-pillars-card" id="strategy-insights"><header><h2>Campaign pillars</h2><span>Strategic objectives</span></header><div>{artifact.objectives.map(item => <span key={item}>{item}</span>)}</div></section>
         </div>
       </main>
       <aside className="approved-strategy-insights">

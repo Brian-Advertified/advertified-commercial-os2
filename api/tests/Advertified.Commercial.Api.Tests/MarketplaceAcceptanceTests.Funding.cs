@@ -40,7 +40,15 @@ public sealed partial class MarketplaceAcceptanceTests
             buyer, BuyerTenantId, $"media-plan-versions/{plan.Id}:approve",
             "funding-plan-approve", plan.Version,
             new { reason = "Approve the exact plan before client selection." });
-        var selected = await CreateSelectedProposalAsync(buyer, client, plan.Id, clock);
+        var selected = await CreateSelectedProposalAsync(
+            buyer, reviewer, client, plan.Id, clock);
+
+        using var beforeQuote = await SubmitPurchaseOrderAsync(
+            buyer, selected, 1_443_250, "funding-po-before-quote");
+        await AssertProblemAsync(
+            beforeQuote, HttpStatusCode.Conflict, "FUNDING_REVIEW_REQUIRED");
+        await AcceptPlanLineRfqAsync(
+            buyer, supplier, listing.ListingVersionId, clock, "funding-selected-line-rfq");
 
         using var wrongAmount = await SubmitPurchaseOrderAsync(
             buyer, selected, 1, "funding-po-wrong");
@@ -140,11 +148,14 @@ public sealed partial class MarketplaceAcceptanceTests
         HttpClient client,
         Guid paymentId,
         string key,
-        long version)
+        long version,
+        string? partnerEmailReference = null)
     {
         using var form = new MultipartFormDataContent();
-        form.Add(new StringContent("EFT-LOCAL-2026-0001"), "reconciliationReference");
-        form.Add(new StringContent("Authorised reviewer matched the local receipt."), "reason");
+        form.Add(new StringContent(partnerEmailReference ?? "EFT-LOCAL-2026-0001"), "reconciliationReference");
+        form.Add(new StringContent(partnerEmailReference is null
+            ? "Authorised reviewer matched the local receipt."
+            : "Authorised admin matched the partner approval email to this exact invoice."), "reason");
         var file = new ByteArrayContent(PdfEvidence);
         file.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
         form.Add(file, "receipt", "eft-receipt.pdf");

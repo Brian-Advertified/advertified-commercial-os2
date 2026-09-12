@@ -47,10 +47,58 @@ public sealed record AgentOperationsView(
     IReadOnlyList<AgentUsageView> RecentUsage,
     IReadOnlyList<AgentOperationalRunView> RecentRuns);
 
+public sealed record AgentOperationSubjectView(
+    string ResourceType,
+    Guid ResourceId,
+    long? Version);
+
+public sealed record AgentOperationStepProgressView(
+    int Order,
+    Guid Id,
+    string StepCode,
+    string? AgentCode,
+    string Status,
+    int Attempts,
+    string SafeMessageCode,
+    DateTimeOffset StartedAtUtc,
+    DateTimeOffset UpdatedAtUtc,
+    DateTimeOffset? CompletedAtUtc,
+    string? Provider,
+    string? Model,
+    int ToolCalls,
+    long IncrementalCostMinor);
+
+public sealed record AgentOperationProgressView(
+    Guid Id,
+    Guid TenantId,
+    string RunKind,
+    AgentOperationSubjectView Subject,
+    string Status,
+    string? CurrentStep,
+    IReadOnlyList<string> CompletedSteps,
+    string? ReviewRequiredStep,
+    DateTimeOffset StartedAtUtc,
+    DateTimeOffset UpdatedAtUtc,
+    DateTimeOffset? CompletedAtUtc,
+    int Attempts,
+    string? ErrorCode,
+    Guid? CorrelationId,
+    string? Provider,
+    string? Model,
+    int ToolCalls,
+    long IncrementalCostMinor,
+    IReadOnlyList<AgentOperationStepProgressView> Steps);
+
 public interface IAgentOperationsReader
 {
     Task<AgentOperationsView> GetAsync(
         ActorId actorId,
         TenantId tenantId,
+        CancellationToken cancellationToken);
+
+    Task<AgentOperationProgressView> GetProgressAsync(
+        ActorId actorId,
+        TenantId tenantId,
+        Guid runId,
         CancellationToken cancellationToken);
 }

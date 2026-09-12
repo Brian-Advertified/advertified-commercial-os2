@@ -14,10 +14,16 @@ public sealed class OpenApiContractTests
         await using var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
-                builder.UseDeterministicInventoryProtection();
+                builder.UseDeterministicTestDependencies();
             });
         using var client = factory.CreateClient();
         var actualJson = await client.GetStringAsync("/swagger/v1/swagger.json");
+        var evidenceDirectory = Environment.GetEnvironmentVariable("ADVERTIFIED_TEST_EVIDENCE_DIRECTORY");
+        if (!string.IsNullOrWhiteSpace(evidenceDirectory))
+        {
+            Directory.CreateDirectory(evidenceDirectory);
+            await File.WriteAllTextAsync(Path.Combine(evidenceDirectory, "openapi.actual.json"), actualJson);
+        }
         var retainedPath = Path.Combine(
             AppContext.BaseDirectory,
             "Contracts",
@@ -26,9 +32,19 @@ public sealed class OpenApiContractTests
 
         var actual = JsonNode.Parse(actualJson);
         var retained = JsonNode.Parse(retainedJson);
+        var matches = JsonNode.DeepEquals(retained, actual);
+        if (!matches && string.IsNullOrWhiteSpace(evidenceDirectory))
+        {
+            var repository = FindRepositoryRoot(AppContext.BaseDirectory);
+            var diagnostic = Path.Combine(
+                repository, "artifacts", "backend-production-completion",
+                "openapi.host.actual.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(diagnostic)!);
+            await File.WriteAllTextAsync(diagnostic, actualJson);
+        }
 
         Assert.True(
-            JsonNode.DeepEquals(retained, actual),
+            matches,
             "The running v1 OpenAPI contract differs from the retained generated contract.");
     }
 
@@ -166,7 +182,7 @@ public sealed class OpenApiContractTests
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/brief-versions/{briefVersionId}/planning"]!["get"]);
         var planningSchemas = contract["components"]!["schemas"]!;
-        Assert.NotNull(planningSchemas["AudienceDefinitionView"]!["properties"]!["lsmSemTaxonomy"]);
+        Assert.NotNull(planningSchemas["AudienceSegmentView"]!["properties"]!["lsmSemTaxonomy"]);
         Assert.NotNull(planningSchemas["InventoryShortlistCandidateView"]!["properties"]!["audienceFit"]);
         Assert.Null(planningSchemas["MediaPlanVersionView"]!["properties"]!["subtotalMinor"]);
         Assert.Null(planningSchemas["MediaPlanLineView"]!["properties"]!["supplierCostMinor"]);
@@ -175,7 +191,7 @@ public sealed class OpenApiContractTests
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/brief-versions/{briefVersionId}/audiences:generate"]!["post"]);
         Assert.NotNull(paths[
-            "/api/v1/tenants/{tenantId}/audience-strategies/{audienceSetId}:approve"]!["post"]);
+            "/api/v1/tenants/{tenantId}/audience-strategies/{audienceArtifactId}:approve"]!["post"]);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/briefs/{briefId}/approved-plans"]!["get"]);
         Assert.NotNull(paths[
@@ -204,8 +220,9 @@ public sealed class OpenApiContractTests
         AssertHeaderParameter(sendRfq["parameters"]!.AsArray(), "If-Match", true);
         var respond = paths[
             "/api/v1/tenants/{tenantId}/marketplace-rfqs/{rfqId}/responses"]!["post"]!;
-        Assert.DoesNotContain(respond["parameters"]!.AsArray(),
-            item => item?["name"]?.GetValue<string>() == "If-Match");
+        AssertHeaderParameter(respond["parameters"]!.AsArray(), "If-Match", true);
+        Assert.NotNull(paths[
+            "/api/v1/tenants/{tenantId}/marketplace-rfqs/{rfqId}/responses"]!["get"]);
         var accept = paths[
             "/api/v1/tenants/{tenantId}/marketplace-responses/{responseId}:accept"]!["post"]!;
         AssertHeaderParameter(accept["parameters"]!.AsArray(), "If-Match", true);
@@ -291,6 +308,19 @@ public sealed class OpenApiContractTests
         AssertHeaderParameter(reviewMeasurement["parameters"]!.AsArray(), "If-Match", true);
         Assert.NotNull(paths[
             "/api/v1/tenants/{tenantId}/measurement-reports/{reportId}"]!["get"]);
+    }
+
+    private static string FindRepositoryRoot(string start)
+    {
+        var current = new DirectoryInfo(start);
+        while (current is not null)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "ADVERTIFIED.md")) &&
+                Directory.Exists(Path.Combine(current.FullName, "api")))
+                return current.FullName;
+            current = current.Parent;
+        }
+        throw new DirectoryNotFoundException("Advertified repository root was not found.");
     }
 
     private static void AssertHeaderParameter(

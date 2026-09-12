@@ -28,7 +28,6 @@ public sealed record ReconcileInventoryExtractionCommand(
 public sealed record ReprojectInventoryExtractionCommand(
     string Reason,
     bool ReevaluateAcceptance = false,
-    DiscoveredInventorySchema? CorrectedSchema = null,
     string? ExpectedMappingRevision = null);
 
 public sealed record ResolveInventoryImportSupplierCommand(
@@ -40,9 +39,7 @@ public sealed record ReviewInventoryCandidateCommand(
     string Decision,
     string? RejectionReason,
     string? Notes,
-    InventoryCandidateValues? CorrectedValues,
-    DiscoveredInventorySchema? CorrectedSchema = null,
-    string? ExpectedMappingRevision = null);
+    InventoryCandidateValues? CorrectedValues);
 
 public sealed record PublishInventoryImportCommand;
 

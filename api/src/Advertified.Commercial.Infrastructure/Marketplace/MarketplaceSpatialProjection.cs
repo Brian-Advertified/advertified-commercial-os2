@@ -11,11 +11,11 @@ internal static class MarketplaceSpatialProjection
     {
         var value = JsonSerializer.Deserialize<InventorySpatialValues>(json, StoredJson)
             ?? throw new InvalidOperationException("Stored inventory spatial data is invalid.");
-        var points = value.PointsOfInterest.Select(item => item with
+        var points = value.PointsOfInterest?.Select(item => item with
         {
             Latitude = null,
             Longitude = null,
-        }).ToArray();
+        }).ToArray() ?? [];
         return JsonSerializer.Serialize(value with
         {
             PointsOfInterest = points,

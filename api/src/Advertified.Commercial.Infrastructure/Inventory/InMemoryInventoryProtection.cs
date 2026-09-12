@@ -43,7 +43,7 @@ public sealed class InMemoryInventoryObjectStore : IInventoryObjectStore
     }
 }
 
-public sealed class DeterministicInventoryMalwareScanner : IInventoryMalwareScanner
+public sealed class DeterministicFileMalwareProtection : IFileMalwareProtection
 {
     private const string EicarMarker = "EICAR-STANDARD-ANTIVIRUS-TEST-FILE";
 

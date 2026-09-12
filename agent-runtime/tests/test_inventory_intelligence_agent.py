@@ -14,6 +14,19 @@ BRIEF_ID = "66666666-6666-6666-6666-666666666666"
 SHORTLIST_ID = "88888888-8888-8888-8888-888888888888"
 CANDIDATE_ID = "99999999-9999-9999-9999-999999999999"
 PRODUCT_VERSION_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+AUDIENCE_ARTIFACT_ID = "11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+MEDIA_STRATEGY_ARTIFACT_ID = "44444444-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+MEDIA_MIX_ID = "22222222-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+
+
+def _resource_refs() -> list[dict]:
+    return [
+        {"resource_type": "BriefVersion", "resource_id": BRIEF_ID, "version": 3},
+        {"resource_type": "InventoryShortlistVersion", "resource_id": SHORTLIST_ID, "version": 1},
+        {"resource_type": "IntelligenceArtifact", "resource_id": AUDIENCE_ARTIFACT_ID, "version": 2},
+        {"resource_type": "IntelligenceArtifact", "resource_id": MEDIA_STRATEGY_ARTIFACT_ID, "version": 2},
+        {"resource_type": "MediaMixVersion", "resource_id": MEDIA_MIX_ID, "version": 3},
+    ]
 
 
 def invocation() -> dict:
@@ -28,18 +41,7 @@ def invocation() -> dict:
         "agent_code": "inventory_intelligence",
         "contract_version": "1.0.0",
         "prompt_version": "1.0.0",
-        "resource_refs": [
-            {
-                "resource_type": "BriefVersion",
-                "resource_id": BRIEF_ID,
-                "version": 3,
-            },
-            {
-                "resource_type": "InventoryShortlistVersion",
-                "resource_id": SHORTLIST_ID,
-                "version": 1,
-            },
-        ],
+        "resource_refs": _resource_refs(),
         "approved_evidence_item_ids": [],
         "locale": "en-ZA",
         "account_policy_version": "1.0.0",
@@ -103,6 +105,36 @@ def eligible_candidate() -> dict:
     }
 
 
+def strategy() -> dict:
+    return {
+        "audience_artifact_id": AUDIENCE_ARTIFACT_ID,
+        "audience_artifact_version": 2,
+        "media_strategy_artifact_id": MEDIA_STRATEGY_ARTIFACT_ID,
+        "media_strategy_artifact_version": 2,
+        "media_mix_version_id": MEDIA_MIX_ID,
+        "media_mix_version": 3,
+        "objective": "Increase qualified visits",
+        "targeting_rationale": None,
+        "positioning_statement": None,
+        "audiences": [{
+            "id": "33333333-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            "name": "Client-supplied audience",
+            "need_state": None,
+            "buying_context": None,
+            "geographies": ["Johannesburg"],
+            "classification": "CLIENT_REQUIREMENT",
+            "exclusions": ["Do not infer unstated traits."],
+            "evidence_item_ids": [],
+        }],
+        "allocations": [{
+            "channel": "OOH",
+            "budget_minor": 500_000,
+            "role": "Approved awareness role",
+            "running_periods": [{"start": "2026-09-01", "end": "2026-09-30"}],
+        }],
+    }
+
+
 def payload() -> dict:
     return {
         "invocation": invocation(),
@@ -110,6 +142,7 @@ def payload() -> dict:
             "brief_version_id": BRIEF_ID,
             "shortlist_version_id": SHORTLIST_ID,
             "candidates": [eligible_candidate()],
+            "strategy": strategy(),
         },
     }
 
@@ -158,6 +191,7 @@ def test_inventory_intelligence_explains_only_supplied_governed_facts(
     output = response.json()
     interpretation = output["artifact"]["interpretations"][0]
     assert interpretation["candidate_id"] == CANDIDATE_ID
+    assert interpretation["classification"] == "AI_RECOMMENDATION"
     assert "governed hard constraints" in interpretation["rationale"]
     assert "4 compatible peers" in interpretation["rationale"]
     assert "70%" in interpretation["rationale"]
@@ -225,3 +259,14 @@ def test_inventory_intelligence_requires_exact_resources_and_strict_facts(
     unscored["inventory"]["candidates"][0]["score"] = None
     unscored_response = asyncio.run(post(unscored))
     assert unscored_response.status_code == 422
+
+
+@pytest.mark.parametrize("operation, expected", [("INVENTORY_INTERPRETATION", 200), ("UNKNOWN_OPERATION", 422)])
+def test_inventory_operation_matches_canonical_http_adapter(monkeypatch, operation, expected):
+    enable(monkeypatch)
+    body = payload()
+    body["operation"] = operation
+    response = asyncio.run(post(body))
+    assert response.status_code == expected, response.text
+    if expected == 200:
+        assert response.json()["usage"]["incremental_cost_minor"] == 0

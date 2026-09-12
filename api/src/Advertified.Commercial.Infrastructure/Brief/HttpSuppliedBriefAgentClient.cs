@@ -11,8 +11,6 @@ namespace Advertified.Commercial.Infrastructure.Brief;
 public sealed class HttpSuppliedBriefAgentClient(
     HttpClient client, IOptions<AgentRuntimeOptions> options) : ISuppliedBriefAgentClient
 {
-    public bool IsAvailable => options.Value.UsesHttp;
-
     private const string Operation = "SUPPLIED_BRIEF_UNDERSTANDING";
     private const string PromptVersion = "1.2.0";
     private const string InputReferenceType = "SuppliedBriefInput";
@@ -20,7 +18,6 @@ public sealed class HttpSuppliedBriefAgentClient(
     public async Task<SuppliedBriefUnderstandingView> UnderstandAsync(
         SuppliedBriefAgentInput input, CancellationToken cancellationToken)
     {
-        if (!options.Value.UsesHttp) throw new SuppliedBriefInterpretationUnavailableException();
         var sourceHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(input.SourceContent)));
         var requestId = input.Interpretation?.Id ?? Guid.NewGuid();
         var invocation = AgentRuntimeHttpSupport.CreateInvocation(input.TenantId, input.ActorId,

@@ -16,7 +16,7 @@ public sealed class ProposalContractTests
     public async Task ProposalApiPublishesVersionedApprovalDocumentAndClientDecisionBoundary()
     {
         await using var factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder => builder.UseDeterministicInventoryProtection());
+            .WithWebHostBuilder(builder => builder.UseDeterministicTestDependencies());
         using var client = factory.CreateClient();
         var contract = JsonNode.Parse(
             await client.GetStringAsync("/swagger/v1/swagger.json"))!;

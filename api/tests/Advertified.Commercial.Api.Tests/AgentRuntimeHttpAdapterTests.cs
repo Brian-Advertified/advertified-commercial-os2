@@ -1,11 +1,10 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-
+using Advertified.Commercial.Application.Intelligence;
 using Advertified.Commercial.Application.Opportunity;
-using Advertified.Commercial.Application.Planning;
+using Advertified.Commercial.Infrastructure.Intelligence;
 using Advertified.Commercial.Infrastructure.Opportunity;
-using Advertified.Commercial.Infrastructure.Planning;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -67,7 +66,7 @@ public sealed partial class AgentRuntimeHttpAdapterTests
     {
         var client = CreateClient(async request =>
         {
-            Assert.Equal("/v1/agents/audience", request.RequestUri!.AbsolutePath);
+            Assert.Equal("/v1/agents/audience_intelligence", request.RequestUri!.AbsolutePath);
             Assert.Equal("local-service-key",
                 request.Headers.GetValues("X-Advertified-Service-Key").Single());
             using var body = JsonDocument.Parse(
@@ -78,15 +77,15 @@ public sealed partial class AgentRuntimeHttpAdapterTests
             return Response(
                 AudienceArtifact(), [EvidenceId], fieldPath: "artifact.audiences");
         });
-        var adapter = new HttpPlanningAgentClient(client, Settings());
+        var adapter = new HttpAudienceIntelligenceAgentClient(client, Settings());
 
         var result = await adapter.ProposeAudiencesAsync(
-            BriefInput(), CancellationToken.None);
+            AudienceInput(), CancellationToken.None);
 
         var audience = Assert.Single(result.Audiences);
         Assert.Equal("Furniture buyers", audience.Name);
         Assert.Equal([EvidenceId], audience.EvidenceItemIds);
-        Assert.Equal(0, result.IncrementalCostMinor);
+        Assert.Equal(0, result.Usage.IncrementalCostMinor);
     }
 
     [Theory]
@@ -97,15 +96,14 @@ public sealed partial class AgentRuntimeHttpAdapterTests
         var boundEvidence = nonZeroCost
             ? new[] { EvidenceId }
             : new[] { Guid.Parse("99999999-9999-9999-9999-999999999999") };
-        var client = CreateClient(request => Task.FromResult(
+        var client = CreateClient(_ => Task.FromResult(
             Response(
                 AudienceArtifact(), boundEvidence, nonZeroCost ? 1 : 0,
                 "artifact.audiences")));
-        var adapter = new HttpPlanningAgentClient(client, Settings());
+        var adapter = new HttpAudienceIntelligenceAgentClient(client, Settings());
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            adapter.ProposeAudiencesAsync(
-                BriefInput(), CancellationToken.None));
+            adapter.ProposeAudiencesAsync(AudienceInput(), CancellationToken.None));
     }
 
     [Fact]
@@ -117,12 +115,11 @@ public sealed partial class AgentRuntimeHttpAdapterTests
             (await response.Content.ReadAsStringAsync(CancellationToken.None))
                 .Replace("\"usage\":", "\"unexpected\":true,\"usage\":",
                     StringComparison.Ordinal));
-        var client = CreateClient(request => Task.FromResult(response));
-        var adapter = new HttpPlanningAgentClient(client, Settings());
+        var client = CreateClient(_ => Task.FromResult(response));
+        var adapter = new HttpAudienceIntelligenceAgentClient(client, Settings());
 
         await Assert.ThrowsAsync<JsonException>(() =>
-            adapter.ProposeAudiencesAsync(
-                BriefInput(), CancellationToken.None));
+            adapter.ProposeAudiencesAsync(AudienceInput(), CancellationToken.None));
     }
 
     [Fact]
@@ -154,11 +151,10 @@ public sealed partial class AgentRuntimeHttpAdapterTests
         {
             Content = JsonString(failure),
         }));
-        var adapter = new HttpPlanningAgentClient(client, Settings());
+        var adapter = new HttpAudienceIntelligenceAgentClient(client, Settings());
 
         var rejected = await Assert.ThrowsAsync<AgentRuntimeRejectedException>(() =>
-            adapter.ProposeAudiencesAsync(
-                BriefInput(), CancellationToken.None));
+            adapter.ProposeAudiencesAsync(AudienceInput(), CancellationToken.None));
 
         Assert.Equal("ACCEPTED", rejected.Acceptance);
         Assert.Equal("GROUNDING_VALIDATION", rejected.Stage);
@@ -168,30 +164,6 @@ public sealed partial class AgentRuntimeHttpAdapterTests
         Assert.True(rejected.HasBillableAcceptedUsage);
     }
 
-    [Theory]
-    [InlineData("TV", 1000001)]
-    [InlineData("OOH", 1000000)]
-    public async Task MediaAdapterRejectsUnapprovedChannelOrBudgetMismatch(
-        string channel,
-        long budgetMinor)
-    {
-        var artifact = new
-        {
-            allocations = new[]
-            {
-                new { channel, budget_minor = budgetMinor, role = "Primary response channel" },
-            },
-            assumptions = new[] { "Human review is required." },
-        };
-        var client = CreateClient(request => Task.FromResult(Response(artifact, [EvidenceId])));
-        var adapter = new HttpPlanningAgentClient(client, Settings());
-        var input = new MediaPlanningInput(
-            BriefInput(), 1_000_001, "ZAR", ["OOH", "DIGITAL"]);
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            adapter.ProposeMediaMixAsync(input, CancellationToken.None));
-    }
-
     private static object AudienceArtifact() => new
     {
         audiences = new[]
@@ -199,41 +171,72 @@ public sealed partial class AgentRuntimeHttpAdapterTests
             new
             {
                 name = "Furniture buyers",
-                description = "People described by the approved Brief as furniture buyers.",
-                need_state = "Not supplied; requires research.",
-                buying_context = "Not supplied.",
+                description = "Brief-supplied audience: Furniture buyers. Unstated motivations and behaviours are not established.",
+                need_state = (string?)null,
+                buying_context = (string?)null,
                 geographies = new[] { "Gauteng" },
                 language = (string?)null,
                 life_stage = (string?)null,
                 lsm_sem = (string?)null,
-                classification = "INFERENCE",
-                exclusions = new[] { "Do not infer sensitive individual attributes." },
+                lsm_sem_taxonomy = (string?)null,
+                lsm_sem_taxonomy_version = (string?)null,
+                lsm_sem_mandatory = false,
+                classification = "CLIENT_REQUIREMENT",
+                exclusions = Array.Empty<string>(),
                 evidence_item_ids = new[] { EvidenceId },
+                reference_observation_ids = Array.Empty<Guid>(),
                 confidence = 0.7m,
                 is_target = true,
             },
         },
-        targeting_rationale = "Prioritise the supplied audience.",
-        positioning_statement = "Use the approved objective.",
+        targeting_rationale = "Prioritise the supplied audience for the stated objective.",
+        positioning_statement = (string?)null,
     };
 
-    private static PlanningBriefInput BriefInput() => new(
-        Guid.Parse("11111111-1111-1111-1111-111111111111"),
-        Guid.Parse("22222222-2222-2222-2222-222222222222"),
-        Guid.Parse("33333333-3333-3333-3333-333333333333"),
-        Guid.Parse("44444444-4444-4444-4444-444444444444"),
-        BriefVersionId,
-        3,
-        "Increase enquiries",
-        ["Furniture buyers"],
-        ["Gauteng"],
-        [EvidenceId]);
+    private static AudienceIntelligenceInput AudienceInput() => new(
+        new CommercialProblemInput(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            Guid.Parse("33333333-3333-3333-3333-333333333333"),
+            Guid.Parse("44444444-4444-4444-4444-444444444444"),
+            BriefVersionId,
+            3,
+            "Furniture Client",
+            "Increase furniture enquiries.",
+            "Increase enquiries",
+            ["Furniture buyers"],
+            ["Gauteng"],
+            [],
+            [],
+            [],
+            [],
+            null,
+            null,
+            [EvidenceId]),
+        [new AudienceEvidenceFact(
+            EvidenceId,
+            "Furniture buyers",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null)],
+        []);
 
     private static IOptions<AgentRuntimeOptions> Settings() => Options.Create(new AgentRuntimeOptions
     {
-        Mode = AgentRuntimeOptions.HttpMode,
+        Mode = AgentRuntimeOptions.HttpDeterministicMode,
         BaseUrl = "http://agent-runtime.test",
         ServiceKey = "local-service-key",
+        Provider = AgentRuntimeOptions.DeterministicProvider,
+        DefaultModel = "fixture-v1",
+        DefaultCostCapMinor = 0,
+        AllowLive = false,
+        MaxAttempts = 1,
     });
 
     private static HttpClient CreateClient(
@@ -280,6 +283,10 @@ public sealed partial class AgentRuntimeHttpAdapterTests
                 tool_calls = 0,
                 incremental_cost_minor = incrementalCostMinor,
                 cache_status = "FIXTURE",
+                provider_request_id = (string?)null,
+                input_tokens = 0,
+                output_tokens = 0,
+                incremental_cost_usd_micros = 0,
             },
         });
         return new HttpResponseMessage(HttpStatusCode.OK)

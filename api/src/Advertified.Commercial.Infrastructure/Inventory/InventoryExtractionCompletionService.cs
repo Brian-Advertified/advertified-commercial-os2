@@ -9,6 +9,7 @@ using Advertified.Commercial.Infrastructure.MasterData;
 using Advertified.Commercial.Infrastructure.Persistence.Records;
 using Advertified.Commercial.Infrastructure.Worker;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Advertified.Commercial.Infrastructure.Inventory;
 
@@ -16,6 +17,8 @@ public sealed class InventoryExtractionCompletionService(
     InventoryExtractionAttemptStore attemptStore,
     InventoryRecordStore inventoryStore,
     InventorySchemaExecutionGuard schemaGuard,
+    IInventorySchemaInterpreter schemaInterpreter,
+    IOptions<InventorySemanticOptions> semanticOptions,
     InventorySemanticEnrichmentService semanticEnrichment,
     TimeProvider timeProvider)
 {
@@ -27,8 +30,10 @@ public sealed class InventoryExtractionCompletionService(
     {
         InventoryExtractionCompletionPolicy.VerifyResult(
             extraction, claim.SourceHash);
-        var (_, codes) = await schemaGuard.PrepareAsync(
+        var (schemaContext, codes) = await schemaGuard.PrepareAsync(
             claim, cancellationToken);
+        extraction = await ApplySchemaDiscoveryAsync(
+            schemaContext, extraction, codes, cancellationToken);
         extraction = await semanticEnrichment.EnrichAsync(
             claim, extraction, cancellationToken);
         InventoryExtractionCompletionPolicy.VerifyResult(
@@ -92,6 +97,71 @@ public sealed class InventoryExtractionCompletionService(
         await attemptStore.DbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return true;
+    }
+
+    private async Task<InventoryExtractionResult> ApplySchemaDiscoveryAsync(
+        InventorySchemaExecutionContext context,
+        InventoryExtractionResult extraction,
+        InventoryCodeSets codes,
+        CancellationToken cancellationToken)
+    {
+        if (!semanticOptions.Value.Enabled ||
+            extraction.Rows.Count > 0 ||
+            extraction.Document.DiscoveredSchema is not null ||
+            extraction.Document.SchemaDiscoveryFailure is not null ||
+            !InventoryDocumentStructureBuilder.CanDiscover(extraction))
+            return extraction;
+        var document = InventoryDocumentStructureBuilder.Build(extraction);
+        var governedCodes = InventoryDocumentStructureBuilder.GovernedCodes(codes);
+        var request = new InventorySchemaDiscoveryRequest(
+            "inventory-schema/1.0",
+            document.SourceHash,
+            document.StructureHash,
+            document.Structures,
+            InventoryCandidateNormalizer.CanonicalMeanings,
+            governedCodes,
+            context);
+        try
+        {
+            var discovered = await schemaInterpreter.DiscoverAsync(
+                request, cancellationToken);
+            var proposal = new InventorySchemaProposal(
+                discovered.ProtocolVersion,
+                discovered.SourceHash,
+                discovered.StructureHash,
+                discovered.Records,
+                discovered.Confidence,
+                discovered.Warnings);
+            var rows = InventorySchemaProjection.Project(
+                document, proposal, governedCodes);
+            return InventoryExtractionContract.Create(
+                extraction.AdapterCode,
+                extraction.AdapterVersion,
+                extraction.SchemaVersion,
+                extraction.SourceHash,
+                extraction.ProviderJson,
+                rows,
+                discovered,
+                deduplicationDecisions: extraction.Document.DeduplicationDecisions,
+                sourceElements: extraction.Document.SourceElements,
+                projectionWarnings: extraction.Document.ProjectionWarnings,
+                sourceImages: extraction.Document.SourceImages);
+        }
+        catch (InventorySchemaRejectedException rejected)
+        {
+            return InventoryExtractionContract.Create(
+                extraction.AdapterCode,
+                extraction.AdapterVersion,
+                extraction.SchemaVersion,
+                extraction.SourceHash,
+                extraction.ProviderJson,
+                [],
+                schemaDiscoveryFailure: rejected.Message,
+                deduplicationDecisions: extraction.Document.DeduplicationDecisions,
+                sourceElements: extraction.Document.SourceElements,
+                projectionWarnings: extraction.Document.ProjectionWarnings,
+                sourceImages: extraction.Document.SourceImages);
+        }
     }
 
     private async Task<bool> LockCurrentClaimAsync(

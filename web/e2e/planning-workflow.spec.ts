@@ -100,7 +100,7 @@ test('planner edits allocation and timing before approving the plan', async ({ p
   await page.getByRole('button', { name: 'Open decision history' }).click()
   await expect(page.getByText('Removed from this selection', { exact: true })).toBeVisible()
   await expect(page.getByText('Changed the anchor to improve verified local coverage.')).toBeVisible()
-  await expect(page.getByText('Agent interpretation is not evidence that AI selected the placement.', { exact: false })).toBeVisible()
+  await expect(page.getByText('Eligibility and ranking are deterministic planning calculations. Final selections are separately recorded with their decision history.', { exact: false })).toBeVisible()
 })
 
 test('buying quantity is bound to placement and saved before mix confirmation', async ({ page }) => {
@@ -171,7 +171,7 @@ test('audience strategy is reviewed and approved with one action', async ({ page
   await page.route('**/api/v1/**', route => handleApi(route, state))
 
   await page.goto(`/stp/${briefVersionId}`)
-  await expect(page.getByRole('heading', { name: 'Audience Strategy' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Decide who the campaign should prioritise' })).toBeVisible()
   await expect(page.getByText('Human review required')).toBeVisible()
   await expect(page.getByRole('combobox', { name: 'Planning role' })).toHaveCount(2)
   await page.getByRole('combobox', { name: 'Planning role' }).nth(1).selectOption('secondary')
@@ -303,7 +303,7 @@ function audience(state: State) {
         buyingContext: 'Evaluating a local purchase', geographies: ['Johannesburg'],
         language: null, lifeStage: null, lsmSem: null, lsmSemTaxonomy: null,
         lsmSemTaxonomyVersion: null, lsmSemMandatory: false, classification: 'INFERENCE',
-        exclusions: ['Do not infer individual business ownership.'], evidenceItemIds: [],
+        exclusions: ['Do not infer individual business ownership.'], evidenceItemIds: [], referenceObservationIds: [],
         confidence: 0.7, status },
       { id: 'cf000000-0000-0000-0000-000000000002', name: 'Purchase influencers',
         description: 'People who may influence the final business purchasing decision.',
@@ -311,7 +311,7 @@ function audience(state: State) {
         geographies: ['Johannesburg'], language: null, lifeStage: null, lsmSem: null,
         lsmSemTaxonomy: null, lsmSemTaxonomyVersion: null, lsmSemMandatory: false,
         classification: 'HYPOTHESIS', exclusions: ['Do not assume authority to purchase.'],
-        evidenceItemIds: [], confidence: 0.45, status },
+        evidenceItemIds: [], referenceObservationIds: [], confidence: 0.45, status },
     ],
     createdBy: userId, approvedBy: state.audienceApproved ? userId : null,
     version: state.audienceApproved ? 2 : 1,
@@ -320,6 +320,8 @@ function audience(state: State) {
 
 function mix(state: State) {
   return { id: mixId, briefVersionId, audienceSetId: audienceId, versionNumber: 1,
+    audienceArtifactId: 'c4100000-0000-0000-0000-000000000001',
+    mediaStrategyArtifactId: 'c4200000-0000-0000-0000-000000000001',
     totalBudgetMinor: 1_000_000, currency: 'ZAR',
     allocations: state.mix?.allocations ?? [], assumptions: [],
     inputHash: 'b'.repeat(64), status: state.mix?.status ?? 'DRAFT', createdBy: userId,

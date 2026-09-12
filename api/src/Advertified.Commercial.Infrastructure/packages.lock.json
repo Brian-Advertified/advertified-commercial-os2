@@ -83,6 +83,23 @@
         "resolved": "0.1.16",
         "contentHash": "qQcbsNMYVY+K5ELptax2S8thNMk0+rSQq3H/KdYj3LLcko8yTCz8y5KIvsKxIyAuTN0ZYNnfsZkM+0EvxTwHVA=="
       },
+      "PDFsharp-MigraDoc": {
+        "type": "Direct",
+        "requested": "[6.2.4, )",
+        "resolved": "6.2.4",
+        "contentHash": "ZlRUJaAAo4K2oMt1v02GTeGOHIOoOvcH1e1WYMpunCG1MK8jd4EBrbzSHoYSN7yOfKWFtOIUfzvmKhRGPsyWQQ==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.3",
+          "PDFsharp": "6.2.4",
+          "System.Security.Cryptography.Pkcs": "8.0.1"
+        }
+      },
+      "Uno.Fonts.OpenSans": {
+        "type": "Direct",
+        "requested": "[2.9.4, )",
+        "resolved": "2.9.4",
+        "contentHash": "EmCs4jIFEPPLsFNzVMhhlXxOLRP6TgoW+TOp6Nyy7NAMdUmTTJkK+RelDew2W+UocyUC+Odd0Hm3YLWB83JbWg=="
+      },
       "AWSSDK.Core": {
         "type": "Transitive",
         "resolved": "4.0.102.3",
@@ -176,6 +193,15 @@
         "resolved": "10.0.11",
         "contentHash": "SXcz+kF+4Oo9b1+55zntpJFYfwb1jw66ioxptyNOOTDc8g2FHnBFWjZpsWfCvZIhzr0x+4e2trVTs4OKwQfBtw=="
       },
+      "PDFsharp": {
+        "type": "Transitive",
+        "resolved": "6.2.4",
+        "contentHash": "GhTr9F1uOYXHCIEOB5PXIgqn5a8WLsJL2m0eewTA0IvY1j6N4HGXHKKmEyB90/N6vrjmYamf41V9zbmdW2HY3g==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.3",
+          "System.Security.Cryptography.Pkcs": "8.0.1"
+        }
+      },
       "System.IO.Hashing": {
         "type": "Transitive",
         "resolved": "9.0.4",
@@ -185,6 +211,11 @@
         "type": "Transitive",
         "resolved": "6.0.1",
         "contentHash": "rHaWtKDwCi9qJ3ObKo8LHPMuuwv33YbmQi7TcUK1C264V3MFnOr5Im7QgCTdLniztP3GJyeiSg5x8NqYJFqRmg=="
+      },
+      "System.Security.Cryptography.Pkcs": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "CoCRHFym33aUSf/NtWSVSZa99dkd0Hm7OCZUxORBjRB16LNhIEOf8THPqzIYlvKM0nNDAPTRBa1FxEECrgaxxA=="
       },
       "advertified.commercial.application": {
         "type": "Project",

@@ -17,27 +17,33 @@ public sealed class DatabaseTenantMembershipSource(GovernanceDbContext dbContext
         CancellationToken cancellationToken)
     {
         var userId = new UserId(actorId.Value);
+        if (dbContext.Database.CurrentTransaction is not null)
+            return await FindWithinSessionAsync(
+                actorId, userId, requestedTenantId, cancellationToken);
+
         await using var transaction =
             await dbContext.Database.BeginTransactionAsync(cancellationToken);
-        await ApplicationDatabaseSession.SetAsync(
-            dbContext,
-            userId,
-            requestedTenantId,
-            cancellationToken);
-
-        var role = await FindActiveRoleAsync(userId, requestedTenantId, cancellationToken);
-        if (role is null)
-        {
-            return null;
-        }
-
-        var permissions = await FindPermissionsAsync(role.Value, cancellationToken);
+        var membership = await FindWithinSessionAsync(
+            actorId, userId, requestedTenantId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        return membership;
+    }
+
+    private async Task<TenantMembership?> FindWithinSessionAsync(
+        ActorId actorId,
+        UserId userId,
+        TenantId requestedTenantId,
+        CancellationToken cancellationToken)
+    {
+        await ApplicationDatabaseSession.SetAsync(
+            dbContext, userId, requestedTenantId, cancellationToken);
+        var role = await FindActiveRoleAsync(
+            userId, requestedTenantId, cancellationToken);
+        if (role is null) return null;
+        var permissions = await FindPermissionsAsync(
+            role.Value, cancellationToken);
         return new TenantMembership(
-            requestedTenantId,
-            actorId,
-            true,
-            permissions);
+            requestedTenantId, actorId, true, permissions);
     }
 
     private async Task<RoleCode?> FindActiveRoleAsync(

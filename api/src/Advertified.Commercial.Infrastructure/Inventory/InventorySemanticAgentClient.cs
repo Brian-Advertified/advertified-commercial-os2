@@ -1,3 +1,4 @@
+using Advertified.Commercial.Application.Inventory;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.Extensions.Options;
@@ -8,6 +9,18 @@ public sealed class InventorySemanticAgentClient(
     HttpClient client,
     IOptions<AgentRuntimeOptions> options)
 {
+    internal Task<AgentRuntimeResponse<InventorySchemaProposal>> InvokeSchemaAsync(
+        InventorySchemaAgentRequest request,
+        CancellationToken cancellationToken) =>
+        AgentRuntimeHttpSupport.InvokeAsync<InventorySchemaProposal>(
+            client,
+            options.Value,
+            MasterDataCodes.AgentTypes.InventoryIntelligence,
+            request,
+            [],
+            cancellationToken,
+            InventoryExtractionTraceCodes.SchemaDiscovery);
+
     internal Task<AgentRuntimeResponse<
         InventorySemanticExtractionArtifact>> InvokeAsync(
         InventorySemanticContext context,
@@ -62,8 +75,7 @@ internal sealed record InventorySemanticContext(
     Guid CorrelationId,
     Guid ImportId,
     long ImportVersion,
-    string SourceHash,
-    string DocumentClass);
+    string SourceHash);
 
 internal sealed record InventorySemanticAgentRequest(
     string Operation,

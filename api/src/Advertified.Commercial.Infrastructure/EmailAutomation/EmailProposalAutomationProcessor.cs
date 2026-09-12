@@ -1,5 +1,6 @@
 using Advertified.Commercial.Application.Brief;
 using Advertified.Commercial.Application.EmailAutomation;
+using Advertified.Commercial.Application.Intelligence;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Application.Proposal;
 using Advertified.Commercial.Domain.Governance;
@@ -17,6 +18,7 @@ public sealed partial class EmailProposalAutomationProcessor(
     IBriefReader briefReader,
     IPlanningCommands planningCommands,
     IPlanningReader planningReader,
+    IMediaStrategyIntelligenceService mediaStrategyIntelligence,
     IProposalCommands proposalCommands,
     IProposalReader proposalReader,
     IEmailProviderResolver emailProviders,

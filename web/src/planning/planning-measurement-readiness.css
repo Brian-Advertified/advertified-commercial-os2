@@ -1,0 +1,31 @@
+.planning-measurement-readiness {
+  padding: 1rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f7fbff 100%);
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+}
+.planning-measurement-readiness > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.planning-measurement-readiness h2 { margin: 0.08rem 0 0.25rem; color: var(--navy); font-size: 1rem; }
+.planning-measurement-readiness header p:last-child { max-width: 64rem; margin: 0; color: var(--muted); font-size: 0.75rem; line-height: 1.45; }
+.planning-measurement-grid { margin-top: 0.8rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); background: #fff; }
+.planning-measurement-grid article { min-width: 0; padding: 0.75rem; border-right: 1px solid var(--line); }
+.planning-measurement-grid article:last-child { border-right: 0; }
+.planning-measurement-grid small { color: var(--muted); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+.planning-measurement-grid strong { display: block; margin-top: 0.35rem; color: var(--navy); font-size: 0.78rem; line-height: 1.45; }
+.planning-measurement-grid p,
+.planning-measurement-grid ul { margin: 0.35rem 0 0; color: var(--muted-strong); font-size: 0.74rem; line-height: 1.45; }
+.planning-measurement-grid ul { padding-left: 1rem; }
+.planning-measurement-readiness > footer { margin-top: 0.65rem; color: var(--muted); font-size: 0.7rem; line-height: 1.45; }
+
+@media (max-width: 760px) {
+  .planning-measurement-readiness > header { align-items: stretch; flex-direction: column; }
+  .planning-measurement-readiness > header > .status-chip { align-self: flex-start; }
+  .planning-measurement-grid { grid-template-columns: 1fr; }
+  .planning-measurement-grid article { border-right: 0; border-bottom: 1px solid var(--line); }
+  .planning-measurement-grid article:last-child { border-bottom: 0; }
+}

@@ -47,6 +47,7 @@ export type CreateBriefVersion = {
   currency: string | null
   vatStatus: string | null
   feesMinor: number | null
+  mediaRequirements: string[]
   constraints: string[]
   measurement: string[]
   facts: string[]

@@ -26,7 +26,6 @@ public sealed class SuppliedBriefUnderstandingService(
         {
             throw new UnauthorizedAccessException("Brief access denied.");
         }
-        if (!agentClient.IsAvailable) throw new SuppliedBriefInterpretationUnavailableException();
         var title = Required(request.SourceTitle, 300, nameof(request.SourceTitle));
         _ = Required(request.SourceContent, 262_144, nameof(request.SourceContent));
         var content = request.SourceContent;

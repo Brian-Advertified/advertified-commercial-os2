@@ -97,7 +97,7 @@ public sealed partial class EmailAutomationRecordStore
             SET status_code = {desired.Status}, checkpoint_code = {desired.Checkpoint},
                 client_account_id = {desired.ClientAccountId}, brief_id = {desired.BriefId},
                 brief_version_id = {desired.BriefVersionId},
-                stp_version_id = {desired.StpVersionId},
+                audience_artifact_id = {desired.AudienceArtifactId},
                 media_mix_version_id = {desired.MediaMixVersionId},
                 shortlist_version_id = {desired.ShortlistVersionId},
                 media_plan_version_id = {desired.MediaPlanVersionId},

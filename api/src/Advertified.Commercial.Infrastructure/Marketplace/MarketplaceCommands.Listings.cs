@@ -33,9 +33,7 @@ public sealed partial class MarketplaceCommands
             ON CONFLICT (supplier_tenant_id, product_id) DO NOTHING
             """, cancellationToken);
         if (changed != 1)
-        {
             throw new InvalidLifecycleTransitionException();
-        }
         var view = await LoadListingViewAsync(id, cancellationToken);
         return CommandOutcomeFactory.Create(
             envelope, view, id, view.Version,
@@ -80,12 +78,51 @@ public sealed partial class MarketplaceCommands
               AND status_code <> {MasterDataCodes.MarketplaceListingStatuses.Archived}
             """, cancellationToken);
         if (changed != 1) throw new VersionConflictException();
+        await RequeueProposalReplansAsync(
+            envelope, listing.ProductId, now, cancellationToken);
         var view = await LoadListingViewAsync(listingId, cancellationToken);
         return CommandOutcomeFactory.Create(
             envelope, view, listingId, view.Version,
             MasterDataReferences.CommercialResourceTypes.MarketplaceListing,
             MasterDataReferences.CommercialActions.MarketplaceListingPublished,
             MasterDataReferences.CommercialEventTypes.MarketplaceListingPublished, now);
+    }
+
+    private async Task<CommandOutcome> RelistListingOutcomeAsync(
+        Guid listingId, CommandEnvelope<RelistMarketplaceListingCommand> envelope,
+        CancellationToken cancellationToken)
+    {
+        var listing = await store.FindListingAsync(listingId, true, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Marketplace listing access denied.");
+        if (listing.SupplierTenantId != envelope.TenantId.Value ||
+            listing.Status != MasterDataCodes.MarketplaceListingStatuses.Archived)
+            throw new InvalidLifecycleTransitionException();
+        var now = timeProvider.GetUtcNow();
+        _ = await store.FindProductSnapshotAsync(
+            envelope.TenantId, listing.ProductId,
+            DateOnly.FromDateTime(now.UtcDateTime), now, cancellationToken)
+            ?? throw new MarketplaceListingUnavailableException();
+        var terms = MarketplacePolicy.RequiredTerms(envelope.Command.Terms);
+        var changed = await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE commercial.marketplace_listings
+            SET current_version_id = NULL,
+                status_code = {MasterDataCodes.MarketplaceListingStatuses.Draft},
+                terms = {terms}, archived_reason = NULL,
+                superseded_by_release_id = NULL, superseded_at_utc = NULL,
+                soft_deleted_at_utc = NULL,
+                version = version + 1, updated_at_utc = {now}
+            WHERE supplier_tenant_id = {envelope.TenantId.Value}
+              AND id = {listingId}
+              AND status_code = {MasterDataCodes.MarketplaceListingStatuses.Archived}
+              AND version = {envelope.ExpectedVersion}
+            """, cancellationToken);
+        if (changed != 1) throw new VersionConflictException();
+        var view = await LoadListingViewAsync(listingId, cancellationToken);
+        return CommandOutcomeFactory.Create(
+            envelope, view, listingId, view.Version,
+            MasterDataReferences.CommercialResourceTypes.MarketplaceListing,
+            MasterDataReferences.CommercialActions.MarketplaceListingCreated,
+            MasterDataReferences.CommercialEventTypes.MarketplaceListingCreated, now);
     }
 
     private async Task<CommandOutcome> ArchiveListingOutcomeAsync(
@@ -110,6 +147,17 @@ public sealed partial class MarketplaceCommands
             MasterDataReferences.CommercialActions.MarketplaceListingArchived,
             MasterDataReferences.CommercialEventTypes.MarketplaceListingArchived, now);
     }
+
+    private Task<int> RequeueProposalReplansAsync(
+        CommandEnvelope<PublishMarketplaceListingCommand> envelope,
+        Guid productId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken) =>
+        store.DbContext.Database.SqlQuery<int>($"""
+            SELECT commercial.requeue_proposal_replans_for_listing(
+                {envelope.TenantId.Value}, {productId},
+                {envelope.ActorId.Value}, {now}) AS "Value"
+            """).SingleAsync(cancellationToken);
 
     private Task<int> InsertListingVersionAsync(
         CommandEnvelope<PublishMarketplaceListingCommand> envelope,

@@ -44,7 +44,7 @@ internal static class BriefPersistence
                 id, tenant_id, brief_id, base_version_id, source_id, version_no,
                 business_problem, objective, audiences_json, geographies_json, timing,
                 budget_minor, budget_unknown, currency_code, vat_status_code, fees_minor,
-                constraints_json, measurement_json, facts_json, unknowns_json,
+                media_requirements_json, constraints_json, measurement_json, facts_json, unknowns_json,
                 assumptions_json, conflicts_json, evidence_bindings_json, status_code,
                 created_by, version, created_at_utc, audience_research_json)
             VALUES (
@@ -54,6 +54,7 @@ internal static class BriefPersistence
                 {BriefCommandSupport.Json(value.Geographies)}::jsonb, {value.Timing},
                 {command.BudgetMinor}, {command.BudgetUnknown}, {value.Currency},
                 {value.VatStatus}, {command.FeesMinor},
+                {BriefCommandSupport.Json(value.MediaRequirements)}::jsonb,
                 {BriefCommandSupport.Json(value.Constraints)}::jsonb,
                 {BriefCommandSupport.Json(value.Measurement)}::jsonb,
                 {BriefCommandSupport.Json(value.Facts)}::jsonb,

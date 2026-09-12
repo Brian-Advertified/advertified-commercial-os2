@@ -123,7 +123,7 @@ public sealed class ApiObservabilityTests
         {
             builder.UseEnvironment("Test");
             builder.UseSetting("ConnectionStrings:CommercialDatabase", UnavailableConnection);
-            builder.UseDeterministicInventoryProtection();
+            builder.UseDeterministicTestDependencies();
             builder.UseSetting("Logging:LogLevel:Default", "Information");
             builder.ConfigureLogging(logging => logging.AddProvider(logs));
         });

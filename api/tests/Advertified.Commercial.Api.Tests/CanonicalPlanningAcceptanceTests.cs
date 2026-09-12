@@ -54,7 +54,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             client, Path($"brief-versions/{BriefVersionId}/audiences:generate"),
             "planning-audience", 1, new { });
         Assert.Equal("DRAFT", audience.RootElement.GetProperty("status").GetString());
-        Assert.Equal("INFERENCE", audience.RootElement.GetProperty("definitions")[0]
+        Assert.Equal("CLIENT_REQUIREMENT", audience.RootElement.GetProperty("definitions")[0]
             .GetProperty("classification").GetString());
         var audienceSetId = audience.RootElement.GetProperty("id").GetGuid();
         var targetAudienceIds = audience.RootElement.GetProperty("targetAudienceIds")
@@ -79,6 +79,9 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         Assert.Equal("English", researchAudience[0].GetProperty("language").GetString());
         Assert.Equal("SEM 8-10", researchAudience[0].GetProperty("lsmSem").GetString());
         Assert.Equal("Compare office furnishing lifecycle costs", researchAudience[0].GetProperty("needState").GetString());
+
+        using var approvedMediaStrategy = await AnalyseAndApproveMediaStrategyAsync(client, BriefVersionId);
+        Assert.Equal("APPROVED", approvedMediaStrategy.RootElement.GetProperty("status").GetString());
 
         using var mix = await CommandAsync(
             client, Path($"brief-versions/{BriefVersionId}/media-mixes:generate"),

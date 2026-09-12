@@ -174,7 +174,7 @@ public sealed partial class DatabaseRecoveryAcceptanceTests
         var exact = await StatAsync(
             target, TargetBucket, reference.ObjectKey, latest.VersionId);
         Assert.Equal(latest.ETag, exact.ETag);
-        var scan = await new DeterministicInventoryMalwareScanner()
+        var scan = await new DeterministicFileMalwareProtection()
             .ScanAsync(restored, default);
         Assert.True(scan.IsClean);
         Assert.Null(scan.ThreatName);

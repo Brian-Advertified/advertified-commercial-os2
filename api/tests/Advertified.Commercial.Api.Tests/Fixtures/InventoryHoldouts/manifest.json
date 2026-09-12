@@ -1,0 +1,662 @@
+{
+  "schema": "advertified.synthetic-inventory-holdouts.v1",
+  "generated_by": "tools/generate_inventory_holdouts.py",
+  "limitation": "Deterministic mappings prove source fidelity, not model generalization.",
+  "cases": [
+    {
+      "file": "xlsx_flat.xlsx",
+      "format": "XLSX",
+      "tables": [
+        {
+          "rows": [
+            [
+              "Asset key",
+              "Placement description",
+              "Quoted amount",
+              "Money unit"
+            ],
+            [
+              "flat-731",
+              "Synthetic east panel",
+              "1847.35",
+              "ZAR"
+            ],
+            [
+              "flat-946",
+              "Synthetic west panel",
+              "2936.42",
+              "ZAR"
+            ]
+          ],
+          "first": 2,
+          "last": 3,
+          "span": 1,
+          "axis": "ROW",
+          "header": 1,
+          "meanings": [
+            "product_code",
+            "name",
+            "rate",
+            "currency"
+          ]
+        }
+      ],
+      "sha256": "e74854397fbf6ccce8ed4b8c966a5867ae9651901a215928e89193be52c9cce8",
+      "bytes": 4980
+    },
+    {
+      "file": "xlsx_multi_headers.xlsx",
+      "format": "XLSX",
+      "tables": [
+        {
+          "rows": [
+            [
+              "Synthetic inventory catalogue"
+            ],
+            [
+              "Asset key",
+              "Placement description",
+              "Quoted amount",
+              "Money unit"
+            ],
+            [
+              "multi_headers-731",
+              "Synthetic east panel",
+              "1847.35",
+              "ZAR"
+            ],
+            [
+              "multi_headers-946",
+              "Synthetic west panel",
+              "2936.42",
+              "ZAR"
+            ]
+          ],
+          "first": 3,
+          "last": 4,
+          "span": 1,
+          "axis": "ROW",
+          "header": 2,
+          "meanings": [
+            "product_code",
+            "name",
+            "rate",
+            "currency"
+          ]
+        }
+      ],
+      "sha256": "3eb024377b28b02d6c8a4b8a2cd8a34c9325b592870e801f330bc7fc5c3622f2",
+      "bytes": 5011
+    },
+    {
+      "file": "xlsx_merged_header.xlsx",
+      "format": "XLSX",
+      "tables": [
+        {
+          "rows": [
+            [
+              "Synthetic inventory catalogue"
+            ],
+            [
+              "Asset key",
+              "Placement description",
+              "Quoted amount",
+              "Money unit"
+            ],
+            [
+              "merged_header-731",
+              "Synthetic east panel",
+              "1847.35",
+              "ZAR"
+            ],
+            [
+              "merged_header-946",
+              "Synthetic west panel",
+              "2936.42",
+              "ZAR"
+            ]
+          ],
+          "first": 3,
+          "last": 4,
+          "span": 1,
+          "axis": "ROW",
+          "header": 2,
+          "meanings": [
+            "product_code",
+            "name",
+            "rate",
+            "currency"
+          ]
+        }
+      ],
+      "sha256": "7183c3013af6d31ae3ac234be3ef65d1715813b2c528e712e58f16ce9ed64a46",
+      "bytes": 5030
+    },
+    {
+      "file": "xlsx_transposed.xlsx",
+      "format": "XLSX",
+      "tables": [
+        {
+          "rows": [
+            [
+              "Asset key",
+              "transposed-731",
+              "transposed-946"
+            ],
+            [
+              "Placement description",
+              "Synthetic east panel",
+              "Synthetic west panel"
+            ],
+            [
+              "Quoted amount",
+              "1847.35",
+              "2936.42"
+            ],
+            [
+              "Money unit",
+              "ZAR",
+              "ZAR"
+            ]
+          ],
+          "first": 2,
+          "last": 3,
+          "span": 1,
+          "axis": "COLUMN",
+          "header": 1,
+          "meanings": [
+            "product_code",
+            "name",
+            "rate",
+            "currency"
+          ]
+        }
+      ],
+      "sha256": "ed8a1f4dacf7dacc52b3205be3dd193c57660819a67604f8ef44baa4eb8faf3d",
+      "bytes": 4988
+    },
+    {
+      "file": "xlsx_multi_section.xlsx",
+      "format": "XLSX",
+      "tables": [
+        {
+          "rows": [
+            [
+              "Asset key",
+              "Placement description",
+              "Quoted amount",
+              "Money unit"
+            ],
+            [
+              "multi_section-731",
+              "Synthetic east panel",
+              "1847.35",
+              "ZAR"
+            ],
+            [
+              "multi_section-946",
+              "Synthetic west panel",
+              "2936.42",
+              "ZAR"
+            ]
+          ],
+          "first": 2,
+          "last": 3,
+          "span": 1,
+          "axis": "ROW",
+          "header": 1,
+          "meanings": [
+            "product_code",
+            "name",
+            "rate",
+            "currency"
+          ]
+        },
+        {
+          "rows": [
+            [
+              "Asset key",
+              "Placement description",
+              "Quoted amount",
+              "Money unit"
+            ],
+            [
+              "other-731",
+              "Synthetic east panel",
+              "1847.35",
+              "ZAR"
+            ],
+            [
+              "other-946",
+              "Synthetic west panel",
+              "2936.42",
+              "ZAR"
+            ]
+          ],
+          "first": 2,
+          "last": 3,
+          "span": 1,
+          "axis": "ROW",
+          "header": 1,
+          "meanings": [
+            "product_code",
+            "name",
+            "rate",
+            "currency"
+          ]
+        }
+      ],
+      "sha256": "751f4c796ea5943a601950719691f807ef02b7946baed889372987e163822ea6",
+      "bytes": 5595
+    },
+    {
+      "file": "xlsx_package_schedule.xlsx",
+      "format": "XLSX",
+      "tables": [
+        {
+          "rows": [
+            [
+              "Asset key",
+              "Placement description",
+              "Quoted amount",
+              "Money unit"
+            ],
+            [
+              "package_schedule-731",
+              "Synthetic east panel",
+              "1847.35",
+              "ZAR"
+            ],
+            [
+              "",
+              "Synthetic Tuesday schedule",
+              "",
+              ""
+            ],
+            [
+              "package_schedule-946",
+              "Synthetic west panel",
+              "2936.42",
+              "ZAR"
+            ],
+            [
+              "",
+              "Synthetic Friday schedule",
+              "",
+              ""
+            ]
+          ],
+          "first": 2,
+          "last": 5,
+          "span": 2,
+          "axis": "ROW",
+          "header": 1,
+          "meanings": [
+            "product_code",
+            "name",
+            "rate",
+            "currency"
+          ]
+        }
+      ],
+      "sha256": "d80df96bc3017339c20805cda861ce38ce9f03c2c588831ff62d27ea08cad48b",
+      "bytes": 5044
+    },
+    {
+      "file": "xlsx_missing_supplier.xlsx",
+      "format": "XLSX",
+      "tables": [
+        {
+          "rows": [
+            [
+              "Asset key",
+              "Placement description",
+              "Quoted amount",
+              "Money unit"
+            ],
+            [
+              "missing_supplier-731",
+              "Synthetic east panel",
+              "1847.35",
+              "ZAR"
+            ],
+            [
+              "missing_supplier-946",
+              "Synthetic west panel",
+              "2936.42",
+              "ZAR"
+            ]
+          ],
+          "first": 2,
+          "last": 3,
+          "span": 1,
+          "axis": "ROW",
+          "header": 1,
+          "meanings": [
+            "product_code",
+            "name",
+            "rate",
+            "currency"
+          ]
+        }
+      ],
+      "sha256": "d7d3343bb1160158a032cad8b9025375d4c199ad1bba4fee7ca302a50ac4d54f",
+      "bytes": 4991
+    },
+    {
+      "file": "xlsx_rate_variants.xlsx",
+      "format": "XLSX",
+      "tables": [
+        {
+          "rows": [
+            [
+              "Asset key",
+              "Placement description",
+              "Quoted amount",
+              "Money unit",
+              "Alternative duration amount"
+            ],
+            [
+              "rate_variants-731",
+              "Synthetic east panel",
+              "1847.35",
+              "ZAR",
+              "8271.19"
+            ],
+            [
+              "rate_variants-946",
+              "Synthetic west panel",
+              "2936.42",
+              "ZAR",
+              "9182.63"
+            ]
+          ],
+          "first": 2,
+          "last": 3,
+          "span": 1,
+          "axis": "ROW",
+          "header": 1,
+          "meanings": [
+            "product_code",
+            "name",
+            "rate",
+            "currency",
+            "rate"
+          ]
+        }
+      ],
+      "sha256": "0db295b7b88baaf60e31234a03baa350c7a648544e24d12dcea125398e612313",
+      "bytes": 5026
+    },
+    {
+      "file": "csv_quoted_commas.csv",
+      "format": "CSV",
+      "tables": [
+        {
+          "rows": [
+            [
+              "Asset key",
+              "Placement description",
+              "Quoted amount",
+              "Money unit"
+            ],
+            [
+              "quoted_commas-731",
+              "Synthetic panel, east \"wing\"",
+              "1847.35",
+              "ZAR"
+            ],
+            [
+              "quoted_commas-946",
+              "Synthetic west panel",
+              "2936.42",
+              "ZAR"
+            ]
+          ],
+          "first": 2,
+          "last": 3,
+          "span": 1,
+          "axis": "ROW",
+          "header": 1,
+          "meanings": [
+            "product_code",
+            "name",
+            "rate",
+            "currency"
+          ]
+        }
+      ],
+      "sha256": "682eb8c911deea65c93b1a96dfae66e6cebb445e652741c5dcc6c42e83b5fd38",
+      "bytes": 171
+    },
+    {
+      "file": "csv_blank_cells.csv",
+      "format": "CSV",
+      "tables": [
+        {
+          "rows": [
+            [
+              "Asset key",
+              "Placement description",
+              "Quoted amount",
+              "Money unit"
+            ],
+            [
+              "blank_cells-731",
+              "Synthetic east panel",
+              "",
+              "ZAR"
+            ],
+            [
+              "blank_cells-946",
+              "",
+              "2936.42",
+              "ZAR"
+            ]
+          ],
+          "first": 2,
+          "last": 3,
+          "span": 1,
+          "axis": "ROW",
+          "header": 1,
+          "meanings": [
+            "product_code",
+            "name",
+            "rate",
+            "currency"
+          ]
+        }
+      ],
+      "sha256": "65520a4ecf751524999e77c00e45f5c13eee6d2377592ce8870ce753278c7ce3",
+      "bytes": 128
+    },
+    {
+      "file": "csv_extra_columns.csv",
+      "format": "CSV",
+      "tables": [
+        {
+          "rows": [
+            [
+              "Asset key",
+              "Placement description",
+              "Quoted amount",
+              "Money unit",
+              "Survey note"
+            ],
+            [
+              "extra_columns-731",
+              "Synthetic east panel",
+              "1847.35",
+              "ZAR",
+              "Unverified access"
+            ],
+            [
+              "extra_columns-946",
+              "Synthetic west panel",
+              "2936.42",
+              "ZAR",
+              "No field inspection"
+            ]
+          ],
+          "first": 2,
+          "last": 3,
+          "span": 1,
+          "axis": "ROW",
+          "header": 1,
+          "meanings": [
+            "product_code",
+            "name",
+            "rate",
+            "currency",
+            null
+          ]
+        }
+      ],
+      "sha256": "9a67ca4216a6601ad363d4045a10ea37376eb24c1deac082c8dcd73417c542eb",
+      "bytes": 209
+    },
+    {
+      "file": "csv_unusual_headers.csv",
+      "format": "CSV",
+      "tables": [
+        {
+          "rows": [
+            [
+              "Reference / item",
+              "Exposure surface",
+              "Offer in money",
+              "ISO tender"
+            ],
+            [
+              "unusual_headers-731",
+              "Synthetic east panel",
+              "1847.35",
+              "ZAR"
+            ],
+            [
+              "unusual_headers-946",
+              "Synthetic west panel",
+              "2936.42",
+              "ZAR"
+            ]
+          ],
+          "first": 2,
+          "last": 3,
+          "span": 1,
+          "axis": "ROW",
+          "header": 1,
+          "meanings": [
+            "product_code",
+            "name",
+            "rate",
+            "currency"
+          ]
+        }
+      ],
+      "sha256": "5b08b02bfb7d71e17a4d38f26143128e91e6d27ec5271411bb8556f6c585c131",
+      "bytes": 166
+    },
+    {
+      "file": "pptx_repeated_products.pptx",
+      "format": "PPTX",
+      "pages": [
+        [
+          "Synthetic panel H-591",
+          "Quoted ZAR 2719.38"
+        ],
+        [
+          "Synthetic panel J-683",
+          "Quoted ZAR 3826.47"
+        ]
+      ],
+      "sha256": "04e5e25417739ab78a53d625f09a7b41b56949fd3a77804a0ec147eb87dd50d7",
+      "bytes": 29233
+    },
+    {
+      "file": "pptx_schedule.pptx",
+      "format": "PPTX",
+      "pages": [
+        [
+          "Synthetic package K-752",
+          "Tuesday 09:00 slot",
+          "Friday 18:00 slot",
+          "Bundle ZAR 9137.24"
+        ]
+      ],
+      "sha256": "5d373dd0f317653b9f65d974d80147d6c9934e6e0d380c07c309df12c90c9302",
+      "bytes": 28365
+    },
+    {
+      "file": "pptx_narrative_values.pptx",
+      "format": "PPTX",
+      "pages": [
+        [
+          "Synthetic panel N-815",
+          "Inspection not supplied",
+          "Indicative ZAR 4271.69",
+          "Availability not supplied"
+        ]
+      ],
+      "sha256": "5d0fa2d96b205cb012988022c649ddcba02ec8331367841b76cb63e8d7e8f1d6",
+      "bytes": 28373
+    },
+    {
+      "file": "pdf_text_rate_card.pdf",
+      "format": "PDF",
+      "pages": [
+        [
+          "Synthetic panel P-937",
+          "Quoted ZAR 5731.28"
+        ]
+      ],
+      "sha256": "71744fa902a8b1890e7ad8b38a3f90998a35b7f1d3b5947db052fc4bfb23d1b6",
+      "bytes": 1397
+    },
+    {
+      "file": "pdf_brochure.pdf",
+      "format": "PDF",
+      "pages": [
+        [
+          "Synthetic brochure B-463",
+          "Supplier not supplied"
+        ],
+        [
+          "Synthetic panel C-529",
+          "Indicative ZAR 6217.39"
+        ]
+      ],
+      "sha256": "8fa2c8abd5cef473f29a25526d1d840b74afb20c5c94b0a8e092bcc4e8de0fce",
+      "bytes": 1889
+    },
+    {
+      "file": "pdf_mixed_narrative_table.pdf",
+      "format": "PDF",
+      "pages": [
+        [
+          "Synthetic catalogue M-647",
+          "Rates exclude installation",
+          "M-647 | Wall | ZAR 1738.42",
+          "M-748 | Screen | ZAR 2849.53"
+        ]
+      ],
+      "sha256": "223f1e1ca5a7cebcba3ee374e0e735c63b74f0233cadb1318423cafd931c61a0",
+      "bytes": 1463
+    },
+    {
+      "file": "pdf_difficult_layout.pdf",
+      "format": "PDF",
+      "pages": [
+        [
+          "Synthetic left L-891",
+          "Synthetic right R-927",
+          "Left ZAR 3726.41",
+          "Right ZAR 4837.52",
+          "Dates not supplied",
+          "Availability not supplied"
+        ]
+      ],
+      "sha256": "9a0da2e14fe35a4f1117e8b3dc99966abb6d309ca2435daa815e09c67cb40be8",
+      "bytes": 1471
+    }
+  ]
+}

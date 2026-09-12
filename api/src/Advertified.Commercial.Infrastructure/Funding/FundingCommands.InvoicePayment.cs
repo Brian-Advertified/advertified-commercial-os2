@@ -43,7 +43,8 @@ public sealed partial class FundingCommands
         CommandEnvelope<StartPaymentCommand> envelope,
         CancellationToken cancellationToken)
     {
-        if (envelope.Command.MethodCode != MasterDataCodes.PaymentMethods.ManualEft)
+        if (envelope.Command.MethodCode is not
+            (MasterDataCodes.PaymentMethods.ManualEft or MasterDataCodes.PaymentMethods.AdvertiseNowPayLater))
             throw new PaymentMethodUnavailableException();
         var invoice = await store.FindInvoiceAsync(
             envelope.Command.InvoiceId, cancellationToken)

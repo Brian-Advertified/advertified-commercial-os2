@@ -12,7 +12,7 @@ namespace Advertified.Commercial.Infrastructure.Funding;
 public sealed partial class FundingCommands(
     FundingRecordStore store,
     IInventoryObjectStore objectStore,
-    IInventoryMalwareScanner malwareScanner,
+    IFileMalwareProtection malwareScanner,
     CampaignRecordStore campaignStore,
     CommandDispatcher dispatcher,
     TimeProvider timeProvider) : IFundingCommands

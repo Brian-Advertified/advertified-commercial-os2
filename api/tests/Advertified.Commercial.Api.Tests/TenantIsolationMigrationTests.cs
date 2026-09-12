@@ -13,8 +13,8 @@ namespace Advertified.Commercial.Api.Tests;
 
 public sealed class TenantIsolationMigrationTests
 {
-    // Audited initial baseline: tables requiring both enabled and forced RLS.
-    private const int ExpectedProtectedTableCount = 102;
+    // Audited current schema: commercial tables requiring both enabled and forced RLS.
+    private const int ExpectedProtectedTableCount = 110;
     private static readonly TenantId FirstTenant =
         new(Guid.Parse("a1000000-0000-0000-0000-000000000001"));
     private static readonly TenantId SecondTenant =

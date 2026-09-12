@@ -118,6 +118,8 @@ test('topbar search, messages and help open real destinations', async ({ page })
 
   await page.getByRole('link', { name: 'Home', exact: true }).click()
   await expect(page).toHaveURL(/\/home$/)
+  // Wait for the destination to commit its accessibility focus before exercising the shortcut.
+  await expect(page.getByRole('heading', { name: /^Good (morning|afternoon|evening), Alex/ })).toBeVisible()
   const shortcutSearch = page.getByRole('searchbox', { name: 'Search Advertified' })
   await expect(shortcutSearch).toBeVisible()
   await page.keyboard.press('Control+Shift+K')

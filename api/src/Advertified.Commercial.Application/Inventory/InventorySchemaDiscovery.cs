@@ -25,7 +25,11 @@ public sealed record InventoryRecordSchema(
     string SourceStructure, InventoryRecordBoundary RecordBoundary,
     IReadOnlyList<InventorySchemaFieldMapping> FieldMappings,
     IReadOnlyList<InventorySchemaFieldMapping> SupplierMetadataMappings,
-    IReadOnlyList<InventorySchemaFieldMapping> AssetMappings);
+    IReadOnlyList<InventorySchemaFieldMapping> AssetMappings,
+    // COLUMN uses transposed logical row/column bindings; physical locators never change.
+    // Omit the legacy ROW default to preserve retained canonical JSON hashes.
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    string? RecordAxis = null);
 
 public sealed record InventoryRecordBoundary(
     int FirstRow, int LastRow, int RowsPerRecord, IReadOnlyList<int> ExcludedRows,

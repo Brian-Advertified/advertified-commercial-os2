@@ -49,6 +49,7 @@ internal sealed record BriefVersionRow
     public string? Currency { get; set; }
     public string? VatStatus { get; set; }
     public long? FeesMinor { get; set; }
+    public string MediaRequirementsJson { get; set; } = "[]";
     public string ConstraintsJson { get; set; } = "[]";
     public string MeasurementJson { get; set; } = "[]";
     public string FactsJson { get; set; } = "[]";
@@ -90,8 +91,8 @@ internal static class BriefRowMapper
         row.Id, row.BriefId, row.BaseVersionId, row.SourceId, row.VersionNumber,
         row.BusinessProblem, row.Objective, Read<string>(row.AudiencesJson),
         Read<string>(row.GeographiesJson), row.Timing, row.BudgetMinor, row.BudgetUnknown,
-        row.Currency, row.VatStatus, row.FeesMinor, Read<string>(row.ConstraintsJson),
-        Read<string>(row.MeasurementJson), Read<string>(row.FactsJson),
+        row.Currency, row.VatStatus, row.FeesMinor, Read<string>(row.MediaRequirementsJson),
+        Read<string>(row.ConstraintsJson), Read<string>(row.MeasurementJson), Read<string>(row.FactsJson),
         Read<BriefUnknownInput>(row.UnknownsJson),
         Read<BriefAssumptionInput>(row.AssumptionsJson),
         Read<BriefConflictInput>(row.ConflictsJson), row.EvidenceItemIds, row.Status,

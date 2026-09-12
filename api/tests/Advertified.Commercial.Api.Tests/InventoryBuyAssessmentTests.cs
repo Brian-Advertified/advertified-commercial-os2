@@ -109,8 +109,8 @@ public sealed class InventoryBuyAssessmentTests
 
     private static InventoryBuyAssessmentView Assess(PreparedShortlistCandidate candidate) =>
         InventoryBuyAssessment.Evaluate(candidate, PlanningPolicy.Load(),
-            [new(Guid.NewGuid(), "Target mothers", "", "", "", [], null, null, null, null, null,
-                "", [], [Guid.NewGuid()], 1m, "APPROVED")]);
+            [new(Guid.NewGuid(), "Target mothers", "", null, null, [], null, null, null, null, null,
+                "HYPOTHESIS", [], [Guid.NewGuid()], [], 1m, "APPROVED")]);
 
     [Fact]
     public void PlannerRetainsChannelIntentButFlagsCreativeThatDoesNotFitPurchasedSlot()
@@ -134,7 +134,7 @@ public sealed class InventoryBuyAssessmentTests
     private static PreparedShortlistCandidate Candidate()
     {
         var inventory = new PlanningInventoryRow(Guid.NewGuid(), null, Guid.NewGuid(), Guid.NewGuid(),
-            Guid.NewGuid(), "Fixture billboard", "OOH", "OOH_SITE", "Sandton", null, null,
+            Guid.NewGuid(), "Fixture supplier", "Fixture billboard", "OOH", "OOH_SITE", "Sandton", null, null,
             Guid.NewGuid(), "DAY_RATE", "ZAR", 10_000, new(2026, 9, 1), new(2026, 9, 30), "fixture:rate",
             Guid.NewGuid(), "AVAILABLE", null, null, "fixture:availability", "[]", null,
             "NOT_APPLICABLE", null, "NOT_APPLICABLE", null, null, null, null);

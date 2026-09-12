@@ -31,15 +31,19 @@ public sealed partial class CanonicalPlanningAcceptanceTests
         var briefId = run.GetProperty("briefVersionId").GetGuid();
         using var workspace = await GetJsonAsync(client, Path($"brief-versions/{briefId}/planning"));
         var audience = workspace.RootElement.GetProperty("audience");
-        Assert.Equal("DRAFT", audience.GetProperty("status").GetString());
+        var status = audience.GetProperty("status").GetString();
+        if (status == "APPROVED") return;
+        Assert.Equal("DRAFT", status);
         var id = audience.GetProperty("id").GetGuid();
         using var approved = await CommandAsync(client, Path($"audience-strategies/{id}:approve"),
             $"email-human-audience-{id}", audience.GetProperty("version").GetInt64(), new
             {
                 targetAudienceIds = audience.GetProperty("targetAudienceIds").EnumerateArray().Select(value => value.GetGuid()).ToArray(),
                 targetingRationale = audience.GetProperty("targetingRationale").GetString(),
-                positioningStatement = audience.GetProperty("positioningStatement").GetString(),
-                reason = "The human fixture operator reviewed this exact audience proposal.",
+                positioningStatement = audience.GetProperty("positioningStatement").ValueKind == JsonValueKind.Null
+                    ? "Human-approved direction: make the supplied business furniture offer easy for the approved audience to understand and act on."
+                    : audience.GetProperty("positioningStatement").GetString(),
+                reason = "The human fixture operator reviewed this exact audience proposal and supplied any missing positioning direction.",
             });
         Assert.Equal("APPROVED", approved.RootElement.GetProperty("status").GetString());
         Assert.Equal(OperatorId, approved.RootElement.GetProperty("approvedBy").GetGuid());

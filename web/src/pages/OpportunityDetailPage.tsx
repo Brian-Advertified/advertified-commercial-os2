@@ -8,6 +8,7 @@ import { useWorkspace } from '../auth/workspace-state'
 import { LoadingState, MessageState } from '../components/PageState'
 import { OpportunityActions } from '../components/OpportunityActions'
 import { OpportunityQualification } from '../opportunity/OpportunityQualification'
+import { OpportunityCommercialProof } from '../opportunity/OpportunityCommercialProof'
 import { formatDateTime, humanizeCode } from '../presentation/format'
 
 export function OpportunityDetailPage() {
@@ -66,6 +67,7 @@ function OpportunityWorkspace({ detail, tenantId, reload, error }: {
     <dl className="operations-context-strip operations-context-four">
       {metrics.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
     </dl>
+    <OpportunityCommercialProof detail={detail} />
     <OpportunityQualification detail={detail} />
     {error && <p className="inline-alert" role="alert">{error}</p>}
     <section className="operations-next-action" aria-labelledby="next-action-title">

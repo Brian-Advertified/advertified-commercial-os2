@@ -1,109 +1,67 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { api, humanMessage } from '../api/client'
-import { bookingApi } from '../api/booking-client'
-import type { Booking } from '../api/booking-schemas'
-import { campaignApi } from '../api/campaign-client'
+import { humanMessage } from '../api/client'
 import type { Campaign } from '../api/campaign-schemas'
-import { inventoryApi } from '../api/inventory-client'
-import type { InventoryProductPage } from '../api/inventory-schemas'
-import { opportunityApi } from '../api/opportunity-client'
-import { planningApi } from '../api/planning-client'
-import type { PlanningSummary } from '../api/planning-schemas'
-import { proposalApi } from '../api/proposal-client'
-import type { ProposalSummary } from '../api/proposal-schemas'
-import type { CurrentUser, HumanTask, Tenant, Workspace } from '../api/schemas'
+import type { Workspace } from '../api/schemas'
 import { useWorkspace } from '../auth/workspace-state'
 import { ExperienceSignals, type ExperienceSignal } from '../components/ExperienceSignals'
 import { Icon } from '../components/Icon'
 import { LoadingState, MessageState } from '../components/PageState'
+import { homeCopy, investmentDescription } from '../content/home-copy'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { DashboardCommercialProof } from '../home/DashboardCommercialProof'
+import { homeAudience, loadDashboard, type DashboardData } from '../home/dashboard-data'
+import { bookingInvestment } from '../home/dashboard-metrics'
 import { RoleHomeDashboard } from '../home/RoleHomeDashboard'
 import { mediaVisual } from '../planning/media-visuals'
-import { formatMoney, formatNumber, humanizeCode } from '../presentation/format'
-
-type DashboardData = {
-  tenant: Tenant
-  user: CurrentUser
-  campaigns: Campaign[]
-  bookings: Booking[]
-  tasks: HumanTask[]
-  planning: PlanningSummary[]
-  proposals: ProposalSummary[]
-  inventory: InventoryProductPage | null
-}
-
-const roleSpecificHomeRoles = new Set<string>([
-  masterDataCodes.roles.inventoryOps,
-  masterDataCodes.roles.supplierUser,
-  masterDataCodes.roles.influencerRep,
-  masterDataCodes.roles.advertiserAdmin,
-  masterDataCodes.roles.advertiserApprover,
-])
-
-const thumbnails = [
-  '/assets/media-inventory/out-of-home-real.jpg',
-  '/assets/media-inventory/digital-real.jpg',
-  '/assets/media-inventory/radio-real.jpg',
-  '/assets/media-inventory/print-real.jpg',
-  '/assets/media-inventory/television-real.jpg',
-]
+import { formatMoney, humanizeCode } from '../presentation/format'
 
 export function HomePage() {
   const { selected, loading } = useWorkspace()
   if (loading) return <LoadingState />
   if (!selected) return <Navigate to="/workspaces" replace />
-  return <HomeData key={selected.tenantId} workspace={selected} />
+  if (!homeAudience(selected.roleCode)) return <MessageState
+    title={homeCopy.noAccessTitle} message={homeCopy.noAccessMessage} />
+  return <HomeData key={`${selected.tenantId}:${selected.roleCode}`} workspace={selected} />
 }
 
 function HomeData({ workspace }: { workspace: Workspace }) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     let active = true
-    void loadDashboard(workspace.tenantId)
+    void loadDashboard(workspace)
       .then(value => { if (active) setData(value) })
       .catch((failure: unknown) => { if (active) setError(humanMessage(failure)) })
     return () => { active = false }
-  }, [workspace.tenantId])
-  if (error) return <MessageState title="Your workspace could not be opened" message={error} />
+  }, [workspace, attempt])
+  function retry() { setData(null); setError(null); setAttempt(value => value + 1) }
+  if (error) return <>
+    <MessageState title={homeCopy.unavailableTitle} message={error} />
+    <p>{homeCopy.unavailableNote}</p>
+    <button type="button" className="primary-button" onClick={retry}>{homeCopy.retry}</button>
+  </>
   if (!data) return <LoadingState label={`Preparing ${workspace.name}`} />
-  if (roleSpecificHomeRoles.has(workspace.roleCode)) return <RoleHomeDashboard
+  if (homeAudience(workspace.roleCode) !== 'operator') return <RoleHomeDashboard
     roleCode={workspace.roleCode} displayName={data.user.displayName}
     workspaceName={workspace.name} currency={data.tenant.currencyCode}
     campaigns={data.campaigns} bookings={data.bookings} tasks={data.tasks}
+    planning={data.planning} proposals={data.proposals} rfqs={data.rfqs}
     inventory={data.inventory} />
   return <ApprovedDashboard data={data} />
-}
-
-async function loadDashboard(tenantId: string): Promise<DashboardData> {
-  const [tenant, userProfile, campaigns, bookings, tasks, planning, proposals, inventory] = await Promise.all([
-    api.getTenant(tenantId),
-    api.getCurrentUser(),
-    campaignApi.list(tenantId).catch(() => []),
-    bookingApi.list(tenantId).catch(() => []),
-    opportunityApi.listTasks(tenantId).catch(() => []),
-    planningApi.list(tenantId).catch(() => []),
-    proposalApi.list(tenantId).catch(() => []),
-    inventoryApi.search(tenantId, {}).catch(() => null),
-  ])
-  return { tenant, user: userProfile.user, campaigns, bookings, tasks, planning, proposals, inventory }
 }
 
 type DashboardView = ReturnType<typeof dashboardView>
 
 function ApprovedDashboard({ data }: { data: DashboardData }) {
   const view = dashboardView(data)
-  const [showGettingStarted, setShowGettingStarted] = useState(true)
   const newWorkspace = data.campaigns.length === 0 && data.bookings.length === 0 &&
     data.planning.length === 0 && data.proposals.length === 0
   return <section className="approved-dashboard" aria-labelledby="home-title">
     <header className="approved-dashboard-greeting">
       <h1 id="home-title">{greeting()}, {firstName(data.user.displayName)} 👋</h1>
-      <p>{newWorkspace
-        ? 'Start with the client request. Advertified will carry the approved facts through audience, planning and proposal.'
-        : 'Your live workspace is prioritised around decisions, campaign movement and evidence-backed signals.'}</p>
+      <p>{newWorkspace ? homeCopy.emptyIntro : homeCopy.activeIntro}</p>
     </header>
     {newWorkspace ? <NewWorkspaceHome data={data} view={view} /> : <>
       <ExperienceSignals title="What needs attention now" signals={dashboardSignals(data, view)} />
@@ -112,8 +70,6 @@ function ApprovedDashboard({ data }: { data: DashboardData }) {
       <DashboardKpis data={data} view={view} />
       <DashboardGrid data={data} view={view} />
     </>}
-    {showGettingStarted && <GettingStarted prominent={newWorkspace}
-      onDismiss={() => setShowGettingStarted(false)} />}
   </section>
 }
 
@@ -122,234 +78,157 @@ function NewWorkspaceHome({ data, view }: { data: DashboardData; view: Dashboard
     {data.tasks.length > 0 && <ExperienceSignals title="What needs attention now"
       signals={dashboardSignals(data, view)} />}
     <article className="approved-launchpad">
-      <div><p className="eyebrow">Start a campaign</p><h2>Turn the client request into an approved plan</h2>
-        <p>Paste or upload the Brief, validate the audience, then let the existing planning workflow build the media decision.</p></div>
-      <Link className="primary-button" to="/briefs/new">Start Brief <span aria-hidden="true">→</span></Link>
+      <div><p className="eyebrow">{homeCopy.startEyebrow}</p><h2>{homeCopy.startTitle}</h2>
+        <p>{homeCopy.startDescription}</p></div>
+      <Link className="primary-button" to="/briefs/new">{homeCopy.startAction} <span aria-hidden="true">→</span></Link>
     </article>
   </div>
 }
 
 function DashboardKpis({ data, view }: { data: DashboardData; view: DashboardView }) {
   return <div className="approved-kpi-grid">
-    <KpiCard label="Active Campaigns" value={String(view.activeCampaigns.length)}
-      trend={`${data.campaigns.length} total campaigns`}
-      points="4,18 16,29 28,20 40,35 52,14 64,24 76,8" />
-    <KpiCard label="Total Investment"
-      value={formatMoney(view.totalInvestmentMinor, view.currency, 0)}
-      trend="From persisted booking lines"
-      points="4,32 16,27 28,29 40,20 52,24 64,15 76,27" />
-    <KpiCard label="Planned Reach"
-      value={view.reach > 0 ? compact(view.reach) : '—'}
-      trend={view.reach > 0
-        ? 'From reviewed campaign evidence' : 'No reviewed reach evidence yet'}
-      points="4,29 16,19 28,24 40,14 52,18 64,9 76,20" />
-    <KpiCard label="Avg. CPM"
-      value={view.avgCpm === null
-        ? '—' : formatMoney(Math.round(view.avgCpm * 100), view.currency, 2)}
-      trend={view.avgCpm === null
-        ? 'Waiting for spend + impressions' : 'Calculated from persisted evidence'}
-      points="4,18 16,32 28,17 40,24 52,16 64,23 76,10" />
+    <KpiCard label={homeCopy.activeCampaigns} value={String(view.activeCampaigns.length)}
+      detail={`${data.campaigns.length} total campaigns`} />
+    <KpiCard label={homeCopy.confirmedMedia}
+      value={view.investment.totalMinor === null ? '—' : formatMoney(view.investment.totalMinor, view.currency, 0)}
+      detail={view.investment.totalMinor === null ? homeCopy.unknownAmount :
+        investmentDescription(view.currency, view.investment.otherCurrencies)} />
+    <KpiCard label={homeCopy.awaitingDecision} value={String(view.pendingDecisions)} detail={homeCopy.decisionNote} />
+    <KpiCard label={homeCopy.approvedPlans} value={String(view.approvedPlans)} detail={homeCopy.planNote} />
   </div>
 }
 
 function DashboardGrid({ data, view }: { data: DashboardData; view: DashboardView }) {
   return <div className="approved-dashboard-grid">
-    <ActiveCampaignsPanel campaigns={view.recentCampaigns}
-      totalCampaigns={data.campaigns.length} />
-    <DashboardCentre view={view} />
+    <ActiveCampaignsPanel campaigns={view.recentActiveCampaigns} totalCampaigns={view.activeCampaigns.length} />
+    <div className="approved-dashboard-centre">
+      <Panel title={homeCopy.investmentTitle} action={<span>{view.currency}</span>}>
+        <InvestmentChart investment={view.investment} currency={view.currency} />
+      </Panel>
+      <Panel title={homeCopy.inventoryTitle}>
+        <p className="approved-empty">{homeCopy.inventoryNote}</p>
+        {view.recentInventory.length === 0 ? <Empty message={homeCopy.inventoryEmpty} /> :
+          <div className="approved-inventory-updates">{view.recentInventory.map(InventoryUpdate)}</div>}
+        <Link className="approved-panel-link" to="/inventory">Go to inventory →</Link>
+      </Panel>
+    </div>
     <DashboardRight data={data} campaigns={view.recentCampaigns} />
   </div>
 }
 
-function ActiveCampaignsPanel({ campaigns, totalCampaigns }: {
-  campaigns: Campaign[]
-  totalCampaigns: number
-}) {
-  return <Panel className="approved-active-campaigns" title="Active Campaigns"
+function ActiveCampaignsPanel({ campaigns, totalCampaigns }: { campaigns: Campaign[]; totalCampaigns: number }) {
+  return <Panel className="approved-active-campaigns" title={homeCopy.activeCampaigns}
     action={<Link to="/campaigns">View all</Link>}>
-    {campaigns.length === 0
-      ? <Empty message="No campaigns yet." />
-      : campaigns.map((campaign, index) =>
-          <CampaignRow key={campaign.id} campaign={campaign} index={index} />)}
-    <footer>{campaigns.length > 0 &&
-      <span>Showing {campaigns.length} of {totalCampaigns} campaigns</span>}
+    {campaigns.length === 0 ? <Empty message={homeCopy.noCampaigns} /> :
+      campaigns.map(campaign => <CampaignRow key={campaign.id} campaign={campaign} />)}
+    <footer>{campaigns.length > 0 && <span>Showing {campaigns.length} of {totalCampaigns} active campaigns</span>}
       <Link to="/campaigns">Go to campaigns →</Link></footer>
   </Panel>
 }
 
-function DashboardCentre({ view }: { view: DashboardView }) {
-  return <div className="approved-dashboard-centre">
-    <Panel title="Investment by Channel"
-      action={<span className="approved-period-select">This month⌄</span>}>
-      <InvestmentChart rows={view.channelSpend} total={view.totalInvestmentMinor}
-        currency={view.currency} />
-    </Panel>
-    <Panel title="Top Inventory Updates">
-      {view.recentInventory.length === 0
-        ? <Empty message="No published inventory updates yet." />
-        : <div className="approved-inventory-updates">
-            {view.recentInventory.map(InventoryUpdate)}
-          </div>}
-      <Link className="approved-panel-link" to="/inventory">Go to inventory →</Link>
-    </Panel>
-  </div>
-}
-
-function InventoryUpdate(item: DashboardView['recentInventory'][number], index: number) {
+function InventoryUpdate(item: DashboardView['recentInventory'][number]) {
   return <Link key={item.id} to={`/inventory/products/${item.id}`}>
-    <span className={`approved-update-icon tone-${index + 1}`}>
-      <Icon name={index === 0 ? 'brief' : index === 1 ? 'search' : 'inventory'} />
-    </span>
-    <div><strong>{item.name}</strong>
-      <small>{item.geography} · {humanizeCode(item.channel, true)}</small></div>
-    <em>{index === 0 ? 'NEW RATES' : 'AVAILABILITY'}</em>
-    <time>{relative(item.updatedAtUtc)}</time>
+    <span className="approved-update-icon tone-1"><Icon name="inventory" /></span>
+    <div><strong>{item.name}</strong><small>{item.geography} · {humanizeCode(item.channel, true)}</small></div>
+    <time dateTime={item.updatedAtUtc}>{relative(item.updatedAtUtc)}</time>
   </Link>
 }
 
-function DashboardRight({ data, campaigns }: {
-  data: DashboardData
-  campaigns: Campaign[]
-}) {
+function DashboardRight({ data, campaigns }: { data: DashboardData; campaigns: Campaign[] }) {
   return <div className="approved-dashboard-right">
     <Panel title="Recent Activity" action={<Link to="/campaigns">View all</Link>}>
-      <div className="approved-activity-list">
-        {campaigns.slice(0, 5).map((item, index) => <Link
-          to={`/campaigns/${item.id}`} key={item.id}>
-          <span className={`approved-activity-icon tone-${(index % 4) + 1}`}>✓</span>
-          <div><strong>{item.title}</strong>
-            <small>{humanizeCode(item.status, true)} · {relative(item.updatedAtUtc)}</small>
-          </div>
-        </Link>)}
-      </div>
-      {campaigns.length === 0 &&
-        <Empty message="Activity will appear as campaigns move." />}
+      <div className="approved-activity-list">{campaigns.slice(0, 5).map(item =>
+        <Link to={`/campaigns/${item.id}`} key={item.id}>
+          <span className="approved-activity-icon tone-1"><Icon name="plan" /></span>
+          <div><strong>{item.title}</strong><small>{humanizeCode(item.status, true)} · {relative(item.updatedAtUtc)}</small></div>
+        </Link>)}</div>
+      {campaigns.length === 0 && <Empty message={homeCopy.activityEmpty} />}
     </Panel>
     <Panel title="Tasks Needing Attention" action={<Link to="/tasks">View all</Link>}>
       <div className="approved-attention-list">{data.tasks.slice(0, 4).map(task =>
-        <Link to={task.briefId
-          ? `/briefs/${task.briefId}` : `/opportunities/${task.opportunityId}`}
-          key={task.id}>
-          <span>✓</span><div><strong>{task.title}</strong>
-            <small>{task.whyItMatters}</small></div><em>1</em>
+        <Link to={task.briefId ? `/briefs/${task.briefId}` :
+          task.opportunityId ? `/opportunities/${task.opportunityId}` : '/tasks'} key={task.id}>
+          <Icon name="tasks" /><div><strong>{task.title}</strong><small>{task.whyItMatters}</small></div>
         </Link>)}</div>
-      {data.tasks.length === 0 && <Empty message="No tasks need your attention." />}
+      <Empty message={data.tasks.length === 0 ? homeCopy.noTasks : homeCopy.tasksNote} />
     </Panel>
-  </div>
-}
-
-function GettingStarted({ onDismiss, prominent = false }: {
-  onDismiss: () => void
-  prominent?: boolean
-}) {
-  return <div className={`approved-help-row${prominent ? ' is-launchpad' : ''}`}>
-    <article className="approved-getting-started">
-      <button type="button" aria-label="Dismiss" onClick={onDismiss}>×</button>
-      <h2>{prominent ? 'Your first campaign starts here' : 'Need help getting started?'}</h2>
-      <p>{prominent
-        ? 'Use the same governed tools you will use in production: Brief, verified inventory and evidence-led guidance.'
-        : 'Create a brief, explore inventory or let Adverti Assistant guide you.'}</p>
-      <div><Link to="/briefs/new"><Icon name="brief" /><span>
-        <strong>Create Brief</strong><small>Start a new campaign brief</small>
-      </span></Link>
-      <Link to="/inventory"><Icon name="inventory" /><span>
-        <strong>Explore Inventory</strong><small>Search sites and rates</small>
-      </span></Link>
-      <Link to="/opportunities"><span className="spark">✦</span><span>
-        <strong>Ask Adverti</strong><small>Get evidence-led insights</small>
-      </span></Link></div>
-    </article>
   </div>
 }
 
 function dashboardView(data: DashboardData) {
-  const activeCampaigns = data.campaigns
-    .filter(item => item.status !== masterDataCodes.lifecycleStatuses.completed &&
-      item.status !== masterDataCodes.lifecycleStatuses.cancelled)
-  const totalInvestmentMinor = data.bookings
-    .reduce((sum, item) => sum + (item.clientPriceMinor ?? 0), 0)
-  const currency = data.bookings.find(item => item.currency)?.currency ??
-    data.tenant.currencyCode
-  const reach = metricTotal(data.campaigns, masterDataCodes.performanceMetricTypes.reach)
-  const impressions = metricTotal(data.campaigns, masterDataCodes.performanceMetricTypes.impressions)
+  const activeCampaigns = data.campaigns.filter(item =>
+    item.status !== masterDataCodes.lifecycleStatuses.completed && item.status !== masterDataCodes.lifecycleStatuses.cancelled)
+  const currency = data.tenant.currencyCode
   return {
-    activeCampaigns,
-    totalInvestmentMinor,
-    currency,
-    reach,
-    avgCpm: impressions > 0
-      ? totalInvestmentMinor / 100 * 1000 / impressions : null,
-    channelSpend: investmentByChannel(data.bookings),
-    recentCampaigns: [...data.campaigns]
-      .sort((a, b) => b.updatedAtUtc.localeCompare(a.updatedAtUtc)).slice(0, 5),
+    activeCampaigns, currency,
+    investment: bookingInvestment(data.bookings, currency),
+    pendingDecisions: data.proposals.filter(item => item.status === masterDataCodes.lifecycleStatuses.sent).length,
+    approvedPlans: data.planning.filter(item => item.mediaPlanStatus === masterDataCodes.lifecycleStatuses.approved).length,
+    recentActiveCampaigns: recentCampaigns(activeCampaigns),
+    recentCampaigns: recentCampaigns(data.campaigns),
     recentInventory: [...(data.inventory?.items ?? [])]
       .sort((a, b) => b.updatedAtUtc.localeCompare(a.updatedAtUtc)).slice(0, 3),
   }
 }
 
-function KpiCard({ label, value, trend, points }: { label: string; value: string; trend: string; points: string }) {
-  return <article className="approved-kpi-card"><div><span>{label}</span><strong>{value}</strong><small>{trend}</small></div>
-    <svg viewBox="0 0 80 42" aria-hidden="true"><polyline points={points} /></svg></article>
+function KpiCard({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return <article className="approved-kpi-card"><div><span>{label}</span><strong>{value}</strong><small>{detail}</small></div></article>
 }
 
 function Panel({ title, action, children, className = '' }: { title: string; action?: ReactNode; children: ReactNode; className?: string }) {
   return <article className={`approved-panel ${className}`}><header><h2>{title}</h2>{action}</header>{children}</article>
 }
 
-function CampaignRow({ campaign, index }: { campaign: Campaign; index: number }) {
+function CampaignRow({ campaign }: { campaign: Campaign }) {
   return <Link className="approved-campaign-row" to={`/campaigns/${campaign.id}`}>
-    <img src={thumbnails[index % thumbnails.length]} alt="" /><div><strong>{campaign.title}</strong>
-      <small>{formatDateRange(campaign.startDate, campaign.endDate)}</small><em>{humanizeCode(campaign.status, true)}</em></div>
-    <span className="approved-campaign-stage"><strong>{humanizeCode(campaign.status, true)}</strong><small>Persisted campaign state</small></span>
+    <span className="approved-update-icon tone-1"><Icon name="plan" /></span>
+    <div><strong>{campaign.title}</strong><small>{formatDateRange(campaign.startDate, campaign.endDate)}</small>
+      <em>{humanizeCode(campaign.status, true)}</em></div>
+    <span className="approved-campaign-stage"><strong>{humanizeCode(campaign.status, true)}</strong><small>{homeCopy.campaignState}</small></span>
     <b aria-hidden="true">→</b>
   </Link>
 }
 
-function InvestmentChart({ rows, total, currency }: { rows: Array<[string, number]>; total: number; currency: string }) {
-  const gradient = rows.length === 0 ? '#eef1f7 0 100%' : buildGradient(rows, total)
-  return <div className="approved-investment-chart"><div className="approved-donut" style={{ background: `conic-gradient(${gradient})` }}>
-    <span><strong>{formatMoney(total, currency, 0)}</strong><small>Total</small></span></div>
-    <div className="approved-channel-legend">{rows.length === 0 ? <Empty message="No booked spend by channel yet." /> : rows.map(([channel, amount]) => {
+function InvestmentChart({ investment, currency }: { investment: ReturnType<typeof bookingInvestment>; currency: string }) {
+  const { channels: rows, totalMinor: total } = investment
+  if (total === null) return <Empty message={homeCopy.investmentUnavailable} />
+  if (total === 0) return <Empty message={`${homeCopy.investmentEmpty} ${investmentDescription(currency, investment.otherCurrencies)}`} />
+  return <><div className="approved-investment-chart">
+    <div className="approved-donut" aria-hidden="true" style={{ background: `conic-gradient(${buildGradient(rows, total)})` }}>
+      <span><strong>{formatMoney(total, currency, 0)}</strong><small>{currency}</small></span>
+    </div>
+    <div className="approved-channel-legend">{rows.map(([channel, amount]) => {
       const visual = mediaVisual(channel)
       return <div key={channel}><span style={{ background: visual.color }} /><strong>{visual.label}</strong>
-        <small>{formatMoney(amount, currency, 0)} ({Math.round(amount / Math.max(total, 1) * 100)}%)</small></div>
-    })}</div></div>
+        <small>{formatMoney(amount, currency, 0)} ({Math.round(amount / total * 100)}%)</small></div>
+    })}</div>
+  </div><p className="approved-empty">{investmentDescription(currency, investment.otherCurrencies)}</p></>
+}
+
+function dashboardSignals(data: DashboardData, view: DashboardView): ExperienceSignal[] {
+  const topChannel = view.investment.channels[0]
+  const total = view.investment.totalMinor
+  return [
+    { label: 'Human decisions', value: `${data.tasks.length} shown`, icon: 'tasks',
+      tone: data.tasks.length > 0 ? 'warning' : 'neutral', detail: homeCopy.tasksNote,
+      why: 'Shown tasks belong to the selected workspace; open the queue for all available work.' },
+    { label: 'Campaign movement', value: `${view.activeCampaigns.length} active`, icon: 'plan', tone: 'violet',
+      detail: `${data.campaigns.length} campaigns exist in this workspace.`,
+      why: 'Completed and cancelled campaigns are excluded from the active count.' },
+    { label: 'Media concentration', value: total === null ? 'Prices incomplete' :
+        topChannel && total > 0 ? mediaVisual(topChannel[0]).label : 'No confirmed value', icon: 'chart', tone: 'blue',
+      detail: topChannel && total !== null && total > 0 ?
+        `${Math.round(topChannel[1] / total * 100)}% of confirmed ${view.currency} media value is in this channel.` : homeCopy.confirmedSignalNote,
+      why: homeCopy.confirmedSignalNote },
+    { label: homeCopy.clientSignal, value: `${view.pendingDecisions} waiting`, icon: 'proposal',
+      tone: view.pendingDecisions > 0 ? 'warning' : 'neutral', detail: homeCopy.decisionNote, why: homeCopy.clientSignalNote },
+  ]
 }
 
 function Empty({ message }: { message: string }) { return <p className="approved-empty">{message}</p> }
-function metricTotal(campaigns: Campaign[], metric: string) { return campaigns.flatMap(c => c.performanceEvidence).flatMap(e => e.metrics).filter(m => m.metricType === metric).reduce((sum, m) => sum + m.value, 0) }
-function investmentByChannel(bookings: Booking[]) { const totals = new Map<string, number>(); for (const item of bookings) totals.set(item.channel, (totals.get(item.channel) ?? 0) + (item.clientPriceMinor ?? 0)); return [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6) }
-function compact(value: number) { if (value >= 1_000_000) return `${formatNumber(value / 1_000_000, 1)}M`; if (value >= 1_000) return `${formatNumber(value / 1_000, 1)}K`; return formatNumber(value) }
+function recentCampaigns(campaigns: Campaign[]) { return [...campaigns].sort((a, b) => b.updatedAtUtc.localeCompare(a.updatedAtUtc)).slice(0, 5) }
 function relative(value: string) { const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000)); if (minutes < 60) return `${minutes}m ago`; const hours = Math.round(minutes / 60); if (hours < 24) return `${hours}h ago`; return `${Math.round(hours / 24)}d ago` }
 function formatDateRange(start: string, end: string) { return `${new Date(start).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} – ${new Date(end).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}` }
-function buildGradient(rows: Array<[string, number]>, total: number) { let cursor = 0; return rows.map(([channel, amount]) => { const start = cursor; cursor += amount / Math.max(total, 1) * 100; return `${mediaVisual(channel).color} ${start}% ${cursor}%` }).join(', ') }
-function dashboardSignals(data: DashboardData, view: DashboardView): ExperienceSignal[] {
-  const topChannel = view.channelSpend[0]
-  return [
-    {
-      label: 'Human decisions', value: `${data.tasks.length} waiting`, icon: 'tasks',
-      tone: data.tasks.length > 0 ? 'warning' : 'positive',
-      detail: data.tasks.length > 0 ? 'Persisted approvals or corrections need attention.' : 'No assigned human checkpoints are currently waiting.',
-      why: 'This count comes only from persisted HumanTask records for the current workspace.',
-    },
-    {
-      label: 'Campaign movement', value: `${view.activeCampaigns.length} active`, icon: 'plan', tone: 'violet',
-      detail: `${data.campaigns.length} campaign${data.campaigns.length === 1 ? '' : 's'} exist in this workspace.`,
-      why: 'Completed and cancelled campaigns are excluded from the active count.',
-    },
-    {
-      label: 'Investment concentration',
-      value: topChannel ? mediaVisual(topChannel[0]).label : 'No spend yet', icon: 'chart', tone: 'blue',
-      detail: topChannel ? `${Math.round(topChannel[1] / Math.max(view.totalInvestmentMinor, 1) * 100)}% of persisted booked investment is in this channel.` : 'Booked channel investment will appear here as commercial lines are confirmed.',
-      why: 'The signal is calculated from persisted booking client-price values, not a forecast.',
-    },
-    {
-      label: 'Evidence readiness', value: view.reach > 0 ? 'Reach available' : 'Reach pending', icon: 'evidence',
-      tone: view.reach > 0 ? 'positive' : 'neutral',
-      detail: view.reach > 0 ? `${compact(view.reach)} reviewed reach is recorded.` : 'No reviewed reach evidence is available yet.',
-      why: 'Advertified only surfaces reach when reviewed campaign evidence contains a reach metric.',
-    },
-  ]
-}
+function buildGradient(rows: Array<[string, number]>, total: number) { let cursor = 0; return rows.map(([channel, amount]) => { const start = cursor; cursor += amount / total * 100; return `${mediaVisual(channel).color} ${start}% ${cursor}%` }).join(', ') }
 function greeting() { const hour = new Date().getHours(); if (hour < 12) return 'Good morning'; if (hour < 18) return 'Good afternoon'; return 'Good evening' }
 function firstName(displayName: string) { return displayName.trim().split(/\s+/)[0] || 'there' }

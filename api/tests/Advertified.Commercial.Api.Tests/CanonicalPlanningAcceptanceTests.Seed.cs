@@ -6,7 +6,8 @@ public sealed partial class CanonicalPlanningAcceptanceTests
 {
     private static async Task SeedPlanningPrerequisitesAsync(
         string connectionString,
-        long briefBudgetMinor)
+        long briefBudgetMinor,
+        bool includeInventory = true)
     {
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync();
@@ -118,6 +119,7 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             policyVersionId, TenantId, policyId);
         await batch.ExecuteNonQueryAsync();
 
+        if (!includeInventory) return;
         var rates = new long[] { 100_000, 120_000, 140_000, 160_000, 180_000, 90_000 };
         for (var index = 0; index < rates.Length; index++)
         {
@@ -128,7 +130,9 @@ public sealed partial class CanonicalPlanningAcceptanceTests
     private static async Task InsertProductAsync(
         NpgsqlConnection connection,
         int index,
-        long rate)
+        long? rate,
+        string? availabilityOverride = null,
+        ScenarioProductShape? shape = null)
     {
         var productId = Guid.Parse($"77000000-0000-0000-0000-{index + 1:D12}");
         var versionId = Guid.Parse($"78000000-0000-0000-0000-{index + 1:D12}");
@@ -158,20 +162,23 @@ public sealed partial class CanonicalPlanningAcceptanceTests
                 product_type_code, geography, latitude, longitude, audience_profile_json,
                 verification_code, deliverable_json, spatial_json,
                 source_import_id, source_candidate_id, published_by, published_at_utc)
-            VALUES ($1, $2, $3, 1, $4, 'OOH', 'OOH_SITE', $5, $6, $7, $8::jsonb,
+            VALUES ($1, $2, $3, 1, $4, $13, $14, $5, $6, $7, $8::jsonb,
                 'HUMAN_VERIFIED',
-                '{"format":"Static billboard","buyingUnit":"site/month","dimensions":"3m x 6m","placement":"Roadside","quantity":1}'::jsonb,
+                $15::jsonb,
                 '{"country":"South Africa","province":"Gauteng","municipality":"Johannesburg","locality":"Johannesburg","road":"Bree Street","trafficDirection":"Northbound","facingBearingDegrees":15,"pointsOfInterest":[{"name":"Central business district","category":"BUSINESS_DISTRICT","latitude":-26.2041,"longitude":28.0473}]}'::jsonb,
                 $9, $10, $11, $12)
             """, versionId, TenantId, productId, $"{geography} Site {index + 1}", geography,
             index == 5 ? -33.9249m : -26.2041m,
             index == 5 ? 18.4241m : 28.0473m,
             audienceProfile is null ? DBNull.Value : audienceProfile,
-            ImportId, CandidateId, OperatorId, Now);
+            ImportId, CandidateId, OperatorId, Now,
+            shape?.Channel ?? "OOH", shape?.ProductType ?? "OOH_SITE",
+            shape?.Deliverable ?? ScenarioProductShape.StaticDeliverable);
         AddCommand(batch,
             "UPDATE commercial.inventory_products SET current_version_id = $1 WHERE id = $2",
             versionId, productId);
-        AddCommand(batch,
+        if (rate.HasValue)
+            AddCommand(batch,
             """
             INSERT INTO commercial.inventory_rates (
                 id, tenant_id, product_version_id, rate_type_code, currency_code,
@@ -180,8 +187,8 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             VALUES ($1, $2, $3, 'MONTH_RATE', 'ZAR', $4, '2026-01-01', $5,
                 'csv#row=2', 'INCLUSIVE',
                 '{"vatTreatment":"INCLUSIVE","minimumOrder":1,"billingDays":30,"inclusions":["Media placement"],"exclusions":["Creative production"],"conditions":["Subject to written supplier confirmation"],"bookingLeadTimeDays":5}'::jsonb)
-            """, rateId, TenantId, versionId, rate, effectiveTo);
-        var availability = index is 0 or 1 ? "AVAILABLE" : "UNKNOWN";
+            """, rateId, TenantId, versionId, rate.Value, effectiveTo);
+        var availability = availabilityOverride ?? (index is 0 or 1 ? "AVAILABLE" : "PLANNING_AVAILABLE");
         var validUntil = index == 0
             ? new DateTimeOffset(2026, 10, 31, 23, 59, 59, TimeSpan.Zero)
             : index == 1

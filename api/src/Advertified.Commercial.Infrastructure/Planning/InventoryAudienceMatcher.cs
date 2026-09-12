@@ -19,7 +19,7 @@ internal static class InventoryAudienceMatcher
 
     internal static InventoryAudienceFitView Evaluate(
         string? profileJson,
-        IReadOnlyList<AudienceDefinitionView> targets)
+        IReadOnlyList<AudienceSegmentView> targets)
     {
         var profile = ReadProfile(profileJson);
         var languages = TargetValues(targets.Select(item => item.Language));

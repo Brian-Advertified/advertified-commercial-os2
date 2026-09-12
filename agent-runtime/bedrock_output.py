@@ -13,6 +13,12 @@ from bedrock_enrichment_output import (
     enrichment_schema,
     wrap_enrichment_output,
 )
+from bedrock_location_output import location_synthesis_schema, wrap_location_synthesis_output
+from bedrock_media_schema import media_strategy_schema
+from bedrock_audience_schema import audience_schema
+from planning_contracts import AudienceAgentRequest
+from media_strategy_contracts import MediaStrategyRequest
+from location_intelligence_contracts import LocationSynthesisRequest
 from bedrock_schema import source_bound_schema
 from bedrock_supplied_brief_output import (
     supplied_brief_schema,
@@ -42,7 +48,13 @@ def output_schema(
     transcription: bool,
 ) -> str:
     schema = (
-        supplied_brief_schema()
+        location_synthesis_schema(request)
+        if isinstance(request, LocationSynthesisRequest)
+        else media_strategy_schema(request)
+        if isinstance(request, MediaStrategyRequest)
+        else audience_schema(request)
+        if isinstance(request, AudienceAgentRequest)
+        else supplied_brief_schema()
         if isinstance(request, SuppliedBriefRequest)
         else transcription_schema()
         if transcription
@@ -111,6 +123,8 @@ def _validate_typed_output(
     usage: ProviderUsage,
 ):
     try:
+        if isinstance(request, LocationSynthesisRequest):
+            return wrap_location_synthesis_output(payload, request)
         if artifact_type is SuppliedBriefArtifact:
             return wrap_supplied_brief_output(artifact_type, payload)
         if transcription:

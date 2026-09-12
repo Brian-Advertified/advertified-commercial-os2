@@ -125,7 +125,7 @@ function BriefCoreSteps({ record, version, budget, step }: {
         ? `${version.measurement.length} approved measure${version.measurement.length === 1 ? '' : 's'} retained for the Measurement step`
         : 'Not supplied'} wide />
     </BriefStep>
-    <BriefStep {...step(masterDataCodes.agentTypes.audience)} copy="Who should the campaign influence?">
+    <BriefStep {...step(masterDataCodes.agentTypes.audienceIntelligence)} copy="Who should the campaign influence?">
       <ListFields label="Audience" values={version.audiences} />
     </BriefStep>
     <BriefStep {...step('geography')} copy="Where must the campaign work?">

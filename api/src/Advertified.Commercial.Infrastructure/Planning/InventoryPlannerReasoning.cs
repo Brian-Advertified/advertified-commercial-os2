@@ -6,7 +6,7 @@ namespace Advertified.Commercial.Infrastructure.Planning;
 internal static class InventoryPlannerReasoning
 {
     internal static InventoryPlannerReasoningView Evaluate(PreparedShortlistCandidate candidate,
-        IReadOnlyList<AudienceDefinitionView> targets, bool measuredTarget,
+        IReadOnlyList<AudienceSegmentView> targets, bool measuredTarget,
         InventoryDigitalExposureView? digital)
     {
         var questions = new List<string> { "plannerReasoning.messageAndMoment", "plannerReasoning.incrementalContribution" };

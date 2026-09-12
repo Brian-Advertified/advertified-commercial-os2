@@ -1,5 +1,12 @@
 name: advertified-os2-production
 
+x-production-logging: &production-logging
+  driver: awslogs
+  options:
+    awslogs-region: af-south-1
+    awslogs-group: /advertified/production/application
+    awslogs-stream-prefix: advertified
+
 x-service-hardening: &service-hardening
   init: true
   read_only: true
@@ -9,11 +16,7 @@ x-service-hardening: &service-hardening
     - no-new-privileges:true
   restart: unless-stopped
   pull_policy: always
-  logging:
-    driver: json-file
-    options:
-      max-size: "20m"
-      max-file: "5"
+  logging: *production-logging
 
 x-api-environment: &api-environment
   ASPNETCORE_ENVIRONMENT: Production
@@ -27,11 +30,12 @@ services:
     profiles:
       - migration
     env_file:
-      - ${ADVERTIFIED_API_ENV_FILE:?Set the API environment file path}
+      - ${ADVERTIFIED_MIGRATOR_ENV_FILE:?Set the migration-only environment file path}
     environment:
       ASPNETCORE_ENVIRONMENT: Production
     networks:
       - backend
+      - outbound
     read_only: true
     cap_drop:
       - ALL
@@ -42,6 +46,7 @@ services:
     command:
       - --apply
     restart: "no"
+    logging: *production-logging
 
   agent-runtime:
     <<: *service-hardening
@@ -49,7 +54,8 @@ services:
     env_file:
       - ${ADVERTIFIED_AGENT_ENV_FILE:?Set the agent-runtime environment file path}
     networks:
-      - backend
+      - agent
+      - outbound
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=128m
     stop_grace_period: 30s
@@ -63,7 +69,10 @@ services:
       <<: *api-environment
     networks:
       - backend
+      - agent
+      - outbound
     volumes:
+      - ${ADVERTIFIED_API_CONFIG_FILE:?Set the validated API model-routing JSON path}:/app/appsettings.Production.json:ro
       - ${ADVERTIFIED_DATA_PROTECTION_KEYS_DIR:?Set the protected key directory}:/var/lib/advertified/data-protection-keys
       - ${ADVERTIFIED_DATA_PROTECTION_CERT_PATH:?Set the certificate path}:/run/secrets/data-protection.pfx:ro
     tmpfs:
@@ -78,11 +87,16 @@ services:
     image: ${ADVERTIFIED_API_IMAGE:?Set an immutable API image digest}
     env_file:
       - ${ADVERTIFIED_API_ENV_FILE:?Set the API environment file path}
+      - ${ADVERTIFIED_WORKER_ENV_FILE:?Set the worker-only environment file path}
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       Process__Role: Worker
     networks:
       - backend
+      - agent
+      - outbound
+    volumes:
+      - ${ADVERTIFIED_API_CONFIG_FILE:?Set the validated API model-routing JSON path}:/app/appsettings.Production.json:ro
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=256m
     depends_on:
@@ -113,3 +127,11 @@ networks:
   edge:
   backend:
     internal: true
+  # The AI runtime network is private to the API/worker/runtime boundary; the browser-facing
+  # web container is deliberately not attached to it. Authentication still uses the service key.
+  agent:
+    internal: true
+  # Private services need outbound access to the private EC2 database and approved
+  # AWS/email endpoints. No API, worker or runtime host ports are published.
+  outbound:
+    internal: false

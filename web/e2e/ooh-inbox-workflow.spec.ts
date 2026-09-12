@@ -299,7 +299,7 @@ function runFixture(overrides: Record<string, unknown>) {
   return { id: sentRunId, tenantId, inboundEmailId: sentEmailId, campaignMode: 'OOH_ONLY',
     status: 'PROCESSING', checkpoint: 'SOURCE_CAPTURED', clientAccountId: clientId,
     briefId, briefVersionId,
-    stpVersionId: 'e7100000-0000-0000-0000-000000000001',
+    audienceArtifactId: 'e7100000-0000-0000-0000-000000000001',
     mediaMixVersionId: 'e7200000-0000-0000-0000-000000000001',
     shortlistVersionId: 'e7300000-0000-0000-0000-000000000001',
     mediaPlanVersionId: 'e7400000-0000-0000-0000-000000000001',

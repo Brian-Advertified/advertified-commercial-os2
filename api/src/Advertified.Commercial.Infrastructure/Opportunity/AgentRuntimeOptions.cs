@@ -5,7 +5,6 @@ namespace Advertified.Commercial.Infrastructure.Opportunity;
 public sealed class AgentRuntimeOptions
 {
     public const string SectionName = "AgentRuntime";
-    public const string DisabledMode = "Disabled";
     public const string HttpDeterministicMode = "HttpDeterministic";
     public const string HttpMode = "Http";
     public const string DeterministicProvider = "deterministic";
@@ -20,9 +19,11 @@ public sealed class AgentRuntimeOptions
         MasterDataCodes.AgentTypes.Strategy,
         MasterDataCodes.AgentTypes.CriticReadiness,
         MasterDataCodes.AgentTypes.BriefDrafting,
-        MasterDataCodes.AgentTypes.Audience,
+        MasterDataCodes.AgentTypes.MarketIntelligence,
+        MasterDataCodes.AgentTypes.AudienceIntelligence,
+        MasterDataCodes.AgentTypes.LocationIntelligence,
+        MasterDataCodes.AgentTypes.MediaStrategy,
         MasterDataCodes.AgentTypes.InventoryIntelligence,
-        MasterDataCodes.AgentTypes.MediaPlanning,
         MasterDataCodes.AgentTypes.ProposalNarrative,
         MasterDataCodes.AgentTypes.Creative,
         MasterDataCodes.AgentTypes.Measurement,
@@ -40,14 +41,14 @@ public sealed class AgentRuntimeOptions
             "SEMANTIC_ENRICHMENT"),
     ];
 
-    public string Mode { get; init; } = DisabledMode;
-    public string BaseUrl { get; init; } = "http://localhost:8000";
+    public string Mode { get; init; } = string.Empty;
+    public string BaseUrl { get; init; } = string.Empty;
     public string? ServiceKey { get; init; }
     public int RecoverySweepSeconds { get; init; } = 300;
     public int ReconnectMinSeconds { get; init; } = 5;
     public int ReconnectMaxSeconds { get; init; } = 60;
-    public string Provider { get; init; } = DeterministicProvider;
-    public string DefaultModel { get; init; } = "fixture-v1";
+    public string Provider { get; init; } = string.Empty;
+    public string DefaultModel { get; init; } = string.Empty;
     public long DefaultCostCapMinor { get; init; }
     public int TimeoutSeconds { get; init; } = 30;
     public int MaxAttempts { get; init; } = 1;
@@ -82,7 +83,7 @@ public sealed class AgentRuntimeOptions
             : DefaultCostCapMinor;
 
     public static bool HasSupportedMode(AgentRuntimeOptions options) =>
-        options.Mode is DisabledMode or HttpDeterministicMode or HttpMode;
+        options.Mode is HttpDeterministicMode or HttpMode;
 
     public static bool HasSupportedProvider(AgentRuntimeOptions options) =>
         options.Provider is DeterministicProvider or BedrockProvider;

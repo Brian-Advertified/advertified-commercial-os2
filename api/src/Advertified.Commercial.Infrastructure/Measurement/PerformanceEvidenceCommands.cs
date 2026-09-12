@@ -13,7 +13,7 @@ public sealed class PerformanceEvidenceCommands(
     PerformanceEvidenceRecordStore store,
     CommandDispatcher dispatcher,
     IInventoryObjectStore objectStore,
-    IInventoryMalwareScanner malwareScanner,
+    IFileMalwareProtection malwareScanner,
     TimeProvider timeProvider) : IPerformanceEvidenceCommands
 {
     public async Task<CommandResult<PerformanceEvidenceView>> SubmitAsync(

@@ -70,7 +70,7 @@ public sealed class CommercialPolicyAcceptanceTests
             HttpStatusCode.Forbidden,
             "TENANT_FORBIDDEN");
         await AssertEmptyPolicyAsync(await otherAdmin.GetAsync(PolicyPath(OtherTenantId)));
-        await AssertMigrationCycleAsync(connectionString);
+        await AssertMigrationIdempotenceAsync(connectionString);
     }
 
     private static PostgreSqlContainer CreatePostgres() => DisposablePostgres.Create(
@@ -88,7 +88,7 @@ public sealed class CommercialPolicyAcceptanceTests
         builder.UseSetting("Authentication:DevelopmentIdentity:UserId", userId.ToString());
         builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", userId.ToString());
         builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
-        builder.UseDeterministicInventoryProtection();
+        builder.UseDeterministicTestDependencies();
         builder.UseSetting("Logging:LogLevel:Default", "Warning");
     });
 
@@ -113,16 +113,17 @@ public sealed class CommercialPolicyAcceptanceTests
         await db.SaveChangesAsync();
     }
 
-    private static async Task AssertMigrationCycleAsync(string connectionString)
+    private static async Task AssertMigrationIdempotenceAsync(string connectionString)
     {
         var options = new DbContextOptionsBuilder<GovernanceDbContext>()
             .UseNpgsql(connectionString).Options;
         await using var db = new GovernanceDbContext(options);
         var migrator = db.GetService<IMigrator>();
-        await migrator.MigrateAsync(Migration.InitialDatabase);
-        Assert.False(await TableExistsAsync(connectionString, "commercial.commercial_policies"));
+        var before = (await db.Database.GetAppliedMigrationsAsync()).ToArray();
         await migrator.MigrateAsync();
         await migrator.MigrateAsync();
+        var after = (await db.Database.GetAppliedMigrationsAsync()).ToArray();
+        Assert.Equal(before, after);
         Assert.True(await TableExistsAsync(connectionString, "commercial.commercial_policies"));
     }
 

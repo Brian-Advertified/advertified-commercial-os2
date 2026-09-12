@@ -22,7 +22,7 @@ public sealed class ProposalBrandingMigrationTests
         await DisposableDatabaseRoles.ProvisionAsync(connectionString);
         await PrepareMigrationOwnerAsync(connectionString);
         await MigrateAsOwnerAsync(connectionString, "202609080008_AudienceStrategyApproval");
-        await CanonicalPlanningAcceptanceTests.SeedAsync(connectionString, initializeSchema: false);
+        await SeedPreBrandingAsync(connectionString);
         await InsertLegacyProposalAsync(connectionString);
 
         await MigrateAsOwnerAsync(connectionString, "202609080009_ProposalBranding");
@@ -71,6 +71,79 @@ public sealed class ProposalBrandingMigrationTests
         var targetName = db.GetService<IMigrationsIdGenerator>().GetName(target);
         await db.GetService<IMigrator>().MigrateAsync(targetName);
         await new MasterDataBootstrapper(db, TimeProvider.System).ApplyAsync();
+    }
+
+    private static async Task SeedPreBrandingAsync(string connectionString)
+    {
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand("""
+            INSERT INTO commercial.tenants (
+                id, type_code, legal_name, trading_name, slug, status_code,
+                timezone, currency_code, vat_status_code, settings_json, version,
+                created_at_utc, updated_at_utc)
+            VALUES ('a6000000-0000-0000-0000-000000000001', 'AGENCY',
+                'Canonical Planning Legal', 'canonical-planning', 'branding-upgrade',
+                'ACTIVE', 'Africa/Johannesburg', 'ZAR', 'REGISTERED', '{}', 1,
+                now(), now());
+
+            INSERT INTO commercial.users (
+                id, email, display_name, status_code, mfa_enabled, version,
+                created_at_utc, updated_at_utc)
+            VALUES ('a6000000-0000-0000-0000-000000000002',
+                'branding-upgrade@example.test', 'Branding Upgrade Owner', 'ACTIVE',
+                true, 1, now(), now());
+
+            INSERT INTO commercial.client_accounts (
+                id, tenant_id, external_reference, legal_name, trading_name,
+                billing_profile_json, status_code, version, created_at_utc, updated_at_utc)
+            VALUES ('a6000000-0000-0000-0000-000000000003',
+                'a6000000-0000-0000-0000-000000000001', 'branding-client',
+                'Planning Client Legal', 'Planning Client', '{}', 'ACTIVE', 1,
+                now(), now());
+
+            INSERT INTO commercial.campaign_briefs (
+                id, tenant_id, client_account_id, title, owner_user_id, status_code,
+                version, created_at_utc, updated_at_utc)
+            VALUES ('a6000000-0000-0000-0000-000000000004',
+                'a6000000-0000-0000-0000-000000000001',
+                'a6000000-0000-0000-0000-000000000003', 'Branding upgrade brief',
+                'a6000000-0000-0000-0000-000000000002', 'APPROVED', 1,
+                now(), now());
+
+            INSERT INTO commercial.brief_sources (
+                id, tenant_id, brief_id, source_type_code, locator, title, content,
+                content_hash, created_by, created_at_utc)
+            VALUES ('a6000000-0000-0000-0000-000000000005',
+                'a6000000-0000-0000-0000-000000000001',
+                'a6000000-0000-0000-0000-000000000004', 'SUPPLIED_TEXT',
+                'branding-upgrade:test', 'Historical source', 'Historical source',
+                repeat('a', 64), 'a6000000-0000-0000-0000-000000000002', now());
+
+            INSERT INTO commercial.brief_versions (
+                id, tenant_id, brief_id, source_id, version_no, business_problem,
+                objective, audiences_json, geographies_json, timing, budget_minor,
+                budget_unknown, currency_code, vat_status_code, fees_minor,
+                constraints_json, measurement_json, facts_json, unknowns_json,
+                assumptions_json, conflicts_json, evidence_bindings_json, status_code,
+                created_by, approved_by, approved_at_utc, version, created_at_utc)
+            VALUES ('a6000000-0000-0000-0000-000000000006',
+                'a6000000-0000-0000-0000-000000000001',
+                'a6000000-0000-0000-0000-000000000004',
+                'a6000000-0000-0000-0000-000000000005', 1,
+                'Historical branding migration problem', 'Increase qualified enquiries',
+                '["Business buyers"]', '["Johannesburg"]', 'September 2026',
+                1000000, false, 'ZAR', 'REGISTERED', 0, '[]', '[]', '[]',
+                '[]', '[]', '[]', '[]', 'APPROVED',
+                'a6000000-0000-0000-0000-000000000002',
+                'a6000000-0000-0000-0000-000000000002', now(), 1, now());
+
+            UPDATE commercial.campaign_briefs
+            SET current_draft_version_id = 'a6000000-0000-0000-0000-000000000006',
+                approved_version_id = 'a6000000-0000-0000-0000-000000000006'
+            WHERE id = 'a6000000-0000-0000-0000-000000000004';
+            """, connection);
+        await command.ExecuteNonQueryAsync();
     }
 
     private static async Task InsertLegacyProposalAsync(string connectionString)

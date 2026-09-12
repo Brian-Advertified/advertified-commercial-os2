@@ -31,6 +31,8 @@ export function MediaMixEditor(props: MediaMixEditorProps) {
         currency={props.mix.currency} /></div>
     <AllocationBars allocations={draft.allocations} total={props.mix.totalBudgetMinor}
       currency={props.mix.currency} />
+    <MixDecisionFeedback allocations={draft.allocations} baseline={props.mix.allocations}
+      total={props.mix.totalBudgetMinor} currency={props.mix.currency} />
     {editable && draft.unusedChannels.length > 0 && <div className="media-channel-picker">
       <label>Add media type<select value={draft.channelToAdd}
         onChange={(event) => draft.setChannelToAdd(event.target.value)}>
@@ -120,6 +122,54 @@ function AllocationBars({ allocations, total, currency }: {
       </div>
     })}
   </div>
+}
+
+function MixDecisionFeedback({ allocations, baseline, total, currency }: {
+  allocations: MediaAllocation[]
+  baseline: MediaAllocation[]
+  total: number
+  currency: string
+}) {
+  const active = allocations.filter(item => item.budgetMinor > 0)
+  const largest = active.reduce<MediaAllocation | null>((current, item) =>
+    !current || item.budgetMinor > current.budgetMinor ? item : current, null)
+  const periods = active.reduce((sum, item) => sum + item.runningPeriods.length, 0)
+  const change = allocationChange(allocations, baseline)
+  return <section className="mix-decision-feedback" aria-label="Media mix decision feedback">
+    <div><small>Active media roles</small><strong>{active.length}</strong>
+      <p>{active.map(item => mediaVisual(item.channel).label).join(' · ') || 'No funded media type yet'}</p></div>
+    <div><small>Largest investment</small><strong>{largest && total > 0
+      ? `${mediaVisual(largest.channel).label} · ${Math.round(largest.budgetMinor / total * 100)}%`
+      : 'Not allocated'}</strong>
+      <p>{largest?.role || 'Channel role will appear here.'}</p></div>
+    <div><small>Independent flight periods</small><strong>{periods}</strong>
+      <p>Running periods remain editable per media type.</p></div>
+    <div className="mix-decision-change"><small>Effect of this edit</small><strong>{change
+      ? `${change.increase.label} +${formatMoney(change.increase.amount, currency)}`
+      : 'No budget movement yet'}</strong>
+      <p>{change
+        ? `${formatMoney(change.decrease.amount, currency)} moved away from ${change.decrease.label}. Save to make this the retained mix.`
+        : 'Change channel budgets to see where investment is moving before you save.'}</p></div>
+  </section>
+}
+
+function allocationChange(current: MediaAllocation[], baseline: MediaAllocation[]) {
+  const previous = new Map(baseline.map(item => [item.channel, item.budgetMinor]))
+  const deltas = current.map(item => ({
+    label: mediaVisual(item.channel).label,
+    delta: item.budgetMinor - (previous.get(item.channel) ?? 0),
+  }))
+  for (const item of baseline) {
+    if (!current.some(value => value.channel === item.channel)) {
+      deltas.push({ label: mediaVisual(item.channel).label, delta: -item.budgetMinor })
+    }
+  }
+  const increase = [...deltas].filter(item => item.delta > 0).sort((a, b) => b.delta - a.delta)[0]
+  const decrease = [...deltas].filter(item => item.delta < 0).sort((a, b) => a.delta - b.delta)[0]
+  return increase && decrease
+    ? { increase: { label: increase.label, amount: increase.delta },
+        decrease: { label: decrease.label, amount: Math.abs(decrease.delta) } }
+    : null
 }
 
 function AllocationCard({

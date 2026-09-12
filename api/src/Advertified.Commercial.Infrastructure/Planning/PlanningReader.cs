@@ -54,8 +54,7 @@ public sealed class PlanningReader(
             ? null
             : PlanningRecordStore.BuildCampaignModeView(
                 campaignModeRow, campaignModePolicy);
-        var audience = audienceRow is null ? null : await store.BuildAudienceViewAsync(
-            tenantId, audienceRow, cancellationToken);
+        var audience = audienceRow is null ? null : PlanningRecordStore.BuildAudienceView(audienceRow);
         var mix = mixRow is null ? null : PlanningRecordStore.BuildMixView(mixRow);
         var shortlist = shortlistRow is null ? null : ProjectShortlistForViewer(
             await store.BuildShortlistViewAsync(tenantId, shortlistRow, cancellationToken), advertiserViewer);

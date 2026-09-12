@@ -36,7 +36,8 @@ public sealed partial class MarketplaceAcceptanceTests
             buyer, BuyerTenantId, $"media-plan-versions/{plan.Id}:approve",
             "booking-plan-approve", plan.Version,
             new { reason = "Buyer approved the exact marketplace placement." });
-        var selected = await CreateSelectedProposalAsync(buyer, client, plan.Id, clock);
+        var selected = await CreateSelectedProposalAsync(
+            buyer, reviewer, client, plan.Id, clock);
         using var unfundedBooking = await RawCommandAsync(
             buyer, BuyerTenantId, "bookings", "booking-before-funding", null,
             new
@@ -51,6 +52,8 @@ public sealed partial class MarketplaceAcceptanceTests
         using var beforeFunding = await ReadAsync(
             buyer, BuyerTenantId, "bookings/bookable-lines");
         Assert.Empty(beforeFunding.RootElement.EnumerateArray());
+        await AcceptPlanLineRfqAsync(
+            buyer, supplier, listing.ListingVersionId, clock, "booking-selected-line-rfq");
         var campaignId = await FundSelectedProposalAsync(buyer, reviewer, selected);
         using var supplierCampaign = await supplier.GetAsync(
             $"/api/v1/tenants/{SupplierTenantId}/campaigns/{campaignId}");
@@ -122,6 +125,7 @@ public sealed partial class MarketplaceAcceptanceTests
         Assert.Equal("CONFIRMED", confirmed.RootElement.GetProperty("status").GetString());
         Assert.Equal(JsonValueKind.Null,
             confirmed.RootElement.GetProperty("clientPriceMinor").ValueKind);
+        await AssertCommercialMemoryBookingConversionAsync(buyer);
         await AssertRoleAppropriateBookingProjectionsAsync(
             buyer, supplier, reviewer, bookingId);
         await AssertBuyerSafeBookingProjectionAsync(client, bookingId);
@@ -199,7 +203,10 @@ public sealed partial class MarketplaceAcceptanceTests
             buyer, BuyerTenantId, $"media-plan-versions/{plan.Id}:approve",
             "booking-plan-approve", plan.Version,
             new { reason = "Approve before booking preparation." });
-        var selected = await CreateSelectedProposalAsync(buyer, client, plan.Id, clock);
+        var selected = await CreateSelectedProposalAsync(
+            buyer, reviewer, client, plan.Id, clock);
+        await AcceptPlanLineRfqAsync(
+            buyer, supplier, listing.ListingVersionId, clock, "withdrawn-selected-line-rfq");
         await FundSelectedProposalAsync(buyer, reviewer, selected);
         using var bookable = await ReadAsync(buyer, BuyerTenantId, "bookings/bookable-lines");
         var line = Assert.Single(bookable.RootElement.EnumerateArray());
@@ -228,6 +235,7 @@ public sealed partial class MarketplaceAcceptanceTests
 
     private static async Task<SelectedProposalFixture> CreateSelectedProposalAsync(
         HttpClient buyer,
+        HttpClient reviewer,
         HttpClient client,
         Guid planId,
         AdjustableMarketplaceClock clock)
@@ -259,20 +267,31 @@ public sealed partial class MarketplaceAcceptanceTests
             new { reason = "No brand assets supplied; buyer authorises the neutral proposal layout." });
         Assert.Equal("UNBRANDED_AUTHORISED",
             unbranded.RootElement.GetProperty("branding").GetProperty("status").GetString());
+        using var submitted = await CommandAsync(
+            buyer, BuyerTenantId, $"proposal-versions/{proposalId}:submit",
+            "booking-proposal-submit", 2,
+            new
+            {
+                approverUserId = ReviewerUserId,
+                comment = "Independent review is required before this proposal is client-facing.",
+            });
+        Assert.Equal("IN_REVIEW", submitted.RootElement.GetProperty("status").GetString());
+        clock.Advance(TimeSpan.FromMinutes(30));
         using var approved = await CommandAsync(
-            buyer, BuyerTenantId, $"proposal-versions/{proposalId}:approve",
-            "booking-proposal-approve", 2,
-            new { reason = "Exact plan and commercial wording reviewed." });
+            reviewer, BuyerTenantId, $"proposal-versions/{proposalId}:approve",
+            "booking-proposal-approve", 3,
+            new { reason = "Independent reviewer approves the exact plan and commercial wording." });
         using var rendered = await CommandAsync(
             buyer, BuyerTenantId, $"proposal-versions/{proposalId}:render",
-            "booking-proposal-render", 3, new { });
+            "booking-proposal-render", 4, new { });
         using var shared = await CommandAsync(
             buyer, BuyerTenantId, $"proposal-versions/{proposalId}:share",
-            "booking-proposal-share", 4,
+            "booking-proposal-share", 5,
             new { recipientUserId = ClientUserId, reason = "Send for client decision." });
+        clock.Advance(TimeSpan.FromMinutes(45));
         using var selected = await CommandAsync(
             client, BuyerTenantId, $"proposal-versions/{proposalId}:select-option",
-            "booking-proposal-select", 5,
+            "booking-proposal-select", 6,
             new { optionId, reason = "Client selects this exact option." });
         Assert.Equal("SELECTED", selected.RootElement.GetProperty("status").GetString());
         return new SelectedProposalFixture(proposalId, optionId);
@@ -305,6 +324,22 @@ public sealed partial class MarketplaceAcceptanceTests
             """, connection);
         proposalPurchase.Parameters.AddWithValue(bookingId);
         Assert.Equal("1000", await proposalPurchase.ExecuteScalarAsync());
+        await using var acceptedLineage = new NpgsqlCommand(
+            """
+            SELECT accepted_marketplace_response_id IS NOT NULL
+                AND accepted_marketplace_response_version = 1
+                AND accepted_marketplace_response_terms =
+                    'Accepted supplier terms for the exact selected plan line.'
+            FROM commercial.bookings WHERE id = $1
+            """, connection);
+        acceptedLineage.Parameters.AddWithValue(bookingId);
+        Assert.Equal(true, await acceptedLineage.ExecuteScalarAsync());
+        await using var mutateQuote = new NpgsqlCommand(
+            "UPDATE commercial.bookings SET accepted_marketplace_response_terms = 'changed' WHERE id = $1",
+            connection);
+        mutateQuote.Parameters.AddWithValue(bookingId);
+        var quoteException = await Assert.ThrowsAsync<PostgresException>(mutateQuote.ExecuteNonQueryAsync);
+        Assert.Equal(PostgresErrorCodes.RaiseException, quoteException.SqlState);
         await using var mutate = new NpgsqlCommand(
             "UPDATE commercial.bookings SET client_price_minor = 1 WHERE id = $1", connection);
         mutate.Parameters.AddWithValue(bookingId);

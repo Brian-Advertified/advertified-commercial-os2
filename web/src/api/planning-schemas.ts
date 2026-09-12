@@ -27,12 +27,12 @@ export const mediaAllocationSchema = z.object({
   purchases: z.array(inventoryPurchaseQuantitySchema).nullish(),
 })
 
-export const audienceDefinitionSchema = z.object({
+export const audienceSegmentSchema = z.object({
   id: z.guid(),
   name: z.string(),
   description: z.string(),
-  needState: z.string(),
-  buyingContext: z.string(),
+  needState: z.string().nullable(),
+  buyingContext: z.string().nullable(),
   geographies: z.array(z.string()),
   language: z.string().nullable(),
   lifeStage: z.string().nullable(),
@@ -42,21 +42,22 @@ export const audienceDefinitionSchema = z.object({
   classification: z.string(),
   exclusions: z.array(z.string()),
   evidenceItemIds: z.array(z.guid()),
-  confidence: z.number(),
+  referenceObservationIds: z.array(z.guid()),
+  confidence: z.number().min(0).max(1).nullable(),
   status: z.string(),
   lsmSemMandatory: z.boolean(),
 })
 
-export const audienceSetSchema = z.object({
+export const audienceStrategySchema = z.object({
   id: z.guid(),
   briefVersionId: z.guid(),
   versionNumber: z.number().int().positive(),
   targetAudienceIds: z.array(z.guid()).min(1),
-  targetingRationale: z.string(),
-  positioningStatement: z.string(),
+  targetingRationale: z.string().nullable(),
+  positioningStatement: z.string().nullable(),
   inputHash: z.string(),
   status: z.string(),
-  definitions: z.array(audienceDefinitionSchema),
+  definitions: z.array(audienceSegmentSchema),
   createdBy: z.guid(),
   approvedBy: z.guid().nullable(),
   version: z.number().int().positive(),
@@ -64,10 +65,32 @@ export const audienceSetSchema = z.object({
   createdAtUtc: z.iso.datetime({ offset: true }),
 })
 
+export const inventoryIntelligenceInterpretationSchema = z.object({
+  candidateId: z.guid(),
+  rationale: z.string().min(1).max(1000),
+  classification: z.literal(masterDataCodes.evidenceClassifications.aiRecommendation),
+})
+
+export const inventoryIntelligenceArtifactSchema = z.object({
+  id: z.guid(),
+  subjectId: z.guid(),
+  serviceCode: z.literal(masterDataCodes.agentTypes.inventoryIntelligence),
+  artifactJson: z.string(),
+  unknowns: z.array(z.string()),
+  totalIncrementalCostMinor: z.number().int().nonnegative(),
+  status: z.string(),
+  version: z.number().int().positive(),
+})
+
+export const inventoryIntelligencePayloadSchema = z.object({
+  interpretations: z.array(inventoryIntelligenceInterpretationSchema),
+})
+
 export const mediaMixSchema = z.object({
   id: z.guid(),
   briefVersionId: z.guid(),
-  audienceSetId: z.guid(),
+  audienceArtifactId: z.guid(),
+  mediaStrategyArtifactId: z.guid().nullable(),
   versionNumber: z.number().int().positive(),
   totalBudgetMinor: z.number().int().nonnegative(),
   currency: z.string(),
@@ -329,7 +352,7 @@ export const planningWorkspaceSchema = z.object({
   briefVersionId: z.guid(),
   clientName: z.string().trim().min(1),
   campaignMode: campaignModeSchema.nullable(),
-  audience: audienceSetSchema.nullable(),
+  audience: audienceStrategySchema.nullable(),
   mediaMix: mediaMixSchema.nullable(),
   shortlist: shortlistSchema.nullable(),
   mediaPlan: mediaPlanSchema.nullable(),
@@ -342,7 +365,9 @@ export const planningWorkspaceSchema = z.object({
   }).nullable().optional(),
 })
 
-export type AudienceSet = z.infer<typeof audienceSetSchema>
+export type AudienceStrategy = z.infer<typeof audienceStrategySchema>
+export type InventoryIntelligenceArtifact = z.infer<typeof inventoryIntelligenceArtifactSchema>
+export type InventoryIntelligenceInterpretation = z.infer<typeof inventoryIntelligenceInterpretationSchema>
 export type RunningPeriod = z.infer<typeof runningPeriodSchema>
 export type MediaAllocation = z.infer<typeof mediaAllocationSchema>
 export type MediaMix = z.infer<typeof mediaMixSchema>

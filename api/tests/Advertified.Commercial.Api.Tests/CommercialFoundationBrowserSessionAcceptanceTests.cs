@@ -74,6 +74,7 @@ public sealed partial class CommercialFoundationApiAcceptanceTests
             builder.UseSetting("Authentication:DevelopmentIdentity:UserId", UserId.ToString());
             builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", UserId.ToString());
             builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
+            builder.UseDeterministicTestDependencies();
             builder.UseSetting("Authentication:BrowserSession:SecureCookie", "false");
             builder.UseSetting("Authentication:BrowserSession:AllowedOrigins:0", BrowserOrigin);
         });

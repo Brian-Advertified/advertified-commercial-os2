@@ -329,7 +329,8 @@ function draftPayload(
     geographies: draft.geographies, timing: draft.timing,
     budgetMinor: draft.budgetMinor, budgetUnknown: draft.budgetUnknown,
     currency: draft.currency, vatStatus: draft.vatStatus, feesMinor: draft.feesMinor,
-    constraints: draft.constraints, measurement: draft.measurement, facts: draft.facts,
+    mediaRequirements: draft.mediaRequirements, constraints: draft.constraints,
+    measurement: draft.measurement, facts: draft.facts,
     unknowns: draft.unknowns, assumptions: draft.assumptions,
     conflicts: draft.conflicts, evidenceItemIds: [], spatialRequirements, audienceResearch,
   }

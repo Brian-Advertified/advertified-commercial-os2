@@ -16,6 +16,11 @@ def test_governed_bedrock_routes_match_the_approved_profiles() -> None:
     )["AgentRuntime"]
     models = settings["Models"]
     nova_lite = "amazon.nova-lite-v1:0"
+    # Governed Bedrock model routes: the canonical agent types from master data
+    # plus the four operation-qualified sub-routes local to the agent-runtime
+    # protocol boundary. Reconciled with AgentRuntimeOptions
+    # RequiredBedrockModelRoutes (AgentTypes are generated from
+    # shared/contracts/master-data.json).
     governed_routes = {
         "business_interpretation",
         "opportunity_intelligence",
@@ -23,19 +28,25 @@ def test_governed_bedrock_routes_match_the_approved_profiles() -> None:
         "critic_readiness",
         "brief_drafting",
         "brief_drafting__supplied_brief_understanding",
-        "audience",
+        "market_intelligence",
+        "audience_intelligence",
+        "location_intelligence",
+        "media_strategy",
         "inventory_intelligence",
         "inventory_intelligence__schema_discovery",
         "inventory_intelligence__source_transcription",
         "inventory_intelligence__semantic_enrichment",
-        "media_planning",
         "proposal_narrative",
         "creative",
         "measurement",
     }
 
     assert set(models) == governed_routes
-    assert set(models.values()) == {nova_lite}
+    expected_models = dict.fromkeys(governed_routes, nova_lite)
+    # Retained comparison: media-strategy-pro-compare-01a094cd; other routes stay Lite.
+    expected_models["media_strategy"] = "amazon.nova-pro-v1:0"
+    assert models == expected_models
+    assert settings["CostCapsMinor"]["media_strategy"] == 5
 
 
 def test_ai_interpretation_is_not_implemented_in_production_csharp() -> None:
@@ -160,9 +171,17 @@ def test_every_http_agent_route_uses_the_monthly_budget_handler() -> None:
     supplied = (
         REPO_ROOT / "api" / "Startup" / "SuppliedBriefConfiguration.cs"
     ).read_text(encoding="utf-8")
+    # Canonical HTTP agent clients registered in Program.cs and
+    # SuppliedBriefConfiguration.cs; every registration must carry the
+    # shared AiMonthlyBudgetHandler so no agent route can bypass the
+    # owner-approved AI budget.
     clients = (
         "HttpOpportunityAgentClient",
-        "HttpPlanningAgentClient",
+        "HttpMarketIntelligenceAgentClient",
+        "HttpAudienceIntelligenceAgentClient",
+        "HttpMediaStrategyIntelligenceAgentClient",
+        "HttpLocationIntelligenceAgentClient",
+        "HttpInventoryIntelligenceAgentClient",
         "HttpProposalNarrativeClient",
         "HttpMeasurementAgentClient",
         "InventorySemanticAgentClient",

@@ -68,7 +68,7 @@ public sealed partial class EmailAutomationRecordStore
         row.ClientAccountId,
         row.BriefId,
         row.BriefVersionId,
-        row.StpVersionId,
+        row.AudienceArtifactId,
         row.MediaMixVersionId,
         row.ShortlistVersionId,
         row.MediaPlanVersionId,

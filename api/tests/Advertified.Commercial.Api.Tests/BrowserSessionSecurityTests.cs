@@ -191,13 +191,12 @@ public sealed class BrowserSessionSecurityTests
             builder.UseSetting("Authentication:Mode", "Disabled");
             builder.UseSetting("ReleaseSmoke:Enabled", "true");
             builder.UseSetting("AgentRuntime:Mode", "Disabled");
-            builder.UseSetting("InventoryProtection:ObjectStoreMode", "Minio");
-            builder.UseSetting("InventoryProtection:ScannerMode", "ClamAv");
+            builder.UseSetting("InventoryProtection:ObjectStoreMode", "AwsS3");
+            builder.UseSetting("InventoryProtection:ScannerMode", "ExternalVerdict");
             builder.UseSetting("InventoryProtection:Endpoint", "localhost:9000");
             builder.UseSetting("InventoryProtection:AccessKey", "test-access");
             builder.UseSetting("InventoryProtection:SecretKey", "test-secret");
             builder.UseSetting("InventoryProtection:UseTls", "true");
-            builder.UseSetting("InventoryProtection:ClamAvHost", "localhost");
         });
 
         var exception = Assert.Throws<InvalidOperationException>(factory.CreateClient);
@@ -219,18 +218,34 @@ public sealed class BrowserSessionSecurityTests
     }
 
     [Fact]
-    public void ProductionRejectsObjectStorageWithoutTls()
+    public void ProductionRejectsNonAwsS3ObjectStorage()
     {
         using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             ConfigureClosedProduction(builder);
             builder.UseSetting("AllowedHosts", "api.advertified.example");
             builder.UseSetting("ReverseProxy:KnownProxies:0", "127.0.0.1");
-            builder.UseSetting("InventoryProtection:UseTls", "false");
+            builder.UseSetting("InventoryProtection:ObjectStoreMode", "Minio");
         });
 
         var exception = Assert.Throws<InvalidOperationException>(factory.CreateClient);
-        Assert.Contains("object storage must require TLS", exception.ToString(),
+        Assert.Contains("private AWS S3", exception.ToString(),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ProductionRejectsDeterministicMalwareProtection()
+    {
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            ConfigureClosedProduction(builder);
+            builder.UseSetting("AllowedHosts", "api.advertified.example");
+            builder.UseSetting("ReverseProxy:KnownProxies:0", "127.0.0.1");
+            builder.UseSetting("InventoryProtection:ScannerMode", "Deterministic");
+        });
+
+        var exception = Assert.Throws<InvalidOperationException>(factory.CreateClient);
+        Assert.Contains("external malware-verdict mode", exception.ToString(),
             StringComparison.OrdinalIgnoreCase);
     }
 
@@ -243,13 +258,12 @@ public sealed class BrowserSessionSecurityTests
         builder.UseSetting("Authentication:Mode", "Disabled");
         builder.UseSetting("ReleaseSmoke:Enabled", "true");
         builder.UseSetting("AgentRuntime:Mode", "Disabled");
-        builder.UseSetting("InventoryProtection:ObjectStoreMode", "Minio");
-        builder.UseSetting("InventoryProtection:ScannerMode", "ClamAv");
+        builder.UseSetting("InventoryProtection:ObjectStoreMode", "AwsS3");
+        builder.UseSetting("InventoryProtection:ScannerMode", "ExternalVerdict");
         builder.UseSetting("InventoryProtection:Endpoint", "localhost:9000");
         builder.UseSetting("InventoryProtection:AccessKey", "test-access");
         builder.UseSetting("InventoryProtection:SecretKey", "test-secret");
         builder.UseSetting("InventoryProtection:UseTls", "true");
-        builder.UseSetting("InventoryProtection:ClamAvHost", "localhost");
     }
 
     private static WebApplicationFactory<Program> CreateFactory(
@@ -259,6 +273,7 @@ public sealed class BrowserSessionSecurityTests
         return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Test");
+            builder.UseDeterministicAgentRuntime();
             builder.UseSetting(
                 "ConnectionStrings:CommercialDatabase",
                 "Host=localhost;Database=closed;Username=closed");

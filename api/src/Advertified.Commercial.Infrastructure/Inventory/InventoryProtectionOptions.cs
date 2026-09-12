@@ -8,7 +8,7 @@ public sealed class InventoryProtectionOptions
     public const string MinioMode = "Minio";
     public const string AwsS3Mode = "AwsS3";
     public const string DeterministicScanner = "Deterministic";
-    public const string ClamAvScanner = "ClamAv";
+    public const string ExternalVerdictScanner = "ExternalVerdict";
 
     public string ObjectStoreMode { get; init; } = InMemoryMode;
     public string ScannerMode { get; init; } = DeterministicScanner;
@@ -19,14 +19,12 @@ public sealed class InventoryProtectionOptions
     public string Bucket { get; init; } = "advertified-inventory";
     public string AwsRegion { get; init; } = "af-south-1";
     public bool UseTls { get; init; }
-    public string ClamAvHost { get; init; } = "localhost";
-    public int ClamAvPort { get; init; } = 3310;
 
     public static bool HasSupportedObjectStore(InventoryProtectionOptions options) =>
         options.ObjectStoreMode is InMemoryMode or MinioMode or AwsS3Mode;
 
     public static bool HasSupportedScanner(InventoryProtectionOptions options) =>
-        options.ScannerMode is DeterministicScanner or ClamAvScanner;
+        options.ScannerMode is DeterministicScanner or ExternalVerdictScanner;
 
     public static bool HasSupportedSourceLimit(InventoryProtectionOptions options) =>
         options.MaximumSourceBytes is > 0 and <= MaximumSupportedSourceBytes;
@@ -44,8 +42,6 @@ public sealed class InventoryProtectionOptions
          options.AwsRegion.Length <= 50 &&
          options.AwsRegion.All(character => char.IsLetterOrDigit(character) || character == '-'));
 
-    public static bool HasCompleteClamAvConfiguration(InventoryProtectionOptions options) =>
-        options.ScannerMode != ClamAvScanner ||
-        (!string.IsNullOrWhiteSpace(options.ClamAvHost) &&
-         options.ClamAvPort is >= 1 and <= 65535);
+    public static bool HasCompatibleScannerStorage(InventoryProtectionOptions options) =>
+        options.ScannerMode != ExternalVerdictScanner || options.ObjectStoreMode == AwsS3Mode;
 }

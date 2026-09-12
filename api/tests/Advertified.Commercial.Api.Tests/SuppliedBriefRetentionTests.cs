@@ -9,16 +9,6 @@ namespace Advertified.Commercial.Api.Tests;
 public sealed class SuppliedBriefRetentionTests
 {
     [Fact]
-    public async Task DisabledCapabilityFailsBeforeDatabaseReservation()
-    {
-        var store = new MemoryStore();
-        var service = Service(new DisabledSuppliedBriefAgentClient(), store);
-        await Assert.ThrowsAsync<SuppliedBriefInterpretationUnavailableException>(() => service.UnderstandAsync(
-            new(Guid.NewGuid()), new(Guid.NewGuid()), new("Request", "Source"), default));
-        Assert.Empty(store.Events);
-    }
-
-    [Fact]
     public async Task UnsupportedClarificationFieldFailsBeforeReservation()
     {
         var store = new MemoryStore();
@@ -38,7 +28,7 @@ public sealed class SuppliedBriefRetentionTests
     public async Task GeneratedContractExposesRetainedSourceAndCorrectionReferences()
     {
         await using var factory = new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder => builder.UseDeterministicInventoryProtection());
+            .WithWebHostBuilder(builder => builder.UseDeterministicTestDependencies());
         using var client = factory.CreateClient();
         var json = await client.GetStringAsync("/swagger/v1/swagger.json");
         using var document = System.Text.Json.JsonDocument.Parse(json);
@@ -121,8 +111,6 @@ public sealed class SuppliedBriefRetentionTests
 
     private sealed class Provider(MemoryStore store, CancellationTokenSource? caller, bool fail) : ISuppliedBriefAgentClient
     {
-        public bool IsAvailable => true;
-
         public async Task<SuppliedBriefUnderstandingView> UnderstandAsync(SuppliedBriefAgentInput input,
             CancellationToken cancellationToken)
         {

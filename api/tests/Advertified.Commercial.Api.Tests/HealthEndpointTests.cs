@@ -56,12 +56,34 @@ public sealed class HealthEndpointTests
             ["process", "database", "master-data-unavailable"],
             Checks(unseededJson));
 
+        await CreateCollectionsOnlyAsync(database);
+        using var missingItems = await client.GetAsync("/health/ready");
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, missingItems.StatusCode);
         await new MasterDataBootstrapper(database, TimeProvider.System).ApplyAsync();
         using var ready = await client.GetAsync("/health/ready");
         using var readyJson = await ReadJsonAsync(ready);
         Assert.Equal(HttpStatusCode.OK, ready.StatusCode);
         Assert.Equal("ready", readyJson.RootElement.GetProperty("status").GetString());
         Assert.Equal(["process", "database", "master-data"], Checks(readyJson));
+        await database.MasterDataSets.Where(item => item.Code == "paymentMethods")
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.RegistryVersion, "outdated-fixture"));
+        using var staleRegistry = await client.GetAsync("/health/ready");
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, staleRegistry.StatusCode);
+    }
+
+    private static async Task CreateCollectionsOnlyAsync(GovernanceDbContext database)
+    {
+        var registry = MasterDataRegistryReader.Read();
+        var collections = await database.MasterDataSets.ToDictionaryAsync(item => item.Code);
+        foreach (var definition in registry.Collections)
+        {
+            if (collections.TryGetValue(definition.Code, out var existing))
+                existing.Refresh(registry.RegistryVersion, registry.EffectiveFrom, DateTimeOffset.UtcNow);
+            else
+                database.MasterDataSets.Add(new MasterDataSet(definition.Code,
+                    registry.RegistryVersion, registry.EffectiveFrom, DateTimeOffset.UtcNow));
+        }
+        await database.SaveChangesAsync();
     }
 
     private static WebApplicationFactory<Program> CreateFactory(string connectionString) =>
@@ -69,7 +91,7 @@ public sealed class HealthEndpointTests
         {
             builder.UseEnvironment("Test");
             builder.UseSetting("ConnectionStrings:CommercialDatabase", connectionString);
-            builder.UseDeterministicInventoryProtection();
+            builder.UseDeterministicTestDependencies();
             builder.UseSetting("Logging:LogLevel:Default", "Warning");
         });
 

@@ -72,6 +72,31 @@ internal sealed record MarketplaceProductSnapshotRow
     public DateTimeOffset? AvailabilityValidUntilUtc { get; set; }
 }
 
+internal sealed record MarketplaceResponseIdentityRow
+{
+    public Guid RfqId { get; set; }
+    public Guid BuyerTenantId { get; set; }
+    public Guid SupplierTenantId { get; set; }
+    public int ResponseVersion { get; set; }
+}
+
+internal sealed record MarketplaceResponseHistoryRow
+{
+    public Guid Id { get; set; }
+    public Guid RfqId { get; set; }
+    public int ResponseVersion { get; set; }
+    public long AmountMinor { get; set; }
+    public string Currency { get; set; } = string.Empty;
+    public string Availability { get; set; } = string.Empty;
+    public string Terms { get; set; } = string.Empty;
+    public DateTimeOffset ValidUntilUtc { get; set; }
+    public string EvidenceJson { get; set; } = "[]";
+    public Guid SubmittedBy { get; set; }
+    public DateTimeOffset SubmittedAtUtc { get; set; }
+    public Guid? AcceptedBy { get; set; }
+    public DateTimeOffset? AcceptedAtUtc { get; set; }
+}
+
 internal sealed record MarketplaceRfqRow
 {
     public Guid Id { get; set; }
@@ -80,6 +105,12 @@ internal sealed record MarketplaceRfqRow
     public Guid ListingVersionId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;
+    public long ListedAmountMinor { get; set; }
+    public string ListedCurrency { get; set; } = string.Empty;
+    public int QuoteVersionCount { get; set; }
+    public long? FirstQuoteAmountMinor { get; set; }
+    public string? FirstQuoteCurrency { get; set; }
+    public int? AcceptedResponseVersion { get; set; }
     public string Subject { get; set; } = string.Empty;
     public DateOnly RequestedStart { get; set; }
     public DateOnly RequestedEnd { get; set; }
@@ -108,6 +139,12 @@ internal sealed record MarketplaceRfqRow
 internal static class MarketplaceRowMapper
 {
     private static readonly JsonSerializerOptions StoredJson = new(JsonSerializerDefaults.Web);
+
+    internal static MarketplaceResponseView ToView(this MarketplaceResponseHistoryRow row) => new(
+        row.Id, row.RfqId, row.ResponseVersion, row.AmountMinor, row.Currency,
+        row.Availability, row.Terms, row.ValidUntilUtc,
+        JsonSerializer.Deserialize<string[]>(row.EvidenceJson, StoredJson) ?? [],
+        row.SubmittedBy, row.SubmittedAtUtc, row.AcceptedBy, row.AcceptedAtUtc);
 
     internal static MarketplaceListingView ToView(this MarketplaceListingRow row)
     {
@@ -145,6 +182,48 @@ internal static class MarketplaceRowMapper
             row.Id, row.BuyerTenantId, row.SupplierTenantId, row.ListingVersionId,
             row.SupplierName, row.ProductName, row.Subject, row.RequestedStart,
             row.RequestedEnd, row.Quantity, row.DueAtUtc, row.Status, response,
-            row.CreatedBy, row.SentBy, row.SentAtUtc, row.Version, row.UpdatedAtUtc);
+            row.CreatedBy, row.SentBy, row.SentAtUtc, row.Version, row.UpdatedAtUtc,
+            Negotiation(row));
+    }
+
+    private static MarketplaceNegotiationSummaryView? Negotiation(MarketplaceRfqRow row)
+    {
+        if (row.QuoteVersionCount == 0) return null;
+        var accepted = row.AcceptedAtUtc.HasValue;
+        return new MarketplaceNegotiationSummaryView(
+            row.QuoteVersionCount,
+            row.ListedAmountMinor,
+            row.ListedCurrency,
+            row.FirstQuoteAmountMinor,
+            row.FirstQuoteCurrency,
+            row.ResponseAmountMinor,
+            row.ResponseCurrency,
+            accepted ? row.ResponseAmountMinor : null,
+            accepted ? row.ResponseCurrency : null,
+            Variance(row.FirstQuoteAmountMinor, row.FirstQuoteCurrency,
+                row.ResponseAmountMinor, row.ResponseCurrency),
+            accepted ? Variance(row.FirstQuoteAmountMinor, row.FirstQuoteCurrency,
+                row.ResponseAmountMinor, row.ResponseCurrency) : null,
+            row.AcceptedResponseVersion,
+            ComparabilityLimitation(row, accepted));
+    }
+
+    private static decimal? Variance(long? basis, string? basisCurrency, long? value, string? valueCurrency)
+    {
+        if (!basis.HasValue || basis == 0 || !value.HasValue ||
+            !string.Equals(basisCurrency, valueCurrency, StringComparison.Ordinal)) return null;
+        return decimal.Round(100m * (value.Value - basis.Value) / basis.Value, 4);
+    }
+
+    private static string? ComparabilityLimitation(MarketplaceRfqRow row, bool accepted)
+    {
+        var limitations = new List<string>();
+        if (row.FirstQuoteAmountMinor == 0)
+            limitations.Add("Percentage variance is unavailable because the first quote amount is zero.");
+        if (!string.Equals(row.FirstQuoteCurrency, row.ResponseCurrency, StringComparison.Ordinal))
+            limitations.Add("First and current supplier quotes use different currencies and are not percentage-comparable.");
+        if (accepted && !string.Equals(row.FirstQuoteCurrency, row.ResponseCurrency, StringComparison.Ordinal))
+            limitations.Add("First and accepted supplier quotes use different currencies and are not percentage-comparable.");
+        return limitations.Count == 0 ? null : string.Join(" ", limitations.Distinct(StringComparer.Ordinal));
     }
 }

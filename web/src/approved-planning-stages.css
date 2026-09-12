@@ -1,0 +1,84 @@
+/* Audit consolidation: progressive planning stages and stronger working queues. */
+.planning-stage-panel,
+.planning-evidence-history {
+  margin-top: 12px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--approved-line);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--approved-shadow);
+}
+.planning-stage-panel > summary,
+.planning-evidence-history > summary {
+  min-height: 54px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--approved-ink);
+  cursor: pointer;
+  list-style: none;
+}
+.planning-stage-panel > summary::-webkit-details-marker,
+.planning-evidence-history > summary::-webkit-details-marker { display: none; }
+.planning-stage-panel > summary > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--approved-purple);
+  border-radius: 999px;
+  font-weight: 800;
+}
+.planning-stage-panel > summary > div { flex: 1; display: grid; gap: 2px; }
+.planning-stage-panel > summary small { color: var(--approved-muted); }
+.planning-stage-panel > summary b { color: var(--approved-muted); font-weight: 700; }
+.planning-stage-content { padding: 14px; border-top: 1px solid #eef1f5; }
+.planning-evidence-history > summary { font-weight: 750; }
+.planning-evidence-history > :not(summary) { margin: 0; border-top: 1px solid #eef1f5; }
+
+.approved-work-queue-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 12px;
+}
+.approved-work-queue-summary article {
+  min-height: 84px;
+  padding: 12px 14px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  background: #fff;
+  border: 1px solid var(--approved-line);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--approved-shadow);
+}
+.approved-work-queue-summary span,
+.approved-work-queue-summary small { color: var(--approved-muted); }
+.approved-work-queue-summary strong { color: var(--approved-ink); font-size: 20px; }
+.approved-work-index-row em { color: var(--approved-purple); font-style: normal; font-weight: 700; }
+.approved-index-more { margin-top: 12px; }
+@media (max-width: 560px) {
+  .approved-work-queue-summary { grid-template-columns: minmax(0, 1fr); }
+}
+
+.approved-strategy-handoff {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f2ff 100%);
+  border: 1px solid #e3dcfb;
+  border-radius: var(--ui-radius);
+  box-shadow: var(--approved-shadow);
+}
+.approved-strategy-handoff h2 { margin: 0; color: var(--approved-ink); font-size: var(--ui-font-section); }
+.approved-strategy-handoff p:last-child { max-width: 760px; margin: 5px 0 0; color: var(--approved-muted); font-size: var(--ui-font-xs); line-height: 1.5; }
+.approved-strategy-handoff > span { flex: 0 0 auto; padding: 7px 10px; color: var(--approved-purple); background: #fff; border: 1px solid #ded4ff; border-radius: 999px; font-size: var(--ui-font-xs); font-weight: 800; }
+@media (max-width: 760px) {
+  .approved-strategy-handoff { align-items: stretch; flex-direction: column; }
+  .approved-strategy-handoff > span { align-self: flex-start; }
+}

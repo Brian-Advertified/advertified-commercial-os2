@@ -33,19 +33,26 @@ public sealed partial class InventoryCommands
         }
         var decision = NormalizeDecision(envelope.Command.Decision);
         if (row.Version != envelope.ExpectedVersion) throw new VersionConflictException();
-        var artifact = await InventoryRetainedAcceptance.LoadAsync(store.DbContext,
-            envelope.TenantId, candidateId, cancellationToken);
-        if (decision != MasterDataCodes.InventoryReviewDecisions.Reject)
-            return await ReviewInterpretationAsync(row, source, artifact, envelope, cancellationToken);
-        if (envelope.Command.CorrectedSchema is not null)
-            throw new ArgumentException("Schema corrections require a retained schema interpretation and edit decision.");
-        var values = ResolveReviewValues(row, envelope.Command);
+        var values = ResolveReviewValues(row, envelope.Command, decision);
         var codes = await InventoryCodeSets.LoadAsync(store.DbContext, cancellationToken);
         var validation = InventoryCandidateValidator.Validate(values, codes);
-        if (string.IsNullOrWhiteSpace(envelope.Command.RejectionReason))
-            throw new ArgumentException("A rejection reason is required.");
+        if (decision == MasterDataCodes.InventoryReviewDecisions.Reject)
+        {
+            if (string.IsNullOrWhiteSpace(envelope.Command.RejectionReason))
+                throw new ArgumentException("A rejection reason is required.");
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(envelope.Command.RejectionReason))
+                throw new ArgumentException("A rejection reason is valid only when rejecting a candidate.");
+            if (validation.Any(issue => issue.IsBlocking))
+                throw new ArgumentException(
+                    "A candidate cannot be approved while blocking validation issues remain. Correct the candidate values or reject it.");
+        }
         var now = timeProvider.GetUtcNow();
-        var status = MasterDataCodes.LifecycleStatuses.Rejected;
+        var status = decision == MasterDataCodes.InventoryReviewDecisions.Reject
+            ? MasterDataCodes.LifecycleStatuses.Rejected
+            : MasterDataCodes.LifecycleStatuses.Approved;
         await ChangeCandidateAsync(
             envelope, row, values, validation, status, now, cancellationToken);
         await InsertReviewDecisionAsync(
@@ -100,12 +107,16 @@ public sealed partial class InventoryCommands
 
     private static InventoryCandidateValues ResolveReviewValues(
         InventoryCandidateRow row,
-        ReviewInventoryCandidateCommand command)
+        ReviewInventoryCandidateCommand command,
+        string decision)
     {
-        if (command.CorrectedValues is not null)
+        if (decision == MasterDataCodes.InventoryReviewDecisions.Edit)
         {
-            throw new ArgumentException("Use the edit decision when correcting fields.");
+            return command.CorrectedValues
+                ?? throw new ArgumentException("Corrected candidate values are required for an edit decision.");
         }
+        if (command.CorrectedValues is not null)
+            throw new ArgumentException("Corrected candidate values are valid only for an edit decision.");
         return JsonSerializer.Deserialize<InventoryCandidateValues>(
             row.ValuesJson, InventoryRowMapper.StoredJson)
             ?? throw new InvalidOperationException("Stored inventory values are invalid.");

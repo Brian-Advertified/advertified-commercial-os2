@@ -60,6 +60,21 @@
 .allocation-bar-track { height: 0.45rem; overflow: hidden; background: var(--surface-strong); }
 .allocation-bar { display: block; height: 100%; min-width: 0.2rem; background: var(--media-accent); }
 
+.mix-decision-feedback {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0 0 0.9rem;
+  border: 1px solid var(--line);
+  background: #fbfcff;
+}
+.mix-decision-feedback > div { min-width: 0; padding: 0.7rem; border-right: 1px solid var(--line); }
+.mix-decision-feedback > div:last-child { border-right: 0; }
+.mix-decision-feedback small { display: block; color: var(--muted); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+.mix-decision-feedback strong { display: block; margin-top: 0.15rem; color: var(--navy); font-size: 0.8rem; line-height: 1.35; }
+.mix-decision-feedback p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.72rem; line-height: 1.4; }
+.mix-decision-change { background: var(--electric-wash); }
+.mix-decision-change strong { color: var(--electric-deep); }
+
 .media-identity { display: flex; align-items: center; gap: 0.6rem; min-width: 0; color: var(--navy); }
 .media-identity > div { min-width: 0; }
 .media-identity h3 { overflow-wrap: anywhere; }
@@ -142,6 +157,26 @@
 .audience-chip-grid p { margin: 0.25rem 0; color: var(--muted-strong); font-size: 0.75rem; }
 .audience-chip-grid small { color: var(--muted); font-size: 0.75rem; }
 
+.shortlist-decision-funnel {
+  margin: 0.85rem 0;
+  padding: 0.8rem;
+  background: #fbfcff;
+  border: 1px solid var(--line);
+}
+.shortlist-decision-funnel h3 { margin: 0.08rem 0 0.25rem; color: var(--navy); font-size: 0.9rem; }
+.shortlist-decision-funnel header p:last-child { margin: 0; color: var(--muted); font-size: 0.74rem; line-height: 1.45; }
+.shortlist-funnel-steps { margin-top: 0.7rem; display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 0.55rem; }
+.shortlist-funnel-steps > span { color: var(--electric-soft); font-size: 1.2rem; }
+.shortlist-funnel-steps article { min-width: 0; padding: 0.65rem; background: #fff; border: 1px solid var(--line); border-top: 0.2rem solid var(--electric); }
+.shortlist-funnel-steps small { color: var(--muted); font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+.shortlist-funnel-steps strong { display: block; margin-top: 0.1rem; color: var(--navy); font-size: 1.1rem; }
+.shortlist-funnel-steps p { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.72rem; }
+.shortlist-rejection-reasons { margin-top: 0.7rem; padding-top: 0.65rem; border-top: 1px solid var(--line); }
+.shortlist-rejection-reasons > strong { color: var(--navy); font-size: 0.72rem; }
+.shortlist-rejection-reasons > div { margin-top: 0.4rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.shortlist-rejection-reasons span { padding: 0.32rem 0.48rem; display: inline-flex; align-items: center; gap: 0.35rem; color: var(--muted-strong); background: #fff; border: 1px solid var(--line); border-radius: 999px; font-size: 0.7rem; }
+.shortlist-rejection-reasons b { color: var(--danger); }
+
 .shortlist-grid { display: grid; border: 1px solid var(--line); }
 .shortlist-card {
   padding: 0.8rem;
@@ -219,6 +254,9 @@
 
 @media (max-width: 900px) {
   .planning-section-heading { display: grid; }
+  .mix-decision-feedback { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mix-decision-feedback > div:nth-child(2) { border-right: 0; }
+  .mix-decision-feedback > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   .budget-total, .plan-total { padding: 0.5rem 0 0; text-align: left; border-top: 1px solid var(--line); border-left: 0; }
   .media-allocation-card, .plan-line { grid-template-columns: 1fr; }
   .running-period-editor { grid-column: 1; }
@@ -229,7 +267,11 @@
 }
 
 @media (max-width: 560px) {
-  .campaign-mode-options, .plan-money-strip { grid-template-columns: 1fr; }
+  .campaign-mode-options, .plan-money-strip, .mix-decision-feedback { grid-template-columns: 1fr; }
+  .shortlist-funnel-steps { grid-template-columns: 1fr; }
+  .shortlist-funnel-steps > span { justify-self: center; transform: rotate(90deg); }
+  .mix-decision-feedback > div { border-right: 0; border-bottom: 1px solid var(--line); }
+  .mix-decision-feedback > div:last-child { border-bottom: 0; }
   .campaign-mode-options button, .plan-money-strip div { border-right: 0; border-bottom: 1px solid var(--line); }
   .allocation-bar-row { grid-template-columns: 1fr; gap: 0.25rem; }
   .allocation-bar-row > strong { text-align: left; }

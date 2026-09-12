@@ -1,0 +1,15 @@
+{
+  "name": "advertified-backend-verification",
+  "private": true,
+  "scripts": {
+    "test:api": "powershell -NoProfile -ExecutionPolicy Bypass -File ./run-api-memory-tests.ps1",
+    "docker:start": "powershell -NoProfile -ExecutionPolicy Bypass -File ./start-local-docker-desktop.ps1",
+    "openapi:generate": "node ./generate-openapi.mjs",
+    "validate:planning-wire": "python ./validate_planning_wire_contract.py",
+    "validate:production": "powershell -NoProfile -File ./validate-production-configuration.ps1",
+    "storage": "powershell -NoProfile -File ./storage-headroom.ps1 -Report",
+    "generate:inventory-development": "python ./generate_inventory_development_seed.py ../data/production/inventory-bootstrap.v1.json ../infrastructure/development/inventory-bootstrap.generated.sql",
+    "generate:production-host-userdata": "python ./generate_production_host_userdata.py",
+    "diagnose:marketplace-projection": "python ./diagnose_local_marketplace_projection.py"
+  }
+}

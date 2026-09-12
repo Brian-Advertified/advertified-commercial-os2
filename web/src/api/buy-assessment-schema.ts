@@ -23,7 +23,7 @@ export const buyAssessmentSchema = z.object({
   evidenceGaps: z.array(z.string()),
   plannerReasoning: z.object({
     plannedChannelRole: z.string().nullable(),
-    targetContexts: z.array(z.object({ name: z.string(), needState: z.string(), buyingContext: z.string() })),
+    targetContexts: z.array(z.object({ name: z.string(), needState: z.string().nullable(), buyingContext: z.string().nullable() })),
     requiredPlacesMatched: z.number().int().nonnegative(), requiredPlacesTotal: z.number().int().nonnegative(),
     hasMeasuredTargetAudience: z.boolean(), reviewQuestions: z.array(z.string()),
     supportedReasons: z.array(z.string()), buyingWarnings: z.array(z.string()),

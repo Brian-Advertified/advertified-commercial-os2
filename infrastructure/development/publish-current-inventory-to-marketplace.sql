@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 BEGIN;
-SET LOCAL app.current_tenant_id = '10000000-0000-0000-0000-000000000002';
-SET LOCAL app.current_actor_id = '10000000-0000-0000-0000-000000000001';
+SET LOCAL advertified.tenant_id = '10000000-0000-0000-0000-000000000002';
+SET LOCAL advertified.user_id = '10000000-0000-0000-0000-000000000001';
 
 -- Project current, reviewed inventory into buyer-visible Marketplace listings.
 -- This seed owns its transaction and explicit local tenant/actor session.
@@ -10,13 +10,13 @@ INSERT INTO commercial.marketplace_listings (
     created_by, version, created_at_utc, updated_at_utc)
 SELECT gen_random_uuid(), product.tenant_id, product.id, 'DRAFT',
     'Subject to final human-approved booking and current availability.',
-    current_setting('app.current_actor_id')::uuid, 1,
+    current_setting('advertified.user_id')::uuid, 1,
     clock_timestamp(), clock_timestamp()
 FROM commercial.inventory_products product
 JOIN commercial.inventory_product_versions product_version
   ON product_version.tenant_id = product.tenant_id
  AND product_version.id = product.current_version_id
-WHERE product.tenant_id = current_setting('app.current_tenant_id')::uuid
+WHERE product.tenant_id = current_setting('advertified.tenant_id')::uuid
   AND product.status_code = 'ACTIVE'
   AND product_version.published_at_utc IS NOT NULL
   AND NOT EXISTS (
@@ -115,8 +115,8 @@ JOIN LATERAL (
       AND (item.observed_at_utc IS NULL OR item.observed_at_utc <= clock_timestamp())
     ORDER BY item.observed_at_utc DESC NULLS LAST, item.id DESC
     LIMIT 1) availability ON TRUE
-WHERE listing.supplier_tenant_id = current_setting('app.current_tenant_id')::uuid
-  AND listing.created_by = current_setting('app.current_actor_id')::uuid
+WHERE listing.supplier_tenant_id = current_setting('advertified.tenant_id')::uuid
+  AND listing.created_by = current_setting('advertified.user_id')::uuid
   AND listing.status_code <> 'ARCHIVED'
   AND product.status_code = 'ACTIVE'
   AND product_version.published_at_utc IS NOT NULL
@@ -136,11 +136,11 @@ SELECT eligible.*,
         SELECT max(existing.version_number) + 1
         FROM commercial.marketplace_listing_versions existing
         WHERE existing.supplier_tenant_id =
-              current_setting('app.current_tenant_id')::uuid
+              current_setting('advertified.tenant_id')::uuid
           AND existing.listing_id = eligible.listing_id), 1) AS listing_version_number
 FROM inventory_marketplace_seed_eligible eligible
 JOIN commercial.marketplace_listings listing
-  ON listing.supplier_tenant_id = current_setting('app.current_tenant_id')::uuid
+  ON listing.supplier_tenant_id = current_setting('advertified.tenant_id')::uuid
  AND listing.id = eligible.listing_id
 LEFT JOIN commercial.marketplace_listing_versions current_version
   ON current_version.supplier_tenant_id = listing.supplier_tenant_id
@@ -165,7 +165,7 @@ INSERT INTO commercial.marketplace_listing_versions (
     private_catchment_geometry, private_route_geometry,
     terms, published_by, published_at_utc)
 SELECT listing_version_id,
-    current_setting('app.current_tenant_id')::uuid,
+    current_setting('advertified.tenant_id')::uuid,
     listing_id, listing_version_number,
     product_version_id, supplier_id, rate_id, availability_id,
     supplier_name, product_name, channel_code, product_type_code, geography,
@@ -178,7 +178,7 @@ SELECT listing_version_id,
     deliverable_json, spatial_json, NULL,
     private_spatial_location, private_coverage_geometry,
     private_catchment_geometry, private_route_geometry,
-    terms, current_setting('app.current_actor_id')::uuid, clock_timestamp()
+    terms, current_setting('advertified.user_id')::uuid, clock_timestamp()
 FROM inventory_marketplace_seed_pending;
 
 UPDATE commercial.marketplace_listings listing
@@ -189,7 +189,7 @@ SET current_version_id = pending.listing_version_id,
     updated_at_utc = clock_timestamp()
 FROM inventory_marketplace_seed_pending pending
 WHERE listing.supplier_tenant_id =
-      current_setting('app.current_tenant_id')::uuid
+      current_setting('advertified.tenant_id')::uuid
   AND listing.id = pending.listing_id
   AND listing.status_code <> 'ARCHIVED';
 
@@ -199,8 +199,8 @@ SET status_code = 'ARCHIVED',
     version = listing.version + 1,
     updated_at_utc = clock_timestamp()
 WHERE listing.supplier_tenant_id =
-      current_setting('app.current_tenant_id')::uuid
-  AND listing.created_by = current_setting('app.current_actor_id')::uuid
+      current_setting('advertified.tenant_id')::uuid
+  AND listing.created_by = current_setting('advertified.user_id')::uuid
   AND listing.status_code = 'PUBLISHED'
   AND NOT EXISTS (
       SELECT 1
@@ -216,7 +216,7 @@ LEFT JOIN commercial.marketplace_listing_versions version
   ON version.supplier_tenant_id = listing.supplier_tenant_id
  AND version.listing_id = listing.id
 WHERE listing.supplier_tenant_id =
-      current_setting('app.current_tenant_id')::uuid
-  AND listing.created_by = current_setting('app.current_actor_id')::uuid;
+      current_setting('advertified.tenant_id')::uuid
+  AND listing.created_by = current_setting('advertified.user_id')::uuid;
 
 COMMIT;

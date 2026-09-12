@@ -38,6 +38,30 @@ public sealed partial class EmailProposalAutomationProcessor
                 "The audience strategy is not ready for automatic planning.");
         }
 
+        var mediaStrategy = await mediaStrategyIntelligence.GetLatestAsync(
+            owner.Value, tenantId.Value, briefVersionId, cancellationToken);
+        if (mediaStrategy is null)
+        {
+            mediaStrategy = await mediaStrategyIntelligence.AnalyseBriefAsync(
+                owner.Value, tenantId.Value, briefVersionId, cancellationToken);
+        }
+        if (mediaStrategy.Status == MasterDataCodes.LifecycleStatuses.Draft)
+        {
+            mediaStrategy = await mediaStrategyIntelligence.ApproveAsync(
+                owner.Value,
+                tenantId.Value,
+                briefVersionId,
+                mediaStrategy.Id,
+                mediaStrategy.Version,
+                cancellationToken);
+        }
+        if (mediaStrategy.Status != MasterDataCodes.LifecycleStatuses.Approved)
+        {
+            throw new EmailAutomationReviewRequiredException(
+                MasterDataCodes.AutomationFailureReasons.PlanUnready,
+                "The governed Media Strategy Intelligence artifact is not approved for automatic planning.");
+        }
+
         var mix = workspace.MediaMix;
         if (mix is null)
         {

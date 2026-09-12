@@ -100,6 +100,8 @@ public sealed partial class OpportunityCommands(
                 cancellationToken);
         }
 
+        var sourceRef = OpportunityCommandSupport.Optional(command.SourceRef, 2048, nameof(command.SourceRef));
+        await RejectExactDuplicateAsync(envelope, sourceType, sourceRef, cancellationToken);
         var id = Guid.NewGuid();
         var now = timeProvider.GetUtcNow();
         await store.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
@@ -109,7 +111,7 @@ public sealed partial class OpportunityCommands(
                 problem_summary, objective_summary, version, created_at_utc, updated_at_utc)
             VALUES (
                 {id}, {envelope.TenantId.Value}, {command.ClientId}, {title}, {sourceType},
-                {OpportunityCommandSupport.Optional(command.SourceRef, 2048, nameof(command.SourceRef))},
+                {sourceRef},
                 {command.OwnerUserId}, {MasterDataCodes.LifecycleStatuses.Created}, {command.ExpectedValueMinor},
                 {currency}, {command.Deadline},
                 {OpportunityCommandSupport.Optional(command.ProblemSummary, 2000, nameof(command.ProblemSummary))},
@@ -118,7 +120,7 @@ public sealed partial class OpportunityCommands(
             """, cancellationToken);
         var view = new OpportunityView(
             id, envelope.TenantId.Value, command.ClientId, title, sourceType,
-            command.SourceRef, command.OwnerUserId, MasterDataCodes.LifecycleStatuses.Created,
+            sourceRef, command.OwnerUserId, MasterDataCodes.LifecycleStatuses.Created,
             command.ExpectedValueMinor, currency, command.Deadline, command.ProblemSummary,
             command.ObjectiveSummary, 1, now);
         return OpportunityCommandSupport.Outcome(
