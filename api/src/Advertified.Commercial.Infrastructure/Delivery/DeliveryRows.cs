@@ -7,8 +7,6 @@ internal sealed record DeliveryProofSourceRow(
     Guid SupplierTenantId,
     Guid CampaignId,
     Guid BookingId,
-    Guid CampaignOwnerUserId,
-    long CampaignVersion,
     DateOnly FlightStart,
     DateOnly FlightEnd);
 

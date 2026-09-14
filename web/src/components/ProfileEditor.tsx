@@ -48,7 +48,7 @@ export function ProfileEditor({ initialUser, tenantId, antiforgeryToken, onUpdat
       setError(message)
       notifications.failure(message)
       if (failure instanceof ApiFailure && failure.code === 'VERSION_CONFLICT') {
-        setFieldErrors({ displayName: 'Refresh your profile before saving again.' })
+        setFieldErrors({ displayName: 'Your profile changed elsewhere. Advertified loaded the latest profile; review it and save again.' })
       }
     } finally {
       setSaving(false)

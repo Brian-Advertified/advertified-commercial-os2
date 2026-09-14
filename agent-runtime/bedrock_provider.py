@@ -376,6 +376,8 @@ def _system_prompt(agent_code: AgentCode, instruction: str, schema_json: str) ->
         f"{audience_rule}"
         "Never approve, spend, book, publish, invoice, send or change canonical state. "
         f"Agent: {agent_code.value}. Task: {instruction} "
-        "Return one JSON object only, with no markdown or commentary, conforming exactly to this "
-        f"JSON Schema: {schema_json}"
+        "Use only the forced submit_advertified_result tool. Its input schema is authoritative. "
+        "Every property whose tool-schema type is array MUST be a JSON array ([]), never an object, "
+        "dictionary, keyed map, string or null unless the schema explicitly permits null. "
+        "Do not restate the schema or wrap the tool input in another artifact object."
     )

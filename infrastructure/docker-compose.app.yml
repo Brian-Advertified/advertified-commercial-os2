@@ -112,12 +112,21 @@ services:
       PGUSER: advertified
       PGPASSWORD: ${POSTGRES_PASSWORD:-advertified-local-only}
       Authentication__Mode: DeterministicSession
-      Authentication__DevelopmentIdentity__UserId: 10000000-0000-0000-0000-000000000001
-      Authentication__DevelopmentIdentity__ActorId: 10000000-0000-0000-0000-000000000001
+      Authentication__DevelopmentIdentity__UserId: ${ADVERTIFIED_DEV_USER_ID:-10000000-0000-0000-0000-000000000001}
+      Authentication__DevelopmentIdentity__ActorId: ${ADVERTIFIED_DEV_ACTOR_ID:-10000000-0000-0000-0000-000000000001}
       Authentication__DevelopmentIdentity__IdentityType: human
+      Certification__CampaignUtcNow: ${ADVERTIFIED_CERTIFICATION_CAMPAIGN_UTC:-2026-11-01T12:00:00Z}
       Authentication__BrowserSession__SecureCookie: "false"
       Authentication__BrowserSession__AllowedOrigins__0: http://localhost:3017
       Authentication__BrowserSession__AllowedOrigins__1: http://127.0.0.1:3017
+      # Development-only headroom for connected browser certification. Production keeps
+      # the bounded defaults in RequestRateLimitPolicies.
+      RateLimits__BusinessReadPermitLimit: "5000"
+      RateLimits__BusinessMutationPermitLimit: "1000"
+      RateLimits__BrowserSessionPermitLimit: "500"
+      RateLimits__BrowserSessionStatusPermitLimit: "1000"
+      RateLimits__AgentWorkPermitLimit: "500"
+      RateLimits__HeavyWorkPermitLimit: "500"
       InventoryProtection__ObjectStoreMode: Minio
       InventoryProtection__ScannerMode: Deterministic
       InventoryProtection__Endpoint: minio:9000
@@ -145,6 +154,7 @@ services:
       AgentRuntime__BaseUrl: http://agent-runtime:8080
       AgentRuntime__ServiceKey: advertified-agent-runtime-local-only
       EmailAutomation__Mode: Deterministic
+      EmailAutomation__SenderAddress: noreply@advertified.com
       EmailAutomation__ProcessInline: "false"
     ports:
       - "127.0.0.1:5097:8080"

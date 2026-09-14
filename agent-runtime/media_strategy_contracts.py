@@ -18,6 +18,14 @@ from planning_contracts import AudienceClassification
 
 OPERATION = "MEDIA_STRATEGY_ANALYSIS"
 
+# One vocabulary for the provider schema and the existing grounding validator.
+UNSUPPORTED_CLAIM_MARKERS = (
+    "audience is likely to be found", "high-traffic", "high traffic",
+    "maximize reach", "maximise reach", "enhance campaign impact", "guaranteed reach",
+    "verified footfall", "proven cpm", "proven effectiveness", "inventory availability",
+    "supplier rate", "specific placement",
+)
+
 
 class MediaStrategyAudienceInput(ContractModel):
     segment_id: UUID

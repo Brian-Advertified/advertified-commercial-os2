@@ -78,6 +78,69 @@ public sealed partial class SuppliedBriefPersistenceTests
             """).SingleAsync());
     }
 
+    [Fact]
+    public async Task BriefClarificationCanImmediatelyFollowInitialUnderstandingThroughRateLimitPolicy()
+    {
+        var connection = JourneyConnection();
+        await using var db = new GovernanceDbContext(new DbContextOptionsBuilder<GovernanceDbContext>()
+            .UseNpgsql(connection).Options);
+        var tenant = Guid.NewGuid();
+        var actor = Guid.NewGuid();
+        await SeedAsync(db, tenant, actor);
+        db.Memberships.Add(new Membership(new(Guid.NewGuid()), new(tenant), new(actor),
+            new(MasterDataCodes.Roles.AgencyAdmin), new(MasterDataCodes.LifecycleStatuses.Active),
+            null, DateTimeOffset.UtcNow));
+        await db.SaveChangesAsync();
+        await using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => {
+            builder.UseEnvironment("Test");
+            builder.UseSetting("ConnectionStrings:CommercialDatabase", connection);
+            builder.UseSetting("Authentication:Mode", "Deterministic");
+            builder.UseSetting("Authentication:DevelopmentIdentity:UserId", actor.ToString());
+            builder.UseSetting("Authentication:DevelopmentIdentity:ActorId", actor.ToString());
+            builder.UseSetting("Authentication:DevelopmentIdentity:IdentityType", "human");
+            builder.UseDeterministicTestDependencies();
+            builder.UseSetting("InventoryProcessing:Paused", "true");
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<ISuppliedBriefAgentClient>();
+                services.AddScoped<ISuppliedBriefAgentClient>(_ => new SuppliedBriefAgentFixture(input =>
+                {
+                    var mode = input.Clarifications.FirstOrDefault(item =>
+                        item.FieldPath == SuppliedBriefFieldPaths.CampaignMode)?.Value;
+                    if (mode is MasterDataCodes.CampaignModes.OohOnly or MasterDataCodes.CampaignModes.FullCampaign)
+                        return SuppliedBriefAgentFixture.Create(input, mode);
+                    var result = SuppliedBriefAgentFixture.Create(input, MasterDataCodes.CampaignModes.FullCampaign);
+                    return result with {
+                        CampaignMode = null,
+                        CampaignModeConfidence = 0m,
+                        RequiresHumanClarification = true,
+                        CampaignModeRationale = "Campaign scope requires human clarification.",
+                        Questions = [new SuppliedBriefQuestionView(
+                            SuppliedBriefFieldPaths.CampaignMode,
+                            "Should this use only out-of-home media or a full campaign?",
+                            true,
+                            [MasterDataCodes.CampaignModes.OohOnly, MasterDataCodes.CampaignModes.FullCampaign])],
+                    };
+                }));
+            });
+        });
+        using var client = factory.CreateClient();
+        var prefix = $"/api/v1/tenants/{tenant}";
+        var first = await UnderstandAsync(client, prefix, new UnderstandSuppliedBriefRequest(
+            "Clarification flow", "Objective: Raise awareness", InterpretationId: Guid.NewGuid()));
+        Assert.True(first.RequiresHumanClarification);
+        Assert.NotNull(first.Interpretation);
+        var second = await UnderstandAsync(client, prefix, new UnderstandSuppliedBriefRequest(
+            "Clarification flow",
+            "Objective: Raise awareness",
+            [new BriefClarificationInput(SuppliedBriefFieldPaths.CampaignMode, MasterDataCodes.CampaignModes.OohOnly)],
+            InterpretationId: Guid.NewGuid(),
+            ParentInterpretationId: first.Interpretation!.Id));
+        Assert.False(second.RequiresHumanClarification);
+        Assert.Equal(MasterDataCodes.CampaignModes.OohOnly, second.CampaignMode);
+        Assert.DoesNotContain(second.Questions, item => item.FieldPath == SuppliedBriefFieldPaths.CampaignMode);
+    }
+
     private static async Task<SuppliedBriefUnderstandingView> UnderstandAsync(HttpClient client,
         string prefix, UnderstandSuppliedBriefRequest request)
     {

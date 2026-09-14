@@ -101,7 +101,12 @@ function useProposalRecord({ tenantId, proposalId, canPrepare }: ProposalContext
   async function act(action: () => Promise<Proposal>) {
     setBusy(true); setError(null)
     try { await action(); await load() }
-    catch (failure) { setError(humanMessage(failure)) }
+    catch (failure) {
+      const message = humanMessage(failure)
+      try { setProposal(await proposalApi.get(tenantId, proposalId)) }
+      catch { /* Keep the command failure visible if recovery loading also fails. */ }
+      setError(message)
+    }
     finally { setBusy(false) }
   }
   return { proposal, recipients, approvers, currentUserId, error, busy, act }
@@ -140,25 +145,69 @@ function ProposalContent(props: ProposalContentProps) {
 function ProposalInventoryUpdateNotice({ proposal }: { proposal: Proposal }) {
   if (proposal.inventoryReviewStatus ===
       masterDataCodes.proposalInventoryReviewStatuses.current) return null
-  return <section className="proposal-section inline-alert" role="alert"
+  const open = proposal.inventoryImpacts.filter(item =>
+    item.status === masterDataCodes.proposalInventoryImpactStatuses.open)
+  return <section className="connected-revision-review" role="alert"
     aria-labelledby="proposal-inventory-update-title">
-    <p className="eyebrow">Supplier inventory updated</p>
-    <h2 id="proposal-inventory-update-title">This proposal requires a current inventory review</h2>
-    <p>The proposal remains available as a historical version, but it cannot be approved, shared,
-      accepted or converted to a booking until an authorised user creates a current version.</p>
-    {proposal.inventoryImpacts.length > 0 && <div className="candidate-stack">
-      {proposal.inventoryImpacts.map(impact => {
-        const comparison = readInventoryImpact(impact.comparisonJson)
-        return <article key={impact.id}><strong>
-          {comparison?.oldProductName ?? 'Affected inventory line'}</strong>
-          <p>{comparison?.newProductFound
-            ? `A replacement was found${comparison.newProductName ? `: ${comparison.newProductName}` : ''}.`
-            : 'No equivalent product was found in the replacement inventory.'}</p>
-          <small>{impactSummary(comparison)}</small>
-        </article>
-      })}
+    <header><div><p className="eyebrow">Revision review & reconfirmation</p>
+      <h2 id="proposal-inventory-update-title">Supplier inventory changed after this proposal was created</h2>
+      <p>The historical proposal remains unchanged. Review each affected line, update planning against current inventory, then create a replacement proposal version for reconfirmation.</p></div>
+      <span>{open.length} open impact{open.length === 1 ? '' : 's'}</span></header>
+    <div className="connected-revision-steps"><div className="is-complete"><b>1</b><span><strong>Change detected</strong><small>Supplier release updated</small></span></div>
+      <div className="is-active"><b>2</b><span><strong>Review changes</strong><small>Compare old and current supply</small></span></div>
+      <div><b>3</b><span><strong>Replan</strong><small>Confirm current media plan</small></span></div>
+      <div><b>4</b><span><strong>Reconfirm proposal</strong><small>Create the new governed version</small></span></div></div>
+    {proposal.inventoryImpacts.length > 0 && <div className="connected-revision-comparisons">
+      {proposal.inventoryImpacts.map(impact => <ProposalImpactCard key={impact.id} impact={impact} />)}
     </div>}
+    <footer><Link className="secondary-button" to={`/planning/${proposal.briefVersionId}`}>Review current media plan</Link>
+      <Link className="secondary-button" to="/marketplace">Review current inventory</Link>
+      <Link className="primary-button" to={`/briefs/${proposal.briefId}/proposals/new?replaces=${proposal.id}`}>
+        Create reconfirmed proposal</Link></footer>
   </section>
+}
+
+function ProposalImpactCard({ impact }: { impact: Proposal['inventoryImpacts'][number] }) {
+  const model = proposalImpactModel(impact)
+  return <article className={model.resolved ? 'is-resolved' : ''}>
+    <header><div><span>{model.impactType}</span><h3>{model.previousName}</h3></div><em>{model.status}</em></header>
+    <div className="connected-revision-compare-grid">
+      <RevisionSide title="Previous proposal" name={model.previousName}
+        geography={model.previousGeography} note={model.previousNote} />
+      <div className="connected-revision-arrow">→</div>
+      <RevisionSide title="Current inventory" name={model.currentName}
+        geography={model.currentGeography} note={model.currentNote} />
+    </div>
+    <footer>{model.summary}</footer>
+  </article>
+}
+
+function proposalImpactModel(impact: Proposal['inventoryImpacts'][number]) {
+  const comparison = readInventoryImpact(impact.comparisonJson)
+  const rateChanged = Boolean(comparison?.rateChanged)
+  return {
+    resolved: impact.status === masterDataCodes.proposalInventoryImpactStatuses.resolved,
+    impactType: humanizeCode(impact.impactType, true),
+    status: humanizeCode(impact.status, true),
+    previousName: comparison?.oldProductName ?? 'Affected inventory line',
+    previousGeography: comparison?.oldGeography ?? 'Geography not retained in comparison',
+    previousNote: rateChanged ? 'Previous commercial rate superseded' : 'Previous commercial terms retained in history',
+    currentName: replacementName(comparison),
+    currentGeography: comparison?.newGeography ?? 'Review current eligible alternatives',
+    currentNote: rateChanged ? 'Current rate requires reconfirmation' : 'No rate change established',
+    summary: impactSummary(comparison),
+  }
+}
+
+function RevisionSide({ title, name, geography, note }: {
+  title: string; name: string; geography: string; note: string
+}) {
+  return <div><small>{title}</small><strong>{name}</strong><p>{geography}</p><span>{note}</span></div>
+}
+
+function replacementName(comparison: z.infer<typeof inventoryImpactComparisonSchema> | null) {
+  if (!comparison?.newProductFound) return 'Replacement required'
+  return comparison.newProductName ?? 'Replacement found'
 }
 
 function readInventoryImpact(json: string) {

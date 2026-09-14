@@ -19,6 +19,8 @@ public static class RequestRateLimitPolicies
 
     private const int BusinessMutationPermitLimit = 60;
     private const int BusinessReadPermitLimit = 300;
+    private const int BrowserSessionPermitLimit = 20;
+    private const int BrowserSessionStatusPermitLimit = 60;
     private const int AgentWorkPermitLimit = 12;
     private const int HeavyWorkPermitLimit = 20;
     private static readonly TimeSpan OneMinute = TimeSpan.FromMinutes(1);
@@ -31,12 +33,13 @@ public static class RequestRateLimitPolicies
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var heavyWorkPermitLimit = configuration.GetValue<int?>("RateLimits:HeavyWorkPermitLimit")
-            ?? HeavyWorkPermitLimit;
-        var businessMutationPermitLimit = configuration.GetValue<int?>("RateLimits:BusinessMutationPermitLimit")
-            ?? BusinessMutationPermitLimit;
-        if (heavyWorkPermitLimit <= 0 || businessMutationPermitLimit <= 0)
-            throw new InvalidOperationException("Configured rate limits must be positive.");
+        var heavyWorkPermitLimit = Limit(configuration, "HeavyWorkPermitLimit", HeavyWorkPermitLimit);
+        var businessMutationPermitLimit = Limit(configuration, "BusinessMutationPermitLimit", BusinessMutationPermitLimit);
+        var businessReadPermitLimit = Limit(configuration, "BusinessReadPermitLimit", BusinessReadPermitLimit);
+        var browserSessionPermitLimit = Limit(configuration, "BrowserSessionPermitLimit", BrowserSessionPermitLimit);
+        var browserSessionStatusPermitLimit = Limit(configuration, "BrowserSessionStatusPermitLimit", BrowserSessionStatusPermitLimit);
+        var agentWorkPermitLimit = Limit(configuration, "AgentWorkPermitLimit", AgentWorkPermitLimit);
+
         return services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -54,16 +57,16 @@ public static class RequestRateLimitPolicies
                 IsSafeMethod(context.Request.Method)
                     ? FixedWindow(
                         "read:" + Actor(context),
-                        BusinessReadPermitLimit,
+                        businessReadPermitLimit,
                         OneMinute)
                     : FixedWindow(
                         "business:" + Actor(context),
                         businessMutationPermitLimit,
                         OneMinute)));
             options.AddPolicy(BrowserSession, context => FixedWindow(
-                "session:" + RemoteAddress(context), 20, OneMinute));
+                "session:" + RemoteAddress(context), browserSessionPermitLimit, OneMinute));
             options.AddPolicy(BrowserSessionStatus, context => FixedWindow(
-                "session-status:" + RemoteAddress(context), 60, OneMinute));
+                "session-status:" + RemoteAddress(context), browserSessionStatusPermitLimit, OneMinute));
             options.AddPolicy(PublicIntake, context => FixedWindow(
                 "public-intake:" + RemoteAddress(context), 10, TenMinutes));
             options.AddPolicy(ProviderCallback, context => FixedWindow(
@@ -71,10 +74,20 @@ public static class RequestRateLimitPolicies
             options.AddPolicy(InventoryUpload, context => FixedWindow(
                 "inventory:" + Actor(context), 30, TenMinutes));
             options.AddPolicy(AgentWork, context => FixedWindow(
-                "agent:" + Actor(context), AgentWorkPermitLimit, OneMinute));
+                "agent:" + Actor(context), agentWorkPermitLimit, OneMinute));
             options.AddPolicy(HeavyWork, context => FixedWindow(
                 "heavy:" + Actor(context), heavyWorkPermitLimit, FiveMinutes));
         });
+    }
+
+    private static int Limit(IConfiguration configuration, string key, int fallback)
+    {
+        var value = configuration.GetValue<int?>($"RateLimits:{key}") ?? fallback;
+        if (value <= 0)
+        {
+            throw new InvalidOperationException($"Configured rate limit '{key}' must be positive.");
+        }
+        return value;
     }
 
     private static RateLimitPartition<string> FixedWindow(

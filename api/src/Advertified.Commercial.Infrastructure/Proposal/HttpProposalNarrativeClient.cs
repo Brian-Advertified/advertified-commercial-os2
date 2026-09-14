@@ -102,7 +102,7 @@ public sealed class HttpProposalNarrativeClient(
                     ProposalMoneyFormatter.Format(option.BudgetMinor, option.Currency),
                     StringComparison.Ordinal) ||
                 option.Channels.Any(channel =>
-                    !narrative.Contains(channel, StringComparison.Ordinal))))
+                    !ProposalMediaLabels.NarrativeIncludesChannel(narrative, channel))))
         {
             throw new InvalidOperationException(
                 "The proposal narrative does not preserve the approved option facts.");

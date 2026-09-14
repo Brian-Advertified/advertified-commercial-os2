@@ -31,6 +31,11 @@ import './approved-workflow-extensions.css'
 import './approved-planning-stages.css'
 import './approved-workspace-controls.css'
 import './global-search.css'
+import './connected-system.css'
+import './connected-home.css'
+import './connected-interactions.css'
+import './connected-directories.css'
+import './connected-reporting.css'
 import { LoadingState } from './components/PageState'
 import { SignInPage } from './pages/SignInPage'
 import { publicRoutes } from './public/publicRoutes'
@@ -87,6 +92,14 @@ const TasksPage = lazy(() => import('./pages/TasksPage')
   .then(module => ({ default: module.TasksPage })))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage')
   .then(module => ({ default: module.NotificationsPage })))
+const AdvertisersPage = lazy(() => import('./pages/DirectoryPages')
+  .then(module => ({ default: module.AdvertisersPage })))
+const SuppliersPage = lazy(() => import('./pages/DirectoryPages')
+  .then(module => ({ default: module.SuppliersPage })))
+const AgencyPartnersPage = lazy(() => import('./pages/DirectoryPages')
+  .then(module => ({ default: module.AgencyPartnersPage })))
+const InfluencersPage = lazy(() => import('./pages/DirectoryPages')
+  .then(module => ({ default: module.InfluencersPage })))
 const SearchPage = lazy(() => import('./pages/SearchPage')
   .then(module => ({ default: module.SearchPage })))
 
@@ -170,6 +183,10 @@ function authenticatedRouteElements() {
   <Route path="/admin/agents" element={deferredRoute(<AgentOperationsPage />)} />
   <Route path="/admin/onboarding" element={deferredRoute(<OnboardingPage />)} />
   <Route path="/profile" element={deferredRoute(<ProfilePage />)} />
+  <Route path="/advertisers" element={deferredRoute(<AdvertisersPage />)} />
+  <Route path="/suppliers" element={deferredRoute(<SuppliersPage />)} />
+  <Route path="/agency-partners" element={deferredRoute(<AgencyPartnersPage />)} />
+  <Route path="/influencers" element={deferredRoute(<InfluencersPage />)} />
   <Route path="/tasks" element={deferredRoute(<TasksPage />)} />
   <Route path="/search" element={deferredRoute(<SearchPage />)} />
   <Route path="/approvals" element={deferredRoute(<ApprovalsIndexPage />)} />

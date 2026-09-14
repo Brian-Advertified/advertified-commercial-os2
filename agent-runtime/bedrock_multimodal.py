@@ -9,7 +9,7 @@ from typing import Any
 from botocore.exceptions import ClientError
 from pydantic import BaseModel
 
-FIXED_INPUT_TOKEN_RESERVE = 32_768
+FIXED_INPUT_TOKEN_RESERVE = 8_192
 IMAGE_INPUT_TOKEN_RESERVE = 4_096
 
 
@@ -109,11 +109,16 @@ def count_input_tokens(
         )
     except ClientError as error:
         details = error.response.get("Error", {})
-        if details.get(
-            "Code"
-        ) == "ValidationException" and "doesn't support counting tokens" in str(
+        code = details.get("Code")
+        if code == "ValidationException" and "doesn't support counting tokens" in str(
             details.get("Message", "")
         ):
+            return None
+        # CountTokens is an optional preflight capability. Some governed roles are allowed
+        # to invoke Bedrock models but are not granted bedrock:CountTokens. In that case
+        # fall back to the deliberately conservative local byte-based estimate below rather
+        # than weakening the per-call cost cap or blocking a provider invocation entirely.
+        if code == "AccessDeniedException":
             return None
         raise
     try:

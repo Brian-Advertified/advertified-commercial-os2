@@ -6,6 +6,7 @@ import { humanMessage } from '../api/client'
 import { planningApi } from '../api/planning-client'
 import { masterDataCodes } from '../generated/master-data-codes'
 import type { BriefSpatialDraft } from './BriefSpatialEditor'
+import { structuredBriefClarifications } from './brief-structured-clarifications'
 import type { AudienceResearch } from '../api/audience-research-schema'
 
 const CampaignModeField = 'campaignMode'
@@ -189,13 +190,16 @@ function submitSource(understand: Understand, setModel: UpdateModel) {
       title: requiredField(values, 'sourceTitle'),
       content: String(values.get('sourceContent') ?? ''),
     }
+    const clarifications = structuredBriefClarifications(values)
     setModel(current => ({
       ...current,
       source,
-      clarifications: [],
+      clarifications,
       preparationKeys: null,
     }))
-    void understand(source, [])
+    window.history.replaceState(null, '', '#interpretation')
+    window.dispatchEvent(new HashChangeEvent('hashchange'))
+    void understand(source, clarifications)
   }
 }
 
@@ -215,13 +219,17 @@ function submitClarifications(understand: Understand, model: IntakeModel) {
 }
 
 function editSource(setModel: UpdateModel) {
-  return () => setModel(current => ({
-    ...current,
-    understanding: null,
-    clarifications: [],
-    preparationKeys: null,
-    error: null,
-  }))
+  return () => {
+    window.history.replaceState(null, '', window.location.pathname)
+    window.dispatchEvent(new HashChangeEvent('hashchange'))
+    setModel(current => ({
+      ...current,
+      understanding: null,
+      clarifications: [],
+      preparationKeys: null,
+      error: null,
+    }))
+  }
 }
 
 function correctMode(setModel: UpdateModel) {

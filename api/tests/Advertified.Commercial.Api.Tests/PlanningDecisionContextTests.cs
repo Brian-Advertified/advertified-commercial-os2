@@ -108,6 +108,7 @@ public sealed class PlanningDecisionContextTests
             Status: "APPROVED",
             BusinessProblem: problem,
             Objective: objective,
+            Timing: "September 2026",
             AudiencesJson: "[]",
             GeographiesJson: "[]",
             MediaRequirementsJson: "[]",

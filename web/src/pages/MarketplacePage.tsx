@@ -147,20 +147,15 @@ function MarketplaceHeader({ tenantId, listings, requests, canBuy, canSupply }: 
   const markedAvailable = listings.filter(item => item.currentVersion?.availability ===
     masterDataCodes.availabilityStatuses.available).length
   const needsAction = requests.filter(rfq => requestNeedsAction(rfq, tenantId)).length
-  return <><header className="marketplace-command-header"><span className="marketplace-command-icon">
-    <Icon name="marketplace" /></span><div><p className="eyebrow">Published media supply</p>
-      <h1 id="marketplace-title">Marketplace</h1>
-      <p>Find supplier-reviewed media currently published for campaign buying. Canonical records and source evidence remain in Inventory. Acceptance never creates a booking.</p>
-    </div><div className="marketplace-access"><span>Workspace access</span>
-      <strong>{accessLabel(canBuy, canSupply)}</strong></div></header>
-    <dl className="marketplace-metric-strip">
-      <Metric label="Shown on page" value={listings.length} detail="Current filtered page" />
-      <Metric label="Available on page" value={markedAvailable} detail="Current supplier status" />
-      <Metric label="Exchange records" value={canBuy || canSupply ? requests.length : '—'}
-        detail={canBuy || canSupply ? 'Retained for this workspace' : 'View-only role'} />
-      <Metric label="Needs your action" value={canBuy || canSupply ? needsAction : '—'}
-        detail={canBuy || canSupply ? 'Based on role and status' : 'No RFQ permission'} />
-    </dl></>
+  return <><header className="connected-stage-heading connected-marketplace-heading"><div><p className="eyebrow">New campaign</p>
+      <h1 id="marketplace-title">Inventory marketplace</h1>
+      <p>Discover and select current published media inventory across South Africa. Filter, compare and inspect the evidence behind every commercial listing.</p>
+    </div><div className="connected-handwritten-note" aria-hidden="true">South Africa<br />in every<br />opportunity.<span /></div></header>
+    <section className="connected-marketplace-proofbar"><div><Icon name="marketplace" /><span>
+      <strong>{listings.length} published options shown</strong><small>{markedAvailable} currently marked available on this page</small></span></div>
+      <div><span>Workspace access</span><strong>{accessLabel(canBuy, canSupply)}</strong></div>
+      {(canBuy || canSupply) && <div><span>Needs your action</span><strong>{needsAction}</strong></div>}
+      {(canBuy || canSupply) && <div><span>Exchange records</span><strong>{requests.length}</strong></div>}</section></>
 }
 
 function MarketplaceTabs({ tab, setTab, listingCount, requestCount, canExchange, canSupply }: {
@@ -177,10 +172,6 @@ function MarketplaceTabs({ tab, setTab, listingCount, requestCount, canExchange,
       aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>
       {item.label}{item.count !== undefined && <span>{item.count}</span>}</button>)}
   </div>
-}
-
-function Metric({ label, value, detail }: { label: string; value: string | number; detail: string }) {
-  return <div><dt>{label}</dt><dd>{value}</dd><small>{detail}</small></div>
 }
 
 function requestNeedsAction(rfq: MarketplaceRfq, tenantId: string) {

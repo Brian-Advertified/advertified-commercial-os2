@@ -103,17 +103,50 @@ function CampaignWorkspace(props: WorkspaceProps) {
     return () => window.removeEventListener('hashchange', selectHashTab)
   }, [])
 
-  return <section className="campaign-workspace-page" aria-labelledby="campaign-title">
-    <Link className="text-action back-link" to="/campaigns">← Back to campaigns</Link>
+  const presentation = campaignStagePresentation(activeTab)
+  return <section className="campaign-workspace-page connected-campaign-workspace" aria-labelledby="campaign-title">
+    <Link className="text-action connected-campaign-back" to="/campaigns">← Back to Campaigns</Link>
+    <header className="connected-stage-heading connected-campaign-stage-heading"><div><p className="eyebrow">{presentation.eyebrow}</p>
+      <h1>{presentation.title}</h1><p>{presentation.copy}</p></div>
+      <div className="connected-handwritten-note" aria-hidden="true">{presentation.note[0]}<br />{presentation.note[1]}<span /></div></header>
     <CampaignHeader campaign={props.model.campaign} />
-    <CampaignCommercialProof model={props.model} />
     <CampaignDeliveryRail campaign={props.model.campaign} activeTab={activeTab}
       onSelect={setActiveTab} />
     {props.error && <p className="inline-alert" role="alert">{props.error}</p>}
     <div className="campaign-tab-panel">
       <CampaignTabContent {...props} activeTab={activeTab} />
     </div>
+    <details className="connected-campaign-proof"><summary>View commercial lineage and readiness evidence</summary>
+      <CampaignCommercialProof model={props.model} /></details>
   </section>
+}
+
+function campaignStagePresentation(tab: CampaignDeliveryTab) {
+  if (tab === 'bookings' || tab === 'funding') return {
+    eyebrow: 'Campaign readiness', title: 'Approvals & Booking',
+    copy: 'Track approvals, confirm selected inventory with suppliers, and prepare the campaign for production.',
+    note: ['From approval', 'to impact.'] as const,
+  }
+  if (tab === 'creativeStage') return {
+    eyebrow: 'Campaign readiness', title: 'Creative & launch readiness',
+    copy: 'Bring booked media, creative requirements and approvals together before launch.',
+    note: ['Ready means', 'ready.'] as const,
+  }
+  if (tab === 'live') return {
+    eyebrow: 'Launch campaign', title: 'Launch campaign',
+    copy: 'Monitor the governed launch state, booked media, active markets and delivery actions across the campaign.',
+    note: ['From strategy', 'to street impact.'] as const,
+  }
+  if (tab === 'proof') return {
+    eyebrow: 'Delivery accountability', title: 'Delivery proof',
+    copy: 'Review evidence linked to the exact booked media line and keep gaps visible until they are resolved.',
+    note: ['Proof over', 'promises.'] as const,
+  }
+  return {
+    eyebrow: 'Campaign insights', title: 'Campaign reporting',
+    copy: 'Turn reviewed performance evidence into campaign findings, limitations and approved learnings.',
+    note: ['Turn insights', 'into opportunity.'] as const,
+  }
 }
 
 function CampaignTabContent(props: WorkspaceProps & { activeTab: CampaignDeliveryTab }) {
@@ -133,7 +166,7 @@ function CampaignTabContent(props: WorkspaceProps & { activeTab: CampaignDeliver
     canUpload={creativeUploaderRoles.has(props.roleCode)}
     canBrandReview={creativeBrandReviewerRoles.has(props.roleCode)}
     canApprove={creativeApproverRoles.has(props.roleCode)} />
-  if (props.activeTab === 'live') return <LiveDeliverySection {...common}
+  if (props.activeTab === 'live') return <LiveDeliverySection {...common} bookings={bookings}
     canOperate={campaignDeliveryOperatorRoles.has(props.roleCode)} />
   if (props.activeTab === 'proof') return <DeliveryProofSection {...common} bookings={bookings}
     canReviewProof={deliveryProofReviewerRoles.has(props.roleCode)} />

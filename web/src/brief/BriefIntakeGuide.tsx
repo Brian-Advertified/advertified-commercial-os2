@@ -5,73 +5,30 @@ type Props = {
   busy: boolean
 }
 
-const extractedFields = [
-  'Client or brand',
-  'Business problem and objective',
-  'Audience and geography',
-  'Timing, budget and tax treatment',
-  'Media requirements and constraints',
-  'Measurement, evidence and unknowns',
+const actions = [
+  'Analyse your brief and extract key objectives',
+  'Identify the right audiences and locations',
+  'Recommend the best mix of channels',
+  'Create a strategic, data-led media plan',
+  'Suggest optimal timing and budget allocation',
+  'Flag opportunities and potential risks',
 ] as const
 
 export function BriefIntakeGuide({ understanding, busy }: Props) {
-  const state = understanding
-    ? understanding.requiresHumanClarification ? 'clarify' : 'review'
-    : busy ? 'understand' : 'source'
-
-  return <aside className="brief-intake-guide" aria-label="How Advertified prepares the Brief">
-    <div className="brief-guide-heading">
-      <span className="brief-guide-mark" aria-hidden="true">AI</span>
-      <div><p className="eyebrow eyebrow-light">Brief intelligence</p>
-        <h2>From raw request to a planning-ready Brief</h2></div>
-    </div>
-
-    <ol className="brief-guide-stages">
-      <GuideStage number="1" title="Preserve the original wording"
-        detail="The supplied request is carried into the campaign record when you confirm the Brief."
-        status={stageStatus(state, 'source')} />
-      <GuideStage number="2" title="Understand the campaign"
-        detail="Advertified structures the commercial requirements and supporting evidence."
-        status={stageStatus(state, 'understand')} />
-      <GuideStage number="3" title="Resolve only unclear details"
-        detail="You are asked only about information that blocks a reliable plan."
-        status={stageStatus(state, 'clarify')} />
-      <GuideStage number="4" title="Begin planning"
-        detail="The approved Brief becomes the foundation for audience, media and supply decisions."
-        status={stageStatus(state, 'review')} />
-    </ol>
-
-    <div className="brief-guide-extracts">
-      <span>Advertified will identify</span>
-      <div>{extractedFields.map((field) =>
-        <p key={field}><span aria-hidden="true">✓</span>{field}</p>)}</div>
-    </div>
-
-    <p className="brief-guide-note">
-      No client record is required before you start. The client can be resolved from the supplied Brief as part of this process.
-    </p>
+  const active = busy || understanding !== null
+  return <aside className="brief-intake-guide connected-assistant-panel" aria-label="Your AI Campaign Assistant">
+    <header><span className="connected-ai-orb" aria-hidden="true">✦</span><div>
+      <h2>Your AI Campaign Assistant</h2>
+      <p>{active ? 'I’m analysing the supplied Brief and keeping every conclusion tied to source evidence.'
+        : 'I’ll interpret your Brief and build a campaign planning path from the information you provide.'}</p>
+    </div></header>
+    <div className="connected-assistant-rule" />
+    <strong>Here’s what I’ll do:</strong>
+    <ul>{actions.map(action => <li key={action}><span>✓</span>{action}</li>)}</ul>
+    <section className="connected-sa-proof"><span className="connected-sa-flag" aria-hidden="true">🇿🇦</span><div>
+      <strong>Built for South Africa</strong>
+      <p>Local market intelligence. Real audience data. Verified inventory. Better results.</p>
+    </div></section>
+    <div className="connected-assistant-image" aria-hidden="true"><span>“Great brands meet people<br />where life happens.”</span></div>
   </aside>
-}
-
-function GuideStage({ number, title, detail, status }: {
-  number: string
-  title: string
-  detail: string
-  status: 'complete' | 'current' | 'upcoming'
-}) {
-  return <li className={`is-${status}`} aria-current={status === 'current' ? 'step' : undefined}>
-    <span className="brief-guide-stage-number">{status === 'complete' ? '✓' : number}</span>
-    <div><strong>{title}</strong><p>{detail}</p></div>
-  </li>
-}
-
-function stageStatus(
-  current: 'source' | 'understand' | 'clarify' | 'review',
-  stage: 'source' | 'understand' | 'clarify' | 'review',
-): 'complete' | 'current' | 'upcoming' {
-  const order = ['source', 'understand', 'clarify', 'review'] as const
-  const currentIndex = order.indexOf(current)
-  const stageIndex = order.indexOf(stage)
-  if (stageIndex < currentIndex) return 'complete'
-  return stageIndex === currentIndex ? 'current' : 'upcoming'
 }

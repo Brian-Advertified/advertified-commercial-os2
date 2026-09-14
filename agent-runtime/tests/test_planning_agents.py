@@ -5,7 +5,8 @@ from copy import deepcopy
 import httpx
 import pytest
 
-from bedrock_artifact_output import artifact_schema, wrap_artifact_output
+from bedrock_artifact_output import wrap_artifact_output
+from bedrock_audience_schema import audience_schema
 from main import DETERMINISTIC_MODE, RUNTIME_MODE_KEY, SERVICE_KEY, app
 from planning_contracts import (
     AudienceAgentRequest,
@@ -171,9 +172,12 @@ def test_deterministic_audience_path_preserves_supplied_audiences_without_fabric
     assert [item.name for item in output.artifact.audiences] == list(dict.fromkeys(names))
     assert all(item.language is None and item.life_stage is None
                and item.lsm_sem is None for item in output.artifact.audiences)
-    assert all(item.buying_context is None for item in output.artifact.audiences)
-    assert all(item.need_state is None for item in output.artifact.audiences)
+    assert all(item.buying_context and item.buying_context.startswith("Hypothesis:")
+               for item in output.artifact.audiences)
+    assert all(item.need_state and item.need_state.startswith("Hypothesis:")
+               for item in output.artifact.audiences)
     assert all(item.confidence is None for item in output.artifact.audiences)
+    assert output.artifact.positioning_statement.startswith("Hypothesis:")
     assert {item.field_path for item in output.unknowns} == {
         "artifact.audiences.need_state",
         "artifact.audiences.buying_context",
@@ -184,25 +188,29 @@ def test_deterministic_audience_path_preserves_supplied_audiences_without_fabric
     assert canonicalize_audiences(request, output).unknowns == output.unknowns
 
 
-def test_bedrock_audience_boundary_accepts_only_artifact_and_adds_evidence_binding() -> None:
+def test_bedrock_audience_boundary_accepts_compact_provider_artifact_and_adds_evidence_binding() -> None:
     request = AudienceAgentRequest.model_validate_json(
         json.dumps(payload("audience_intelligence"))
     )
     deterministic = propose_audiences(request)
-    schema = json.loads(artifact_schema(AudienceDefinitionSetArtifact))
+    schema = json.loads(audience_schema(request))
 
-    assert "audiences" in schema["properties"]
+    assert "audiences" not in schema["properties"]
+    assert "audience_1" in schema["properties"]
     assert "artifact" not in schema["properties"]
+    provider_fields = schema["properties"]["audience_1"]["properties"]
+    assert "geographies" not in provider_fields
+    assert "classification" not in provider_fields
 
-    provider_artifact = deterministic.artifact.model_dump(mode="json")
-    provider_artifact["audiences"][0].update({
-        "classification": "HYPOTHESIS",
-        "geographies": list(request.planning.geographies),
-        "language": "Invented",
-        "evidence_item_ids": [],
-        "confidence": 0.7,
-        "is_target": False,
-    })
+    item = deterministic.artifact.audiences[0]
+    provider_artifact = {
+        "audience_1": {
+            "name": item.name,
+            "need_state": item.need_state,
+            "buying_context": item.buying_context,
+            "is_target": False,
+        },
+    }
     output = wrap_artifact_output(
         AudienceDefinitionSetArtifact,
         provider_artifact,
@@ -219,6 +227,46 @@ def test_bedrock_audience_boundary_accepts_only_artifact_and_adds_evidence_bindi
     assert audience.is_target is True
     assert output.status == "COMPLETED"
     assert output.evidence_bindings == ()
+    assert output.artifact.positioning_statement.startswith("Hypothesis:")
+    assert "approved Brief explicitly names" in output.artifact.targeting_rationale
+    assert "Aggregate market context proves" not in output.artifact.targeting_rationale
+
+
+def test_audience_canonicalizer_replaces_provider_rationale_with_governed_summary() -> None:
+    request = AudienceAgentRequest.model_validate_json(json.dumps(payload("audience_intelligence")))
+    output = propose_audiences(request)
+    artifact = output.artifact.model_copy(update={
+        "targeting_rationale": "Budget realism: ZAR 20,000,000 is allocated. Everyone prefers radio.",
+    })
+    canonical = canonicalize_audiences(request, output.model_copy(update={"artifact": artifact}))
+
+    assert "20,000,000" not in canonical.artifact.targeting_rationale
+    assert "prefers radio" not in canonical.artifact.targeting_rationale
+    assert "approved Brief explicitly names" in canonical.artifact.targeting_rationale
+    assert request.planning.objective.rstrip(".") in canonical.artifact.targeting_rationale
+
+
+def test_audience_canonicalizer_preserves_exact_brief_identity_and_scope() -> None:
+    body = payload("audience_intelligence")
+    body["planning"]["audiences"] = ["Small business owners and office managers."]
+    body["planning"]["geographies"] = ["Johannesburg and Pretoria."]
+    request = AudienceAgentRequest.model_validate_json(json.dumps(body))
+    provider_output = propose_audiences(request)
+    audience = provider_output.artifact.audiences[0].model_copy(update={
+        "name": "Small business owners and office managers",
+        "geographies": ("Johannesburg", "Pretoria"),
+        "classification": "HYPOTHESIS",
+    })
+    provider_output = provider_output.model_copy(update={
+        "artifact": provider_output.artifact.model_copy(update={"audiences": (audience,)}),
+    })
+
+    output = canonicalize_audiences(request, provider_output)
+    repaired = output.artifact.audiences[0]
+
+    assert repaired.name == "Small business owners and office managers."
+    assert repaired.geographies == ("Johannesburg and Pretoria.",)
+    assert repaired.classification == "CLIENT_REQUIREMENT"
 
 
 def test_audience_canonicalizer_removes_unsupported_structured_facts() -> None:

@@ -44,11 +44,19 @@ public sealed partial class PlanningCommands
             throw new PlanningApprovalBlockedException();
         }
 
-        var targetingRationale = OpportunityCommandSupport.Optional(
-            envelope.Command.TargetingRationale, 4000,
+        var selectedTargets = draft.Definitions
+            .Where(item => targetIds.Contains(item.Id))
+            .ToArray();
+        if (selectedTargets.Any(item => !HasUsableAudienceContext(item)))
+        {
+            throw new PlanningApprovalBlockedException();
+        }
+
+        var targetingRationale = OpportunityCommandSupport.Required(
+            envelope.Command.TargetingRationale ?? string.Empty, 4000,
             nameof(envelope.Command.TargetingRationale));
-        var positioningStatement = OpportunityCommandSupport.Optional(
-            envelope.Command.PositioningStatement, 4000,
+        var positioningStatement = OpportunityCommandSupport.Required(
+            envelope.Command.PositioningStatement ?? string.Empty, 4000,
             nameof(envelope.Command.PositioningStatement));
         _ = OpportunityCommandSupport.Required(
             envelope.Command.Reason ?? "Audience strategy reviewed and approved.",
@@ -84,4 +92,13 @@ public sealed partial class PlanningCommands
             MasterDataReferences.CommercialActions.AudienceIntelligenceApproved,
             MasterDataReferences.CommercialEventTypes.AudienceIntelligenceApproved, now);
     }
+
+    private static bool HasUsableAudienceContext(AudienceSegmentView item) =>
+        !string.IsNullOrWhiteSpace(item.NeedState) ||
+        !string.IsNullOrWhiteSpace(item.BuyingContext) ||
+        !string.IsNullOrWhiteSpace(item.Language) ||
+        !string.IsNullOrWhiteSpace(item.LifeStage) ||
+        !string.IsNullOrWhiteSpace(item.LsmSem) ||
+        item.EvidenceItemIds.Count > 0 ||
+        item.ReferenceObservationIds.Count > 0;
 }

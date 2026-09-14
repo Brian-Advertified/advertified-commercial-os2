@@ -64,4 +64,52 @@ public sealed class AiInvocationBudgetEnvelopeTests
         if (accepted) Assert.Equal(micros, AiMonthlyBudgetHandler.ReadUsage(payload, policy).IncrementalCostUsdMicros);
         else Assert.Throws<InvalidOperationException>(() => AiMonthlyBudgetHandler.ReadUsage(payload, policy));
     }
+
+    [Fact]
+    public void AcceptedRejectedProviderUsageCanReconcileItsReservation()
+    {
+        var policy = new AgentProviderPolicy("bedrock", "fixture", 0, 30, 1, 5, true);
+        var payload = JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            detail = new
+            {
+                provider_acceptance = "ACCEPTED",
+                usage = new
+                {
+                    provider = "bedrock", model = "fixture", units = 123,
+                    tool_calls = 0, incremental_cost_minor = 2, cache_status = "LIVE",
+                    provider_request_id = "fixture:rejected", input_tokens = 100,
+                    output_tokens = 23, incremental_cost_usd_micros = 12000,
+                },
+            },
+        });
+
+        var usage = AiMonthlyBudgetHandler.ReadAcceptedRejectedUsage(payload, policy);
+        Assert.NotNull(usage);
+        Assert.Equal(12000, usage!.IncrementalCostUsdMicros);
+        Assert.Equal("fixture:rejected", usage.ProviderRequestId);
+    }
+
+    [Theory]
+    [InlineData("NOT_ACCEPTED")]
+    [InlineData("")]
+    public void RejectionWithoutAcceptedUsageStaysReserved(string acceptance)
+    {
+        var policy = new AgentProviderPolicy("bedrock", "fixture", 0, 30, 1, 5, true);
+        var payload = JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            detail = new
+            {
+                provider_acceptance = acceptance,
+                usage = new
+                {
+                    provider = "bedrock", model = "fixture", units = 123,
+                    tool_calls = 0, incremental_cost_minor = 2, cache_status = "LIVE",
+                    provider_request_id = "fixture:rejected", incremental_cost_usd_micros = 12000,
+                },
+            },
+        });
+
+        Assert.Null(AiMonthlyBudgetHandler.ReadAcceptedRejectedUsage(payload, policy));
+    }
 }

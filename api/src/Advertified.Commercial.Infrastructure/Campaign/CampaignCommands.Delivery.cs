@@ -18,7 +18,7 @@ public sealed partial class CampaignCommands
             ?? throw new UnauthorizedAccessException("Campaign access denied.");
         if (campaign.Status != MasterDataCodes.LifecycleStatuses.Ready)
             throw new InvalidLifecycleTransitionException();
-        var now = timeProvider.GetUtcNow();
+        var now = lifecycleClock.GetUtcNow();
         var today = DateOnly.FromDateTime(now.UtcDateTime);
         if (today < campaign.StartDate || today > campaign.EndDate)
             throw new CampaignDeliveryBlockedException();
@@ -38,7 +38,7 @@ public sealed partial class CampaignCommands
             ?? throw new UnauthorizedAccessException("Campaign access denied.");
         if (campaign.Status != MasterDataCodes.LifecycleStatuses.Live)
             throw new InvalidLifecycleTransitionException();
-        var now = timeProvider.GetUtcNow();
+        var now = lifecycleClock.GetUtcNow();
         if (DateOnly.FromDateTime(now.UtcDateTime) <= campaign.EndDate)
             throw new CampaignDeliveryBlockedException();
         await store.CompleteAsync(

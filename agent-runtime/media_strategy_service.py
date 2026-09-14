@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from decimal import Decimal
+import logging
+import re
+
+logger = logging.getLogger(__name__)
 
 from contracts import (
     AgentOutputEnvelope,
@@ -12,8 +16,10 @@ from contracts import (
     UnknownItem,
 )
 from media_strategy_contracts import (
+    MediaChannelRecommendation,
     MediaStrategyArtifact,
     MediaStrategyRequest,
+    UNSUPPORTED_CLAIM_MARKERS,
 )
 
 INSTRUCTION = (
@@ -25,7 +31,12 @@ INSTRUCTION = (
     "not be rewritten as facts. Do not invent reach, frequency, CPM, footfall, media consumption, performance or "
     "channel effectiveness evidence. If no budget is established, leave budget_guidance_percent null rather than "
     "inventing a split. If a budget exists, percentage guidance is still a strategic recommendation rather than an "
-    "inventory-backed forecast. Unknown evidence should be stated as an evidence gap."
+    "inventory-backed forecast. Unknown evidence should be stated as an evidence gap. "
+    "Each role must describe only a communication task, such as presenting the supplied offer or inviting the "
+    "stated action. Do not describe site traffic, audience presence, placement quality or promised effectiveness "
+    "inside the role or objective contribution. Those details are not established by the supplied context. "
+    "The following unsupported phrases are rejected by the output contract in every field: "
+    + "; ".join(UNSUPPORTED_CLAIM_MARKERS) + "."
 )
 
 
@@ -75,6 +86,118 @@ def unavailable_media_strategy(
     )
 
 
+def deterministic_media_strategy(
+    request: MediaStrategyRequest,
+) -> AgentOutputEnvelope[MediaStrategyArtifact]:
+    """Build a bounded local-certification strategy from governed Brief inputs only.
+
+    This fixture exists so deterministic connected-browser certification can exercise the
+    real strategy approval flow. It never infers media performance, audience presence or
+    buyable supply facts. Live/provider strategy remains a separate execution path.
+    """
+    context = request.media_strategy
+    selected = _deterministic_channels(context.available_channels, context.media_requirements)
+    percentages = _deterministic_budget_split(len(selected)) if context.budget_minor is not None else [None] * len(selected)
+    geographies = ", ".join(context.geographies)
+    recommendations = tuple(
+        MediaChannelRecommendation(
+            channel=channel,
+            role=(
+                f"Use {channel} to present the approved campaign message and invite the stated action for the "
+                "approved objective."
+            ),
+            rationale=(
+                f"{channel} is retained for deterministic local certification because it is inside the governed "
+                "channel scope and is consistent with the approved media requirements. This is a planning "
+                "hypothesis, not a performance claim."
+            ),
+            objective_contribution=(
+                f"Proposed role: use {channel} as a communication channel for the approved objective. "
+                "Actual delivery and effectiveness require later evidence."
+            ),
+            geography_role=(
+                f"Evaluate {channel} only within the approved campaign geography: {geographies}. "
+                "This does not establish audience presence or media performance."
+            ),
+            classification="HYPOTHESIS",
+            budget_guidance_percent=percentages[index],
+            trade_offs=(
+                "Channel role remains provisional until execution constraints and media evidence are reviewed.",
+            ),
+            evidence_gaps=(
+                "Verified channel reach, frequency, audience delivery and effectiveness evidence has not been supplied here.",
+            ),
+        )
+        for index, channel in enumerate(selected)
+    )
+    artifact = MediaStrategyArtifact(
+        summary=(
+            "Deterministic local certification retained only governed channels that are compatible with the approved "
+            "media requirements. The roles are hypotheses and do not assert measured delivery or effectiveness."
+        ),
+        channel_recommendations=recommendations,
+        strategic_principles=tuple(dict.fromkeys((
+            *context.media_requirements,
+            "Treat approved audience and location hypotheses as hypotheses; do not promote them to media facts.",
+            "Select and evaluate buyable inventory only after Media Strategy is approved.",
+        ))),
+        excluded_channels=tuple(channel for channel in context.available_channels if channel not in selected),
+        evidence_gaps=(
+            "Verified channel reach, frequency, audience delivery and effectiveness evidence has not been supplied here.",
+        ),
+    )
+    return AgentOutputEnvelope(
+        schema_version="1.0.0",
+        status=OutputStatus.COMPLETED,
+        artifact=artifact,
+        evidence_bindings=(),
+        unknowns=(),
+        assumptions=(),
+        confidence=(),
+        objections=(),
+        rationale=(
+            "Deterministic local certification used only approved Brief requirements, campaign geography and the "
+            "governed channel scope."
+        ),
+        suggested_next_action=SuggestedNextAction(
+            command_code="ReviewMediaStrategy",
+            requires_human=True,
+        ),
+        usage=ProviderUsage(
+            provider="deterministic",
+            model="fixture-v1",
+            units=0,
+            tool_calls=0,
+            incremental_cost_minor=0,
+            cache_status="FIXTURE",
+        ),
+    )
+
+
+def _deterministic_channels(available_channels, media_requirements):
+    available = tuple(dict.fromkeys(available_channels))
+    if not media_requirements:
+        return available
+    tokens = {
+        token.upper()
+        for requirement in media_requirements
+        for token in re.findall(r"[A-Za-z0-9]+", requirement)
+    }
+    explicit = tuple(channel for channel in available if channel.upper() in tokens)
+    return explicit or available
+
+
+def _deterministic_budget_split(count: int):
+    if count <= 0:
+        return []
+    if count == 1:
+        return [Decimal("100")]
+    base = (Decimal("100") / Decimal(count)).quantize(Decimal("0.01"))
+    result = [base] * (count - 1)
+    result.append(Decimal("100") - sum(result, Decimal("0")))
+    return result
+
+
 def _geography_role(context, channel: str) -> str | None:
     if not context.location_opportunities:
         return None
@@ -88,9 +211,24 @@ def _geography_role(context, channel: str) -> str | None:
     )
 
 
+def _contains_unsupported(value: str) -> bool:
+    text = value.casefold()
+    return any(marker in text for marker in UNSUPPORTED_CLAIM_MARKERS)
+
+
+def _safe_role(item) -> str:
+    role = item.role.strip()
+    if role and not _contains_unsupported(role):
+        return role
+    return (
+        f"{item.channel} communication role: present the approved campaign message and invite the stated action."
+    )
+
+
 def _canonical_channel(item, context):
+    safe_role = _safe_role(item)
     evidence_gaps = tuple(dict.fromkeys((
-        *item.evidence_gaps,
+        *(gap for gap in item.evidence_gaps if not _contains_unsupported(gap)),
         "Verified channel reach, frequency, audience delivery and effectiveness evidence has not been supplied here.",
     )))
     if not context.location_opportunities:
@@ -104,8 +242,9 @@ def _canonical_channel(item, context):
             "objective because the provider selected it from the governed channel scope. No supplied evidence in "
             "this step establishes reach, frequency, footfall, audience concentration or channel effectiveness."
         ),
+        "role": safe_role,
         "objective_contribution": (
-            f"Proposed role: {item.role.strip()}. This describes the intended contribution to the client objective; "
+            f"Proposed role: {safe_role}. This describes the intended contribution to the client objective; "
             "it is not a measured performance claim."
         ),
         "geography_role": _geography_role(context, item.channel),
@@ -142,7 +281,7 @@ def _valid_budget_guidance(context, retained) -> bool:
 
 def _strategy_gaps(artifact, context, removed: int, valid_budget_guidance: bool):
     gaps = tuple(dict.fromkeys((
-        *artifact.evidence_gaps,
+        *(gap for gap in artifact.evidence_gaps if not _contains_unsupported(gap)),
         *context.audience_unknowns,
         *context.location_evidence_gaps,
         "Verified channel reach, frequency, audience delivery and effectiveness evidence has not been supplied here.",
@@ -239,20 +378,20 @@ def validate_media_strategy_grounding(
         *(item.geography_role or "" for item in artifact.channel_recommendations),
         *(tradeoff for item in artifact.channel_recommendations for tradeoff in item.trade_offs),
     )).casefold()
-    prohibited = (
-        "audience is likely to be found",
-        "high-traffic",
-        "high traffic",
-        "maximize reach",
-        "maximise reach",
-        "enhance campaign impact",
-        "guaranteed reach",
-        "verified footfall",
-        "proven cpm",
-        "proven effectiveness",
-        "inventory availability",
-        "supplier rate",
-        "specific placement",
-    )
+    prohibited = UNSUPPORTED_CLAIM_MARKERS
     if any(marker in text for marker in prohibited):
+        groups = {
+            "summary": (artifact.summary,),
+            "principles": artifact.strategic_principles,
+            "evidence_gaps": artifact.evidence_gaps,
+            "roles": tuple(item.role for item in artifact.channel_recommendations),
+            "rationale": tuple(item.rationale for item in artifact.channel_recommendations),
+            "objective": tuple(item.objective_contribution for item in artifact.channel_recommendations),
+            "geography": tuple(item.geography_role or "" for item in artifact.channel_recommendations),
+            "trade_offs": tuple(value for item in artifact.channel_recommendations for value in item.trade_offs),
+        }
+        # Log only fixed field names and policy markers, never provider or client text.
+        hits = {name: [marker for marker in prohibited if any(marker in value.casefold() for value in values)]
+                for name, values in groups.items()}
+        logger.warning("Media Strategy grounding policy hits: %s", {name: markers for name, markers in hits.items() if markers})
         raise ValueError("Media Strategy introduced inventory, audience-presence or unsupported performance claims.")

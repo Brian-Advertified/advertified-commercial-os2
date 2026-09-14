@@ -18,16 +18,35 @@ public sealed record MediaRunningPeriodInput(
     DateOnly Start,
     DateOnly End);
 
+public sealed record MediaGeographyAllocationInput(
+    string Geography,
+    long BudgetMinor);
+
+public sealed record MediaImpactEstimateInput(
+    decimal? EstimatedReach,
+    decimal? AverageFrequency,
+    decimal? EstimatedRoiPercent,
+    string Source,
+    string? MeasurementPeriod,
+    string Methodology);
+
+public sealed record MediaScheduleInput(
+    IReadOnlyList<string> Weekdays,
+    IReadOnlyList<string> Dayparts);
+
 public sealed record MediaAllocationInput(
     string Channel,
     long BudgetMinor,
     string Role,
     IReadOnlyList<MediaRunningPeriodInput> RunningPeriods,
-    IReadOnlyList<InventoryPurchaseQuantity>? Purchases = null);
+    IReadOnlyList<InventoryPurchaseQuantity>? Purchases = null,
+    IReadOnlyList<MediaGeographyAllocationInput>? GeographyAllocations = null,
+    MediaScheduleInput? Schedule = null);
 
 public sealed record UpdateMediaMixCommand(
     IReadOnlyList<MediaAllocationInput> Allocations,
-    string? Reason);
+    string? Reason,
+    MediaImpactEstimateInput? ImpactEstimate = null);
 
 public sealed record ApproveMediaMixCommand(string? Reason);
 

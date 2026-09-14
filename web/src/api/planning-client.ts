@@ -13,6 +13,7 @@ import {
   shortlistSchema,
   type AudienceStrategy,
   type MediaAllocation,
+  type MediaImpactEstimate,
   type MediaMix,
   type MediaPlan,
   type CampaignMode,
@@ -118,11 +119,13 @@ export const planningApi = {
     mix: MediaMix,
     allocations: MediaAllocation[],
     token: string,
+    impactEstimate: MediaImpactEstimate | null = mix.impactEstimate,
   ): Promise<MediaMix> {
     return mutate(
       `/api/v1/tenants/${tenantId}/media-mix-versions/${mix.id}:update`,
       mediaMixSchema,
-      { allocations, reason: 'Planner adjusted channel allocation and running periods.' },
+      { allocations, impactEstimate,
+        reason: 'Planner adjusted channel allocation, geography, running periods or planning impact.' },
       token, mix.version)
   },
 
@@ -175,12 +178,13 @@ export const planningApi = {
     plan: MediaPlan,
     objectionCode: string,
     token: string,
+    reason: string,
   ): Promise<MediaPlan> {
     return mutate(
       `/api/v1/tenants/${tenantId}/media-plan-versions/${plan.id}/objections/${objectionCode}:resolve`,
       mediaPlanSchema,
       { resolution: masterDataCodes.objectionResolutions.acceptedWithReason,
-        reason: 'Planner reviewed the visible uncertainty and accepts it for internal planning.' },
+        reason: reason.trim() },
       token, plan.version)
   },
 

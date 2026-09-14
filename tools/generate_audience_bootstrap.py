@@ -82,6 +82,29 @@ QLFS = {
     "LP": (32.0, 36.6, 53.9), "ZA": (33.6, 39.6, 59.6),
 }
 
+# Official Census 2022 in Brief, Table 3.4. Values are population counts by
+# five-year age group and province. ORDER is WC, EC, NC, FS, KZN, NW, GP, MP, LP, ZA.
+CENSUS_AGE_COUNTS = {
+    "0-4": [588855, 721596, 129256, 263108, 1152307, 391317, 1291354, 542593, 753127, 5833515],
+    "5-9": [518287, 662379, 122233, 250689, 1070251, 334463, 1037168, 451489, 662145, 5109104],
+    "10-14": [559698, 733851, 125844, 276182, 1151663, 351251, 1075522, 466118, 663995, 5404124],
+    "15-19": [532982, 665745, 125190, 259064, 1065369, 318660, 1021257, 423991, 563051, 4975309],
+    "20-24": [645901, 566307, 115771, 245711, 1053724, 321974, 1370045, 461257, 529049, 5309738],
+    "25-29": [698158, 583080, 109106, 247787, 1146690, 322609, 1582443, 488748, 554617, 5733239],
+    "30-34": [685665, 524041, 103615, 248686, 1125469, 319553, 1616030, 472674, 497091, 5592823],
+    "35-39": [674639, 492747, 96756, 236632, 1050964, 300595, 1495504, 426278, 448486, 5222603],
+    "40-44": [556345, 405076, 86085, 193499, 812835, 251555, 1188883, 325091, 365852, 4185220],
+    "45-49": [434342, 356539, 74878, 157897, 618212, 199854, 866484, 259831, 325474, 3293511],
+    "50-54": [383478, 318754, 68509, 139672, 507016, 168158, 691155, 214525, 277872, 2769139],
+    "55-59": [335591, 312951, 59386, 129870, 473873, 155349, 577865, 191550, 260016, 2496452],
+    "60-64": [278726, 293243, 49527, 108590, 400303, 133093, 464408, 150742, 217036, 2095667],
+    "65-69": [210280, 229581, 37359, 85710, 319796, 96189, 340516, 114094, 166145, 1599671],
+    "70-74": [145588, 152452, 23657, 54823, 215417, 60723, 216471, 67586, 109289, 1046006],
+    "75-79": [93589, 96081, 14819, 33899, 126732, 39343, 134260, 39343, 73968, 652033],
+    "80-84": [53568, 65321, 8216, 18731, 74838, 22189, 76203, 25176, 50571, 394814],
+    "85+": [36647, 50287, 5656, 13820, 58044, 17371, 53128, 21919, 54661, 311533],
+}
+
 
 def geo(code: str) -> dict[str, str]:
     return {"level": "COUNTRY" if code == "ZA" else "PROVINCE", "code": code, "name": PROVINCES[code]}
@@ -110,6 +133,16 @@ def production_payload() -> dict:
                 "stats-sa-census-2022-statistical-release", code,
                 "HOUSEHOLD_LANGUAGE", language,
                 f"P0301.4 Table 2.9::{language}::{code}", share=value))
+    age_totals = {
+        code: sum(values[index] for values in CENSUS_AGE_COUNTS.values())
+        for index, code in enumerate(ORDER)
+    }
+    for age_group, values in CENSUS_AGE_COUNTS.items():
+        for code, count in zip(ORDER, values):
+            observations.append(observation(
+                "stats-sa-census-2022-in-brief", code, "AGE_GROUP", age_group,
+                f"Census 2022 in Brief Table 3.4::{age_group}::{code}",
+                count=count, share=round(count / age_totals[code] * 100, 4)))
     observations.extend([
         observation("stats-sa-census-2022-statistical-release", "ZA", "SEX", "Male",
                     "P0301.4 Executive Summary::Sex::Male", share=48.5),
@@ -152,6 +185,17 @@ def production_payload() -> dict:
             "methodology": "Official published Census 2022 aggregate results. Keep Stats SA attribution and do not resell the underlying/reprocessed dataset as a standalone data product without permission.",
             "universe": "South African Census 2022 population/households as defined by each cited table.",
             "capabilities": ["province", "household_language", "sex", "population_group", "population_total"],
+        },
+        {
+            "key": "stats-sa-census-2022-in-brief",
+            "title": "Census 2022 in Brief", "publisher": "Statistics South Africa",
+            "measurementPeriod": "2022",
+            "sourceLocator": "https://www.statssa.gov.za/publications/Census2022inBrief/Census2022inBriefJune2024.pdf",
+            "licenceStatus": "PUBLIC_ATTRIBUTION_REQUIRED", "promotionStatus": "PRODUCTION_ALLOWED",
+            "usageScope": "AGGREGATE_PLANNING",
+            "methodology": "Official Census 2022 five-year age-group counts by province from Table 3.4. Percent shares are deterministically derived from the published table totals.",
+            "universe": "Census 2022 population with specified age in each published province total.",
+            "capabilities": ["province", "age_group"],
         },
         {
             "key": "stats-sa-ghs-2025", "title": "General Household Survey 2025 P0318",

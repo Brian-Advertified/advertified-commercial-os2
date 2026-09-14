@@ -8,6 +8,7 @@ import {
 import type { ProposalRecipient } from '../api/proposal-schemas'
 import { Icon } from '../components/Icon'
 import { masterDataCodes, masterDataDefinitions } from '../generated/master-data-codes'
+import { humanizeCode } from '../presentation/format'
 import type { CampaignActionRunner } from './campaign-types'
 import { MeasurementReportCard } from './MeasurementReportCard'
 import { PerformanceEvidenceCard } from './PerformanceEvidenceCard'
@@ -26,16 +27,125 @@ type Props = {
 }
 
 export function MeasurementSection(props: Props) {
+  const [view, setView] = useState<'reporting' | 'learning'>('reporting')
   const available = props.campaign.status === masterDataCodes.lifecycleStatuses.completed
-  return <section id="measurement-stage" className="campaign-workspace-section measurement-workspace">
-    <MeasurementHeading campaign={props.campaign} />
+  return <section id="measurement-stage" className="campaign-workspace-section measurement-workspace connected-measurement-page">
+    <nav className="connected-measurement-tabs" aria-label="Reporting views">
+      <button type="button" className={view === 'reporting' ? 'is-active' : ''}
+        onClick={() => setView('reporting')}>Campaign reporting</button>
+      <button type="button" className={view === 'learning' ? 'is-active' : ''}
+        onClick={() => setView('learning')}>Learning &amp; insights</button>
+    </nav>
     {!available ? <LockedMeasurement /> : <>
-      {props.canSubmitEvidence && <PerformanceEvidenceForm {...props} />}
-      <PerformanceEvidenceList {...props} />
-      <MeasurementReportBoundary {...props} />
-      <MeasurementReportList {...props} />
+      {view === 'reporting'
+        ? <CampaignReportingDashboard campaign={props.campaign} />
+        : <CampaignLearningDashboard campaign={props.campaign} />}
+      <details className="connected-measurement-governance"><summary>Evidence, review and report governance</summary>
+        {props.canSubmitEvidence && <PerformanceEvidenceForm {...props} />}
+        <PerformanceEvidenceList {...props} />
+        <MeasurementReportBoundary {...props} />
+        <MeasurementReportList {...props} />
+      </details>
     </>}
   </section>
+}
+
+function CampaignReportingDashboard({ campaign }: { campaign: Campaign }) {
+  const metrics = campaign.performanceEvidence.flatMap(evidence => evidence.metrics.map(metric => ({
+    ...metric,
+    sourceReference: evidence.sourceReference,
+    methodology: evidence.methodology,
+    qualityStatus: evidence.qualityStatus,
+  })))
+  const metricGroups = groupMetrics(metrics)
+  return <div className="connected-reporting-dashboard">
+    <section className="connected-reporting-kpis">
+      <ReportingKpi label="Evidence sets" value={String(campaign.performanceEvidence.length)} detail="Retained performance sources" icon="evidence" />
+      <ReportingKpi label="Measured metrics" value={String(metrics.length)} detail="Sourced metric records" icon="chart" />
+      <ReportingKpi label="Approved proof" value={String(campaign.deliveryProofs.filter(item =>
+        item.status === masterDataCodes.lifecycleStatuses.approved).length)} detail="Reviewed delivery proof" icon="shield" />
+      <ReportingKpi label="Reports" value={String(campaign.measurementReports.length)} detail="Generated report versions" icon="brief" />
+    </section>
+    <div className="connected-reporting-grid">
+      <section className="connected-reporting-chart-card"><header><div><Icon name="chart" /><h2>Measured campaign metrics</h2></div>
+        <span>{metricGroups.length} metric type{metricGroups.length === 1 ? '' : 's'}</span></header>
+        {metricGroups.length ? <div className="connected-metric-bars">{metricGroups.slice(0, 8).map(group => <div key={group.type}>
+          <span>{humanizeCode(group.type, true)}</span><i><b style={{ width: `${Math.max(8, group.relative)}%` }} /></i>
+          <strong>{group.display}</strong></div>)}</div> : <ReportingEmpty copy="No reviewed performance metrics have been retained yet." />}
+      </section>
+      <section className="connected-reporting-source-card"><header><Icon name="evidence" /><h2>Measurement sources</h2></header>
+        {campaign.performanceEvidence.length ? <ul>{campaign.performanceEvidence.slice(0, 6).map(evidence => <li key={evidence.id}>
+          <strong>{evidence.sourceReference}</strong><span>{humanizeCode(evidence.qualityStatus, true)}</span>
+          <small>{evidence.methodology}</small></li>)}</ul> : <ReportingEmpty copy="No performance evidence source is retained yet." />}
+      </section>
+      <section className="connected-reporting-detail-card"><header><Icon name="target" /><h2>Campaign results</h2></header>
+        <dl><div><dt>Campaign status</dt><dd>{humanizeCode(campaign.status, true)}</dd></div>
+          <div><dt>Delivery proof records</dt><dd>{campaign.deliveryProofs.length}</dd></div>
+          <div><dt>Evidence sets</dt><dd>{campaign.performanceEvidence.length}</dd></div>
+          <div><dt>Measurement reports</dt><dd>{campaign.measurementReports.length}</dd></div></dl>
+        <p>Advertified does not infer reach, ROI, frequency or uplift unless those values are present in approved performance evidence.</p>
+      </section>
+    </div>
+  </div>
+}
+
+function CampaignLearningDashboard({ campaign }: { campaign: Campaign }) {
+  const report = [...campaign.measurementReports]
+    .sort((a, b) => b.versionNumber - a.versionNumber)[0] ?? null
+  if (!report) return <section className="connected-learning-empty"><span className="connected-ai-orb">✦</span><div>
+    <h2>Learning &amp; insights will appear after a measurement report is generated</h2>
+    <p>Advertified will interpret only approved performance evidence and will retain every limitation.</p></div></section>
+  return <div className="connected-learning-dashboard">
+    <section className="connected-learning-takeaway"><header><span className="connected-ai-orb">✦</span><div>
+      <small>Campaign takeaway</small><h2>{report.interpretation.executiveSummary}</h2></div></header>
+      <footer><span>{humanizeCode(report.status, true)}</span><span>{humanizeCode(report.interpretation.causalityStatus, true)}</span></footer></section>
+    <div className="connected-learning-grid">
+      <LearningList title="What the evidence says" icon="chart" items={report.interpretation.findings.map(item => item.summary)} empty="No findings retained." />
+      <LearningList title="Limitations" icon="shield" items={report.interpretation.limitations} empty="No limitations retained." />
+      <LearningList title="Reusable learnings" icon="brief" items={report.interpretation.learningProposals.map(item => item.text)} empty="No learning proposals retained." />
+      <section className="connected-learning-score"><header><Icon name="target" /><h2>Evidence posture</h2></header>
+        <strong>{report.interpretation.findings.length}</strong><span>retained finding{report.interpretation.findings.length === 1 ? '' : 's'}</span>
+        <p>{report.interpretation.causalityStatus === 'CAUSAL'
+          ? 'Causal status is explicitly retained in the approved report.'
+          : 'Interpretation remains bounded by the retained causality status and source limitations.'}</p></section>
+    </div>
+  </div>
+}
+
+function ReportingKpi({ label, value, detail, icon }: {
+  label: string; value: string; detail: string; icon: 'evidence' | 'chart' | 'shield' | 'brief'
+}) {
+  return <article><span><Icon name={icon} /></span><div><small>{label}</small><strong>{value}</strong><p>{detail}</p></div></article>
+}
+
+function ReportingEmpty({ copy }: { copy: string }) {
+  return <p className="connected-reporting-empty">{copy}</p>
+}
+
+function LearningList({ title, icon, items, empty }: {
+  title: string; icon: 'chart' | 'shield' | 'brief'; items: string[]; empty: string
+}) {
+  return <section className="connected-learning-list"><header><Icon name={icon} /><h2>{title}</h2></header>
+    {items.length ? <ul>{items.slice(0, 6).map((item, index) => <li key={`${item}-${index}`}><span>✓</span>{item}</li>)}</ul>
+      : <p>{empty}</p>}</section>
+}
+
+function groupMetrics(metrics: Array<{
+  metricType: string; value: number; unit: string
+}>) {
+  const latest = new Map<string, { value: number; unit: string }>()
+  metrics.forEach(metric => latest.set(metric.metricType, { value: metric.value, unit: metric.unit }))
+  const values = [...latest.entries()]
+  const maximum = Math.max(...values.map(([, item]) => Math.abs(item.value)), 1)
+  return values.map(([type, item]) => ({
+    type,
+    relative: Math.min(100, Math.abs(item.value) / maximum * 100),
+    display: `${formatMetricValue(item.value)} ${item.unit}`.trim(),
+  }))
+}
+
+function formatMetricValue(value: number) {
+  return new Intl.NumberFormat('en-ZA', { maximumFractionDigits: 2 }).format(value)
 }
 
 function LockedMeasurement() {
@@ -43,12 +153,6 @@ function LockedMeasurement() {
     <h3>Measurement opens after delivery completes</h3>
     <p>Performance evidence can be submitted only after the booked delivery window is closed.</p>
   </div></article>
-}
-
-function MeasurementHeading({ campaign }: { campaign: Campaign }) {
-  return <header className="campaign-section-heading"><div><p className="eyebrow">Performance and learning</p>
-    <h2>Sourced measurement</h2><p>Canonical facts stay separate from interpretation. Method, quality and limitations remain visible in every approved report.</p></div>
-    <span className="status-chip status-neutral">{campaign.performanceEvidence.length} evidence sets</span></header>
 }
 
 function PerformanceEvidenceForm(props: Props) {

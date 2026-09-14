@@ -49,7 +49,10 @@ public sealed partial class PlanningRecordStore
         row.TotalBudgetMinor, row.Currency,
         Read<MediaAllocationView[]>(row.AllocationsJson),
         Read<string[]>(row.AssumptionsJson), row.InputHash, row.Status,
-        row.CreatedBy, row.ApprovedBy, row.Version, row.CreatedAtUtc);
+        row.CreatedBy, row.ApprovedBy, row.Version, row.CreatedAtUtc,
+        string.IsNullOrWhiteSpace(row.ImpactEstimateJson)
+            ? null
+            : JsonSerializer.Deserialize<MediaImpactEstimateView>(row.ImpactEstimateJson, StoredJson));
 
     internal async Task<InventoryShortlistVersionView> BuildShortlistViewAsync(
         TenantId tenantId,

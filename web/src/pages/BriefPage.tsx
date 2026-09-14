@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { briefApi } from '../api/brief-client'
+import { suppliedBriefUnderstandingSchema } from '../api/brief-understanding-schemas'
 import { humanMessage } from '../api/client'
 import { opportunityCodes } from '../api/opportunity-constants'
 import { planningApi } from '../api/planning-client'
@@ -21,6 +22,7 @@ import {
 import { BriefSummary, Field, ListFields } from '../brief/BriefPageParts'
 import { BriefCommercialProof } from '../brief/BriefCommercialProof'
 import { buildSectionStates } from '../brief/brief-section-status'
+import { PersistedBriefUnderstandingReview } from '../brief-intake/BriefUnderstandingReview'
 import { LoadingState, MessageState } from '../components/PageState'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { formatDateTime, formatMoney, humanizeCode } from '../presentation/format'
@@ -45,6 +47,7 @@ function BriefRecord({ tenantId, briefId, token, canConfirm }: {
   token: string
   canConfirm: boolean
 }) {
+  const location = useLocation()
   const model = useBriefRecord(tenantId, briefId)
   if (model.error && !model.record) {
     return <MessageState title="Brief could not be opened" message={model.error} />
@@ -53,14 +56,43 @@ function BriefRecord({ tenantId, briefId, token, canConfirm }: {
   const current = model.record.versions.at(-1)
   if (!current) return <MessageState title="Brief is incomplete"
     message="No retained Brief version is available for review." />
-  return <><CampaignModeBinding mode={model.campaignMode?.mode ?? null} />
-  <section className="brief-record-page approved-brief-page" aria-labelledby="brief-title">
-    {model.error && <p className="inline-alert" role="alert">{model.error}</p>}
-    <BriefScreen record={model.record} version={current} campaignMode={model.campaignMode}
-      approved={current.status === opportunityCodes.status.approved}
-      allowed={canConfirm && isConfirmable(current.status)} busy={model.busy}
-      onConfirm={() => model.confirm(current, token)} />
-  </section></>
+  return <LoadedBriefRecord record={model.record} current={current} campaignMode={model.campaignMode}
+    hash={location.hash} briefId={briefId} error={model.error} busy={model.busy}
+    canConfirm={canConfirm} onConfirm={() => model.confirm(current, token)} />
+}
+
+function briefSourceForVersion(record: CampaignBrief, current: BriefVersion) {
+  return record.sources.find(item => item.id === current.sourceId) ?? record.sources[0]
+}
+
+function LoadedBriefRecord({ record, current, campaignMode, hash, briefId, error, busy, canConfirm, onConfirm }: {
+  record: CampaignBrief
+  current: BriefVersion
+  campaignMode: CampaignMode | null
+  hash: string
+  briefId: string
+  error: string | null
+  busy: boolean
+  canConfirm: boolean
+  onConfirm: () => Promise<void>
+}) {
+  const source = briefSourceForVersion(record, current)
+  const interpretation = suppliedBriefUnderstandingSchema.safeParse(source?.interpretation)
+  if (hash === '#interpretation' && interpretation.success) {
+    return <><CampaignModeBinding mode={campaignMode?.mode ?? null} />
+      <section className="brief-record-page approved-brief-page">
+        <PersistedBriefUnderstandingReview understanding={interpretation.data}
+          briefReviewTo={`/briefs/${briefId}#brief-review`}
+          audienceTo={`/stp/${current.id}`} />
+      </section></>
+  }
+  return <><CampaignModeBinding mode={campaignMode?.mode ?? null} />
+    <section className="brief-record-page approved-brief-page" aria-labelledby="brief-title">
+      {error && <p className="inline-alert" role="alert">{error}</p>}
+      <BriefScreen record={record} version={current} campaignMode={campaignMode}
+        approved={current.status === opportunityCodes.status.approved}
+        allowed={canConfirm && isConfirmable(current.status)} busy={busy} onConfirm={onConfirm} />
+    </section></>
 }
 
 type BriefScreenProps = {

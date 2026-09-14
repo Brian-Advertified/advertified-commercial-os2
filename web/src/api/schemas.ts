@@ -223,6 +223,7 @@ export const briefSourceSchema = z.object({
   id: z.guid(), sourceType: requiredText, locator: requiredText, title: requiredText,
   content: requiredText, contentHash: requiredText, createdBy: z.guid(),
   createdAtUtc: z.iso.datetime({ offset: true }),
+  interpretation: z.unknown().nullable().optional(),
 }).strict()
 
 export const briefUnknownSchema = z.object({
@@ -298,6 +299,8 @@ export type Workspace = z.infer<typeof workspaceSchema>
 export type Tenant = z.infer<typeof tenantSchema>
 export type ProfileUpdate = z.infer<typeof profileUpdateSchema>
 export type ClientAccount = z.infer<typeof clientAccountSchema>
+export type Agency = z.infer<typeof agencySchema>
+export type Contact = z.infer<typeof contactSchema>
 export type Opportunity = z.infer<typeof opportunitySchema>
 export type OpportunityDetail = z.infer<typeof opportunityDetailSchema>
 export type HumanTask = z.infer<typeof humanTaskSchema>

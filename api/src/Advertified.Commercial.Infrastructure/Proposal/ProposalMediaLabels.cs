@@ -19,6 +19,12 @@ internal static class ProposalMediaLabels
         _ => Labels.GetValueOrDefault(code, code),
     };
 
+    internal static bool NarrativeIncludesChannel(string narrative, string code) => Regex.IsMatch(
+        narrative,
+        @"(?<![\p{L}\p{N}_])(?:" + Regex.Escape(code) + "|" + Regex.Escape(Channel(code)) +
+        @")(?![\p{L}\p{N}_])",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
     internal static string ClientText(string value) => Regex.Replace(
         value, @"\b(?:DOOH|OOH)\b", match => Channel(match.Value));
 }

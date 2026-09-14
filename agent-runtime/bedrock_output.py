@@ -146,14 +146,47 @@ def _validate_typed_output(
                 include_context=False,
             )[:12]
         )
+        shape = _validation_shape(error, payload)
         raise BedrockProviderError(
             "Bedrock output failed the typed contract"
-            + (f" ({details})." if details else "."),
+            + (f" ({details})." if details else ".")
+            + (f" Output shape: {shape}." if shape else ""),
             stage="TYPED_CONTRACT",
             acceptance="ACCEPTED",
             usage=usage,
             rejected_output=payload,
         ) from error
+
+
+def _validation_shape(error: ValidationError, payload: object) -> str:
+    if not isinstance(payload, dict):
+        return f"root={type(payload).__name__}"
+    key_names = ",".join(sorted(str(key) for key in payload.keys())[:12])
+    names: list[str] = []
+    for item in error.errors(include_input=False, include_context=False)[:12]:
+        loc = item.get("loc", ())
+        if not loc or not isinstance(loc[0], str):
+            continue
+        name = loc[0]
+        if name in payload and name not in names:
+            names.append(name)
+    shapes: list[str] = []
+    for name in names:
+        value = payload[name]
+        if isinstance(value, str):
+            stripped = value.strip()
+            first = stripped[:1] or "empty"
+            try:
+                parsed = json.loads(stripped)
+                parsed_type = type(parsed).__name__
+            except json.JSONDecodeError:
+                parsed_type = "invalid-json"
+            shapes.append(f"{name}=str(len={len(value)},first={first!r},parsed={parsed_type})")
+        else:
+            shapes.append(f"{name}={type(value).__name__}")
+    summary = ", ".join(shapes)
+    keys = f"keys=[{key_names}]" if key_names else "keys=[]"
+    return f"{keys}; {summary}" if summary else keys
 
 
 def _response_payload(response: dict[str, object]) -> object:

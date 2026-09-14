@@ -1,5 +1,8 @@
 using Advertified.Commercial.Infrastructure.MasterData;
+using Advertified.Commercial.Infrastructure.Migrations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Npgsql;
 using Xunit;
 
@@ -26,6 +29,8 @@ public sealed class AiMonthlyBudgetTests
         await using (var database = new GovernanceDbContext(options))
             await database.Database.MigrateAsync();
 
+        // Reconstruct the prior US$5 guard on this disposable database before upgrading it.
+        await ApplyBudgetMigrationAsync(connectionString, new AiOwnerBudgetSafety());
         var firstRun = Guid.NewGuid();
         var firstStep = Guid.NewGuid();
         Assert.True(await ReserveAsync(connectionString, Month,
@@ -42,6 +47,21 @@ public sealed class AiMonthlyBudgetTests
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 1));
         Assert.False(await ReserveAsync(connectionString, Month.AddMonths(1),
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 5_000_000));
+
+        var before = await LedgerFingerprintAsync(connectionString);
+        await ApplyBudgetMigrationAsync(connectionString, new OwnerAiBudgetTenDollars());
+        await ApplyBudgetMigrationAsync(connectionString, new OwnerAiBudgetTenDollars());
+        Assert.Equal(before, await LedgerFingerprintAsync(connectionString));
+        Assert.Equal(5_000_000, await ReadAsync(connectionString, Month));
+        Assert.False(await ReserveAsync(connectionString, Month.AddMonths(1),
+            firstRun, firstStep, Guid.NewGuid(), 1));
+        Assert.False(await ReserveAsync(connectionString, Month.AddMonths(1),
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 5_000_001));
+        Assert.True(await ReserveAsync(connectionString, Month.AddMonths(1),
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 5_000_000));
+        Assert.Equal(10_000_000, await ReadAsync(connectionString, Month));
+        Assert.False(await ReserveAsync(connectionString, Month.AddMonths(2),
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 1));
     }
 
     [Fact]
@@ -72,10 +92,34 @@ public sealed class AiMonthlyBudgetTests
         Assert.False(await CompleteAsync(connectionString, Month, run, step, 0));
         Assert.Equal(1_000_000, await ReadAsync(connectionString, Month.AddMonths(1)));
         Assert.False(await ReserveAsync(connectionString, Month.AddMonths(1), run, step, Guid.NewGuid(), 1_000_000));
-        Assert.False(await ReserveAsync(connectionString, Month, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 4_000_001));
-        var claims = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => ReserveAsync(
+        Assert.False(await ReserveAsync(connectionString, Month, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 9_000_001));
+        var claims = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ => ReserveAsync(
             connectionString, Month, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 1_000_000)));
-        Assert.Equal(4, claims.Count(accepted => accepted));
+        Assert.Equal(9, claims.Count(accepted => accepted));
+        Assert.Equal(10_000_000, await ReadAsync(connectionString, Month));
+    }
+
+    private static async Task ApplyBudgetMigrationAsync(string connectionString, Migration migration)
+    {
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        foreach (var operation in migration.UpOperations.Cast<SqlOperation>())
+        {
+            await using var command = new NpgsqlCommand(operation.Sql, connection);
+            await command.ExecuteNonQueryAsync();
+        }
+    }
+
+    private static async Task<string> LedgerFingerprintAsync(string connectionString)
+    {
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand("""
+            SELECT md5(COALESCE(string_agg(to_jsonb(ledger)::text,
+                ',' ORDER BY month_start_utc, run_id, step_id), ''))
+            FROM governance.ai_monthly_budget_ledger ledger
+            """, connection);
+        return Assert.IsType<string>(await command.ExecuteScalarAsync());
     }
 
     private static async Task<bool> ReserveAsync(

@@ -61,6 +61,7 @@ internal static class StartupConfigurationValidator
         var releaseSmoke = configuration.GetValue<bool>("ReleaseSmoke:Enabled");
         EnsureAuthenticationAndRuntime(
             authenticationMode, agentRuntime, releaseSmoke);
+        EnsureCertificationOverridesDisabled(configuration);
         EnsureInventoryProtection(inventoryProtection);
         EnsureHttpEdge(configuration);
         if (!releaseSmoke)
@@ -116,6 +117,15 @@ internal static class StartupConfigurationValidator
             uri.AbsolutePath == "/" &&
             string.IsNullOrEmpty(uri.Query) &&
             string.IsNullOrEmpty(uri.Fragment);
+    }
+
+    private static void EnsureCertificationOverridesDisabled(ConfigurationManager configuration)
+    {
+        if (!string.IsNullOrWhiteSpace(configuration[CampaignLifecycleClock.OverrideKey]))
+        {
+            throw new InvalidOperationException(
+                "Campaign certification time overrides are restricted to development and test.");
+        }
     }
 
     private static void EnsureInventoryProtection(

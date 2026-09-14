@@ -10,6 +10,11 @@ public sealed record ConfirmCampaignBookingsCommand(string Reason);
 public sealed record StartCampaignCommand(string Reason);
 public sealed record CompleteCampaignCommand(string CompletionReason, string ProofRequestReason);
 
+public interface ICampaignLifecycleClock
+{
+    DateTimeOffset GetUtcNow();
+}
+
 public sealed record CampaignView(
     Guid Id,
     Guid BriefId,

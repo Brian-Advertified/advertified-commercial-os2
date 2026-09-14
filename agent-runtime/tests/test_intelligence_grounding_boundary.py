@@ -28,39 +28,127 @@ def audience_request():
     return AudienceAgentRequest.model_validate_json(json.dumps(body))
 
 
+def provider_audience_payload(request):
+    artifact = propose_audiences(request).artifact
+    return {
+        "audiences": [
+            {
+                "name": item.name,
+                "need_state": item.need_state,
+                "buying_context": item.buying_context,
+                "evidence_item_ids": [str(value) for value in item.evidence_item_ids],
+                "reference_observation_ids": [str(value) for value in item.reference_observation_ids],
+                "confidence": item.confidence,
+                "is_target": item.is_target,
+            }
+            for item in artifact.audiences
+        ],
+        "targeting_rationale": artifact.targeting_rationale,
+        "positioning_statement": artifact.positioning_statement,
+    }
+
+
 @pytest.mark.parametrize("field,value", [
     ("evidence_item_ids", [FOREIGN_ID]),
     ("reference_observation_ids", [FOREIGN_ID]),
-    ("geographies", ["Outside the approved campaign"]),
 ])
 def test_untrusted_audience_references_are_not_silently_repaired(field, value):
     request = audience_request()
-    artifact = propose_audiences(request).artifact.model_dump(mode="json")
+    artifact = provider_audience_payload(request)
     artifact["audiences"][0][field] = value
     with pytest.raises(ValueError):
         output = wrap_artifact_output(AudienceDefinitionSetArtifact, artifact, request)
         canonicalize_audiences(request, output)
 
 
+def test_provider_cannot_expand_audience_geography_outside_brief_scope():
+    request = audience_request()
+    output = propose_audiences(request)
+    audience = output.artifact.audiences[0].model_copy(update={
+        "geographies": ("Outside the approved campaign",),
+    })
+    invalid = output.model_copy(update={"artifact": output.artifact.model_copy(update={
+        "audiences": (audience,),
+    })})
+    with pytest.raises(ValueError, match="geography outside"):
+        canonicalize_audiences(request, invalid)
+
+
 @pytest.mark.parametrize("invalid", ["missing_required_field", "unknown_field"])
 def test_raw_artifact_schema_is_checked_before_any_normalization(invalid):
     request = audience_request()
-    artifact = propose_audiences(request).artifact.model_dump(mode="json")
+    artifact = provider_audience_payload(request)
     if invalid == "missing_required_field":
-        del artifact["audiences"][0]["geographies"]
+        del artifact["audiences"][0]["name"]
     else:
         artifact["approve_without_human"] = True
     with pytest.raises(ValidationError):
         wrap_artifact_output(AudienceDefinitionSetArtifact, artifact, request)
 
 
-@pytest.mark.parametrize("case", ["omitted_supplied_audience", "duplicate_audience"])
-def test_required_audiences_and_unique_identity_survive_provider_boundary(case):
+def test_schema_declared_json_array_string_is_normalized_before_strict_validation():
+    request = audience_request()
+    artifact = provider_audience_payload(request)
+    artifact["audiences"] = json.dumps(artifact["audiences"])
+    output = wrap_artifact_output(AudienceDefinitionSetArtifact, artifact, request)
+    assert len(output.artifact.audiences) == 1
+    assert output.artifact.audiences[0].name == "Replacement-part procurement teams"
+
+
+def test_python_literal_array_string_is_normalized_before_strict_validation():
+    request = audience_request()
+    artifact = provider_audience_payload(request)
+    artifact["audiences"] = repr(artifact["audiences"])
+    output = wrap_artifact_output(AudienceDefinitionSetArtifact, artifact, request)
+    assert len(output.artifact.audiences) == 1
+    assert output.artifact.audiences[0].name == "Replacement-part procurement teams"
+
+
+def test_json_array_string_with_raw_control_character_is_safely_normalized():
+    request = audience_request()
+    artifact = provider_audience_payload(request)
+    artifact["audiences"][0]["need_state"] = "Hypothesis: line one\nline two"
+    encoded = json.dumps(artifact["audiences"])
+    artifact["audiences"] = encoded.replace("\\n", "\n")
+    output = wrap_artifact_output(AudienceDefinitionSetArtifact, artifact, request)
+    assert output.artifact.audiences[0].need_state == "Hypothesis: line one\nline two"
+
+
+def test_yaml_compatible_jsonish_array_string_is_normalized_before_strict_validation():
+    request = audience_request()
+    artifact = provider_audience_payload(request)
+    artifact["audiences"] = json.dumps(artifact["audiences"]).replace('"', "'")
+    output = wrap_artifact_output(AudienceDefinitionSetArtifact, artifact, request)
+    assert len(output.artifact.audiences) == 1
+    assert output.artifact.audiences[0].name == "Replacement-part procurement teams"
+
+
+def test_non_json_array_string_is_not_coerced():
+    request = audience_request()
+    artifact = provider_audience_payload(request)
+    artifact["audiences"] = "not-an-array"
+    with pytest.raises(ValidationError):
+        wrap_artifact_output(AudienceDefinitionSetArtifact, artifact, request)
+
+
+def test_omitted_brief_audience_is_restored_from_canonical_request():
     request = audience_request()
     output = propose_audiences(request)
-    audiences = () if case == "omitted_supplied_audience" else output.artifact.audiences * 2
+    provider_output = output.model_copy(update={"artifact": output.artifact.model_copy(update={
+        "audiences": (),
+    })})
+    repaired = canonicalize_audiences(request, provider_output)
+    assert tuple(item.name for item in repaired.artifact.audiences) == (
+        "Replacement-part procurement teams",
+    )
+    assert repaired.artifact.audiences[0].is_target is True
+
+
+def test_duplicate_audience_is_rejected_before_canonicalization():
+    request = audience_request()
+    output = propose_audiences(request)
     invalid = output.model_copy(update={"artifact": output.artifact.model_copy(update={
-        "audiences": audiences,
+        "audiences": output.artifact.audiences * 2,
     })})
     with pytest.raises(ValueError):
         canonicalize_audiences(request, invalid)

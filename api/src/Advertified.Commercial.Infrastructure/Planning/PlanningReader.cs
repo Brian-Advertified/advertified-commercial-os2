@@ -1,8 +1,10 @@
+using System.Text.Json;
 using Advertified.Commercial.Application.Planning;
 using Advertified.Commercial.Application.Security;
 using Advertified.Commercial.Domain.Constants;
 using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Domain.Governance;
+using Advertified.Commercial.Infrastructure.Intelligence;
 
 namespace Advertified.Commercial.Infrastructure.Planning;
 
@@ -62,10 +64,34 @@ public sealed class PlanningReader(
             await store.BuildPlanViewAsync(tenantId, planRow, cancellationToken),
             advertiserViewer);
         var decisionContext = PlanningDecisionContext.Build(brief, audience, mix);
+        var requestedGeographies = JsonSerializer.Deserialize<string[]>(brief.GeographiesJson) ?? [];
+        var researchObservations = await ReferenceObservationReader.ReadAsync(
+            store.DbContext,
+            requestedGeographies,
+            "AUDIENCE",
+            ["AUDIENCE_SEGMENT_SUPPORT", "AGGREGATE_PLANNING_ONLY"],
+            600,
+            cancellationToken);
+        var audienceResearch = new AudienceResearchContextView(
+            requestedGeographies,
+            AudienceResearchGeographyScope.Expand(requestedGeographies),
+            researchObservations.Select(item => new AudienceResearchObservationView(
+                item.ObservationId,
+                item.SourceTitle,
+                item.MeasurementPeriod,
+                item.GeographyLevel,
+                item.GeographyCode,
+                item.GeographyName,
+                item.Dimensions,
+                item.MetricCode,
+                item.MetricValue,
+                item.MetricUnit,
+                item.StabilityCode,
+                item.ActivationPolicy)).ToArray());
         await transaction.CommitAsync(cancellationToken);
         return new PlanningWorkspaceView(
             brief.BriefId, briefVersionId, brief.ClientName, campaignMode,
-            audience, mix, shortlist, plan, decisionContext);
+            audience, mix, shortlist, plan, decisionContext, audienceResearch);
     }
 
     public async Task<MediaPlanVersionView> GetPlanAsync(

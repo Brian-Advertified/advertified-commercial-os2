@@ -7,12 +7,15 @@ namespace Advertified.Commercial.Api.Tests;
 
 public sealed partial class AgentRuntimeHttpAdapterTests
 {
-    [Fact]
-    public async Task ProposalAdapterPreservesExactApprovedOptionFacts()
+    [Theory]
+    [InlineData("OOH", "OOH")]
+    [InlineData("OOH", "Outdoor advertising")]
+    [InlineData("DOOH", "Digital screens")]
+    public async Task ProposalAdapterPreservesExactApprovedOptionFacts(string channel, string wording)
     {
-        const string narrative = "The approved business problem is enquiries are declining. " +
+        var narrative = "The approved business problem is enquiries are declining. " +
             "The approved objective is increase enquiries. Success measures: Qualified enquiries; Store visits. " +
-            "Launch invests ZAR 10,000.01 across OOH to build qualified response. " +
+            $"Launch invests ZAR 10,000.01 across {wording} to build qualified response. " +
             "Scale invests ZAR 20,000 across DIGITAL to increase consideration.";
         var client = CreateClient(async request =>
         {
@@ -32,18 +35,21 @@ public sealed partial class AgentRuntimeHttpAdapterTests
             client, Settings(), ProposalPolicy.Load());
 
         var result = await adapter.CreateAsync(
-            ProposalInput(), CancellationToken.None);
+            ProposalInput(channel), CancellationToken.None);
 
         Assert.Equal(narrative, result.ExecutiveSummary);
         Assert.Equal(0, result.IncrementalCostMinor);
     }
 
-    [Fact]
-    public async Task ProposalAdapterRejectsAlteredCommercialValue()
+    [Theory]
+    [InlineData("ZAR 9,000", "OOH")]
+    [InlineData("ZAR 10,000.01", "DOOH")]
+    [InlineData("ZAR 10,000.01", "Digital screens")]
+    public async Task ProposalAdapterRejectsAlteredCommercialValue(string amount, string channel)
     {
-        const string altered = "The approved business problem is enquiries are declining. " +
+        var altered = "The approved business problem is enquiries are declining. " +
             "The approved objective is increase enquiries. Success measures: Qualified enquiries; Store visits. " +
-            "Launch invests ZAR 9,000 across OOH to build qualified response. " +
+            $"Launch invests {amount} across {channel} to build qualified response. " +
             "Scale invests ZAR 20,000 across DIGITAL to increase consideration.";
         var client = CreateClient(request => Task.FromResult(Response(
             new { executive_summary = altered }, [EvidenceId])));
@@ -64,7 +70,7 @@ public sealed partial class AgentRuntimeHttpAdapterTests
         Assert.Contains("ZAR 10,000.01", result.ExecutiveSummary, StringComparison.Ordinal);
     }
 
-    private static ProposalNarrativeInput ProposalInput() => new(
+    private static ProposalNarrativeInput ProposalInput(string firstChannel = "OOH") => new(
         Guid.Parse("11111111-1111-1111-1111-111111111111"),
         Guid.Parse("22222222-2222-2222-2222-222222222222"),
         Guid.Parse("33333333-3333-3333-3333-333333333333"),
@@ -77,7 +83,7 @@ public sealed partial class AgentRuntimeHttpAdapterTests
         [EvidenceId],
         [
             new(Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), 2,
-                "Launch", "Build qualified response", 1_000_001, "ZAR", ["OOH"]),
+                "Launch", "Build qualified response", 1_000_001, "ZAR", [firstChannel]),
             new(Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"), 3,
                 "Scale", "Increase consideration", 2_000_000, "ZAR", ["DIGITAL"]),
         ]);

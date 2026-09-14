@@ -13,7 +13,7 @@ internal static partial class PlanningHash
     internal static string ForMix(
         PlanningBriefRow brief,
         Guid audienceId,
-        string allocationsJson) => OpportunityCommandSupport.Hash(
-            $"{ForBrief(brief)}|{audienceId:N}|{allocationsJson}");
+        string allocationsJson,
+        string? impactEstimateJson = null) => OpportunityCommandSupport.Hash(
+            $"{ForBrief(brief)}|{audienceId:N}|{allocationsJson}|{impactEstimateJson ?? "null"}");
 }
-

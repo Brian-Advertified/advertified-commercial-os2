@@ -55,6 +55,22 @@ export const marketplaceResponseSchema = z.object({
   acceptedAtUtc: dateTime.nullable(),
 }).strict()
 
+export const marketplaceNegotiationSummarySchema = z.object({
+  quoteVersionCount: z.number().int().nonnegative(),
+  listedAmountMinor: z.number().int().nonnegative(),
+  listedCurrency: requiredText,
+  firstQuoteAmountMinor: z.number().int().nonnegative().nullable(),
+  firstQuoteCurrency: requiredText.nullable(),
+  currentQuoteAmountMinor: z.number().int().nonnegative().nullable(),
+  currentQuoteCurrency: requiredText.nullable(),
+  acceptedAmountMinor: z.number().int().nonnegative().nullable(),
+  acceptedCurrency: requiredText.nullable(),
+  firstToCurrentVariancePercent: z.number().nullable(),
+  firstToAcceptedVariancePercent: z.number().nullable(),
+  acceptedResponseVersion: z.number().int().positive().nullable(),
+  comparabilityLimitation: z.string().nullable(),
+}).strict()
+
 export const marketplaceRfqSchema = z.object({
   id: z.guid(),
   buyerTenantId: z.guid(),
@@ -74,6 +90,7 @@ export const marketplaceRfqSchema = z.object({
   sentAtUtc: dateTime.nullable(),
   version: z.number().int().positive(),
   updatedAtUtc: dateTime,
+  negotiation: marketplaceNegotiationSummarySchema.nullable(),
 }).strict()
 
 export const marketplaceRfqPageSchema = z.object({

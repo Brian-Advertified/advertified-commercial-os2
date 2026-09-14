@@ -15,7 +15,7 @@ using Xunit;
 
 namespace Advertified.Commercial.Api.Tests;
 
-public sealed class MasterDataMigrationTests
+public sealed partial class MasterDataMigrationTests
 {
     private const string DatabaseName = "advertified_master_data";
     private const string DatabaseUser = "advertified_master_data";
@@ -67,7 +67,10 @@ public sealed class MasterDataMigrationTests
             "202609120010_EmailAutomationProgressAttempts",
             "202609120011_OpportunityDuplicateRejection",
             "202609120012_ManualPartnerFunding",
-            "202609120013_MasterDataRegistryEvolution"],
+            "202609120013_MasterDataRegistryEvolution",
+            "202609120014_MediaStrategyArtifactLineage",
+            "202609130015_IntelligenceArtifactProviderColumnDriftRepair",
+            "202609130016_OwnerAiBudgetTenDollars"],
             applied.AppliedMigrations);
         var first = applied.MasterData;
         var repeated = await operation.ApplyAsync(postgres.GetConnectionString());

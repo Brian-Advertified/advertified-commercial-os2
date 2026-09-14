@@ -9,12 +9,12 @@ public sealed partial class DeliveryProofRecordStore
         Guid bookingId,
         CancellationToken cancellationToken) =>
         DbContext.Database.SqlQuery<DeliveryProofSourceRow>($"""
-            SELECT source.buyer_tenant_id AS "BuyerTenantId",
-                source.supplier_tenant_id AS "SupplierTenantId",
-                source.campaign_id AS "CampaignId", source.booking_id AS "BookingId",
-                source.campaign_owner_user_id AS "CampaignOwnerUserId",
-                source.campaign_version AS "CampaignVersion",
-                source.flight_start AS "FlightStart", source.flight_end AS "FlightEnd"
-            FROM commercial.delivery_proof_source({campaignId}, {bookingId}) source
+            SELECT request.buyer_tenant_id AS "BuyerTenantId",
+                request.supplier_tenant_id AS "SupplierTenantId",
+                request.campaign_id AS "CampaignId", request.booking_id AS "BookingId",
+                request.flight_start AS "FlightStart", request.flight_end AS "FlightEnd"
+            FROM commercial.delivery_proof_requests request
+            WHERE request.campaign_id = {campaignId}
+              AND request.booking_id = {bookingId}
             """).SingleOrDefaultAsync(cancellationToken);
 }

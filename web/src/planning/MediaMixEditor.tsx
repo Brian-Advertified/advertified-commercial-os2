@@ -78,8 +78,15 @@ function useMediaMixDraft({ mix, allowedChannels, onSave }: MediaMixEditorProps)
     !allocations.some(item => item.channel === channel))
 
   function update(index: number, patch: Partial<MediaAllocation>) {
-    setAllocations(current => current.map((item, itemIndex) =>
-      itemIndex === index ? { ...item, ...patch } : item))
+    setAllocations(current => current.map((item, itemIndex) => {
+      if (itemIndex !== index) return item
+      const next = { ...item, ...patch }
+      if (patch.budgetMinor !== undefined && patch.geographyAllocations === undefined) {
+        next.geographyAllocations = scaleGeographyBudget(
+          item.geographyAllocations, item.budgetMinor, patch.budgetMinor)
+      }
+      return next
+    }))
   }
   function addChannel() {
     if (!channelToAdd || !unusedChannels.includes(channelToAdd)) return
@@ -87,6 +94,8 @@ function useMediaMixDraft({ mix, allowedChannels, onSave }: MediaMixEditorProps)
     setAllocations(current => [...current, {
       channel: channelToAdd, budgetMinor: 0, role: 'Supporting channel',
       runningPeriods: periods.length > 0 ? periods : [{ start: '', end: '' }],
+      geographyAllocations: [],
+      schedule: null,
     }])
     setChannelToAdd('')
   }
@@ -228,6 +237,25 @@ function BudgetTotal({ allocated, total, currency }: { allocated: number; total:
     <span>Allocated</span><strong>{formatMoney(allocated, currency)}</strong>
     <small>{difference === 0 ? 'Budget balanced' : `${formatMoney(Math.abs(difference), currency)} ${difference > 0 ? 'left' : 'over'}`}</small>
   </div>
+}
+
+function scaleGeographyBudget(
+  values: MediaAllocation['geographyAllocations'],
+  previousBudget: number,
+  nextBudget: number,
+) {
+  if (!values.length) return []
+  if (values.length === 1) return [{ ...values[0], budgetMinor: nextBudget }]
+  const sourceTotal = values.reduce((sum, value) => sum + value.budgetMinor, 0) || previousBudget
+  if (sourceTotal <= 0) return []
+  let assigned = 0
+  return values.map((value, index) => {
+    const budgetMinor = index === values.length - 1
+      ? nextBudget - assigned
+      : Math.round(nextBudget * value.budgetMinor / sourceTotal)
+    assigned += budgetMinor
+    return { ...value, budgetMinor: Math.max(0, budgetMinor) }
+  })
 }
 
 function emptyPeriod(periods: RunningPeriod[]): RunningPeriod {

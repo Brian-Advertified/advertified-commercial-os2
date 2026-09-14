@@ -27,9 +27,16 @@ export function useBookingWorkspace(tenantId: string, canBuy: boolean) {
   const run = useCallback(async (action: () => Promise<unknown>, message: string) => {
     setBusy(true); setError(null)
     try { await action(); await load(); notifications.success(message) }
-    catch (failure) { setError(humanMessage(failure)) }
+    catch (failure) {
+      const message = humanMessage(failure)
+      try {
+        const [items, lines] = await fetchBookingWorkspace(tenantId, canBuy)
+        setBookings(items); setBookable(lines)
+      } catch { /* Keep the command failure visible if recovery loading also fails. */ }
+      setError(message)
+    }
     finally { setBusy(false) }
-  }, [load])
+  }, [load, tenantId, canBuy])
   return { bookings, bookable, busy, error, run }
 }
 

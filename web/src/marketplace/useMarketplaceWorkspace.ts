@@ -137,7 +137,7 @@ export function useMarketplaceRfqActions(
   async function respond(rfq: MarketplaceRfq, values: ResponseValues) {
     if (!token) return
     await run(async () => {
-      await marketplaceApi.respond(tenantId, rfq.id, values, token)
+      await marketplaceApi.respond(tenantId, rfq, values, token)
       notifications.success('The immutable supplier response was submitted.')
     })
   }

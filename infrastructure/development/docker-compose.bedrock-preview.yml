@@ -3,9 +3,9 @@ services:
     environment:
       ADVERTIFIED_AGENT_RUNTIME_MODE: bedrock
       ADVERTIFIED_BEDROCK_REGION: us-east-1
-      ADVERTIFIED_BEDROCK_MODEL_ALLOWLIST: amazon.nova-lite-v1:0,amazon.nova-pro-v1:0
-      ADVERTIFIED_BEDROCK_MULTIMODAL_MODEL_ALLOWLIST: amazon.nova-lite-v1:0
-      ADVERTIFIED_BEDROCK_PRICING_JSON: '{"amazon.nova-lite-v1:0":{"input_per_million_usd":"0.06","output_per_million_usd":"0.24"},"amazon.nova-pro-v1:0":{"input_per_million_usd":"0.8","output_per_million_usd":"3.2"}}'
+      ADVERTIFIED_BEDROCK_MODEL_ALLOWLIST: global.anthropic.claude-haiku-4-5-20251001-v1:0
+      ADVERTIFIED_BEDROCK_MULTIMODAL_MODEL_ALLOWLIST: global.anthropic.claude-haiku-4-5-20251001-v1:0
+      ADVERTIFIED_BEDROCK_PRICING_JSON: '{"global.anthropic.claude-haiku-4-5-20251001-v1:0":{"input_per_million_usd":"1.0","output_per_million_usd":"5.0"}}'
       ADVERTIFIED_BEDROCK_MAX_TOKENS: "8192"
       AWS_REGION: us-east-1
       AWS_DEFAULT_REGION: us-east-1
@@ -13,14 +13,19 @@ services:
       AWS_SHARED_CREDENTIALS_FILE: /tmp/.aws/credentials
       AWS_PROFILE: ${AWS_PROFILE:-default}
       HOME: /tmp
+    # Refresh writes only to tmpfs; never make the host credential directory writable.
+    command: ["python", "/app/preview_sso_bootstrap.py"]
+    tmpfs:
+      - /tmp:size=32m,mode=1777
     volumes:
-      - ${USERPROFILE}/.aws:/tmp/.aws:ro
+      - ${USERPROFILE}/.aws:/run/advertified-aws:ro
+      - ../tools/preview_sso_bootstrap.py:/app/preview_sso_bootstrap.py:ro
   api:
     volumes:
       - ./development/appsettings.bedrock-preview.json:/app/appsettings.Development.json:ro
     environment:
       SuppliedBrief__Mode: Http
-      InventorySemantic__Enabled: "true"
+      InventorySemantic__Enabled: "false"
       InventorySemantic__ModelId: amazon.nova-lite-v1:0
       InventorySemantic__InputPricePerMillionTokensUsdMicros: "60000"
       InventorySemantic__OutputPricePerMillionTokensUsdMicros: "240000"
@@ -31,11 +36,12 @@ services:
       InventorySemantic__MaximumOutputTokensPerChunk: "1024"
       AgentRuntime__Mode: Http
       AgentRuntime__Provider: bedrock
-      AgentRuntime__DefaultModel: amazon.nova-lite-v1:0
-      # Development preview: allow enough headroom for complete structured strategic outputs.
+      AgentRuntime__DefaultModel: global.anthropic.claude-haiku-4-5-20251001-v1:0
+      # Development preview: Claude Haiku 4.5 is the only live model for this production-behaviour certification.
       # Exact provider/model/token/USD usage remains ledgered per invocation; no silent model fallback is allowed.
-      AgentRuntime__DefaultCostCapMinor: "200"
-      AgentRuntime__CostCapsMinor__media_strategy: "5"
+      AgentRuntime__DefaultCostCapMinor: "4"
+      AgentRuntime__CostCapsMinor__audience_intelligence: "6"
+      AgentRuntime__CostCapsMinor__media_strategy: "3"
       AgentRuntime__AllowLive: "true"
       AgentRuntime__MaxAttempts: "1"
       AgentRuntime__TimeoutSeconds: "120"

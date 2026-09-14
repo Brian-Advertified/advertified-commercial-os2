@@ -1,5 +1,6 @@
 import type { MarketplaceListing, MarketplaceRfq } from '../api/marketplace-schemas'
 import { Icon } from '../components/Icon'
+import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { masterDataCodes, masterDataDefinitions } from '../generated/master-data-codes'
 import { formatDate, formatDateTime, formatMoney, humanizeCode } from '../presentation/format'
 import { ResponseForm } from './MarketplaceForms'
@@ -16,23 +17,19 @@ export function MarketplaceListings(props: ListingsProps) {
   const visible = props.listings.filter(item => item.currentVersion)
   if (visible.length === 0) return <MarketplaceEmpty icon="inventory" title="No published supply found"
     copy="Adjust the filters or ask a supplier to publish current reviewed inventory." />
-  return <section className="marketplace-ledger" aria-labelledby="marketplace-supply-ledger-title">
-    <header className="marketplace-ledger-heading"><div><p className="eyebrow">Published catalogue</p>
-      <h2 id="marketplace-supply-ledger-title">Supply ledger</h2></div>
-      <span>{visible.length} matching {visible.length === 1 ? 'listing' : 'listings'}</span></header>
-    <div className="marketplace-table-scroll"><table className="marketplace-table">
-      <thead><tr><th>Product</th><th className="marketplace-secondary-column">Channel</th>
-        <th className="marketplace-secondary-column">Geography</th><th>Current rate</th>
-        <th>Availability</th><th><span className="sr-only">Action</span></th></tr></thead>
-      <tbody>{visible.map(listing => <ListingRow key={listing.id} listing={listing}
-        tenantId={props.tenantId} canSupply={props.canSupply}
-        selected={listing.id === props.selectedId} open={props.open}
-        archive={props.archive} />)}</tbody>
-    </table></div>
+  return <section className="marketplace-ledger connected-marketplace-catalogue" aria-labelledby="marketplace-supply-ledger-title">
+    <header className="marketplace-ledger-heading"><div>
+      <h2 id="marketplace-supply-ledger-title">Showing {visible.length} inventory option{visible.length === 1 ? '' : 's'}</h2>
+      <p>Rates, availability and supplier identity come from the current published listing version.</p></div>
+      <span>Audience fit is shown only when campaign evidence exists</span></header>
+    <div className="connected-marketplace-card-grid">{visible.map(listing => <ListingCard key={listing.id} listing={listing}
+      tenantId={props.tenantId} canSupply={props.canSupply}
+      selected={listing.id === props.selectedId} open={props.open}
+      archive={props.archive} />)}</div>
   </section>
 }
 
-function ListingRow({ listing, tenantId, canSupply, selected, open, archive }: {
+function ListingCard({ listing, tenantId, canSupply, selected, open, archive }: {
   listing: MarketplaceListing; tenantId: string; canSupply: boolean
   selected: boolean; open: (listing: MarketplaceListing) => void
   archive: (listing: MarketplaceListing) => void
@@ -40,21 +37,35 @@ function ListingRow({ listing, tenantId, canSupply, selected, open, archive }: {
   const version = listing.currentVersion
   if (!version) return null
   const owned = listing.supplierTenantId === tenantId
-  return <tr className={selected ? 'marketplace-row-selected' : undefined}>
-    <td><div className="marketplace-product-cell"><span><Icon name="inventory" /></span><div>
-      <strong>{version.productName}</strong><small>{version.supplierName}</small></div></div></td>
-    <td className="marketplace-secondary-column">{masterLabel(masterDataDefinitions.channels,
-      version.channel)}</td>
-    <td className="marketplace-secondary-column">{version.geography}</td>
-    <td><strong>{formatMoney(version.amountMinor, version.currency)}</strong>
-      <small>{humanizeCode(version.rateType, true)}</small></td>
-    <td><span className="marketplace-availability">{masterLabel(
-      masterDataDefinitions.availabilityStatuses, version.availability)}</span></td>
-    <td className="marketplace-row-action"><button className="text-action"
-      type="button" onClick={() => open(listing)}>View details</button>
-      {canSupply && owned && <button className="text-action" type="button"
-        onClick={() => archive(listing)}>Archive listing</button>}</td>
-  </tr>
+  return <article className={`connected-marketplace-card${selected ? ' is-selected' : ''}`}>
+    <div className="connected-marketplace-art" style={{ backgroundImage: `url(${channelArtwork(version.channel)})` }}>
+      <span>{masterLabel(masterDataDefinitions.channels, version.channel)}</span>
+      <MediaTypeIcon channel={version.channel} />
+    </div>
+    <div className="connected-marketplace-card-copy"><header><div><strong>{version.productName}</strong>
+      <small>{version.supplierName}</small></div><button type="button" aria-label={`Open ${version.productName}`}
+        onClick={() => open(listing)}>♡</button></header>
+      <p><Icon name="globe" />{version.geography}</p>
+      <dl><div><dt>Current rate</dt><dd>{formatMoney(version.amountMinor, version.currency)}</dd>
+        <small>{humanizeCode(version.rateType, true)}</small></div>
+        <div><dt>Availability</dt><dd>{masterLabel(masterDataDefinitions.availabilityStatuses, version.availability)}</dd>
+        <small>{version.availabilityValidUntilUtc ? `to ${formatDate(version.availabilityValidUntilUtc)}` : 'No expiry supplied'}</small></div></dl>
+      <button className="connected-marketplace-select" type="button" onClick={() => open(listing)}>
+        {selected ? 'Selected' : 'View details'}</button>
+      {canSupply && owned && <button className="text-action connected-marketplace-archive" type="button"
+        onClick={() => archive(listing)}>Archive listing</button>}
+    </div>
+  </article>
+}
+
+function channelArtwork(channel: string) {
+  const code = channel.toLowerCase()
+  if (code.includes('radio')) return '/assets/media-inventory/radio-real.jpg'
+  if (code.includes('tv') || code.includes('television')) return '/assets/media-inventory/television-real.jpg'
+  if (code.includes('print')) return '/assets/media-inventory/print-real.jpg'
+  if (code.includes('digital') || code.includes('social')) return '/assets/media-inventory/digital-real.jpg'
+  if (code.includes('experiential')) return '/assets/media-inventory/experiential-real.jpg'
+  return '/assets/media-inventory/out-of-home-real.jpg'
 }
 
 export function MarketplaceListingInspector({ listing, tenantId, canBuy, close, request }: {

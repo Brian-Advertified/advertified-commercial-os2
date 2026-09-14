@@ -133,7 +133,7 @@ function ApprovedClassifyStage({ tenantId, record, actions }: {
       <div><dt>Integrity</dt><dd>Original source retained</dd></div>
       <div><dt>Next action</dt><dd>Extract candidate commercial facts</dd></div></dl>
       <button className="primary-button" disabled={actions.busy}
-        onClick={() => void actions.run((token) => inventoryApi.execute(tenantId, record, token), 'Extraction is queued. Refresh to follow the durable attempt.')}>
+        onClick={() => void actions.run((token) => inventoryApi.execute(tenantId, record, token), 'Extraction is queued. Advertified will show the latest durable attempt automatically.')}>
         {actions.busy ? 'Extracting…' : 'Extract candidates →'}</button></article>
   </section>
 }

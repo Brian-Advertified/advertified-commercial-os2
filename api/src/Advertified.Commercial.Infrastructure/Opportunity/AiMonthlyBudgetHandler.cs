@@ -18,20 +18,21 @@ public sealed class AiMonthlyBudgetHandler(
         var reservation = await store.ReserveAsync(
             invocation, cancellationToken);
         var response = await base.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-            return response;
         var payload = await response.Content.ReadAsByteArrayAsync(
             cancellationToken);
-        var usage = ReadUsage(payload, invocation.ProviderPolicy);
-        await store.CompleteAsync(
-            reservation,
-            usage.IncrementalCostUsdMicros,
-            CancellationToken.None);
-        var replacement = new ByteArrayContent(payload);
-        foreach (var header in response.Content.Headers)
-            replacement.Headers.TryAddWithoutValidation(header.Key, header.Value);
-        response.Content.Dispose();
-        response.Content = replacement;
+
+        var usage = response.IsSuccessStatusCode
+            ? ReadUsage(payload, invocation.ProviderPolicy)
+            : ReadAcceptedRejectedUsage(payload, invocation.ProviderPolicy);
+        if (usage is not null)
+        {
+            await store.CompleteAsync(
+                reservation,
+                usage.IncrementalCostUsdMicros,
+                CancellationToken.None);
+        }
+
+        ReplaceContent(response, payload);
         return response;
     }
 
@@ -41,12 +42,69 @@ public sealed class AiMonthlyBudgetHandler(
         var usage = document.RootElement.GetProperty("usage")
             .Deserialize<AgentProviderUsage>(AgentRuntimeHttpSupport.WireJson)
             ?? throw new InvalidOperationException("The agent usage envelope is absent.");
+        ValidateUsage(usage, policy);
+        return usage;
+    }
+
+    internal static AgentProviderUsage? ReadAcceptedRejectedUsage(
+        byte[] payload,
+        AgentProviderPolicy policy)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+            var detail = document.RootElement.GetProperty("detail");
+            if (!string.Equals(
+                    detail.GetProperty("provider_acceptance").GetString(),
+                    "ACCEPTED",
+                    StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            if (!detail.TryGetProperty("usage", out var usageElement) ||
+                usageElement.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+            {
+                return null;
+            }
+
+            var usage = usageElement.Deserialize<AgentProviderUsage>(
+                AgentRuntimeHttpSupport.WireJson);
+            if (usage is null) return null;
+            ValidateUsage(usage, policy);
+            return usage;
+        }
+        catch (Exception error) when (
+            error is JsonException or InvalidOperationException or KeyNotFoundException)
+        {
+            // A rejected response without an exact accepted-usage receipt stays fully reserved.
+            return null;
+        }
+    }
+
+    private static void ValidateUsage(
+        AgentProviderUsage usage,
+        AgentProviderPolicy policy)
+    {
         if (usage.Provider != policy.Provider || usage.Model != policy.Model ||
             usage.IncrementalCostUsdMicros <= 0 || usage.IncrementalCostMinor <= 0 ||
             usage.IncrementalCostUsdMicros > checked(policy.CostCapMinor * 10_000L) ||
             usage.IncrementalCostMinor > policy.CostCapMinor || string.IsNullOrWhiteSpace(usage.ProviderRequestId))
-            throw new InvalidOperationException("The live agent usage does not match its reservation.");
-        return usage;
+        {
+            throw new InvalidOperationException(
+                "The live agent usage does not match its reservation.");
+        }
+    }
+
+    private static void ReplaceContent(
+        HttpResponseMessage response,
+        byte[] payload)
+    {
+        var replacement = new ByteArrayContent(payload);
+        foreach (var header in response.Content.Headers)
+            replacement.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        response.Content.Dispose();
+        response.Content = replacement;
     }
 
     internal static async Task<AgentInvocationRequest> ReadInvocationAsync(

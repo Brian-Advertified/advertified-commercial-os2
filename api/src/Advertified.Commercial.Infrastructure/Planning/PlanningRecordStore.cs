@@ -85,6 +85,7 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
                 version.status_code AS "Status",
                 version.business_problem AS "BusinessProblem",
                 version.objective AS "Objective",
+                version.timing AS "Timing",
                 version.audiences_json::text AS "AudiencesJson",
                 version.geographies_json::text AS "GeographiesJson",
                 version.media_requirements_json::text AS "MediaRequirementsJson",
@@ -358,7 +359,8 @@ public sealed partial class PlanningRecordStore(GovernanceDbContext dbContext)
             media_strategy_artifact_id AS "MediaStrategyArtifactId", version_no AS "VersionNumber",
             total_budget_minor AS "TotalBudgetMinor", currency_code AS "Currency",
             allocations_json::text AS "AllocationsJson",
-            assumptions_json::text AS "AssumptionsJson", input_hash AS "InputHash",
+            assumptions_json::text AS "AssumptionsJson",
+            planning_impact_json::text AS "ImpactEstimateJson", input_hash AS "InputHash",
             status_code AS "Status", created_by AS "CreatedBy", approved_by AS "ApprovedBy",
             version AS "Version", created_at_utc AS "CreatedAtUtc"
         FROM commercial.media_mix_versions

@@ -3,6 +3,7 @@ import json
 
 import pytest
 
+from bedrock_artifact_output import wrap_artifact_output
 from bedrock_output import output_schema
 from planning_contracts import AudienceDefinitionSetArtifact
 from planning_service import canonicalize_audiences, propose_audiences
@@ -20,13 +21,17 @@ def test_audience_schema_separates_reference_and_brief_evidence(has_brief_eviden
         "planning": request.planning.model_copy(update={"reference_evidence": (reference,)}),
     })
     schema = json.loads(output_schema(request, AudienceDefinitionSetArtifact, None, False, False))
-    fields = schema["$defs"]["AudienceDefinition"]["properties"]
+    assert "$defs" not in schema
+    assert "targeting_rationale" not in schema["properties"]
+    assert "audiences" not in schema["properties"]
+    fields = schema["properties"]["audience_1"]["properties"]
+    assert fields["name"]["const"] == request.planning.audiences[0]
     assert fields["reference_observation_ids"]["items"]["enum"] == [str(reference.observation_id)]
     if brief_ids:
         assert fields["evidence_item_ids"]["items"]["enum"] == [str(item) for item in brief_ids]
     else:
-        assert fields["evidence_item_ids"]["maxItems"] == 0
-    assert fields["geographies"]["items"]["enum"] == list(request.planning.geographies)
+        assert "evidence_item_ids" not in fields
+    assert "geographies" not in fields
     output = propose_audiences(request)
     invalid = output.artifact.audiences[0].model_copy(update={
         "evidence_item_ids": (reference.observation_id,),
@@ -45,7 +50,9 @@ def test_context_only_reference_is_not_a_provider_segment_citation_choice():
         "reference_evidence": (reference,),
     })})
     schema = json.loads(output_schema(request, AudienceDefinitionSetArtifact, None, False, False))
-    assert schema["$defs"]["AudienceDefinition"]["properties"]["reference_observation_ids"]["maxItems"] == 0
+    assert "audiences" not in schema["properties"]
+    fields = schema["properties"]["audience_1"]["properties"]
+    assert "reference_observation_ids" not in fields
     output = propose_audiences(request)
     audience = output.artifact.audiences[0].model_copy(update={
         "reference_observation_ids": (reference.observation_id,),
@@ -57,7 +64,7 @@ def test_context_only_reference_is_not_a_provider_segment_citation_choice():
         canonicalize_audiences(request, output)
 
 
-def test_provider_projection_withholds_context_only_ids_without_changing_canonical_request():
+def test_provider_projection_keeps_context_only_research_without_expanding_citation_choices():
     from audience_model_input import audience_model_input
     request = audience_request()
     context_only = reference_observation()
@@ -71,7 +78,59 @@ def test_provider_projection_withholds_context_only_ids_without_changing_canonic
     })})
     original = request.model_dump_json()
     payload = audience_model_input(request)
-    assert str(context_only.observation_id) not in json.dumps(payload)
-    assert payload["planning"]["reference_evidence"][0]["observation_id"] == str(supported.observation_id)
-    assert "1 supplied context-only" in payload["reference_policy_note"]
+    projected = payload["planning"]["reference_evidence"]
+    assert [item["observation_id"] for item in projected] == [str(supported.observation_id)]
+    context = payload["planning"]["context_research"]
+    assert len(context) == 1
+    assert "observation_id" not in context[0]
+    assert context[0]["metrics"][0]["metric_code"] == context_only.metric_code
+    assert "contextual market research only" in payload["reference_policy_note"]
+    assert "budget_minor" not in payload["planning"]
+    assert "currency" not in payload["planning"]
+    assert payload["planning"]["budget"] == {"status": "UNKNOWN"}
+    schema = json.loads(output_schema(request, AudienceDefinitionSetArtifact, None, False, False))
+    assert "audiences" not in schema["properties"]
+    fields = schema["properties"]["audience_1"]["properties"]
+    choices = fields["reference_observation_ids"]["items"]["enum"]
+    assert choices == [str(supported.observation_id)]
     assert request.model_dump_json() == original
+
+
+def test_audience_provider_accepts_fixed_live_slots_and_rebuilds_collection():
+    request = audience_request()
+    provider_payload = {
+        "audience_1": {
+            "name": request.planning.audiences[0],
+            "need_state": "Hypothesis: supplied objective may create a relevant need.",
+            "buying_context": "Hypothesis: buying context requires validation.",
+            "is_target": True,
+        },
+        "positioning_statement": "Hypothesis: bounded positioning direction.",
+    }
+    output = wrap_artifact_output(AudienceDefinitionSetArtifact, provider_payload, request)
+    canonical = canonicalize_audiences(request, output)
+    assert canonical.artifact.audiences[0].name == request.planning.audiences[0]
+    assert canonical.artifact.audiences[0].is_target is True
+    assert canonical.artifact.positioning_statement == "Hypothesis: bounded positioning direction."
+
+
+def test_audience_provider_ignores_known_misplaced_positioning_statement_inside_legacy_items():
+    request = audience_request()
+    provider_payload = {
+        "audiences": [{
+            "name": request.planning.audiences[0],
+            "need_state": "Hypothesis: supplied objective may create a relevant need.",
+            "buying_context": "Hypothesis: buying context requires validation.",
+            "evidence_item_ids": [],
+            "reference_observation_ids": [],
+            "confidence": None,
+            "is_target": True,
+            "positioning_statement": "Hypothesis: misplaced provider advisory copy.",
+        }],
+        "targeting_rationale": "Provider rationale that Advertified will canonicalize.",
+        "positioning_statement": "Hypothesis: valid root positioning direction.",
+    }
+    output = wrap_artifact_output(AudienceDefinitionSetArtifact, provider_payload, request)
+    canonical = canonicalize_audiences(request, output)
+    assert canonical.artifact.audiences[0].name == request.planning.audiences[0]
+    assert canonical.artifact.positioning_statement == "Hypothesis: valid root positioning direction."

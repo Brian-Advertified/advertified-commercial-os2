@@ -5,6 +5,7 @@ using Advertified.Commercial.Api.Errors;
 using Advertified.Commercial.Application.Identity;
 using Advertified.Commercial.Domain.Governance;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Advertified.Commercial.Api.Endpoints;
@@ -42,6 +43,11 @@ public static class BrowserSessionEndpoints
             .RequireRateLimiting(RequestRateLimitPolicies.BrowserSession)
             .Produces(StatusCodes.Status204NoContent)
             .WithBrowserProblems();
+
+        if (endpoints.ServiceProvider.GetRequiredService<IWebHostEnvironment>().IsDevelopment())
+        {
+            endpoints.MapConnectedAcceptanceDevelopmentEndpoints();
+        }
         return endpoints;
     }
 

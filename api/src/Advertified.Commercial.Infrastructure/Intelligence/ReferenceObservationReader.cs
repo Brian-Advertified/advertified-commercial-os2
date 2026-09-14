@@ -22,7 +22,7 @@ internal static class ReferenceObservationReader
         if (string.IsNullOrWhiteSpace(domainCode) || activationPolicies.Count == 0)
             throw new ArgumentException("Reference observation scope is required.");
 
-        var geographyValues = geographies.ToArray();
+        var geographyValues = AudienceResearchGeographyScope.Expand(geographies).ToArray();
         var policyValues = activationPolicies.ToArray();
         var national = geographyValues.Any(item =>
             string.Equals(item, "South Africa", StringComparison.OrdinalIgnoreCase));

@@ -10,7 +10,6 @@ import { BriefSourceForm } from '../brief-intake/BriefSourceForm'
 import { BriefUnderstandingReview } from '../brief-intake/BriefUnderstandingReview'
 import { useBriefIntake } from '../brief-intake/useBriefIntake'
 import { CampaignModeBinding } from '../campaign-flow/CampaignFlowBindings'
-import { Icon } from '../components/Icon'
 import { LoadingState, MessageState } from '../components/PageState'
 
 export function NewBriefPage() {
@@ -39,16 +38,11 @@ function BriefCreator({ tenantId, userId, token }: {
 }) {
   const model = useBriefIntake({ tenantId, userId, token })
   return <><CampaignModeBinding mode={model.understanding?.campaignMode ?? null} />
-  <section aria-labelledby="new-brief-title" className="brief-intake-page">
-    <BriefIntakeHeading />
-    <div className="brief-integrity-strip" role="note" aria-label="Brief source integrity">
-      <Icon name="shield" />
-      <strong>Original wording preserved</strong>
-      <span>The supplied request remains the source of truth while Advertified structures it for planning.</span>
-    </div>
+  <section aria-labelledby="new-brief-title" className="brief-intake-page connected-campaign-page">
+    {!model.understanding && <BriefIntakeHeading />}
     {model.error && <p className="inline-alert" role="alert">{model.error}</p>}
     {!model.understanding
-      ? <div className="brief-source-workbench">
+      ? <div className="brief-source-workbench connected-brief-workbench">
           <BriefSourceForm busy={model.busy} source={model.source}
             onSubmit={model.submitSource} />
           <BriefIntakeGuide understanding={null} busy={model.busy} />
@@ -66,11 +60,11 @@ function BriefCreator({ tenantId, userId, token }: {
 }
 
 function BriefIntakeHeading() {
-  return <header className="page-heading brief-intake-heading"><div>
+  return <header className="page-heading brief-intake-heading connected-stage-heading"><div>
     <p className="eyebrow">New campaign</p>
-    <h1 id="new-brief-title">What does the campaign need to achieve?</h1>
-    <p>Paste the formal Brief or simply the client's campaign requirement in its original wording. Advertified will identify the business problem, desired outcome, audience, geography, timing, budget and media constraints before asking only for material gaps.</p>
-  </div><span className="brief-heading-state">Outcome-first intake</span></header>
+    <h1 id="new-brief-title">Start with your full campaign brief</h1>
+    <p>Tell us about your campaign. You can paste the client's original Brief and add the structured details you already know.</p>
+  </div><div className="connected-handwritten-note" aria-hidden="true">Turn ideas<br />into impact.<span /></div></header>
 }
 
 function useCurrentUser(enabled: boolean) {

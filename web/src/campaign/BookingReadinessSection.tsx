@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import type { Booking } from '../api/booking-schemas'
 import { campaignApi } from '../api/campaign-client'
 import { campaignReasonSchema, type Campaign } from '../api/campaign-schemas'
-import { Icon } from '../components/Icon'
+import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { masterDataCodes } from '../generated/master-data-codes'
 import { formatDate, formatMoney, humanizeCode } from '../presentation/format'
 import type { CampaignActionRunner } from './campaign-types'
@@ -20,32 +20,65 @@ type Props = {
 
 export function BookingReadinessSection(props: Props) {
   const complete = props.campaign.status !== masterDataCodes.lifecycleStatuses.planned
-  return <section id="booking-stage" className="campaign-workspace-section">
-    <SectionHeading eyebrow="Supplier commitment" title="Booking coverage"
-      copy="Every media-plan line must have an exact confirmed supplier booking before production can begin."
-      status={complete ? 'Complete' : `${props.campaign.confirmedBookingCount}/${props.campaign.requiredBookingCount} confirmed`} />
-    <div className="campaign-booking-grid">{props.bookings.map(booking =>
-      <BookingSummary key={booking.id} booking={booking} />)}</div>
-    {props.bookings.length === 0 && <EmptyBookingState />}
-    {!complete && <BookingNextAction {...props} />}
+  const confirmed = props.bookings.filter(item => item.status === masterDataCodes.lifecycleStatuses.confirmed)
+  const pending = props.bookings.filter(item => item.status !== masterDataCodes.lifecycleStatuses.confirmed)
+  const campaignValue = props.bookings.reduce((sum, item) => sum + (item.clientPriceMinor ?? 0), 0)
+  const currency = props.bookings.find(item => item.currency)?.currency ?? masterDataCodes.currencies.zar
+
+  return <section id="booking-stage" className="connected-booking-page">
+    <div className="connected-booking-layout">
+      <main className="connected-booking-main">
+        <header className="connected-booking-tabs">
+          <button type="button" className="is-active">Inventory &amp; Approvals ({props.bookings.length})</button>
+          <button type="button" disabled>Supplier Confirmations ({confirmed.length})</button>
+          <button type="button" disabled>Creative Approvals ({props.campaign.creative?.requirements.length ?? 0})</button>
+          <button type="button" disabled>Payments</button>
+        </header>
+        {props.bookings.length ? <div className="connected-booking-table">
+          <div className="connected-booking-head"><span>Inventory / Location</span><span>Supplier</span>
+            <span>Dates</span><span>Status</span><span>Next step</span></div>
+          {props.bookings.map(booking => <BookingRow key={booking.id} booking={booking} />)}
+        </div> : <EmptyBookingState />}
+        <footer className="connected-booking-footer"><span>{confirmed.length} confirmed · {pending.length} need attention</span>
+          <div><Link className="secondary-button" to="/bookings">Open all Bookings</Link>
+            {!complete && <BookingNextAction {...props} />}</div></footer>
+      </main>
+      <aside className="connected-booking-summary">
+        <article><header><h2>Booking Summary</h2><p>An overview of selected campaign inventory.</p></header>
+          <dl><div><dt>Total items</dt><dd>{props.bookings.length}</dd></div>
+            <div><dt>Confirmed</dt><dd>{confirmed.length}</dd></div>
+            <div><dt>Pending / review</dt><dd>{pending.length}</dd></div></dl>
+          <hr /><small>Estimated campaign value</small>
+          <strong>{campaignValue > 0 ? formatMoney(campaignValue, currency, 0) : 'Not established'}</strong>
+          <p>Final pricing remains subject to the retained booking and supplier-confirmation evidence.</p></article>
+        <article><header><h2>Key Dates</h2></header>
+          <dl><div><dt>Campaign start</dt><dd>{formatDate(props.campaign.startDate)}</dd></div>
+            <div><dt>Campaign end</dt><dd>{formatDate(props.campaign.endDate)}</dd></div>
+            <div><dt>Bookings confirmed</dt><dd>{props.campaign.bookingsConfirmedAtUtc
+              ? formatDate(props.campaign.bookingsConfirmedAtUtc) : 'Pending'}</dd></div>
+            <div><dt>Creative approved</dt><dd>{props.campaign.creativeApprovedAtUtc
+              ? formatDate(props.campaign.creativeApprovedAtUtc) : 'Pending'}</dd></div></dl></article>
+        <article className="connected-sa-proof connected-booking-sa"><span className="connected-sa-flag">🇿🇦</span><div>
+          <strong>Built for South Africa</strong><p>Real media. Trusted suppliers. Governed booking evidence.</p></div></article>
+      </aside>
+    </div>
   </section>
 }
 
-function BookingSummary({ booking }: { booking: Booking }) {
-  return <article className="campaign-booking-card"><header><span><Icon name="reservation" /></span>
-    <div><small>{humanizeCode(booking.channel, true)}</small><h3>{booking.productName}</h3></div>
-    <span className={`status-chip ${booking.status === masterDataCodes.lifecycleStatuses.confirmed
-      ? 'status-positive' : 'status-warning'}`}>{humanizeCode(booking.status, true)}</span></header>
-    <dl><div><dt>Supplier</dt><dd>{booking.supplierName}</dd></div>
-      <div><dt>Geography</dt><dd>{booking.geography}</dd></div>
-      <div><dt>Flight</dt><dd>{formatDate(booking.flightStart)} – {formatDate(booking.flightEnd)}</dd></div>
-      <div><dt>Client-approved total</dt><dd>{booking.clientPriceMinor === null
-        ? 'Not available' : formatMoney(booking.clientPriceMinor, booking.currency)}</dd></div></dl>
-  </article>
+function BookingRow({ booking }: { booking: Booking }) {
+  const confirmed = booking.status === masterDataCodes.lifecycleStatuses.confirmed
+  return <div className="connected-booking-row">
+    <span className="connected-booking-inventory"><MediaTypeIcon channel={booking.channel} /><div>
+      <strong>{booking.productName}</strong><small>{booking.geography}</small></div></span>
+    <span>{booking.supplierName}</span>
+    <span>{formatDate(booking.flightStart)} – {formatDate(booking.flightEnd)}</span>
+    <span><em className={confirmed ? 'is-confirmed' : 'is-pending'}>● {humanizeCode(booking.status, true)}</em></span>
+    <span>{confirmed ? 'Ready for creative / delivery' : booking.requestedAtUtc ? 'Await supplier confirmation' : 'Request supplier confirmation'}</span>
+  </div>
 }
 
 function EmptyBookingState() {
-  return <article className="campaign-section-empty"><Icon name="reservation" /><div>
+  return <article className="campaign-section-empty"><div>
     <h3>No Booking records are linked yet</h3>
     <p>Create and confirm every exact selected media line before confirming campaign readiness.</p>
     <Link className="secondary-button" to="/bookings">Open Bookings</Link></div></article>
@@ -54,16 +87,13 @@ function EmptyBookingState() {
 function BookingNextAction(props: Props) {
   const ready = props.campaign.requiredBookingCount > 0 &&
     props.campaign.requiredBookingCount === props.campaign.confirmedBookingCount
-  if (!ready) return <article className="campaign-next-action"><div><p className="eyebrow">Next action</p>
-    <h3>Complete supplier confirmation</h3><p>Missing, pending or changed lines must be resolved in Bookings.</p></div>
-    <Link className="primary-button" to="/bookings">Open Bookings</Link></article>
-  if (!props.canConfirm) return <article className="campaign-next-action">
-    <div><p className="eyebrow">Waiting for authorised confirmation</p>
-      <h3>All lines are confirmed</h3><p>An assigned campaign operator must confirm that the coverage is complete.</p></div></article>
+  if (!ready) return null
+  if (!props.canConfirm) return <span className="connected-booking-wait">Waiting for authorised confirmation</span>
   return <BookingConfirmationForm {...props} />
 }
 
 function BookingConfirmationForm(props: Props) {
+  const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -81,21 +111,12 @@ function BookingConfirmationForm(props: Props) {
       'Booking coverage was confirmed for the exact client-selected option.',
     )
   }
-  return <form className="campaign-next-action campaign-action-form" onSubmit={submit}>
-    <div><p className="eyebrow">Confirm booking readiness</p><h3>All selected lines are confirmed</h3>
-      <label className="field-group">Confirmation reason
-        <textarea name="reason" required maxLength={1000} rows={3} /></label>
-      {error && <p className="inline-alert" role="alert">{error}</p>}</div>
-    <button className="primary-button" disabled={props.busy}>Confirm booking coverage</button>
+  if (!open) return <button className="primary-button" type="button" disabled={props.busy}
+    onClick={() => setOpen(true)}>Confirm booking coverage</button>
+  return <form className="connected-booking-confirm" onSubmit={submit}>
+    <label>Confirmation reason<textarea name="reason" required maxLength={1000} rows={2} /></label>
+    {error && <p className="inline-alert" role="alert">{error}</p>}
+    <div><button className="secondary-button" type="button" onClick={() => setOpen(false)}>Cancel</button>
+      <button className="primary-button" disabled={props.busy}>Confirm</button></div>
   </form>
-}
-
-function SectionHeading({ eyebrow, title, copy, status }: {
-  eyebrow: string
-  title: string
-  copy: string
-  status: string
-}) {
-  return <header className="campaign-section-heading"><div><p className="eyebrow">{eyebrow}</p>
-    <h2>{title}</h2><p>{copy}</p></div><span className="status-chip status-neutral">{status}</span></header>
 }

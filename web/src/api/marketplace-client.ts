@@ -97,13 +97,13 @@ export const marketplaceApi = {
   },
 
   respond(
-    tenantId: string, rfqId: string,
+    tenantId: string, rfq: MarketplaceRfq,
     values: { amountMinor: number; currency: string; availability: string;
       terms: string; validUntilUtc: string; evidenceReferences: string[] },
     token: string,
   ) {
-    return command(tenantPath(tenantId, `marketplace-rfqs/${rfqId}/responses`),
-      marketplaceRfqSchema, values, token)
+    return command(tenantPath(tenantId, `marketplace-rfqs/${rfq.id}/responses`),
+      marketplaceRfqSchema, values, token, rfq.response?.responseVersion ?? 0)
   },
 
   accept(tenantId: string, rfq: MarketplaceRfq, token: string) {

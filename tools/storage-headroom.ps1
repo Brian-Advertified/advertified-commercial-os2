@@ -69,8 +69,18 @@ function Assert-AdvertifiedPostOperationStorage {
 
 function Test-AdvertifiedDockerImageExists {
     param([Parameter(Mandatory = $true)][string]$Image)
-    & docker image inspect $Image *> $null
-    return $LASTEXITCODE -eq 0
+    # A missing image is the expected negative result of this probe. Windows
+    # PowerShell otherwise promotes Docker's stderr to a terminating error when
+    # the caller uses ErrorActionPreference=Stop, skipping the storage allowance.
+    $previousErrorAction = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        & docker image inspect $Image *> $null
+        return $LASTEXITCODE -eq 0
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorAction
+    }
 }
 
 if ($Report) {

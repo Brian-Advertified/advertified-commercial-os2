@@ -52,6 +52,7 @@ ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
 
 COPY --from=build --chown=app:app /out/api/ ./
+COPY --chown=app:app infrastructure/development/seed-connected-acceptance.sql ./development/seed-connected-acceptance.sql
 
 USER app
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

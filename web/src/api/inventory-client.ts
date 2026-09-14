@@ -145,6 +145,22 @@ export const inventoryApi = {
     )).data
   },
 
+  resolveProposalInventoryImpact(
+    tenantId: string,
+    impact: ProposalInventoryImpact,
+    replacementProposalVersionId: string,
+    resolution: string,
+    token: string,
+  ): Promise<ProposalInventoryImpact> {
+    return command(
+      `/api/v1/tenants/${tenantId}/proposal-inventory-impacts/${impact.id}:resolve`,
+      proposalInventoryImpactSchema,
+      { replacementProposalVersionId, resolution },
+      token,
+      impact.version,
+    )
+  },
+
   async semanticPreflight(
     tenantId: string,
     importId?: string,

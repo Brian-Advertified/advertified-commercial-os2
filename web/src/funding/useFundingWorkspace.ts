@@ -31,7 +31,12 @@ export function useFundingWorkspace(tenantId: string) {
       await load()
       notifications.success(success)
     } catch (failure) {
-      setError(humanMessage(failure))
+      const message = humanMessage(failure)
+      try {
+        const latest = await fundingApi.getWorkspace(tenantId)
+        setWorkspace(latest)
+      } catch { /* Keep the command failure visible if recovery loading also fails. */ }
+      setError(message)
     } finally {
       setBusy(false)
     }

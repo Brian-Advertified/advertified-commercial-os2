@@ -112,7 +112,8 @@ JOIN LATERAL (
     FROM commercial.inventory_availability item
     WHERE item.tenant_id = product_version.tenant_id
       AND item.product_version_id = product_version.id
-      AND (item.observed_at_utc IS NULL OR item.observed_at_utc <= clock_timestamp())
+      AND (item.observed_at_utc IS NULL
+          OR item.observed_at_utc <= clock_timestamp())
     ORDER BY item.observed_at_utc DESC NULLS LAST, item.id DESC
     LIMIT 1) availability ON TRUE
 WHERE listing.supplier_tenant_id = current_setting('advertified.tenant_id')::uuid
@@ -147,8 +148,32 @@ LEFT JOIN commercial.marketplace_listing_versions current_version
  AND current_version.id = listing.current_version_id
 WHERE current_version.id IS NULL
    OR current_version.product_version_id IS DISTINCT FROM eligible.product_version_id
+   OR current_version.supplier_id IS DISTINCT FROM eligible.supplier_id
    OR current_version.rate_id IS DISTINCT FROM eligible.rate_id
-   OR current_version.availability_id IS DISTINCT FROM eligible.availability_id;
+   OR current_version.availability_id IS DISTINCT FROM eligible.availability_id
+   OR current_version.supplier_name IS DISTINCT FROM eligible.supplier_name
+   OR current_version.product_name IS DISTINCT FROM eligible.product_name
+   OR current_version.channel_code IS DISTINCT FROM eligible.channel_code
+   OR current_version.product_type_code IS DISTINCT FROM eligible.product_type_code
+   OR current_version.geography IS DISTINCT FROM eligible.geography
+   OR current_version.audience_profile_json IS DISTINCT FROM eligible.audience_profile_json
+   OR current_version.rate_type_code IS DISTINCT FROM eligible.rate_type_code
+   OR current_version.amount_minor IS DISTINCT FROM eligible.amount_minor
+   OR current_version.currency_code IS DISTINCT FROM eligible.currency_code
+   OR current_version.availability_code IS DISTINCT FROM eligible.availability_code
+   OR current_version.rate_effective_from IS DISTINCT FROM eligible.rate_effective_from
+   OR current_version.rate_effective_to IS DISTINCT FROM eligible.rate_effective_to
+   OR current_version.rate_source_locator IS DISTINCT FROM eligible.rate_source_locator
+   OR current_version.availability_source_locator IS DISTINCT FROM eligible.availability_source_locator
+   OR current_version.availability_observed_at_utc IS DISTINCT FROM eligible.availability_observed_at_utc
+   OR current_version.availability_valid_until_utc IS DISTINCT FROM eligible.availability_valid_until_utc
+   OR current_version.supplier_vat_status_code IS DISTINCT FROM eligible.supplier_vat_status_code
+   OR current_version.vat_treatment_code IS DISTINCT FROM eligible.vat_treatment_code
+   OR current_version.supplier_commercial_json IS DISTINCT FROM eligible.supplier_commercial_json
+   OR current_version.commercial_terms_json IS DISTINCT FROM eligible.commercial_terms_json
+   OR current_version.deliverable_json IS DISTINCT FROM eligible.deliverable_json
+   OR current_version.spatial_json IS DISTINCT FROM eligible.spatial_json
+   OR current_version.terms IS DISTINCT FROM eligible.terms;
 
 INSERT INTO commercial.marketplace_listing_versions (
     id, supplier_tenant_id, listing_id, version_number,

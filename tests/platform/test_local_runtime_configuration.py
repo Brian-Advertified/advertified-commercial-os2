@@ -26,7 +26,7 @@ def test_local_runtime_provider_policy_is_explicit_and_profiles_do_not_leak(tmp_
         "AgentRuntime__Mode": "Http" if preview else "HttpDeterministic",
         "AgentRuntime__Provider": "bedrock" if preview else "deterministic",
         "AgentRuntime__DefaultModel": "amazon.nova-lite-v1:0" if preview else "fixture-v1",
-        "AgentRuntime__DefaultCostCapMinor": "200" if preview else "0",
+        "AgentRuntime__DefaultCostCapMinor": "5" if preview else "0",
         "AgentRuntime__CostCapsMinor__media_strategy": "5" if preview else "0",
         "AgentRuntime__AllowLive": "true" if preview else "false",
         "AgentRuntime__MaxAttempts": "1",
@@ -36,6 +36,13 @@ def test_local_runtime_provider_policy_is_explicit_and_profiles_do_not_leak(tmp_
         assert api.get(key) == value, key
     runtime = services["agent-runtime"]["environment"]
     assert runtime["ADVERTIFIED_AGENT_RUNTIME_MODE"] == ("bedrock" if preview else "deterministic")
+
+
+def test_preview_strategy_analysis_has_an_explicit_operation_model():
+    settings = json.loads((ROOT / 'infrastructure/development/appsettings.bedrock-preview.json').read_text(encoding='utf-8'))
+    runtime = settings['AgentRuntime']
+    assert runtime['Models']['media_strategy__media_strategy_analysis'] == 'amazon.nova-pro-v1:0'
+    assert runtime['CostCapsMinor']['media_strategy'] == 5
 
 
 def test_local_api_startup_excludes_optional_services_and_inventory_bootstrap():
@@ -77,3 +84,13 @@ def test_local_start_helper_uses_canonical_compose_guard_and_keeps_optional_serv
     assert "advertified-os2-dev-redis-1" not in helper
     assert "advertified-os2-dev-mailhog-1" not in helper
     assert "without running migrator or development seed" not in helper
+
+
+def test_preview_switch_uses_global_budget_guard_without_seeds_or_container_deletion():
+    helper = (ROOT / 'tools' / 'set-bedrock-preview.ps1').read_text(encoding='utf-8')
+    assert 'advertified-compose.ps1' in helper
+    assert 'Assert-AdvertifiedComposeProject -RequireExisting' in helper
+    assert "'bedrock_preview_cost.py') guard" in helper
+    assert "'--no-build', '--no-deps', '--force-recreate', 'agent-runtime', 'api'" in helper
+    assert 'docker rm' not in helper
+    assert 'bedrock-cost-baseline' not in helper

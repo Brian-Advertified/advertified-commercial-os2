@@ -2733,8 +2733,139 @@ The separately attached Backyard Connect image does not change Advertified's bra
 
 The owner also requests a few persisted test proposals to exercise the local application. Use clearly labelled
 test work and actual available inventory/rates; retain source inputs and run evidence. Any paid AI work remains
-inside the existing aggregate US$5 ceiling, including reservations. This does not authorise external sending,
+inside the owner-authorised aggregate ceiling (currently US$10 under section 49.3.15), including reservations. This does not authorise external sending,
 supplier commitments, invented approvals or a production launch.
+
+### 21.3.7.2 Canonical connected-screen implementation blueprint — 2026-09-12 [Policy]
+
+The approved September screen set is the **pixel-direction source of truth** for the authenticated Advertified product. Implementation must not reinterpret those screens into a different visual system. Where sample content in a mock conflicts with canonical persisted data, the layout, hierarchy and interaction remain authoritative while the sample claim is replaced by truthful data or a truthful empty/unknown state.
+
+#### A. One shared application shell
+
+Every authenticated campaign screen uses the same shell and must look like one connected product:
+
+- fixed white left navigation with the Advertified wordmark at the top;
+- persistent global search in the top bar;
+- help, notifications and signed-in profile at the top right;
+- pale near-white canvas, dark navy typography and violet primary actions;
+- restrained white cards with subtle borders/shadows;
+- South African visual identity used as commercial context, never as unsupported decorative evidence;
+- a single responsive spacing, type, card, button, form, icon and status system;
+- no dark-green shell, no page-specific theme, no legacy alternate navigation and no duplicated top bars.
+
+The shell proportions and existing approved tokens are anchored by `web/src/approved-ui.css`. The target desktop geometry is approximately: 260 px navigation, 72 px top bar, 24–32 px content gutters, 14–20 px card gaps and large content width rather than a narrow centred form column. These measurements may adapt responsively, but the visual proportions of the approved screens are the reference.
+
+The primary authenticated navigation for agency/internal commercial roles is:
+
+`Home → New Campaign → Opportunities → Marketplace → Audience Intelligence → Proposals → Campaigns → Reports & Insights`, followed by the authorised operational-role section such as `Suppliers`, `Advertisers`, `Agency Partners` and `Influencers` where the signed-in role permits it. Existing permissions remain authoritative; a user must never see a destination they cannot use.
+
+#### B. One canonical seven-step campaign rail
+
+Campaign creation and campaign-detail surfaces use one shared `CampaignJourneyRail`. Step state comes from persisted campaign truth; it is never inferred from the current URL alone.
+
+The canonical steps are:
+
+1. **Brief** — tell us what you need.
+2. **AI Interpretation** — Advertified analyses the supplied Brief.
+3. **Audience & STP** — define, explore and approve target audiences.
+4. **Strategy** — commercial/media recommendations and channel roles.
+5. **Mode-specific planning step**:
+   - `OOH_ONLY`: **Inventory** — find and shortlist governed OOH/DOOH supply.
+   - `FULL_CAMPAIGN`: **Media Plan** — select channels, partners, placements and independent flight periods; inventory selection is part of this planning step.
+6. **Proposal** — review, refine, package and obtain the client decision.
+7. **Launch** — readiness, approvals, funding/booking completion and go-live.
+
+Reporting and Learning are post-launch destinations, not fake extra completion steps. They reuse the same campaign identity and shell but appear under `Reports & Insights`.
+
+The rail must be visually identical across Brief, Interpretation, Audience/STP, Strategy, Planning/Inventory, Proposal and Launch. Only the current/completed state and the mode-specific label at step 5 may change. OOH_ONLY must never visually or functionally expand into the FULL_CAMPAIGN rail without the governed restart/new-path rule.
+
+#### C. Exact screen-family contract and route ownership
+
+The implementation target is the approved screen, not the current legacy page layout. Existing React routes may be retained when semantically correct, but their rendered composition must be replaced or consolidated to match this contract.
+
+| Journey surface | Canonical route / owner | Approved target | Implementation rule |
+| --- | --- | --- | --- |
+| Brief intake | `/briefs/new` → `NewBriefPage` | **Start with your full campaign brief** / OOH equivalent | Large campaign Brief workspace; paste/type/upload/example entry; campaign-scope choices; budget, flight, geography and goals when known; right-side Adverti campaign assistant; dominant `Next: AI Interpretation`. Do not force client registration before the Brief. |
+| AI Interpretation | state of `NewBriefPage` or canonical created Brief review | **AI brief interpretation** | Dedicated stage, not a small inline confirmation box. Show objective, audience, geography, budget, timing, recommended campaign type, suggested channels, detected constraints, missing information, evidence/confidence provenance and a right-side explanation. `Approve and continue` is the dominant action. Missing/ambiguous material facts create clarification, not fabricated certainty. |
+| Audience & STP | `/stp/:briefVersionId` → `StpPage` | **Audience & STP** | Primary/secondary/excluded audience decisions, demographics/psychographics/channel affinity where supported, geographic concentration/map, audience evidence and AI insights. Audience Intelligence must actively enrich the approved Brief from governed structured/reference evidence before review. Where direct research is unavailable but the Brief supports a useful planning proposition, need state, buying context and positioning may be proposed only as explicit `Hypothesis:` working assumptions for human validation; they must never be presented as verified facts. The approved visual target is the dashboard composition shown in the owner-approved reference: two priority audience cards plus geography across the top, audience evidence plus AI insights below, direction cards, then the approval strip. A strategy with selected targets but no usable audience context, targeting rationale or positioning direction cannot be approved or unlock Strategy. |
+| Strategy | campaign strategy stage backed by current planning/intelligence state | **Strategy recommendations** | Recommended media mix, channel allocations, budgets, flight dates, geographies and rationale; campaign-outcome forecasts only where defensible; geographic allocation and timeline; AI strategy explanation. This is a distinct visual stage between approved STP and placement planning even if the backend media-mix record remains the canonical storage model. |
+| OOH inventory | `/marketplace` in campaign context or planning-inventory composition | **Inventory marketplace** | Filter/search/map/list grid, approved media/site imagery, fit/availability/rates, visible shortlist and campaign totals. Selection writes to the campaign shortlist; it must not become a disconnected generic catalogue session. |
+| Full media plan | `/planning/:briefVersionId` → `PlanningPage` | **Media plan & partner selection** | Channel tabs, selected placements, partner/placement rows, audience fit, estimates, costs, independent flight periods and market/location, with right-side plan summary and map/market insight. The present generic accordion is not the visual target. |
+| Media plan edit | same planning record | **Media Plan — Edit Mode** | Inline row selection, `Bulk Edit Flights`, `Optimize with AI`, `Add Placement`, side summary, review changes; edits create governed plan/revision state rather than silently mutating booked truth. |
+| Edit flight | planning drawer/modal | **Edit flight** | Right-side drawer using the approved dates/weeks/dayparts/apply-scope/impact-preview/reconfirmation layout. Applying a change records exactly which placements are affected. |
+| Replace placement | planning replacement surface/drawer | **Replace Inventory / Alternatives** | Current placement at top; reason for replacement; alternatives ranked by governed reach/cost/fit/geography/availability; comparison footer and explicit recommendation. Replacement must preserve lineage and trigger reconfirmation when required. |
+| Proposal builder | `/briefs/:briefId/proposals/new` and `/proposals/:proposalId` | **Proposal builder** | Package choices, editable line items, client-ready highlights/outcomes/cost breakdown and live proposal preview. Persisted Commercial API calculations remain authoritative. Do not present illustrative reach/ROI as real. |
+| Revision review | proposal/campaign replan state | **Revision Review & Reconfirmation** | Original vs revised values, impact summary, supplier reconfirmation/client approval flags, workflow timeline and explicit `Apply changes & send for reconfirmation`. A revision is a new governed version, never an in-place overwrite of accepted/confirmed truth. |
+| Approvals & booking | `/campaigns/:campaignId` / booking composition | **Approvals & Booking** / **Campaign approvals workspace** | Inventory approvals, supplier confirmations, creative approvals and payment/funding in one campaign workspace with booking summary and key dates. Tabs expose related domains but retain one campaign context. |
+| Launch | campaign launch/readiness composition | **Launch campaign** | Readiness status/countdown or live status; in-flight media, active markets, checklist, creative assets, launch tasks and live notifications where real. `Launch campaign now` or live states require the canonical readiness guards, not a UI-only button. |
+| Reporting | `/measurement`, `/reports`, campaign report routes | **Campaign reporting** | Spend, impressions, reach, frequency/ROI where supported; province/location delivery, media performance, audience delivery, pacing, top places and objective results. Every KPI requires provenance/measurement status. |
+| Learning | reporting/learning campaign state | **Learning & insights** | Campaign takeaway, what worked/underperformed, best audiences/locations/media, uplift opportunities, reusable playbooks and suggested next campaigns. AI may interpret verified performance but must label uncertainty and must not invent causality. |
+
+#### D. Connected-flow requirements
+
+The visual journey must also be a real application journey:
+
+- Brief approval routes into the exact same `briefVersionId` used by STP.
+- STP approval unlocks Strategy for that same version.
+- Strategy approval/mix confirmation unlocks the appropriate OOH inventory or full media-plan work.
+- Inventory/placement selection writes canonical shortlist/planning state; it does not live only in browser state.
+- Proposal is generated from the currently approved strategy/mix/shortlist/plan lineage.
+- A client decision is distinct from internal proposal preparation.
+- Funding and supplier confirmation remain separate governed gates before booking/readiness.
+- Flight/placement changes after proposal/booking enter revision/reconfirmation rather than altering accepted truth silently.
+- Launch surfaces read booking, creative, proof/measurement readiness and other persisted guards.
+- Reporting consumes verified delivery/performance evidence from the launched campaign.
+- Learning reads the same reporting lineage and may seed a new campaign only as a new governed Brief/opportunity, never by mutating the completed campaign.
+
+Every page must provide an obvious previous/next route when the workflow permits it. No stage may strand the user or rely on a hidden browser-back action. `Save & Exit` returns to the relevant campaign/work list without losing canonical persisted work.
+
+#### E. Shared component families — mandatory consolidation
+
+Do not implement each screenshot as bespoke JSX/CSS. The approved system must be built from shared components so the screens remain visually connected:
+
+- `AdvertifiedShell` / left navigation / top bar;
+- `CampaignJourneyRail`;
+- `CampaignPageHeader` + `SaveAndExit`;
+- `SectionCard`, `SummaryCard`, `KpiCard`, `StatusPill`;
+- `ChannelPill/ChannelIcon` with stable media colour/icon mapping;
+- `AdvertiInsightPanel` / AI explanation block;
+- `CampaignMapPanel` using the shared Mapbox layer;
+- `DataTable` / selectable planning row;
+- `FilterBar` / search/filter controls;
+- `ShortlistPanel`;
+- `PlanSummaryPanel`;
+- `FlightEditorDrawer`;
+- `PlacementReplacementPanel`;
+- `RevisionComparison` + `WorkflowTimeline`;
+- `ProposalPreview`;
+- `LaunchChecklist` / `LaunchTasks`;
+- `ReportingChartCard` and common legends/tooltips;
+- `EmptyState`, `LoadingState`, `ErrorState`, `RetryState`.
+
+If an existing component does not match the approved semantics/visual system, refactor or replace it. Do not preserve duplicated legacy components merely because they already exist.
+
+#### F. Exactness and truth acceptance rules
+
+A screen is not considered implemented merely because it contains the same labels. Acceptance requires all of the following:
+
+1. shell, rail, page hierarchy, major card geometry and dominant actions visibly match the approved reference family;
+2. desktop density uses the available canvas like the approved references;
+3. the page reads as the same Advertified product as the screen before and after it;
+4. responsive behaviour preserves the information hierarchy rather than simply stacking every element indefinitely;
+5. illustrative mock numbers/images are replaced with persisted truth, defensible forecast/evidence, or an explicit unavailable/unknown state;
+6. buttons are wired to canonical commands or intentionally disabled with an explanation — no decorative actions;
+7. route transitions preserve the same campaign/brief/proposal identity and authorised role context;
+8. typed browser schemas validate API boundaries;
+9. empty/loading/error/retry states use the same visual system;
+10. the old visual path and duplicated CSS/component implementation are removed once the new shared path fully supersedes them.
+
+For visual acceptance, compare the implemented desktop screen against the approved reference at the same representative viewport. Major shell dimensions, rail placement, card grouping, primary/secondary column balance, control density, status treatment and typography hierarchy must match closely enough that the two are recognisably the same design, not merely the same feature set.
+
+#### G. Current React disposition for this redesign
+
+The existing route graph is retained as a starting point, not as proof of visual completion. The primary campaign pages currently requiring redesign/consolidation are `NewBriefPage`, `StpPage`, `PlanningPage`, `MarketplacePage`, `NewProposalPage`, `ProposalPage`, `CampaignPage`, `BookingsPage`, `FundingPage`, measurement/report pages and the shared `AppShell`/flow components. `StrategyPage` currently serves a different strategy/opportunity record and must not be mistaken for the new campaign Strategy stage unless its domain semantics are intentionally reconciled.
+
+Implementation must proceed shell/shared primitives first, then the connected campaign journey in order: Brief → Interpretation → Audience/STP → Strategy → Inventory/Media Plan → Proposal → Approvals/Booking → Launch → Reporting → Learning, followed by the role-specific/index/exception screens using the same system.
 
 ### 21.3.8 Desktop composition and information density [Policy]
 
@@ -2862,7 +2993,7 @@ Prefer authentic commercial assets and data visualisation over generic stock pho
 
 Frontend forms and external data boundaries must use robust typed validation. Zod is the current browser validation standard where applicable.
 
-User notifications should be centralised through the approved notification service/toast pattern rather than inconsistent one-off components.
+User notifications must be centralised through the shared notification service and rendered with **Toastr**. Page code calls the shared `notifications` abstraction rather than importing or configuring Toastr directly. Success, information, warning and failure feedback use that one path; do not introduce React Toastify, page-local toast systems or duplicate transient notification hosts. Durable work changes and assigned decisions may still appear in the persisted Notifications/Tasks surfaces; Toastr is for transient interaction feedback.
 
 Messages must be human-safe and explain the affected action and recovery.
 
@@ -7435,6 +7566,30 @@ The application no longer contains or requires a resident malware-scanner daemon
 This change protects the existing upload domains without silently downgrading security: inventory, creative, proposal branding/attachments, funding documents, delivery proof and performance evidence continue to cross the shared malware-protection boundary. No production fallback treats an unscanned object as clean. The intended production integration is GuardDuty Malware Protection for S3 with trusted asynchronous verdict delivery/correlation to the immutable object identity/version/hash. **AWS integration is application-ready but not yet deployed or end-to-end verified; production readiness remains blocked on a real clean-object and malicious-object verification through that AWS path.**
 
 The resource rationale was measured locally before removal: the resident scanner process was using approximately 951 MB RSS, so removing the always-on daemon materially reduces the minimum EC2 memory footprint. Verification after removal passed the Release API build with 0 warnings/0 errors, `BrowserSessionSecurityTests` 10/10, production Compose dependency tests 5/5, and production preflight tests 25/25. This evidence does not claim that GuardDuty/S3 malware scanning is already live.
+
+### 49.3.14 Connected release continuation — 2026-09-13 [Work packet / evidence]
+
+The owner renewed the instruction to complete the connected journey and confirmed a US$5 aggregate AI budget. Existing commitments and uncertain calls remain charged against that ceiling; this is not a per-call allowance or permission to reset the ledger. The only local application project is `advertified-os2-dev`. Refreshes must preserve data and use `--no-deps` without rerunning seeds or starting a second stack.
+
+The preceding pass applied `202609130015_IntelligenceArtifactProviderColumnDriftRepair` to the long-lived local database. It restored the missing invocation table, migrated retained provider usage before removing obsolete artifact columns, and restored constraints and tenant protections. Retained execution evidence reports one applied migration, four focused API regressions, four controlled-response browser regressions, 155 platform/architecture checks, and successful web compilation. The connected journey progressed through Audience approval but stopped because the configured deterministic strategy provider intentionally returns no channel recommendations. These results do not certify the complete journey or production.
+
+This work packet verifies refreshed AWS identity and remaining global reserved budget, repairs the interrupted preview switch so it cannot run seeds, enables the already approved local provider configuration only under the existing atomic budget guard, and follows persisted Strategy → allocation → real inventory → approved plan → draft Proposal. Stop at the first real failure, correct that boundary, and retain exact outcomes. No publication, external email, booking, payment, production deployment or unrelated Git landing is authorised by this continuation. Recheck service health, storage and actual/reserved AI usage, disable live preview after verification, and record remaining release blockers without a completion percentage.
+
+### 49.3.15 Owner AI budget increase — 2026-09-13 [Policy / work packet]
+
+The owner explicitly increased the current planner-intelligence and connected-release AI budget from US$5 to **US$10 total**. This supersedes earlier US$5 ceiling statements for this work; historical execution receipts remain unchanged. Every existing reservation, including failed, cancelled and unreconciled calls, continues to count. There is no per-month reset, extra per-agent budget or authority to erase the ledger. Preview calls retain the existing US$0.05 per-call ceiling and one-shot dispatch.
+
+Implement the increase through a forward-only database migration of the existing atomic owner-budget guard; align the application constant and the read-only budget preflight. Acceptance requires preserving the existing ledger exactly, refusing replays and over-cap/concurrent requests, applying the migration idempotently through the existing local migrator, and recording the resulting headroom. No new services, data reset, seed execution or paid infrastructure is authorised. Live preview remains disabled while the observed AWS `bedrock:CountTokens` access denial is unresolved; increasing the spending ceiling does not grant AWS permissions or waive token-cost checks.
+
+Verification: `202609130016_OwnerAiBudgetTenDollars` was applied by the canonical local migrator (1 migration, exit 0); its immediate no-build rerun applied 0 migrations and exited 0. `AiMonthlyBudgetTests` and the master-data migration/idempotency acceptance passed 3/3 through the pinned Docker SDK. The combined platform/architecture suite passed 160/160, including four preflight cases for prior commitments, exact remaining-call headroom and an unapplied budget migration. The API was rebuilt and refreshed without seeds. The local ledger still contains the same 20 unreconciled reservations, US$4.33 committed, and the same complete-row fingerprint `ef164b91c76dc094e62c3d7ddd9470dc` before and after; US$5.67 is available under the new ceiling. Recorded actual usage is not evidence of zero billed spend while those calls are unreconciled. No new provider inference was attempted for this budget increase. Host free space was 25.41 GiB after verification, with five healthy application services in the single canonical project. No Git commit/push or production GO is asserted.
+
+### 49.3.16 Connected verification after AWS permission update — 2026-09-13 [Work packet]
+
+The owner reported completing the requested AWS permission update. Resume the existing connected-release work, not a redesign. Verify the authorised SSO identity, token-count boundary and lifetime budget before inference; the initial check retains US$4.33 in 20 unreconciled reservations and US$5.67 remaining under the US$10 ceiling. Run one sequential connected journey on `advertified-os2-dev`, preserve all commercial and tenant guards, fix only evidenced failures, and retain the exact final stage and persisted identifiers. No seeds, parallel stack, external sending, payment, booking or production deployment. Restore deterministic mode after the bounded live verification, record actual/reserved costs and host free bytes, and leave changes unstaged.
+
+### 49.3.17 Saved-proposal verification and fresh journey closure — 2026-09-13 [Work packet]
+
+Continue from the retained resumed-run receipt without counting it as a fresh complete journey. Inspection found a subsequently corrupted browser canary: duplicated source text was inserted inside its geography regular expression. Repair that test before further provider calls, retain its existing commercial guards, and split only along input/review/evidence responsibilities. Read the saved proposal through the authenticated API and report its exact Brief/plan/inventory lineage and coverage, not just an exit code. Then execute one fresh connected Brief-to-draft-Proposal journey with persisted result checks for digital-only scope, requested cities, dates, approved plan and matching proposal lines. Retain the approved US$10 cumulative budget, one-shot calls, single canonical stack, unchanged source inventory and no external sending/booking/payment. Finish with affected frontend checks, platform/architecture gates, actual host-space/budget evidence and deterministic runtime restoration. A blocked or partial business requirement is not a passed complete campaign.
 
 ## 49.4 Handoff completeness test [Principle]
 

@@ -42,13 +42,33 @@ public sealed record MediaRunningPeriodView(
     DateOnly Start,
     DateOnly End);
 
+public sealed record MediaGeographyAllocationView(
+    string Geography,
+    long BudgetMinor);
+
+public sealed record MediaImpactEstimateView(
+    decimal? EstimatedReach,
+    decimal? AverageFrequency,
+    decimal? EstimatedRoiPercent,
+    string Source,
+    string? MeasurementPeriod,
+    string Methodology);
+
+public sealed record MediaScheduleView(
+    IReadOnlyList<string> Weekdays,
+    IReadOnlyList<string> Dayparts);
+
 public sealed record MediaAllocationView(
     string Channel,
     long BudgetMinor,
     string Role,
     IReadOnlyList<MediaRunningPeriodView> RunningPeriods,
     [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-    IReadOnlyList<InventoryPurchaseQuantity>? Purchases = null);
+    IReadOnlyList<InventoryPurchaseQuantity>? Purchases = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<MediaGeographyAllocationView>? GeographyAllocations = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    MediaScheduleView? Schedule = null);
 
 public sealed record MediaMixVersionView(
     Guid Id,
@@ -65,7 +85,8 @@ public sealed record MediaMixVersionView(
     Guid CreatedBy,
     Guid? ApprovedBy,
     long Version,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    MediaImpactEstimateView? ImpactEstimate = null);
 
 public sealed record InventoryBenchmarkView(
     Guid Id,
@@ -271,6 +292,25 @@ public sealed record PlanningDecisionContextView(
     IReadOnlyList<PlanningMediaJobView> MediaJobs,
     IReadOnlyList<string> EvidenceGaps);
 
+public sealed record AudienceResearchObservationView(
+    Guid ObservationId,
+    string SourceTitle,
+    string MeasurementPeriod,
+    string GeographyLevel,
+    string GeographyCode,
+    string GeographyName,
+    IReadOnlyDictionary<string, string> Dimensions,
+    string MetricCode,
+    decimal MetricValue,
+    string MetricUnit,
+    string StabilityCode,
+    string ActivationPolicy);
+
+public sealed record AudienceResearchContextView(
+    IReadOnlyList<string> RequestedGeographies,
+    IReadOnlyList<string> ResolvedGeographies,
+    IReadOnlyList<AudienceResearchObservationView> Observations);
+
 public sealed record PlanningWorkspaceView(
     Guid BriefId,
     Guid BriefVersionId,
@@ -280,4 +320,5 @@ public sealed record PlanningWorkspaceView(
     MediaMixVersionView? MediaMix,
     InventoryShortlistVersionView? Shortlist,
     MediaPlanVersionView? MediaPlan,
-    PlanningDecisionContextView? DecisionContext = null);
+    PlanningDecisionContextView? DecisionContext = null,
+    AudienceResearchContextView? AudienceResearch = null);

@@ -183,8 +183,12 @@ function CandidateCard({ candidate, editable, selected, advisory, onToggle }: {
   onToggle: () => void
 }) {
   const visual = mediaVisual(candidate.channel)
-  const rate = candidate.rateAmountMinor === null || !candidate.currency
-    ? 'Rate unavailable' : formatMoney(candidate.rateAmountMinor, candidate.currency)
+  const unitRate = candidate.rateAmountMinor === null || !candidate.currency
+    ? null : formatMoney(candidate.rateAmountMinor, candidate.currency)
+  const scheduledCost = candidate.suitability?.buyAssessment?.campaignSupplierCostMinor
+  const rate = scheduledCost == null
+    ? unitRate ?? 'Rate unavailable'
+    : `${formatMoney(scheduledCost, candidate.currency ?? 'ZAR')} scheduled${unitRate ? ` · ${unitRate} unit rate` : ''}`
   const eligibility = candidate.isEligible
     ? 'Eligible' : candidate.rejectionReason?.replaceAll('_', ' ')
   return <article className={`shortlist-card media-tone-${visual.tone} ${candidate.isEligible ? '' : 'is-rejected'}`}>
@@ -238,94 +242,37 @@ function PlacementDetail({ candidate }: { candidate: ShortlistCandidate }) {
       deliverable.placement].filter(Boolean).join(' · ')}</p>}
     {spatial && <p>{[spatial.venue, spatial.road, spatial.route, spatial.trafficDirection]
       .filter(Boolean).join(' · ')}</p>}
-    {spatial && spatial.pointsOfInterest.length > 0 && <ul>{spatial.pointsOfInterest.map(poi =>
-      <li key={`${poi.name}-${poi.category ?? ''}`}>{poi.name}{poi.category ? ` (${poi.category})` : ''}</li>)}</ul>}
   </details>
-}
-
-function commercialGapLabel(gap: string) {
-  if (gap === 'inventory.supplierCommercial.vatStatus') return 'Supplier VAT status is not verified.'
-  if (gap === 'inventory.rate.vatTreatment') return 'The rate does not state whether VAT is included.'
-  if (gap === 'inventory.rate.validity') return 'The published rate has no explicit validity period and requires review.'
-  return gap
-}
-
-function Selection({ candidate, editable, selected, onToggle }: {
-  candidate: ShortlistCandidate; editable: boolean; selected: boolean; onToggle: () => void
-}) {
-  if (!candidate.isEligible || !editable) return null
-  return <input type="checkbox" aria-label={`Select ${candidate.name}`}
-    checked={selected} onChange={onToggle} />
 }
 
 function AudienceFitDetail({ candidate }: { candidate: ShortlistCandidate }) {
   const fit = candidate.audienceFit
-  const scores = [
-    ['Language', fit.languageScore],
-    ['Life stage', fit.lifeStageScore],
-    ['LSM / SEM', fit.lsmSemScore],
-  ] as const
-  if (fit.evidenceGaps.length === 0 && scores.every(([, value]) => value === null)) {
-    return <details className="benchmark-detail"><summary>Audience evidence</summary>
-      <p>Audience match needs evidence. No comparable target profile has been supplied.</p>
-      <DeliveryMeasurements candidate={candidate} /></details>
-  }
-  return <details className="benchmark-detail"><summary>Audience fit</summary>
-    {fit.evidenceGaps.length > 0
-      ? <div><strong>Evidence required</strong><ul>{fit.evidenceGaps.map(gap =>
-        <li key={gap}>{audienceGapLabel(gap)}</li>)}</ul></div>
-      : <div className="benchmark-facts">{scores.filter(([, value]) => value !== null)
-        .map(([label, value]) => <span key={label}><strong>{Math.round(value! * 100)}%</strong> {label}</span>)}</div>}
-    {fit.measurementSource && <p>{fit.measurementSource}
-      {fit.measurementPeriod ? ` · ${fit.measurementPeriod}` : ''}</p>}
-    {fit.methodology && <p>{fit.methodology}</p>}
-    {fit.taxonomyName && <p>LSM / SEM taxonomy: {fit.taxonomyName}
-      {fit.taxonomyVersion ? ` ${fit.taxonomyVersion}` : ''}</p>}
-    <DeliveryMeasurements candidate={candidate} />
+  if (fit.evidenceGaps.length === 0 && fit.deliveryEvidenceGaps.length === 0) return null
+  return <details className="benchmark-detail"><summary>Audience evidence</summary>
+    {fit.evidenceGaps.length > 0 && <ul>{fit.evidenceGaps.map(gap => <li key={gap}>{gap}</li>)}</ul>}
+    {fit.deliveryEvidenceGaps.length > 0 && <ul>{fit.deliveryEvidenceGaps.map(gap => <li key={gap}>{gap}</li>)}</ul>}
   </details>
 }
 
-function DeliveryMeasurements({ candidate }: { candidate: ShortlistCandidate }) {
-  const fit = candidate.audienceFit
-  if (fit.deliveryEvidenceGaps.length > 0) return <div>
-    <strong>Delivery evidence required</strong>
-    <ul>{fit.deliveryEvidenceGaps.map(gap =>
-      <li key={gap}>{audienceGapLabel(gap)}</li>)}</ul>
-  </div>
-  if (fit.deliveryMeasurements.length === 0) return null
-  return <div><p>Published placement measurements; these are not a campaign reach forecast.</p>
-    <div className="benchmark-facts">{fit.deliveryMeasurements.map(item =>
-      <span key={item.metricType}>
-        <strong>{item.value} {item.unit}</strong> {item.metricType.replaceAll('_', ' ')}
-        <small>{[item.measurementSource, item.measurementPeriod, item.universe].filter(Boolean).join(' · ')}</small>
-        {item.limitations && <small>{item.limitations}</small>}
-      </span>)}</div></div>
-}
-
-function audienceGapLabel(gap: string) {
-  if (gap === 'inventory.audienceProfile') return 'This product has no audience profile.'
-  if (gap === 'inventory.audienceProfile.measurementEvidence') {
-    return 'Audience source, period and methodology are required.'
-  }
-  if (gap === 'audience.lsmSem.taxonomy') {
-    return 'The product and target need the same named LSM / SEM taxonomy version.'
-  }
-  if (gap === 'inventory.audienceProfile.deliveryMeasurements') {
-    return 'Reach, listenership, footfall or impressions have not been supplied.'
-  }
-  if (gap === 'inventory.audienceProfile.deliveryMeasurementEvidence') {
-    return 'Delivery measurements require value, unit, source, period and methodology.'
-  }
-  return gap
-}
-
 function BenchmarkDetail({ candidate }: { candidate: ShortlistCandidate }) {
-  const benchmark = candidate.benchmark
-  if (!benchmark) return null
+  const benchmark = candidate.benchmark!
   return <details className="benchmark-detail"><summary>Market comparison</summary>
-    <div className="benchmark-facts"><span><strong>{benchmark.cohortSize}</strong> comparable sites</span>
-      <span><strong>{benchmark.position.replaceAll('_', ' ')}</strong> market position</span>
-      <span><strong>{benchmark.percentile ?? '—'}</strong> price percentile</span>
-      <span><strong>{Math.round(benchmark.confidence * 100)}%</strong> benchmark confidence</span></div>
-    <p>{benchmark.geographyBasis.replaceAll('_', ' ')}</p></details>
+    <p>{benchmark.position.replaceAll('_', ' ')} · {benchmark.geographyBasis.replaceAll('_', ' ')}</p>
+    <p>Policy {benchmark.policyVersion.replaceAll('_', ' ')}</p>
+  </details>
+}
+
+function Selection({ candidate, editable, selected, onToggle }: {
+  candidate: ShortlistCandidate
+  editable: boolean
+  selected: boolean
+  onToggle: () => void
+}) {
+  if (!candidate.isEligible || !editable) return null
+  return <label className="shortlist-selection"><input type="checkbox" checked={selected}
+    onChange={onToggle} /> Carry forward</label>
+}
+
+function commercialGapLabel(value: string) {
+  return value.replaceAll('.', ' › ').replaceAll('_', ' ')
 }

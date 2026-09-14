@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { MediaPlan } from '../api/planning-schemas'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { masterDataCodes } from '../generated/master-data-codes'
@@ -7,7 +8,7 @@ import { mediaVisual } from './media-visuals'
 export function MediaPlanPanel({ plan, busy, onResolve, onApprove }: {
   plan: MediaPlan
   busy: boolean
-  onResolve: (code: string) => Promise<void>
+  onResolve: (code: string, reason: string) => Promise<void>
   onApprove: () => Promise<void>
 }) {
   const unresolved = plan.objections.filter(item => item.resolution === null)
@@ -79,16 +80,31 @@ function purchaseBasis(line: MediaPlan['lines'][number]) {
 }
 
 function Objections({ plan, busy, onResolve }: {
-  plan: MediaPlan; busy: boolean; onResolve: (code: string) => Promise<void>
+  plan: MediaPlan; busy: boolean; onResolve: (code: string, reason: string) => Promise<void>
 }) {
   if (plan.objections.length === 0) return null
   return <div className="plan-objections"><h3>Items to review</h3>{plan.objections.map(item =>
     <article key={item.code} className={item.resolution ? 'is-resolved' : ''}>
       <div><strong>{item.evidenceGap}</strong><p>{item.recommendedResolution}</p></div>
-      {item.resolution ? <span className="status-chip">Reviewed</span> :
-        <button className="secondary-button" type="button" disabled={busy}
-          onClick={() => void onResolve(item.code)}>Review and accept</button>}
+      {item.resolution ? <div><span className="status-chip">Reviewed</span><p>{item.resolutionReason}</p></div>
+        : <ObjectionDecision key={`${plan.id}:${item.code}`} code={item.code} busy={busy} onResolve={onResolve} />}
     </article>)}</div>
+}
+
+function ObjectionDecision({ code, busy, onResolve }: {
+  code: string; busy: boolean; onResolve: (code: string, reason: string) => Promise<void>
+}) {
+  const [reason, setReason] = useState('')
+  return <form className="planning-actions" onSubmit={event => {
+    event.preventDefault()
+    if (reason.trim() && !busy) void onResolve(code, reason.trim())
+  }}>
+    <label>Review reason for {code.replaceAll('_', ' ').toLowerCase()}
+      <textarea required maxLength={2000} rows={2} value={reason}
+        onChange={event => setReason(event.target.value)} disabled={busy} />
+    </label>
+    <button className="secondary-button" type="submit" disabled={busy || !reason.trim()}>Review and accept</button>
+  </form>
 }
 
 function Money({ label, amount, currency }: { label: string; amount: number; currency: string }) {

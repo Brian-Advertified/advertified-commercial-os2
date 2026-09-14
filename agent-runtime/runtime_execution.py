@@ -73,7 +73,7 @@ from media_strategy_contracts import OPERATION as MEDIA_STRATEGY_ANALYSIS, Media
 from media_strategy_service import (
     INSTRUCTION as MEDIA_STRATEGY_INSTRUCTION,
     canonicalize_media_strategy,
-    unavailable_media_strategy,
+    deterministic_media_strategy,
     validate_media_strategy_grounding,
 )
 from opportunity_contracts import OpportunityAgentRequest
@@ -101,7 +101,7 @@ from supplied_brief_contracts import OPERATION as SUPPLIED_BRIEF, SuppliedBriefR
 from supplied_brief_model_input import build_model_input as build_brief_model_input
 from supplied_brief_service import (
     INSTRUCTION as SUPPLIED_BRIEF_INSTRUCTION, canonicalize_grounding as canonicalize_brief_grounding,
-    unavailable_fixture, validate_source as validate_brief_source,
+    deterministic_supplied_brief, validate_source as validate_brief_source,
     validate_grounding as validate_brief_grounding,
 )
 
@@ -140,7 +140,7 @@ def execute_agent(
                 status_code=503,
                 detail="Requested provider is not enabled.",
             )
-        output = deterministic(request)
+        output = _canonicalize_operation_output(request, deterministic(request))
         _validate_operation_output(request, output)
         return output.model_dump(mode="json")
     if runtime_mode == BEDROCK_MODE:
@@ -203,10 +203,12 @@ def _grounded_bedrock_output(agent_code, request, artifact_type, instruction):
                 ),
             ) from error
     except BedrockProviderError as error:
+        safe_detail = str(error) if error.stage == "TYPED_CONTRACT" else "details redacted"
         logger.warning(
-            "Bedrock provider rejected output: stage=%s acceptance=%s",
+            "Bedrock provider rejected output: stage=%s acceptance=%s detail=%s",
             error.stage,
             error.acceptance,
+            safe_detail,
         )
         raise HTTPException(
             status_code=503,
@@ -250,7 +252,7 @@ def _contract(
     body: bytes,
 ) -> tuple[BaseModel, ArtifactType, Handler]:
     if agent_code == AgentCode.BRIEF_DRAFTING and _operation(body) == SUPPLIED_BRIEF:
-        types = (SuppliedBriefRequest, SuppliedBriefArtifact, unavailable_fixture)
+        types = (SuppliedBriefRequest, SuppliedBriefArtifact, deterministic_supplied_brief)
     elif agent_code in OPPORTUNITY_ARTIFACTS:
         types = (OpportunityAgentRequest, OPPORTUNITY_ARTIFACTS[agent_code], HANDLERS[agent_code])
     elif agent_code == AgentCode.INVENTORY_INTELLIGENCE:
@@ -258,7 +260,7 @@ def _contract(
     elif agent_code == AgentCode.LOCATION_INTELLIGENCE:
         types = _location_contract_types(body)
     elif agent_code == AgentCode.MEDIA_STRATEGY and _operation(body) == MEDIA_STRATEGY_ANALYSIS:
-        types = (MediaStrategyRequest, MediaStrategyArtifact, unavailable_media_strategy)
+        types = (MediaStrategyRequest, MediaStrategyArtifact, deterministic_media_strategy)
     else:
         types = {
             AgentCode.MARKET_INTELLIGENCE: (MarketIntelligenceAgentRequest, MarketIntelligenceArtifact, propose_market_intelligence),

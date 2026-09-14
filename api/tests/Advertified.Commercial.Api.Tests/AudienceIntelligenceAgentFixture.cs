@@ -18,11 +18,14 @@ internal sealed class AudienceIntelligenceAgentFixture : IAudienceIntelligenceAg
         var targets = audiences.Where(item => item.IsTarget).Select(item => item.Name).ToArray();
         var targetingRationale = targets.Length == 0
             ? null
-            : $"Prioritise {string.Join(", ", targets)} for the stated objective within {string.Join(", ", input.Problem.Geographies)}. Unstated motivations and behaviours remain unestablished.";
+            : $"Prioritise {string.Join(", ", targets)} for the stated objective within {string.Join(", ", input.Problem.Geographies)}. Verified audience facts are preserved; working context remains explicitly hypothetical until validated.";
+        var positioningStatement = targets.Length == 0
+            ? null
+            : $"Hypothesis: Position the campaign for {string.Join(", ", targets)} around the stated objective — {input.Problem.Objective}. Validate the audience benefit and proposition before client-facing use.";
         return Task.FromResult(new AudienceAgentProposal(
             audiences,
             targetingRationale,
-            null,
+            positioningStatement,
             [
                 "Audience need state is not established unless supported by audience-bound evidence.",
                 "Buying context is not established unless supported by audience-bound evidence.",
@@ -54,8 +57,10 @@ internal sealed class AudienceIntelligenceAgentFixture : IAudienceIntelligenceAg
             .Select(item => item.EvidenceItemId!.Value)
             .Distinct()
             .ToArray();
-        var needState = Single(facts.Select(item => item.NeedState));
-        var buyingContext = Single(facts.Select(item => item.BuyingContext));
+        var needState = Single(facts.Select(item => item.NeedState)) ??
+            $"Hypothesis: {name} may have a need connected to the stated campaign objective — {input.Problem.Objective}. Validate the underlying consumer need before treating this as evidence.";
+        var buyingContext = Single(facts.Select(item => item.BuyingContext)) ??
+            $"Hypothesis: {name}'s decision context may be influenced by the supplied campaign objective and offer context. Product, price, purchase occasion and decision-making role still require validation.";
         var language = Single(facts.Select(item => item.Language));
         var lifeStage = Single(facts.Select(item => item.LifeStage));
         var lsmSem = Single(facts.Select(item => item.LsmSem));

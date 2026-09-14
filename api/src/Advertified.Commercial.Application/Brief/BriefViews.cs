@@ -25,7 +25,8 @@ public sealed record BriefSourceView(
     string Content,
     string ContentHash,
     Guid CreatedBy,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    SuppliedBriefUnderstandingView? Interpretation = null);
 
 public sealed record BriefSpatialRequirementView(
     Guid Id,

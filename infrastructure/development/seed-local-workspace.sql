@@ -305,7 +305,7 @@ VALUES
     '10000000-0000-0000-0000-000000000120',
     '10000000-0000-0000-0000-000000000002',
     '10000000-0000-0000-0000-000000000110',
-    1, 'Local Demo Johannesburg Digital Billboard', 'OOH', 'OOH_SITE',
+    1, 'Local Demo Johannesburg Digital Billboard', 'DOOH', 'OOH_SITE',
     'Johannesburg', -26.2041, 28.0473, 'HUMAN_VERIFIED',
     '10000000-0000-0000-0000-000000000101',
     '10000000-0000-0000-0000-000000000102',
@@ -337,7 +337,7 @@ WHERE id IN (
 
 INSERT INTO commercial.inventory_rates (
     id, tenant_id, product_version_id, rate_type_code, currency_code,
-    amount_minor, effective_from, effective_to, source_locator
+    amount_minor, effective_from, effective_to, source_locator, commercial_terms_json
 )
 VALUES
 (
@@ -345,14 +345,16 @@ VALUES
     '10000000-0000-0000-0000-000000000002',
     '10000000-0000-0000-0000-000000000120',
     'MONTH_RATE', 'ZAR', 2500000, '2026-01-01', '2027-12-31',
-    'local-demo-proposal-inventory.csv#row=2'
+    'local-demo-proposal-inventory.csv#row=2',
+    '{"rateValidFrom":"2026-01-01","rateValidTo":"2027-12-31","productionCostMinor":0,"installationCostMinor":0,"minimumOrder":1,"inclusions":[],"exclusions":[],"conditions":[],"billingDays":30}'::jsonb
 ),
 (
     '10000000-0000-0000-0000-000000000131',
     '10000000-0000-0000-0000-000000000002',
     '10000000-0000-0000-0000-000000000121',
     'MONTH_RATE', 'ZAR', 3200000, '2026-01-01', '2027-12-31',
-    'local-demo-proposal-inventory.csv#row=3'
+    'local-demo-proposal-inventory.csv#row=3',
+    '{"rateValidFrom":"2026-01-01","rateValidTo":"2027-12-31","productionCostMinor":0,"installationCostMinor":0,"minimumOrder":1,"inclusions":[],"exclusions":[],"conditions":[],"billingDays":30}'::jsonb
 )
 ON CONFLICT (id) DO NOTHING;
 

@@ -130,7 +130,9 @@ public sealed partial class PlanningCommands
             ?? throw new InvalidOperationException("The approved Media Strategy Intelligence artifact is invalid.");
         var allocations = BuildWorksheetAllocations(
             mediaStrategyArtifact,
-            brief.BudgetMinor!.Value);
+            brief.BudgetMinor!.Value,
+            brief.Timing,
+            Read<string[]>(brief.GeographiesJson));
         EnsureAllocations(allocations, brief.BudgetMinor.Value);
         var latest = await store.FindLatestMixAsync(
             envelope.TenantId, briefVersionId, cancellationToken);

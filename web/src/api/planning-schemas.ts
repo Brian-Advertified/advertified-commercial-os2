@@ -19,12 +19,24 @@ export const inventoryPurchaseQuantitySchema = z.object({
   denominator: z.number().int().positive().nullish(),
 })
 
+export const mediaGeographyAllocationSchema = z.object({
+  geography: z.string().min(1),
+  budgetMinor: z.number().int().nonnegative(),
+})
+
+export const mediaScheduleSchema = z.object({
+  weekdays: z.array(z.string()),
+  dayparts: z.array(z.string()),
+})
+
 export const mediaAllocationSchema = z.object({
   channel: z.string().min(1),
   budgetMinor: z.number().int().nonnegative(),
   role: z.string().min(1),
   runningPeriods: z.array(runningPeriodSchema),
   purchases: z.array(inventoryPurchaseQuantitySchema).nullish(),
+  geographyAllocations: z.array(mediaGeographyAllocationSchema).nullish().transform(value => value ?? []),
+  schedule: mediaScheduleSchema.nullish().transform(value => value ?? null),
 })
 
 export const audienceSegmentSchema = z.object({
@@ -65,6 +77,27 @@ export const audienceStrategySchema = z.object({
   createdAtUtc: z.iso.datetime({ offset: true }),
 })
 
+export const audienceResearchObservationSchema = z.object({
+  observationId: z.guid(),
+  sourceTitle: z.string().min(1),
+  measurementPeriod: z.string().min(1),
+  geographyLevel: z.string().min(1),
+  geographyCode: z.string().min(1),
+  geographyName: z.string().min(1),
+  dimensions: z.record(z.string(), z.string()),
+  metricCode: z.string().min(1),
+  metricValue: z.number(),
+  metricUnit: z.string().min(1),
+  stabilityCode: z.string().min(1),
+  activationPolicy: z.string().min(1),
+})
+
+export const audienceResearchContextSchema = z.object({
+  requestedGeographies: z.array(z.string()),
+  resolvedGeographies: z.array(z.string()),
+  observations: z.array(audienceResearchObservationSchema),
+})
+
 export const inventoryIntelligenceInterpretationSchema = z.object({
   candidateId: z.guid(),
   rationale: z.string().min(1).max(1000),
@@ -86,6 +119,15 @@ export const inventoryIntelligencePayloadSchema = z.object({
   interpretations: z.array(inventoryIntelligenceInterpretationSchema),
 })
 
+export const mediaImpactEstimateSchema = z.object({
+  estimatedReach: z.number().positive().nullable(),
+  averageFrequency: z.number().positive().nullable(),
+  estimatedRoiPercent: z.number().min(-100).nullable(),
+  source: z.string().min(1),
+  measurementPeriod: z.string().min(1).nullable(),
+  methodology: z.string().min(1),
+})
+
 export const mediaMixSchema = z.object({
   id: z.guid(),
   briefVersionId: z.guid(),
@@ -102,6 +144,7 @@ export const mediaMixSchema = z.object({
   approvedBy: z.guid().nullable(),
   version: z.number().int().positive(),
   createdAtUtc: z.iso.datetime({ offset: true }),
+  impactEstimate: mediaImpactEstimateSchema.nullish().transform(value => value ?? null),
 })
 
 export const benchmarkSchema = z.object({
@@ -363,13 +406,18 @@ export const planningWorkspaceSchema = z.object({
       channel: z.string(), role: z.string(), budgetMinor: z.number().int().nonnegative(), currency: z.string(),
     })), evidenceGaps: z.array(z.string()),
   }).nullable().optional(),
+  audienceResearch: audienceResearchContextSchema.nullish().transform(value => value ?? null),
 })
 
 export type AudienceStrategy = z.infer<typeof audienceStrategySchema>
+export type AudienceResearchContext = z.infer<typeof audienceResearchContextSchema>
+export type AudienceResearchObservation = z.infer<typeof audienceResearchObservationSchema>
 export type InventoryIntelligenceArtifact = z.infer<typeof inventoryIntelligenceArtifactSchema>
 export type InventoryIntelligenceInterpretation = z.infer<typeof inventoryIntelligenceInterpretationSchema>
 export type RunningPeriod = z.infer<typeof runningPeriodSchema>
+export type MediaGeographyAllocation = z.infer<typeof mediaGeographyAllocationSchema>
 export type MediaAllocation = z.infer<typeof mediaAllocationSchema>
+export type MediaImpactEstimate = z.infer<typeof mediaImpactEstimateSchema>
 export type MediaMix = z.infer<typeof mediaMixSchema>
 export type ShortlistCandidate = z.infer<typeof shortlistCandidateSchema>
 export type Shortlist = z.infer<typeof shortlistSchema>

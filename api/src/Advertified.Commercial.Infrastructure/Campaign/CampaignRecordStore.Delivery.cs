@@ -48,5 +48,28 @@ public sealed partial class CampaignRecordStore
               AND version = {envelope.ExpectedVersion}
             """, cancellationToken);
         if (changed != 1) throw new VersionConflictException();
+
+        var requests = await DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO commercial.delivery_proof_requests (
+                buyer_tenant_id, supplier_tenant_id, campaign_id, booking_id,
+                supplier_name, product_name, channel_code, geography,
+                flight_start, flight_end, campaign_owner_user_id, opportunity_id,
+                proof_requested_by, proof_requested_at_utc, proof_request_reason)
+            SELECT booking.buyer_tenant_id, booking.supplier_tenant_id,
+                {row.Id}, booking.id, booking.supplier_name, booking.product_name,
+                booking.channel_code, booking.geography, booking.flight_start,
+                booking.flight_end, {row.OwnerUserId}, brief.opportunity_id,
+                {envelope.ActorId.Value}, {now}, {proofRequestReason}
+            FROM commercial.bookings booking
+            JOIN commercial.campaign_briefs brief
+              ON brief.tenant_id = {envelope.TenantId.Value}
+             AND brief.id = {row.BriefId}
+            WHERE booking.buyer_tenant_id = {envelope.TenantId.Value}
+              AND booking.proposal_decision_id = {row.ProposalDecisionId}
+              AND booking.plan_version_id = {row.PlanVersionId}
+              AND booking.status_code = {MasterDataCodes.LifecycleStatuses.Confirmed}
+            """, cancellationToken);
+        if (requests != row.RequiredBookingCount)
+            throw new CampaignDeliveryBlockedException();
     }
 }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 import { humanMessage } from '../api/client'
+import { inventoryApi } from '../api/inventory-client'
 import { planningApi } from '../api/planning-client'
 import type { PlanningWorkspace } from '../api/planning-schemas'
 import { proposalApi } from '../api/proposal-client'
@@ -16,8 +17,11 @@ import {
   BriefFlowBinding,
   BriefVersionFlowBinding,
 } from '../campaign-flow/CampaignFlowBindings'
+import { Icon } from '../components/Icon'
 import { MediaTypeIcon } from '../components/MediaTypeIcon'
 import { LoadingState, MessageState } from '../components/PageState'
+import { masterDataCodes } from '../generated/master-data-codes'
+import { notifications } from '../notifications/notifications'
 import { PlanningDecisionContext } from '../planning/PlanningDecisionContext'
 import { mediaVisual } from '../planning/media-visuals'
 import { formatDate, formatMoney } from '../presentation/format'
@@ -26,17 +30,20 @@ import { proposalPolicy } from '../proposal/proposal-policy'
 const maximumChoices = proposalPolicy.maximumOptions
 
 type ChoiceDraft = { plan: ApprovedPlanChoice; label: string; outcome: string }
-type BuilderContext = { tenantId: string; briefId: string; token: string }
+type BuilderContext = { tenantId: string; briefId: string; token: string; replacesProposalId: string | null }
 
 export function NewProposalPage() {
   const route = z.guid().safeParse(useParams().briefId)
+  const location = useLocation()
+  const replacesValue = new URLSearchParams(location.search).get('replaces')
+  const replacesProposalId = replacesValue && z.guid().safeParse(replacesValue).success ? replacesValue : null
   const { selected, loading } = useWorkspace()
   const { session } = useSession()
   if (loading) return <LoadingState />
   if (!selected) return <Navigate to="/workspaces" replace />
   if (!session || !route.success) return <Navigate to="/home" replace />
   return <ProposalBuilder tenantId={selected.tenantId} briefId={route.data}
-    token={session.antiforgeryToken} />
+    token={session.antiforgeryToken} replacesProposalId={replacesProposalId} />
 }
 
 function ProposalBuilder(context: BuilderContext) {
@@ -52,7 +59,7 @@ function ProposalBuilder(context: BuilderContext) {
     <BuilderContent {...context} {...state} plans={state.plans} /></>
 }
 
-function useProposalBuilder({ tenantId, briefId, token }: BuilderContext) {
+function useProposalBuilder({ tenantId, briefId, token, replacesProposalId }: BuilderContext) {
   const navigate = useNavigate()
   const [plans, setPlans] = useState<ApprovedPlanChoice[] | null>(null)
   const [planning, setPlanning] = useState<PlanningWorkspace | null>(null)
@@ -86,6 +93,24 @@ function useProposalBuilder({ tenantId, briefId, token }: BuilderContext) {
     setBusy(true); setError(null)
     try {
       const proposal = await proposalApi.generate(tenantId, briefId, input, token)
+      if (replacesProposalId) {
+        try {
+          const impacts = await inventoryApi.proposalInventoryImpacts(tenantId, replacesProposalId)
+          const open = impacts.filter(item => item.status === masterDataCodes.proposalInventoryImpactStatuses.open)
+          for (const impact of open) {
+            await inventoryApi.resolveProposalInventoryImpact(
+              tenantId,
+              impact,
+              proposal.id,
+              'Replacement proposal reviewed against current inventory and reconfirmed by the planner.',
+              token,
+            )
+          }
+          if (open.length > 0) notifications.success('The proposal revision is current and the previous inventory impacts are resolved.')
+        } catch (failure) {
+          notifications.warning(`The proposal revision was created, but the previous inventory review is still open: ${humanMessage(failure)}`)
+        }
+      }
       navigate(`/proposals/${proposal.id}`)
     } catch (failure) { setError(humanMessage(failure)) }
     finally { setBusy(false) }
@@ -95,7 +120,7 @@ function useProposalBuilder({ tenantId, briefId, token }: BuilderContext) {
 
 type BuilderState = ReturnType<typeof useProposalBuilder> & { plans: ApprovedPlanChoice[] }
 
-function BuilderContent({ briefId, plans, planning, choices, error, busy, toggle, update, submit, reportError }: BuilderContext & BuilderState) {
+function BuilderContent({ briefId, replacesProposalId, plans, planning, choices, error, busy, toggle, update, submit, reportError }: BuilderContext & BuilderState) {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const parsed = proposalDraftInputSchema.safeParse(buildInput(new FormData(event.currentTarget), choices))
@@ -105,27 +130,82 @@ function BuilderContent({ briefId, plans, planning, choices, error, busy, toggle
     }
     await submit(parsed.data)
   }
-  return <section className="proposal-page proposal-builder" aria-labelledby="proposal-builder-title">
-    <Link className="text-action back-link" to={`/briefs/${briefId}`}>← Back to Brief</Link>
-    <BuilderHero choiceCount={choices.length} planCount={plans.length} />
-    {planning?.decisionContext && <PlanningDecisionContext value={planning.decisionContext} />}
+  return <section className="proposal-page proposal-builder connected-proposal-builder" aria-labelledby="proposal-builder-title">
+    <header className="connected-stage-heading"><div><p className="eyebrow">New campaign</p>
+      <h1 id="proposal-builder-title">Proposal builder</h1>
+      <p>Turn the approved strategy and inventory into clear, client-ready proposal choices.</p></div>
+      <div className="connected-handwritten-note" aria-hidden="true">Ideas today.<br />Impact tomorrow.<span /></div></header>
+    {replacesProposalId && <section className="connected-revision-banner"><Icon name="shield" /><div>
+      <strong>Revision & reconfirmation</strong><p>This proposal will replace an inventory-affected proposal version. Advertified will resolve the previous inventory-review impacts only after this new version is created from current approved planning.</p></div></section>}
     {error && <p className="inline-alert" role="alert">{error}</p>}
     {plans.length === 0 ? <EmptyPlans briefId={briefId} /> :
-      <form onSubmit={event => void handleSubmit(event)} className="proposal-builder-form">
-        <PlanSelectionSection plans={plans} choices={choices} onToggle={toggle} />
-        {choices.length > 0 && <ChoiceWordingSection choices={choices} busy={busy} onUpdate={update} />}
+      <form onSubmit={event => void handleSubmit(event)} className="proposal-builder-form connected-proposal-form">
+        <div className="connected-proposal-left">
+          <PlanSelectionSection plans={plans} choices={choices} onToggle={toggle} />
+          {choices.length > 0 && <ChoiceWordingSection choices={choices} busy={busy} onUpdate={update} />}
+          <Link className="secondary-button connected-proposal-back" to={plans[0]?.briefVersionId
+            ? `/planning/${plans[0].briefVersionId}` : `/briefs/${briefId}`}>← Back: Media Plan</Link>
+        </div>
+        <ConnectedProposalPreview choices={choices} planning={planning} planCount={plans.length} />
       </form>}
+    {planning?.decisionContext && <details className="connected-proposal-context"><summary>View approved planning context</summary>
+      <PlanningDecisionContext value={planning.decisionContext} /></details>}
   </section>
 }
 
-function BuilderHero({ choiceCount, planCount }: { choiceCount: number; planCount: number }) {
-  return <header className="proposal-hero"><div><p className="eyebrow eyebrow-light">Client proposal</p>
-    <h1 id="proposal-builder-title">Build clear choices from approved plans</h1>
-    <p>Select up to three genuinely different media plans. Each choice keeps its exact budget, inventory and running periods.</p></div>
-    <dl className="proposal-builder-metrics"><div><dt>Approved plans</dt><dd>{planCount}</dd></div>
-      <div><dt>Selected choices</dt><dd>{choiceCount}</dd></div>
-      <div><dt>Maximum</dt><dd>{maximumChoices}</dd></div></dl>
-  </header>
+function ConnectedProposalPreview({ choices, planning, planCount }: {
+  choices: ChoiceDraft[]
+  planning: PlanningWorkspace | null
+  planCount: number
+}) {
+  const model = proposalPreviewModel(choices, planning)
+  return <aside className="connected-proposal-preview"><header><div><IconPreview />
+    <h2>Proposal preview</h2></div><span>{choices.length}/{Math.min(planCount, maximumChoices)} selected</span></header>
+    <ProposalCover {...model} />
+    <ProposalPreviewHighlights {...model} />
+  </aside>
+}
+
+function ProposalCover({ title, clientName, channels }: ReturnType<typeof proposalPreviewModel>) {
+  return <div className="connected-proposal-cover"><img src="/advertified-wordmark.png" alt="Advertified" />
+    <small>CAMPAIGN PROPOSAL</small><h3>{title}</h3><p>{clientName}</p>
+    <div className="connected-proposal-cover-image" aria-hidden="true" />
+    <footer>{channels.length ? channels.map(channel => <span key={channel}><MediaTypeIcon channel={channel} />
+      {mediaVisual(channel).label}</span>) : <span>Approved channels appear here</span>}</footer>
+  </div>
+}
+
+function ProposalPreviewHighlights({ investment, objective, audience }: ReturnType<typeof proposalPreviewModel>) {
+  return <section className="connected-proposal-highlights"><header><h3>Client-ready highlights</h3>
+    <span>From approved plan</span></header><div>
+      <article><strong>Approved investment</strong><p>{investment}</p></article>
+      <article><strong>Campaign objective</strong><p>{objective}</p></article>
+      <article><strong>Audience direction</strong><p>{audience}</p></article>
+      <article><strong>Evidence</strong><p>Pricing, channels and periods remain bound to the approved media plan.</p></article>
+    </div></section>
+}
+
+function proposalPreviewModel(choices: ChoiceDraft[], planning: PlanningWorkspace | null) {
+  const selected = choices[0]
+  return {
+    title: selectedTitle(selected),
+    clientName: planningText(planning?.clientName, 'Client proposal'),
+    channels: selectedChannels(selected),
+    investment: selectedInvestment(selected),
+    objective: planningText(planning?.decisionContext?.objective, 'Approved Brief objective'),
+    audience: planningText(planning?.decisionContext?.targetingRationale, 'Approved audience strategy'),
+  }
+}
+
+function selectedTitle(selected?: ChoiceDraft) { return selected?.label ?? 'Select a proposal route' }
+function selectedChannels(selected?: ChoiceDraft) { return selected?.plan.channels ?? [] }
+function selectedInvestment(selected?: ChoiceDraft) {
+  return selected ? formatMoney(selected.plan.totalMinor, selected.plan.currency) : 'Select a plan'
+}
+function planningText(value: string | null | undefined, fallback: string) { return value || fallback }
+
+function IconPreview() {
+  return <span className="connected-preview-eye" aria-hidden="true">◉</span>
 }
 
 function EmptyPlans({ briefId }: { briefId: string }) {
@@ -140,10 +220,11 @@ function PlanSelectionSection({ plans, choices, onToggle }: {
   onToggle: (plan: ApprovedPlanChoice) => void
 }) {
   const selected = new Set(choices.map(item => item.plan.id))
-  return <section className="proposal-section" aria-labelledby="approved-plans-title">
-    <div className="proposal-section-heading"><div><p className="eyebrow">Approved planning</p>
-      <h2 id="approved-plans-title">Choose the routes to present</h2>
-      <p>Plan budgets are fixed here. Change planning first when a budget, channel or placement must change.</p></div></div>
+  return <section className="proposal-section connected-package-section" aria-labelledby="approved-plans-title">
+    <div className="proposal-section-heading"><div>
+      <h2 id="approved-plans-title">Campaign packages</h2>
+      <p>Create one or more package options for your client from approved media plans.</p></div>
+      <span>{plans.length} approved plan{plans.length === 1 ? '' : 's'}</span></div>
     <div className="approved-plan-grid">{plans.map(plan => <PlanChoiceCard key={plan.id}
       plan={plan} selected={selected.has(plan.id)}
       disabled={choices.length >= maximumChoices && !selected.has(plan.id)}

@@ -35,6 +35,43 @@ public sealed class InventoryEligibilityEvaluatorTests
     }
 
     [Fact]
+    public void ExplicitBroaderMarketInInventoryNameCanSatisfyBriefGeography()
+    {
+        var result = Evaluate(
+            MasterDataCodes.Channels.Radio,
+            "Broader Gauteng",
+            inventoryName: "Radio Pulpit 657 AM — SUNDAY 12:00-15:00 (Gauteng 1)",
+            inventoryGeography: "Radio Pulpit 657 AM");
+
+        Assert.NotEqual(MasterDataCodes.RejectionReasons.IneligibleGeography, result.RejectionReason);
+    }
+
+    [Fact]
+    public void KnownMetroCanSatisfyBroaderProvinceScopeWithoutDuplicatingGeographyMaps()
+    {
+        var result = Evaluate(
+            MasterDataCodes.Channels.Ooh,
+            "Broader Gauteng",
+            inventoryName: "Local Demo Johannesburg Digital Billboard",
+            inventoryGeography: "Johannesburg");
+
+        Assert.NotEqual(MasterDataCodes.RejectionReasons.IneligibleGeography, result.RejectionReason);
+    }
+
+    [Fact]
+    public void StructuredProvinceCanSatisfyBroaderMarketWhenDisplayGeographyIsOpaque()
+    {
+        var result = Evaluate(
+            MasterDataCodes.Channels.Ooh,
+            "Broader Gauteng",
+            inventoryName: "Opaque inventory code",
+            inventoryGeography: "SITE-001",
+            spatialJson: "{\"country\":\"South Africa\",\"province\":\"Gauteng\"}");
+
+        Assert.NotEqual(MasterDataCodes.RejectionReasons.IneligibleGeography, result.RejectionReason);
+    }
+
+    [Fact]
     public void ExactDigitalLargeFormatConstraintRejectsInventoryWithoutFormatEvidence()
     {
         var result = Evaluate(
@@ -60,14 +97,18 @@ public sealed class InventoryEligibilityEvaluatorTests
     private static EligibilityResult Evaluate(
         string channel,
         string requestedGeography,
-        IReadOnlyList<string>? constraints = null)
+        IReadOnlyList<string>? constraints = null,
+        string? inventoryName = null,
+        string? inventoryGeography = null,
+        string? spatialJson = null)
     {
         var inventory = new PlanningInventoryRow(
             Guid.NewGuid(), null, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            "Fixture supplier", "Social package", channel, "SOCIAL_PLACEMENT", "Social package",
+            "Fixture supplier", inventoryName ?? "Social package", channel, "SOCIAL_PLACEMENT",
+            inventoryGeography ?? "Social package",
             null, null, null, null, null, null, null, null, null, null, null,
             null, null, null, "[]", null, "REGISTERED", null, "EXCLUSIVE",
-            null, null, null, null);
+            null, null, spatialJson, null);
         var allocation = new MediaAllocationView(
             channel, 100_000_00, "Targeted reach",
             [new MediaRunningPeriodView(

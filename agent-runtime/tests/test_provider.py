@@ -177,7 +177,20 @@ def test_unsupported_free_token_count_uses_conservative_local_estimate() -> None
     ]
 
     assert count_input_tokens(UnsupportedClient(), "model", system, messages) is None
-    assert conservative_input_token_estimate(system, messages) >= 36_869
+    assert conservative_input_token_estimate(system, messages) == 12_301
+
+
+def test_token_count_access_denied_uses_same_conservative_estimate_path() -> None:
+    class InvokeOnlyClient:
+        def count_tokens(self, **_):
+            raise ClientError({"Error": {"Code": "AccessDeniedException",
+                "Message": "Not authorised for CountTokens."}}, "CountTokens")
+
+    system = [{"text": "system"}]
+    messages = [{"role": "user", "content": [{"text": "payload"}]}]
+
+    assert count_input_tokens(InvokeOnlyClient(), "model", system, messages) is None
+    assert conservative_input_token_estimate(system, messages) == 8_205
 
 
 def test_bedrock_structured_output_is_forced_and_read_from_tool_use() -> None:

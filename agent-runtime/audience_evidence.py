@@ -27,7 +27,7 @@ def approved_facts(request, name):
     return tuple(item for item in (request.planning.audience_evidence or ())
                  if (item.evidence_item_id in approved or
                      item.brief_version_id == request.planning.brief_version_id)
-                 and item.audience_name.casefold() == name.casefold())
+                 and _audience_key(item.audience_name) == _audience_key(name))
 
 
 def supported_values(request, name):
@@ -48,16 +48,19 @@ def supported_values(request, name):
 
 def grounded_audience(request, item):
     values, structured_evidence_ids = supported_values(request, item.name)
-    context = [values.pop("buying_context")]
+    supported_buying = values.pop("buying_context")
+    context = [supported_buying]
     for field, label in (("message_context", "Message context"), ("moment_context", "Moment")):
         value = values.pop(field)
         if value:
             context.append(f"{label}: {value}")
-    need = values.pop("need_state")
+    supported_need = values.pop("need_state")
+    need = supported_need or _working_hypothesis(item.need_state)
+    buying = " · ".join(value for value in context if value) or _working_hypothesis(item.buying_context)
     evidence_item_ids = structured_evidence_ids
     reference_observation_ids = tuple(dict.fromkeys(item.reference_observation_ids))
     is_client_requirement = any(
-        supplied.strip().casefold() == item.name.strip().casefold()
+        _audience_key(supplied) == _audience_key(item.name)
         for supplied in request.planning.audiences
         if supplied.strip()
     )
@@ -71,10 +74,22 @@ def grounded_audience(request, item):
     return item.model_copy(update={
         **values,
         "need_state": need,
-        "buying_context": " · ".join(value for value in context if value) or None,
+        "buying_context": buying,
         "lsm_sem_mandatory": False,
         "classification": classification,
         "evidence_item_ids": evidence_item_ids,
         "reference_observation_ids": reference_observation_ids,
         "confidence": item.confidence if evidence_item_ids or reference_observation_ids else None,
     })
+
+
+def _audience_key(value: str) -> str:
+    return value.strip().rstrip(" .,:;!?").casefold()
+
+
+def _working_hypothesis(value: str | None) -> str | None:
+    """Keep provider reasoning only when it is explicitly marked as a non-factual hypothesis."""
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized if normalized.casefold().startswith("hypothesis:") else None

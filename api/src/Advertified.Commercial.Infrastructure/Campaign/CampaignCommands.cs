@@ -11,7 +11,7 @@ namespace Advertified.Commercial.Infrastructure.Campaign;
 public sealed partial class CampaignCommands(
     CampaignRecordStore store,
     CommandDispatcher dispatcher,
-    TimeProvider timeProvider) : ICampaignCommands
+    ICampaignLifecycleClock lifecycleClock) : ICampaignCommands
 {
     public async Task<CommandResult<CampaignView>> ConfirmBookingsAsync(
         Guid campaignId,
@@ -56,7 +56,7 @@ public sealed partial class CampaignCommands(
         if (campaign.Status != MasterDataCodes.LifecycleStatuses.Planned)
             throw new InvalidLifecycleTransitionException();
         var reason = RequiredReason(envelope.Command.Reason);
-        var now = timeProvider.GetUtcNow();
+        var now = lifecycleClock.GetUtcNow();
         await store.ConfirmBookingsAsync(
             campaign, envelope, reason, now, cancellationToken);
         var updated = await store.FindAsync(campaignId, false, cancellationToken)

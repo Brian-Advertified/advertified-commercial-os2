@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Advertified.Commercial.Application.Intelligence;
 using Advertified.Commercial.Application.Opportunity;
+using Advertified.Commercial.Domain.MasterData;
 using Advertified.Commercial.Infrastructure.Intelligence;
 using Advertified.Commercial.Infrastructure.Opportunity;
 using Microsoft.Extensions.Options;
@@ -86,6 +87,35 @@ public sealed partial class AgentRuntimeHttpAdapterTests
         Assert.Equal("Furniture buyers", audience.Name);
         Assert.Equal([EvidenceId], audience.EvidenceItemIds);
         Assert.Equal(0, result.Usage.IncrementalCostMinor);
+    }
+
+    [Fact]
+    public async Task AudienceAdapterAcceptsClientRequirementWithoutSeparateEvidenceIds()
+    {
+        var client = CreateClient(_ => Task.FromResult(
+            Response(AudienceArtifactWithoutEvidence(), [], unknowns: new object[]
+            {
+                new { field_path = "artifact.audiences.need_state", question = "What verified consumer need applies?", is_blocking = false },
+                new { field_path = "artifact.audiences.buying_context", question = "What buying context applies?", is_blocking = false },
+                new { field_path = "artifact.positioning_statement", question = "What evidence-backed positioning is available?", is_blocking = false },
+                new { field_path = "artifact.audiences.media_evidence", question = "What media evidence is available?", is_blocking = false },
+                new { field_path = "artifact.audiences.structured_evidence", question = "What structured evidence is available?", is_blocking = false },
+            })));
+        var adapter = new HttpAudienceIntelligenceAgentClient(client, Settings());
+        var input = AudienceInput() with
+        {
+            Problem = AudienceInput().Problem with { EvidenceItemIds = [] },
+            Evidence = [],
+        };
+
+        var result = await adapter.ProposeAudiencesAsync(input, CancellationToken.None);
+
+        var audience = Assert.Single(result.Audiences);
+        Assert.Equal("Furniture buyers", audience.Name);
+        Assert.Equal(MasterDataCodes.EvidenceClassifications.ClientRequirement, audience.Classification);
+        Assert.Empty(audience.EvidenceItemIds);
+        Assert.Null(audience.Confidence);
+        Assert.Equal(["Do not infer sensitive individual attributes."], audience.Exclusions);
     }
 
     [Theory]
@@ -193,6 +223,35 @@ public sealed partial class AgentRuntimeHttpAdapterTests
         positioning_statement = (string?)null,
     };
 
+    private static object AudienceArtifactWithoutEvidence() => new
+    {
+        audiences = new[]
+        {
+            new
+            {
+                name = "Furniture buyers",
+                description = "Brief-supplied audience: Furniture buyers. Additional motivations, buying intent, affiliations and behaviours are not established unless separately supported by approved evidence.",
+                need_state = (string?)null,
+                buying_context = (string?)null,
+                geographies = new[] { "Gauteng" },
+                language = (string?)null,
+                life_stage = (string?)null,
+                lsm_sem = (string?)null,
+                lsm_sem_taxonomy = (string?)null,
+                lsm_sem_taxonomy_version = (string?)null,
+                lsm_sem_mandatory = false,
+                classification = "CLIENT_REQUIREMENT",
+                exclusions = new[] { "Do not infer sensitive individual attributes." },
+                evidence_item_ids = Array.Empty<Guid>(),
+                reference_observation_ids = Array.Empty<Guid>(),
+                confidence = (decimal?)null,
+                is_target = true,
+            },
+        },
+        targeting_rationale = "Prioritise Furniture buyers for the stated objective within Gauteng.",
+        positioning_statement = (string?)null,
+    };
+
     private static AudienceIntelligenceInput AudienceInput() => new(
         new CommercialProblemInput(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),
@@ -254,7 +313,8 @@ public sealed partial class AgentRuntimeHttpAdapterTests
         object artifact,
         Guid[] evidenceIds,
         long incrementalCostMinor = 0,
-        string fieldPath = "artifact")
+        string fieldPath = "artifact",
+        object[]? unknowns = null)
     {
         var json = JsonSerializer.Serialize(new
         {
@@ -265,7 +325,7 @@ public sealed partial class AgentRuntimeHttpAdapterTests
             {
                 new { field_path = fieldPath, evidence_item_ids = evidenceIds },
             },
-            unknowns = Array.Empty<object>(),
+            unknowns = unknowns ?? Array.Empty<object>(),
             assumptions = Array.Empty<object>(),
             confidence = Array.Empty<object>(),
             objections = Array.Empty<object>(),

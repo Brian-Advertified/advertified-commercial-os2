@@ -87,7 +87,15 @@ public sealed partial class CanonicalPlanningAcceptanceTests
             client, Path($"brief-versions/{BriefVersionId}/media-mixes:generate"),
             "planning-mix", 1, new { });
         var mixId = mix.RootElement.GetProperty("id").GetGuid();
-        Assert.Equal(1_000_000, mix.RootElement.GetProperty("allocations")[0]
+        var generatedAllocation = mix.RootElement.GetProperty("allocations")[0];
+        Assert.Equal(1_000_000, generatedAllocation.GetProperty("budgetMinor").GetInt64());
+        Assert.Equal("2026-09-01", generatedAllocation.GetProperty("runningPeriods")[0]
+            .GetProperty("start").GetString());
+        Assert.Equal("2026-09-30", generatedAllocation.GetProperty("runningPeriods")[0]
+            .GetProperty("end").GetString());
+        Assert.Equal("Johannesburg", generatedAllocation.GetProperty("geographyAllocations")[0]
+            .GetProperty("geography").GetString());
+        Assert.Equal(1_000_000, generatedAllocation.GetProperty("geographyAllocations")[0]
             .GetProperty("budgetMinor").GetInt64());
         using var invalidChannelMix = await RawCommandAsync(
             client, Path($"media-mix-versions/{mixId}:update"),

@@ -35,6 +35,16 @@ export function useResourceRecord<T>(loader: () => Promise<T>) {
     return () => { active.scope = null; active.epoch++ }
   }, [scope])
 
+  async function recoverAfterFailure(message: string, isCurrent: () => boolean) {
+    if (!isCurrent()) return
+    try {
+      const record = await scope.loader()
+      if (isCurrent()) setState({ scope, record, busy: false, error: message })
+    } catch {
+      if (isCurrent() && current) setState({ ...current, busy: false, error: message })
+    }
+  }
+
   async function run(action: () => Promise<unknown>, success: string) {
     if (control.current.scope !== scope || control.current.busy || !current?.record) return
     control.current.busy = true
@@ -49,7 +59,7 @@ export function useResourceRecord<T>(loader: () => Promise<T>) {
       setState({ scope, record, busy: false, error: null })
       notifications.success(success)
     } catch (failure) {
-      if (isCurrent()) setState({ ...current, busy: false, error: humanMessage(failure) })
+      await recoverAfterFailure(humanMessage(failure), isCurrent)
     } finally {
       if (isCurrent()) control.current.busy = false
     }

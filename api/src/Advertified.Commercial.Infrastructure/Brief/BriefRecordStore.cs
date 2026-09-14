@@ -145,12 +145,20 @@ public sealed class BriefRecordStore(GovernanceDbContext dbContext)
         Guid briefId,
         CancellationToken cancellationToken) =>
         dbContext.Database.SqlQuery<BriefSourceRow>($"""
-            SELECT id AS "Id", source_type_code AS "SourceType", locator AS "Locator",
-                title AS "Title", content AS "Content", content_hash AS "ContentHash",
-                created_by AS "CreatedBy", created_at_utc AS "CreatedAtUtc"
-            FROM commercial.brief_sources
-            WHERE tenant_id = {tenantId.Value} AND brief_id = {briefId}
-            ORDER BY created_at_utc, id
+            SELECT source.id AS "Id", source.source_type_code AS "SourceType", source.locator AS "Locator",
+                source.title AS "Title", source.content AS "Content", source.content_hash AS "ContentHash",
+                source.created_by AS "CreatedBy", source.created_at_utc AS "CreatedAtUtc",
+                (SELECT step.output_json::text
+                 FROM commercial.agent_run_steps step
+                 WHERE source.interpretation_id IS NOT NULL
+                   AND step.tenant_id = source.tenant_id
+                   AND step.run_id = source.interpretation_id
+                   AND step.status_code = 'COMPLETED'
+                 ORDER BY step.updated_at_utc DESC, step.id DESC
+                 LIMIT 1) AS "InterpretationJson"
+            FROM commercial.brief_sources source
+            WHERE source.tenant_id = {tenantId.Value} AND source.brief_id = {briefId}
+            ORDER BY source.created_at_utc, source.id
             """).ToListAsync(cancellationToken);
 
     internal Task<BriefSourceRow?> FindFirstSourceAsync(
@@ -158,12 +166,20 @@ public sealed class BriefRecordStore(GovernanceDbContext dbContext)
         Guid briefId,
         CancellationToken cancellationToken) =>
         dbContext.Database.SqlQuery<BriefSourceRow>($"""
-            SELECT id AS "Id", source_type_code AS "SourceType", locator AS "Locator",
-                title AS "Title", content AS "Content", content_hash AS "ContentHash",
-                created_by AS "CreatedBy", created_at_utc AS "CreatedAtUtc"
-            FROM commercial.brief_sources
-            WHERE tenant_id = {tenantId.Value} AND brief_id = {briefId}
-            ORDER BY created_at_utc, id LIMIT 1
+            SELECT source.id AS "Id", source.source_type_code AS "SourceType", source.locator AS "Locator",
+                source.title AS "Title", source.content AS "Content", source.content_hash AS "ContentHash",
+                source.created_by AS "CreatedBy", source.created_at_utc AS "CreatedAtUtc",
+                (SELECT step.output_json::text
+                 FROM commercial.agent_run_steps step
+                 WHERE source.interpretation_id IS NOT NULL
+                   AND step.tenant_id = source.tenant_id
+                   AND step.run_id = source.interpretation_id
+                   AND step.status_code = 'COMPLETED'
+                 ORDER BY step.updated_at_utc DESC, step.id DESC
+                 LIMIT 1) AS "InterpretationJson"
+            FROM commercial.brief_sources source
+            WHERE source.tenant_id = {tenantId.Value} AND source.brief_id = {briefId}
+            ORDER BY source.created_at_utc, source.id LIMIT 1
             """).SingleOrDefaultAsync(cancellationToken);
 
     internal Task<bool> CanAccessAsync(

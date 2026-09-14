@@ -72,7 +72,7 @@ function OpportunityWorkspace({ detail, tenantId, reload, error }: {
     {error && <p className="inline-alert" role="alert">{error}</p>}
     <section className="operations-next-action" aria-labelledby="next-action-title">
       <div><p className="eyebrow">Next governed action</p><h2 id="next-action-title">{detail.nextAction}</h2></div>
-      <p>Actions use record version {opportunity.version}; refresh if another person changed it.</p>
+      <p>Actions use record version {opportunity.version}. If another person changes it, Advertified reloads the latest state before you continue.</p>
     </section>
     <OpportunityActions detail={detail} tenantId={tenantId} reload={reload} />
     <div className="operations-split-workspace operations-evidence-workspace">

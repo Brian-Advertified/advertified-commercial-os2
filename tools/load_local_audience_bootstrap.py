@@ -176,12 +176,14 @@ def apply(sql: str) -> None:
     result = subprocess.run([
         "docker", "exec", "--user", "postgres", "--interactive", CONTAINER,
         "psql", "--set", "ON_ERROR_STOP=1", "--username", "advertified", "--dbname", "advertified",
-    ], cwd=ROOT, input=sql, text=True, capture_output=True, check=False)
+    ], cwd=ROOT, input=sql.encode("utf-8"), text=False, capture_output=True, check=False)
+    stdout = result.stdout.decode("utf-8", errors="replace").strip()
+    stderr = result.stderr.decode("utf-8", errors="replace").strip()
     if result.returncode != 0:
-        detail = (result.stderr or result.stdout).strip()
+        detail = stderr or stdout
         raise RuntimeError(f"Audience intelligence load failed safely. {detail}")
-    if result.stdout.strip():
-        print(result.stdout.strip())
+    if stdout:
+        print(stdout)
 
 
 def main() -> int:

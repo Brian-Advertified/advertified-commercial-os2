@@ -39,13 +39,15 @@ public sealed partial class PlanningCommands
         {
             throw new InvalidOperationException("The approved target audience set is incomplete.");
         }
-        var inventory = await store.ListInventoryAsync(envelope.TenantId, cancellationToken);
+        var allocations = Read<MediaAllocationView[]>(mix.AllocationsJson)
+            .ToDictionary(item => item.Channel, StringComparer.Ordinal);
+        var inventory = await store.ListInventoryAsync(
+            envelope.TenantId, cancellationToken,
+            channels: allocations.Keys.ToArray());
         if (inventory.Count == 0)
         {
             throw new InvalidLifecycleTransitionException();
         }
-        var allocations = Read<MediaAllocationView[]>(mix.AllocationsJson)
-            .ToDictionary(item => item.Channel, StringComparer.Ordinal);
         var latest = await store.FindLatestShortlistAsync(
             envelope.TenantId, briefVersionId, cancellationToken);
         var id = Guid.NewGuid();

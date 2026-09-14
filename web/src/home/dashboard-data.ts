@@ -12,7 +12,7 @@ import { planningApi } from '../api/planning-client'
 import type { PlanningSummary } from '../api/planning-schemas'
 import { proposalApi } from '../api/proposal-client'
 import type { ProposalSummary } from '../api/proposal-schemas'
-import type { CurrentUser, HumanTask, Tenant, Workspace } from '../api/schemas'
+import type { CurrentUser, HumanTask, Opportunity, Tenant, Workspace } from '../api/schemas'
 import { masterDataCodes } from '../generated/master-data-codes'
 
 export type DashboardData = {
@@ -23,6 +23,7 @@ export type DashboardData = {
   tasks: HumanTask[]
   planning: PlanningSummary[]
   proposals: ProposalSummary[]
+  opportunities: Opportunity[]
   rfqs: MarketplaceRfq[]
   inventory: InventoryProductPage | null
 }
@@ -60,12 +61,14 @@ export async function loadDashboard(workspace: Workspace): Promise<DashboardData
     bookingApi.list(tenantId), opportunityApi.listTasks(tenantId),
   ])
   // Only load the data used by this role. A failed authorised request is not an empty result.
-  const [campaigns, planning, proposals, rfqs, inventory] = await Promise.all([
+  const [campaigns, planning, proposals, opportunities, rfqs, inventory] = await Promise.all([
     supply ? Promise.resolve([]) : campaignApi.list(tenantId),
     supply ? Promise.resolve([]) : planningApi.list(tenantId),
     supply ? Promise.resolve([]) : proposalApi.list(tenantId),
+    audience === 'operator' ? opportunityApi.list(tenantId) : Promise.resolve([]),
     supply ? marketplaceApi.listRfqs(tenantId).then(page => page.items) : Promise.resolve([]),
     audience === 'advertiser' ? Promise.resolve(null) : inventoryApi.search(tenantId, {}),
   ])
-  return { tenant, user: userProfile.user, campaigns, bookings, tasks, planning, proposals, rfqs, inventory }
+  return { tenant, user: userProfile.user, campaigns, bookings, tasks, planning, proposals,
+    opportunities, rfqs, inventory }
 }

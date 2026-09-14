@@ -23,6 +23,7 @@ internal static class CommercialExecutionRegistration
     internal static IServiceCollection AddCommercialExecutionStores(
         this IServiceCollection services)
     {
+        services.AddSingleton<ICampaignLifecycleClock, CampaignLifecycleClock>();
         services.AddScoped<BookingRecordStore>();
         services.AddScoped<IBookingReader, BookingReader>();
         services.AddScoped<IBookingCommands, BookingCommands>();

@@ -1,0 +1,12 @@
+services:
+  development-seed:
+    command:
+      - -v
+      - ON_ERROR_STOP=1
+      - -f
+      - /opt/advertified/development/seed-connected-acceptance.sql
+
+  api:
+    environment:
+      Authentication__DevelopmentIdentity__UserId: 10000000-0000-0000-0000-000000000001
+      Authentication__DevelopmentIdentity__ActorId: 10000000-0000-0000-0000-000000000001

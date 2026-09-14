@@ -13,27 +13,31 @@ test('connected clear Brief reaches OOH planning without a fake approval', async
 
   await page.goto('/briefs/new')
   await expect(page.getByRole('heading', {
-    name: 'What does the campaign need to achieve?',
+    name: 'Start with your full campaign brief',
   })).toBeVisible()
   await fillBriefSource(page, 'OOH and DOOH only.')
-  await page.getByRole('button', { name: 'Understand this campaign' }).click()
+  await page.getByRole('button', { name: /Next: AI Interpretation/ }).click()
   await expect(page.getByRole('heading', {
-    name: 'Confirm what Advertified understood before planning begins.',
+    name: 'AI brief interpretation',
   })).toBeVisible()
-  await page.getByRole('button', { name: 'Approve Brief and start planning' }).click()
+  await page.getByRole('button', { name: /Approve and continue/ }).click()
 
   await expect(page).toHaveURL(/\/stp\/[0-9a-f-]{36}$/, { timeout: 30_000 })
-  await expect(page.getByRole('heading', { name: 'Audience Strategy' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Audience & STP' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Outdoor advertising campaign' }))
     .toHaveAttribute('data-campaign-mode', 'OOH_ONLY')
   await expect(page.getByRole('button', { name: /Approve Brief/ })).toHaveCount(0)
 
-  await page.getByRole('link', { name: /Back to Brief/ }).click()
+  await page.getByRole('link', { name: /Back to AI Interpretation/ }).click()
+  await expect(page.getByRole('heading', { name: 'AI brief interpretation' })).toBeVisible()
+  await expect(page).toHaveURL(/\/briefs\/[0-9a-f-]{36}#interpretation$/)
+  await expect(page.getByRole('region', { name: 'Outdoor advertising campaign' }))
+    .toHaveAttribute('data-campaign-mode', 'OOH_ONLY')
+  await expect(page.locator('.approved-flow-rail li').nth(1)).toHaveAttribute('aria-current', 'step')
+  await page.getByRole('link', { name: /Review approved Brief/ }).click()
   await expect(page.getByText('Approved', { exact: true })).toBeVisible()
   await expect(page.getByLabel('Campaign type')).toHaveValue('Outdoor advertising and digital screens only')
   await expect(page.getByLabel('Decision source')).toHaveValue('Supplied Brief Evidence')
-  await expect(page.getByRole('region', { name: 'Outdoor advertising campaign' }))
-    .toHaveAttribute('data-campaign-mode', 'OOH_ONLY')
 
   const briefUrl = page.url().split('#')[0]
   await page.goto(`${briefUrl}#brief-objectives`)
@@ -42,7 +46,7 @@ test('connected clear Brief reaches OOH planning without a fake approval', async
   await expect(page.getByRole('button', { name: /Continue to/ })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Audience', exact: true })).toBeVisible()
   await page.getByRole('link', { name: /Audience Complete/ }).click()
-  await expect(page).toHaveURL(/#brief-audience$/)
+  await expect(page).toHaveURL(/#brief-audience_intelligence$/)
   expect(failedApiResponses).toEqual([])
 })
 
@@ -51,17 +55,18 @@ test('connected mixed-channel Brief reaches the Full Campaign flow', async ({ pa
   await expectLocalSelfApproval(page)
   await page.goto('/briefs/new')
   await fillBriefSource(page, 'OOH billboards and radio.')
-  await page.getByRole('button', { name: 'Understand this campaign' }).click()
+  await page.getByRole('button', { name: /Next: AI Interpretation/ }).click()
   await expect(page.getByRole('heading', {
-    name: 'Confirm what Advertified understood before planning begins.',
+    name: 'AI brief interpretation',
   })).toBeVisible()
-  await page.getByRole('button', { name: 'Approve Brief and start planning' }).click()
+  await page.getByRole('button', { name: /Approve and continue/ }).click()
 
   await expect(page).toHaveURL(/\/stp\/[0-9a-f-]{36}$/, { timeout: 30_000 })
   await expect(page.getByRole('region', { name: 'Full Campaign Flow' }))
     .toHaveAttribute('data-campaign-mode', 'FULL_CAMPAIGN')
-  await page.getByRole('link', { name: /Back to Brief/ }).click()
-  await expect(page.getByLabel('Campaign type')).toHaveValue('Full campaign')
+  await page.getByRole('link', { name: /Back to AI Interpretation/ }).click()
+  await expect(page.getByRole('heading', { name: 'AI brief interpretation' })).toBeVisible()
+  await expect(page.getByText('Full campaign', { exact: true })).toBeVisible()
 })
 
 test('connected persisted Brief rail follows its canonical campaign mode', async ({ page }) => {

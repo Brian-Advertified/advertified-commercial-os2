@@ -14,12 +14,10 @@ public static class CampaignEndpoints
             .WithTags("Campaign delivery").RequireAuthorization();
         group.MapGet(string.Empty, ListAsync)
             .WithName("ListCampaigns")
-            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
             .Produces<IReadOnlyList<CampaignView>>()
             .WithQueryProblems();
         group.MapGet("/{campaignId:guid}", GetAsync)
             .WithName("GetCampaign")
-            .RequireRateLimiting(RequestRateLimitPolicies.HeavyWork)
             .Produces<CampaignView>().WithQueryProblems();
         group.MapPost("/{campaignId:guid}:confirm-bookings", ConfirmBookingsAsync)
             .WithName("ConfirmCampaignBookings").Produces<CampaignView>()

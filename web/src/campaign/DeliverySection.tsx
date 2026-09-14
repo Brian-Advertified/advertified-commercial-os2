@@ -20,14 +20,61 @@ type CommonProps = {
   run: CampaignActionRunner
 }
 
-type LiveProps = CommonProps & { canOperate: boolean }
+type LiveProps = CommonProps & { canOperate: boolean; bookings: Booking[] }
 type ProofProps = CommonProps & { canReviewProof: boolean; bookings: Booking[] }
 
 export function LiveDeliverySection(props: LiveProps) {
-  return <section id="live-stage" className="campaign-workspace-section">
-    <DeliveryHeading campaign={props.campaign} />
-    <DeliveryMilestones campaign={props.campaign} />
-    <DeliveryAction {...props} />
+  const markets = [...new Set(props.bookings.map(item => item.geography).filter(Boolean))]
+  const suppliers = [...new Set(props.bookings.map(item => item.supplierName).filter(Boolean))]
+  const creativeReady = props.campaign.creative?.requirements.filter(item => item.asset !== null).length ?? 0
+  const creativeTotal = props.campaign.creative?.requirements.length ?? 0
+  const checklist = launchChecklist(props.campaign)
+  const completeCount = checklist.filter(item => item.complete).length
+  return <section id="live-stage" className="connected-launch-page">
+    <div className="connected-launch-grid">
+      <article className="connected-launch-status"><header><Icon name="plan" /><h2>Campaign status</h2>
+        <span className={`status-chip ${props.campaign.status === masterDataCodes.lifecycleStatuses.live
+          ? 'status-positive' : 'status-neutral'}`}>{humanizeCode(props.campaign.status, true)}</span></header>
+        <strong>{launchStatusTitle(props.campaign)}</strong><p>{launchStatusCopy(props.campaign)}</p>
+        <div className="connected-launch-action"><DeliveryAction {...props} /></div>
+      </article>
+      <article className="connected-launch-media"><header><Icon name="chart" /><h2>In-flight media</h2></header>
+        <div className="connected-launch-media-kpis"><div><strong>{props.bookings.length}</strong><span>Booked lines</span></div>
+          <div><strong>{suppliers.length}</strong><span>Suppliers</span></div>
+          <div><strong>{creativeReady}/{creativeTotal}</strong><span>Creative ready</span></div></div>
+        <div className="connected-launch-channel-grid">{channelCounts(props.bookings).map(([channel, count]) =>
+          <div key={channel}><span>{humanizeCode(channel, true)}</span><strong>{count}</strong></div>)}</div>
+      </article>
+      <article className="connected-launch-markets"><header><Icon name="globe" /><h2>Active markets</h2></header>
+        <strong>{markets.length}</strong><span>Retained booking geographies</span>
+        <div className="connected-launch-market-list">{markets.slice(0, 10).map(item => <span key={item}>● {item}</span>)}</div>
+      </article>
+      <article className="connected-launch-activity"><header><Icon name="bell" /><h2>Live activity</h2></header>
+        <div>{campaignActivity(props.campaign).map(item => <p key={item.label}><span className={item.done ? 'is-done' : ''}>●</span>
+          <strong>{item.label}</strong><small>{item.value}</small></p>)}</div>
+      </article>
+    </div>
+    <div className="connected-launch-lower">
+      <article className="connected-launch-checklist"><header><div><Icon name="tasks" /><h2>Launch checklist</h2></div>
+        <span>{completeCount} / {checklist.length} complete</span></header>
+        <div className="connected-launch-progress"><i style={{ width: `${checklist.length ? completeCount / checklist.length * 100 : 0}%` }} /></div>
+        <ul>{checklist.map(item => <li key={item.label} className={item.complete ? 'is-complete' : ''}>
+          <span>{item.complete ? '✓' : '○'}</span><strong>{item.label}</strong><small>{item.detail}</small></li>)}</ul>
+      </article>
+      <article className="connected-launch-assets"><header><div><Icon name="evidence" /><h2>Creative assets</h2></div>
+        <span>{creativeReady}/{creativeTotal} ready</span></header>
+        {props.campaign.creative?.requirements.length ? <div>{props.campaign.creative.requirements.slice(0, 6).map(requirement => <article key={requirement.id}>
+          <span className="connected-launch-asset-icon"><Icon name="proposal" /></span><div><strong>{humanizeCode(requirement.channel, true)}</strong>
+            <small>{requirement.formatCode} · {requirement.asset ? 'Asset retained' : 'Awaiting asset'}</small></div></article>)}</div>
+          : <p className="connected-launch-empty">No creative requirements are retained yet.</p>}
+      </article>
+      <article className="connected-launch-tasks"><header><div><Icon name="tasks" /><h2>Launch tasks</h2></div></header>
+        <ul>{props.bookings.slice(0, 6).map(item => <li key={item.id}><span>{item.status === masterDataCodes.lifecycleStatuses.confirmed ? '✓' : '○'}</span>
+          <div><strong>{item.productName}</strong><small>{item.supplierName} · {humanizeCode(item.status, true)}</small></div></li>)}</ul>
+      </article>
+    </div>
+    <footer className="connected-launch-banner"><Icon name="chart" /><div><strong>Real campaigns. Real audiences. Real results.</strong>
+      <span>Campaign delivery stays tied to retained booking, creative, proof and measurement evidence.</span></div></footer>
   </section>
 }
 
@@ -95,22 +142,57 @@ function proofCoverageSentence(bookings: number, proven: number, submitted: numb
   return `${proven} of ${bookings} booked media line${bookings === 1 ? '' : 's'} currently have approved proof${pending.length ? `; ${pending.join(' and ')}` : ''}.`
 }
 
-function DeliveryHeading({ campaign }: { campaign: Campaign }) {
-  return <header className="campaign-section-heading"><div><p className="eyebrow">Launch and completion</p>
-    <h2>Human-controlled delivery</h2><p>A process heartbeat never starts or completes a campaign. The authorised operator records each consequential transition.</p></div>
-    <span className="status-chip status-neutral">{humanizeCode(campaign.status, true)}</span></header>
+function launchStatusTitle(campaign: Campaign) {
+  if (campaign.status === masterDataCodes.lifecycleStatuses.live) return 'Campaign is live'
+  if (campaign.status === masterDataCodes.lifecycleStatuses.ready) return 'Ready to launch'
+  if (campaign.status === masterDataCodes.lifecycleStatuses.completed) return 'Campaign completed'
+  return 'Preparing for launch'
 }
 
-function DeliveryMilestones({ campaign }: { campaign: Campaign }) {
-  const milestones = [
-    { label: 'Creative ready', value: campaign.creativeApprovedAtUtc },
-    { label: 'Campaign started', value: campaign.startedAtUtc },
-    { label: 'Campaign completed', value: campaign.completedAtUtc },
-    { label: 'Proof requested', value: campaign.proofRequestedAtUtc },
+function launchStatusCopy(campaign: Campaign) {
+  if (campaign.startedAtUtc) return `Launch recorded ${formatDateTime(campaign.startedAtUtc)}.`
+  return 'Launch remains human-controlled and can begin only after booking and creative readiness are retained.'
+}
+
+function launchChecklist(campaign: Campaign) {
+  const creative = campaign.creative?.requirements ?? []
+  return [
+    { label: 'Funding confirmed', complete: Boolean(campaign.paymentIntentId), detail: humanizeCode(campaign.fundingStatus, true) },
+    { label: 'Supplier bookings confirmed', complete: campaign.requiredBookingCount > 0 &&
+      campaign.confirmedBookingCount === campaign.requiredBookingCount,
+      detail: `${campaign.confirmedBookingCount}/${campaign.requiredBookingCount} confirmed` },
+    { label: 'Creative assets approved', complete: Boolean(campaign.creativeApprovedAtUtc),
+      detail: creative.length ? `${creative.filter(item => item.asset).length}/${creative.length} assets retained` : 'No requirements retained' },
+    { label: 'Campaign start recorded', complete: Boolean(campaign.startedAtUtc),
+      detail: campaign.startedAtUtc ? formatDateTime(campaign.startedAtUtc) : 'Not recorded' },
+    { label: 'Delivery proof retained', complete: campaign.deliveryProofs.some(item =>
+      item.status === masterDataCodes.lifecycleStatuses.approved),
+      detail: `${campaign.deliveryProofs.length} proof record${campaign.deliveryProofs.length === 1 ? '' : 's'}` },
+    { label: 'Measurement report approved', complete: campaign.measurementReports.some(item =>
+      item.status === masterDataCodes.lifecycleStatuses.approved),
+      detail: `${campaign.measurementReports.length} report version${campaign.measurementReports.length === 1 ? '' : 's'}` },
   ]
-  return <div className="delivery-milestones">{milestones.map(item => <div key={item.label}>
-    <span>{item.value ? '✓' : '○'}</span><div><strong>{item.label}</strong>
-      <small>{item.value ? formatDateTime(item.value) : 'Not recorded'}</small></div></div>)}</div>
+}
+
+function channelCounts(bookings: Booking[]) {
+  const counts = new Map<string, number>()
+  bookings.forEach(item => counts.set(item.channel, (counts.get(item.channel) ?? 0) + 1))
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])
+}
+
+function campaignActivity(campaign: Campaign) {
+  return [
+    { label: 'Bookings confirmed', value: campaign.bookingsConfirmedAtUtc
+      ? formatDateTime(campaign.bookingsConfirmedAtUtc) : 'Pending', done: Boolean(campaign.bookingsConfirmedAtUtc) },
+    { label: 'Creative approved', value: campaign.creativeApprovedAtUtc
+      ? formatDateTime(campaign.creativeApprovedAtUtc) : 'Pending', done: Boolean(campaign.creativeApprovedAtUtc) },
+    { label: 'Campaign started', value: campaign.startedAtUtc
+      ? formatDateTime(campaign.startedAtUtc) : 'Pending', done: Boolean(campaign.startedAtUtc) },
+    { label: 'Campaign completed', value: campaign.completedAtUtc
+      ? formatDateTime(campaign.completedAtUtc) : 'Pending', done: Boolean(campaign.completedAtUtc) },
+    { label: 'Proof requested', value: campaign.proofRequestedAtUtc
+      ? formatDateTime(campaign.proofRequestedAtUtc) : 'Pending', done: Boolean(campaign.proofRequestedAtUtc) },
+  ]
 }
 
 function DeliveryAction(props: LiveProps) {

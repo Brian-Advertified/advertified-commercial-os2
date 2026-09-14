@@ -32664,6 +32664,90 @@
         },
         "additionalProperties": false
       },
+      "AudienceResearchContextView": {
+        "type": "object",
+        "properties": {
+          "requestedGeographies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "resolvedGeographies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "observations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AudienceResearchObservationView"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AudienceResearchObservationView": {
+        "type": "object",
+        "properties": {
+          "observationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "measurementPeriod": {
+            "type": "string",
+            "nullable": true
+          },
+          "geographyLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "geographyCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "geographyName": {
+            "type": "string",
+            "nullable": true
+          },
+          "dimensions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "metricCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "metricValue": {
+            "type": "number",
+            "format": "double"
+          },
+          "metricUnit": {
+            "type": "string",
+            "nullable": true
+          },
+          "stabilityCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "activationPolicy": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "AudienceSegmentView": {
         "type": "object",
         "properties": {
@@ -33247,6 +33331,9 @@
           "createdAtUtc": {
             "type": "string",
             "format": "date-time"
+          },
+          "interpretation": {
+            "$ref": "#/components/schemas/SuppliedBriefUnderstandingView"
           }
         },
         "additionalProperties": false
@@ -42335,6 +42422,9 @@
           },
           "decisionContext": {
             "$ref": "#/components/schemas/PlanningDecisionContextView"
+          },
+          "audienceResearch": {
+            "$ref": "#/components/schemas/AudienceResearchContextView"
           }
         },
         "additionalProperties": false

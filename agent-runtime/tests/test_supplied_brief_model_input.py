@@ -7,7 +7,8 @@ from bedrock_supplied_brief_output import (
     supplied_brief_schema,
     wrap_supplied_brief_output,
 )
-from supplied_brief_contracts import SuppliedBriefArtifact, SuppliedBriefRequest
+from supplied_brief_contracts import BriefQuestion, BriefUnknown, Clarification, SuppliedBriefArtifact, SuppliedBriefRequest
+from supplied_brief_deterministic import deterministic_supplied_brief
 from supplied_brief_model_input import (
     HISTORY_LOCATOR,
     PRIMARY_LOCATOR,
@@ -74,6 +75,137 @@ def supplied_request(content: str) -> SuppliedBriefRequest:
             }],
         },
     }))
+
+
+def test_deterministic_campaign_mode_clarification_clears_blocking_question() -> None:
+    request = supplied_request(
+        "Client: Client One\n"
+        "Problem: Increase awareness.\n"
+        "Objective: Generate enquiries.\n"
+        "Audience: Business owners.\n"
+        "Geography: Johannesburg.\n"
+        "Timing: October 2026."
+    )
+    source = request.source.model_copy(update={
+        "clarifications": request.source.clarifications + (
+            Clarification(field_path="campaignMode", value="OOH_ONLY"),
+        ),
+    })
+    clarified = request.model_copy(update={"source": source})
+    result = deterministic_supplied_brief(clarified)
+    repaired = canonicalize_grounding(clarified, result)
+    assert repaired.artifact is not None
+    assert repaired.artifact.campaign_mode == "OOH_ONLY"
+    assert all(question.field_path != "campaignMode" for question in repaired.artifact.questions)
+    assert repaired.artifact.requires_human_clarification is False
+
+
+def test_canonical_grounding_labels_missing_budget_as_nonblocking_unknown() -> None:
+    request = supplied_request(
+        "Client: Client One\n"
+        "Problem: Increase awareness.\n"
+        "Objective: Generate enquiries.\n"
+        "Audience: Business owners.\n"
+        "Geography: Johannesburg.\n"
+        "Timing: October 2026.\n"
+        "Media: OOH only."
+    )
+    source = request.source.model_copy(update={"clarifications": ()})
+    prepared = request.model_copy(update={"source": source})
+    original = deterministic_supplied_brief(prepared)
+    blocking = original.artifact.model_copy(update={
+        "questions": original.artifact.questions + (
+            BriefQuestion(field_path="budget", question="What budget applies?", is_blocking=True, options=()),
+            BriefQuestion(field_path="currency", question="What currency applies?", is_blocking=True, options=()),
+        ),
+        "requires_human_clarification": True,
+    })
+    repaired = canonicalize_grounding(prepared, original.model_copy(update={"artifact": blocking}))
+    assert repaired.artifact is not None
+    assert repaired.artifact.draft.budget_unknown is True
+    budget_unknowns = [item for item in repaired.artifact.draft.unknowns if item.field_path == "budget"]
+    assert len(budget_unknowns) == 1
+    assert budget_unknowns[0].is_blocking is False
+    commercial_questions = {
+        item.field_path: item for item in repaired.artifact.questions
+        if item.field_path in {"budget", "currency"}
+    }
+    assert commercial_questions["budget"].is_blocking is False
+    assert commercial_questions["currency"].is_blocking is False
+    assert repaired.artifact.requires_human_clarification is False
+
+
+def test_optional_refinement_questions_cannot_block_a_planning_ready_brief() -> None:
+    request = supplied_request(
+        "Client: National church network\n"
+        "Problem: Attendance is declining.\n"
+        "Objective: Rebuild awareness and participation.\n"
+        "Audiences: Existing members; young adults; parents.\n"
+        "Geography: South Africa, with priority metros to be refined from approved evidence.\n"
+        "Timing: 12-week campaign.\n"
+        "Budget: ZAR 4,200,000 total; ZAR 3,400,000 is the operative media and activation budget.\n"
+        "Media: Integrated campaign using OOH, radio and digital.\n"
+        "Measurement: Reach, engagement and attendance trends."
+    )
+    original = deterministic_supplied_brief(request)
+    blocking_paths = ("geographies", "budget", "vatStatus", "audiences", "measurement")
+    questions = original.artifact.questions + tuple(
+        BriefQuestion(field_path=path, question=f"Refine {path}?", is_blocking=True, options=())
+        for path in blocking_paths
+    )
+    unknowns = original.artifact.draft.unknowns + tuple(
+        BriefUnknown(field_path=path, question=f"Refine {path}?", is_blocking=True)
+        for path in blocking_paths
+    )
+    candidate = original.model_copy(update={"artifact": original.artifact.model_copy(update={
+        "questions": questions,
+        "requires_human_clarification": True,
+        "draft": original.artifact.draft.model_copy(update={"unknowns": unknowns}),
+    })})
+    repaired = canonicalize_grounding(request, candidate)
+    assert repaired.artifact.requires_human_clarification is False
+    assert all(not item.is_blocking for item in repaired.artifact.questions)
+    assert all(not item.is_blocking for item in repaired.artifact.draft.unknowns)
+
+
+def test_exact_budget_prefers_explicit_operative_amount_when_total_and_working_budget_are_both_supplied() -> None:
+    request = supplied_request(
+        "Client: National church network\n"
+        "Objective: Rebuild awareness.\n"
+        "Audience: Existing members.\n"
+        "Geography: South Africa.\n"
+        "Timing: 12 weeks.\n"
+        "Budget: ZAR 4,200,000 total; ZAR 3,400,000 is the operative media and activation budget. Preserve the distinction.\n"
+        "Media: Integrated campaign."
+    )
+    source = request.source.model_copy(update={"clarifications": ()})
+    prepared = request.model_copy(update={"source": source})
+    assert _exact_budget(prepared) == ("ZAR", 340_000_000)
+    repaired = canonicalize_grounding(prepared, deterministic_supplied_brief(prepared))
+    assert repaired.artifact.draft.budget_minor == 340_000_000
+    assert repaired.artifact.draft.currency == "ZAR"
+    assert repaired.artifact.draft.budget_unknown is False
+
+
+def test_provider_cannot_mark_a_brief_ready_without_client_identity() -> None:
+    request = supplied_request(
+        "Client: Client One\nProblem: Raise awareness.\nObjective: Generate enquiries.\n"
+        "Audience: Business owners.\nGeography: Johannesburg.\nTiming: October 2026.\nMedia: OOH only."
+    )
+    original = deterministic_supplied_brief(request)
+    for missing in (None, "", "   "):
+        candidate = original.model_copy(update={"artifact": original.artifact.model_copy(update={
+            "client_name": missing, "requires_human_clarification": False, "questions": (),
+        })})
+        repaired = canonicalize_grounding(request, candidate)
+        assert repaired.artifact.client_name == missing
+        assert repaired.artifact.requires_human_clarification is True
+        assert [(item.field_path, item.is_blocking) for item in repaired.artifact.questions] == [("clientName", True)]
+        assert canonicalize_grounding(request, repaired) == repaired
+        validate_grounding(request, repaired)
+    complete = canonicalize_grounding(request, original)
+    assert complete.artifact.client_name == "Client One"
+    assert complete.artifact.requires_human_clarification is False
 
 
 def test_model_input_excludes_internal_invocation_metadata() -> None:
@@ -175,6 +307,28 @@ def test_exact_budget_converts_major_units_to_minor_units() -> None:
     })
 
     assert _exact_budget(request) == ("ZAR", 50_000_000)
+
+
+def test_exact_budget_uses_base_amount_when_second_amount_is_explicit_flexibility_ceiling() -> None:
+    request = supplied_request(
+        "Budget: ZAR 320,000, with flexibility up to ZAR 400,000 if justified."
+    )
+    request = request.model_copy(update={
+        "source": request.source.model_copy(update={"clarifications": ()}),
+    })
+
+    assert _exact_budget(request) == ("ZAR", 32_000_000)
+
+
+def test_exact_budget_keeps_multiple_unqualified_amounts_ambiguous() -> None:
+    request = supplied_request(
+        "Budget: ZAR 320,000 for media and ZAR 80,000 for production."
+    )
+    request = request.model_copy(update={
+        "source": request.source.model_copy(update={"clarifications": ()}),
+    })
+
+    assert _exact_budget(request) is None
 
 
 def test_supplied_brief_model_returns_only_artifact_and_runtime_wraps_it() -> None:

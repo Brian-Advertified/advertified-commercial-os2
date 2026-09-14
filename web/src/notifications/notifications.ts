@@ -1,22 +1,35 @@
-import { toast } from 'react-toastify'
+import toastr from 'toastr'
+import 'toastr/build/toastr.min.css'
+import './notifications.css'
+
+toastr.options = {
+  closeButton: true,
+  newestOnTop: true,
+  progressBar: true,
+  positionClass: 'toast-bottom-right',
+  preventDuplicates: true,
+  timeOut: 4500,
+  extendedTimeOut: 1500,
+  tapToDismiss: true,
+  escapeHtml: true,
+}
 
 function replaceVisibleNotification(show: () => void) {
-  toast.clearWaitingQueue()
-  toast.dismiss()
+  toastr.clear()
   show()
 }
 
 export const notifications = {
   success(message: string) {
-    replaceVisibleNotification(() => toast.success(message))
+    replaceVisibleNotification(() => { toastr.success(message) })
   },
   information(message: string) {
-    replaceVisibleNotification(() => toast.info(message))
+    replaceVisibleNotification(() => { toastr.info(message) })
   },
   warning(message: string) {
-    replaceVisibleNotification(() => toast.warning(message))
+    replaceVisibleNotification(() => { toastr.warning(message) })
   },
   failure(message: string) {
-    replaceVisibleNotification(() => toast.error(message))
+    replaceVisibleNotification(() => { toastr.error(message) })
   },
 }

@@ -1,16 +1,66 @@
-.advertified-notifications {
-  --toastify-color-dark: #0d1628;
-  --toastify-text-color-dark: #e5edf8;
-  --toastify-toast-shadow: none;
-  --toastify-color-progress-dark: #4f8cff;
+#toast-container {
   pointer-events: none;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-.advertified-notifications .Toastify__toast {
-  border: 1px solid #33425d;
-  pointer-events: none;
+#toast-container.toast-bottom-right {
+  right: 22px;
+  bottom: 22px;
 }
 
-.advertified-notifications .Toastify__close-button {
+#toast-container > .toast {
+  width: min(390px, calc(100vw - 32px));
+  min-height: 58px;
+  margin: 0 0 10px;
+  padding: 14px 42px 14px 52px;
   pointer-events: auto;
+  color: #fff;
+  background-color: #101828;
+  background-position: 17px center;
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 10px;
+  box-shadow: 0 16px 36px rgba(16, 24, 40, .22);
+  opacity: 1;
+}
+
+#toast-container > .toast:hover {
+  box-shadow: 0 18px 42px rgba(16, 24, 40, .28);
+  opacity: 1;
+}
+
+#toast-container > .toast-success { background-color: #087443; }
+#toast-container > .toast-info { background-color: #4f2cd9; }
+#toast-container > .toast-warning { background-color: #9a5b08; }
+#toast-container > .toast-error { background-color: #b42318; }
+
+#toast-container .toast-message {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+#toast-container .toast-close-button {
+  top: 10px;
+  right: 12px;
+  color: #fff;
+  font-size: 20px;
+  opacity: .8;
+  text-shadow: none;
+}
+
+#toast-container .toast-progress {
+  height: 3px;
+  background: rgba(255, 255, 255, .8);
+  opacity: .75;
+}
+
+@media (max-width: 600px) {
+  #toast-container.toast-bottom-right {
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+  }
+
+  #toast-container > .toast {
+    width: 100%;
+  }
 }

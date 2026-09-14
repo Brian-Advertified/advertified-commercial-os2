@@ -17,7 +17,7 @@ def execute(scenario):
         calls.append(actual.source.source_hash)
         return canonicalize_grounding(actual, proposal)
 
-    with patch("runtime_execution.unavailable_fixture", side_effect=provider):
+    with patch("runtime_execution.deterministic_supplied_brief", side_effect=provider):
         denied, response = invoke("brief_drafting", request.model_dump(mode="json"))
     result = response.json()
     if response.status_code != 200:

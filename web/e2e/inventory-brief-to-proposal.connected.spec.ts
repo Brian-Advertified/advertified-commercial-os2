@@ -1,211 +1,113 @@
-import { expect, test, type Locator, type Page, type Response } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+import { prepareVisibleProposal, reviewVisibleMediaPlan } from './support/inventory-canary-review'
+import { completeCanaryFlights, openCanaryBrief, populateCanaryFields, resolveCanaryAudienceEnrichment,
+  resolveCanaryClarifications, selectCanaryInventory, signInCanary } from './support/inventory-canary-intake'
+import { inspectSavedProposal, verifyNewProposal } from './support/inventory-canary-evidence'
 
-const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3017'
-const brief = `
-Takealot Black Friday OOH campaign.
-Budget: R320,000 excluding VAT, with approval to increase to R400,000.
-Flight dates: 4 November 2026 to 28 November 2026.
-Digital OOH only in Johannesburg, Cape Town and Durban.
-Prioritise Mall of Africa, Sandton City, Gateway, Cavendish and Menlyn.
-Audience: online shoppers aged 18-54, families and deal seekers.
-Objective: drive Black Friday awareness and online purchases.
-A human must approve the final inventory before proposal release.
-`.trim()
-
-test.describe('published inventory brief-to-proposal canary', () => {
-  test('creates an OOH-only proposal from published corpus inventory', async ({ page }) => {
-    test.setTimeout(240_000)
-    const inventoryPayloads: unknown[] = []
-    const proposalPayloads: unknown[] = []
-    page.on('response', (response) => {
-      void capture(response, inventoryPayloads, proposalPayloads)
-    })
-
-    await openBriefIntake(page)
-    await populateVisibleFields(page)
-    await fillBrief(page)
-
-    for (let step = 0; step < 35; step += 1) {
-      await page.waitForLoadState('domcontentloaded')
-      await page.waitForTimeout(350)
-      await populateVisibleFields(page)
-      await selectFirstInventory(page)
-
-      if (await proposalIsVisible(page)) break
-      const action = await nextAction(page)
-      expect(action, `No forward action was available at ${page.url()}`).not.toBeNull()
-      await action!.click()
-      await page.waitForTimeout(700)
-      await failOnVisibleError(page)
-    }
-
-    await expect(page).toHaveURL(/proposal|proposals/i, { timeout: 30_000 })
-    await expect(
-      page.getByRole('heading', { name: /proposal/i }).first(),
-    ).toBeVisible({ timeout: 30_000 })
-
-    const inventoryItems = inventoryPayloads.reduce(
-      (total, payload) => total + countInventory(payload),
-      0,
-    )
-    expect(
-      inventoryItems,
-      'The connected journey did not receive any published inventory.',
-    ).toBeGreaterThan(0)
-    expect(
-      proposalPayloads.length,
-      'The connected journey did not create or load a proposal payload.',
-    ).toBeGreaterThan(0)
-
-    const body = await page.locator('body').innerText()
-    expect(body).not.toMatch(/fixture|deterministic-zero-cost|internal gate/i)
-    expect(body).toMatch(/OOH|out.of.home|digital screen|billboard/i)
-  })
-})
-
-async function openBriefIntake(page: Page) {
-  await page.goto(`${baseUrl}/sign-in`, { waitUntil: 'domcontentloaded' })
-  const continueButton = page.getByRole('button', { name: /Continue to Advertified/ })
-  await continueButton.waitFor()
-  await continueButton.click()
-  const workspaceButton = page.getByRole('button', { name: /Advertified Local/ })
-  await workspaceButton.waitFor()
-  await workspaceButton.click()
-  await page.getByRole('heading', { name: /Good (morning|afternoon|evening), Local/ }).waitFor()
-  for (const path of ['/briefs/new', '/briefs', '/']) {
-    await page.goto(`${baseUrl}${path}`, { waitUntil: 'domcontentloaded' })
-    await page.waitForFunction(() => document.querySelector('textarea') !== null ||
-      !document.body.innerText.includes('Loading page'), undefined, { timeout: 10_000 })
-    if (await firstVisible(page.locator('textarea'))) return
-    const start = page.getByRole('button', { name: /start.*brief|new.*brief/i })
-      .or(page.getByRole('link', { name: /start.*brief|new.*brief/i }))
-    if (await firstVisible(start)) {
-      await start.first().click()
-      await page.locator('textarea').first().waitFor({ state: 'visible', timeout: 10_000 })
-      if (await firstVisible(page.locator('textarea'))) return
-    }
-  }
-  throw new Error('The production brief intake could not be opened.')
-}
-
-async function fillBrief(page: Page) {
-  const textareas = page.locator('textarea:visible')
-  expect(await textareas.count()).toBeGreaterThan(0)
-  const target = textareas.first()
-  await target.fill(brief)
-}
-
-async function populateVisibleFields(page: Page) {
-  const inputs = page.locator('input:visible')
-  const count = await inputs.count()
-  for (let index = 0; index < count; index += 1) {
-    const input = inputs.nth(index)
-    if (!(await input.isEditable())) continue
-    const value = await input.inputValue()
-    if (value.trim()) continue
-    const type = (await input.getAttribute('type')) ?? 'text'
-    const name = `${await input.getAttribute('name') ?? ''} ${await input.getAttribute('placeholder') ?? ''} ${await input.getAttribute('aria-label') ?? ''}`.toLowerCase()
-    const content = visibleFieldValue(type, name)
-    if (content !== null) await input.fill(content)
-  }
-}
-
-function visibleFieldValue(type: string, name: string): string | null {
-  if (type === 'date') return name.includes('end') ? '2026-11-28' : '2026-11-04'
-  if (type === 'number' || /budget|amount/.test(name)) return '320000'
-  if (/email/.test(name)) return 'production-canary@advertified.com'
-  if (/client|company|advertiser|brand/.test(name)) return 'Advertified Production Canary'
-  if (/name|title/.test(name)) return 'Takealot Black Friday OOH Canary'
-  return null
-}
-
-async function selectFirstInventory(page: Page) {
-  const checked = page.locator('input[type="checkbox"]:checked:visible')
-  if (await checked.count()) return
-  const checkbox = page.locator('input[type="checkbox"]:visible:not([disabled])')
-  if (await checkbox.count()) {
-    await checkbox.first().check()
+test('connected digital OOH draft retains its approved planning lineage', async ({ page }) => {
+  test.setTimeout(180_000)
+  page.setDefaultTimeout(15_000)
+  const observed = observeApi(page)
+  const actionsTaken = new Set<string>()
+  await signInCanary(page)
+  const inspect = process.env.ADVERTIFIED_CANARY_INSPECT_BRIEF_VERSION
+  if (inspect) {
+    await inspectSavedProposal(page, inspect)
     return
   }
-  const select = page.getByRole('button', { name: /select|add.*plan|use.*inventory/i })
-  if (await firstVisible(select)) await select.first().click()
+  const resume = process.env.ADVERTIFIED_CANARY_RESUME_BRIEF_VERSION
+  await openCanaryBrief(page, resume)
+  for (let step = 0; step < 35; step += 1) {
+    await observed.settled()
+    await populateCanaryFields(page)
+    await resolveCanaryAudienceEnrichment(page)
+    if (await resolveCanaryClarifications(page) || await completeCanaryFlights(page)
+      || await reviewVisibleMediaPlan(page)) {
+      await observed.settled()
+      continue
+    }
+    if (await proposalIsVisible(page)) break
+    await selectCanaryInventory(page)
+    await prepareVisibleProposal(page)
+    const action = await nextAction(page)
+    expect(action, `No forward action at ${page.url()}`).not.toBeNull()
+    const actionName = (await action!.innerText()).trim()
+    const actionKey = `${page.url()} ${actionName}`
+    expect(actionsTaken.has(actionKey), `Journey stalled instead of repeating: ${actionKey}`).toBe(false)
+    actionsTaken.add(actionKey)
+    console.log(`Journey step ${step + 1}: ${actionName} at ${page.url()}`)
+    await action!.click()
+    await observed.settled()
+    const error = page.getByRole('alert').first()
+    if (await error.isVisible()) throw new Error(`Visible application error: ${await error.innerText()}`)
+  }
+  await verifyNewProposal(page, observed.generatedIds, Boolean(resume))
+})
+
+function observeApi(page: Page) {
+  const pending = new Set<object>()
+  const captures: Array<Promise<void>> = []
+  const failures: string[] = []
+  const generatedIds: string[] = []
+  page.on('request', request => {
+    if (request.url().includes('/api/')) pending.add(request)
+  })
+  page.on('requestfinished', request => pending.delete(request))
+  page.on('requestfailed', request => {
+    pending.delete(request)
+    if (request.url().includes('/api/')) failures.push(`Network failure: ${new URL(request.url()).pathname}`)
+  })
+  page.on('response', response => {
+    const route = new URL(response.url()).pathname
+    if (!route.startsWith('/api/')) return
+    const method = response.request().method()
+    const expectedEmpty = response.status() === 404 && method === 'GET' && route.endsWith('/intelligence/media-strategy')
+    if (response.status() >= 400 && !expectedEmpty) {
+      captures.push(response.text().then(body => { failures.push(`${response.status()} ${route} ${body}`) }))
+    }
+    if (response.ok() && method === 'POST' && route.endsWith('/proposals:generate')) {
+      captures.push(response.json().then(value => { generatedIds.push(value.id) }))
+    }
+  })
+  return { generatedIds, settled: async () => {
+    await page.waitForTimeout(350)
+    await expect.poll(() => pending.size, { timeout: 135_000,
+      message: 'Wait for the active operation; never repeat paid or commercial commands.' }).toBe(0)
+    await Promise.all(captures)
+    expect(failures, failures.join('\n')).toEqual([])
+    await page.waitForTimeout(200)
+  } }
 }
 
 async function nextAction(page: Page) {
+  const unavailable = page.getByRole('status').filter({ hasText: 'No channel recommendation is available yet.' })
+  if (await unavailable.isVisible()) throw new Error('CONNECTED_JOURNEY_BLOCKED: No strategy recommendation was produced.')
   const patterns = [
-    /create.*brief|submit.*brief|understand.*brief|analyse|analyze|interpret/i,
-    /approve.*brief|confirm.*brief/i,
+    /^Approve media plan$/i, /^Next: Proposal/i, /^Create proposal$/i,
+    /^Create revised strategy recommendations$/i,
+    /^Approve channel recommendations$/i, /^Build media allocation$/i,
+    /create.*brief|submit.*brief|understand.*brief|analyse|analyze|next.*ai interpretation/i,
+    /review.*brief|approve.*brief|confirm.*brief/i,
+    /research.*audience|discover.*audience|generate.*audience|approve.*audience/i,
+    /generate.*strategy|approve.*strategy/i,
     /continue|next/i,
-    /generate.*plan|create.*plan|start.*planning/i,
-    /continue.*inventory|view.*inventory|find.*inventory/i,
+    /generate.*plan|create.*plan|start.*planning|build.*plan/i,
     /confirm.*inventory|approve.*inventory/i,
+    /add placement|continue.*inventory|view.*inventory|find.*inventory|shortlist.*supply/i,
     /generate.*proposal|create.*proposal|continue.*proposal/i,
     /open.*proposal|view.*proposal/i,
   ]
   for (const pattern of patterns) {
-    const candidate = page.getByRole('button', { name: pattern })
-      .or(page.getByRole('link', { name: pattern }))
-    const count = await candidate.count()
-    for (let index = 0; index < count; index += 1) {
-      const item = candidate.nth(index)
-      if (await item.isVisible() && await item.isEnabled()) return item
+    const candidates = page.locator('main').getByRole('button', { name: pattern })
+      .or(page.locator('main').getByRole('link', { name: pattern }))
+    for (const candidate of await candidates.all()) {
+      if (await candidate.isVisible() && await candidate.isEnabled()) return candidate
     }
   }
   return null
 }
 
 async function proposalIsVisible(page: Page) {
-  return /proposal|proposals/i.test(new URL(page.url()).pathname)
-    && await firstVisible(page.getByRole('heading', { name: /proposal/i }))
-}
-
-async function failOnVisibleError(page: Page) {
-  const alert = page.getByRole('alert')
-  if (!(await firstVisible(alert))) return
-  const text = (await alert.first().innerText()).trim()
-  if (/error|failed|unable|problem|invalid/i.test(text)) {
-    throw new Error(`Visible application error: ${text}`)
-  }
-}
-
-async function capture(
-  response: Response,
-  inventoryPayloads: unknown[],
-  proposalPayloads: unknown[],
-) {
-  if (!response.ok()) return
-  const url = response.url().toLowerCase()
-  if (!url.includes('/api/')) return
-  if (!url.includes('inventory') && !url.includes('proposal')) return
-  const contentType = response.headers()['content-type'] ?? ''
-  if (!contentType.includes('json')) return
-  try {
-    const payload = await response.json()
-    if (url.includes('inventory')) inventoryPayloads.push(payload)
-    if (url.includes('proposal')) proposalPayloads.push(payload)
-  } catch {
-    // A successful empty response is not evidence for either assertion.
-  }
-}
-
-function countInventory(value: unknown): number {
-  if (Array.isArray(value)) return value.length
-  if (!value || typeof value !== 'object') return 0
-  const object = value as Record<string, unknown>
-  for (const key of ['items', 'products', 'inventory', 'candidates', 'results']) {
-    if (Array.isArray(object[key])) return object[key].length
-  }
-  for (const key of ['data', 'value']) {
-    const nested = countInventory(object[key])
-    if (nested > 0) return nested
-  }
-  return 0
-}
-
-async function firstVisible(locator: Locator) {
-  const count = await locator.count()
-  for (let index = 0; index < count; index += 1) {
-    if (await locator.nth(index).isVisible()) return true
-  }
-  return false
+  return /^\/proposals\/[0-9a-f-]{36}$/i.test(new URL(page.url()).pathname)
+    && await page.getByRole('heading', { name: /proposal/i }).first().isVisible()
 }

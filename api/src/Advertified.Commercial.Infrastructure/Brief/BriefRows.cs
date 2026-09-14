@@ -30,6 +30,7 @@ internal sealed record BriefSourceRow
     public string ContentHash { get; set; } = string.Empty;
     public Guid CreatedBy { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
+    public string? InterpretationJson { get; set; }
 }
 
 internal sealed record BriefVersionRow
@@ -77,6 +78,7 @@ internal static class BriefRowMapper
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
     };
+    private static readonly JsonSerializerOptions InterpretationJson = new(JsonSerializerDefaults.Web);
 
     public static CampaignBriefSummaryView ToView(this CampaignBriefRow row) => new(
         row.Id, row.TenantId, row.ClientId, row.ClientName, row.OpportunityId, row.Title,
@@ -85,7 +87,9 @@ internal static class BriefRowMapper
 
     public static BriefSourceView ToView(this BriefSourceRow row) => new(
         row.Id, row.SourceType, row.Locator, row.Title, row.Content, row.ContentHash,
-        row.CreatedBy, row.CreatedAtUtc);
+        row.CreatedBy, row.CreatedAtUtc,
+        row.InterpretationJson is null ? null : JsonSerializer.Deserialize<SuppliedBriefUnderstandingView>(
+            row.InterpretationJson, InterpretationJson));
 
     public static BriefVersionView ToView(this BriefVersionRow row) => new(
         row.Id, row.BriefId, row.BaseVersionId, row.SourceId, row.VersionNumber,

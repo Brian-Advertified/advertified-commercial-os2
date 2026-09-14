@@ -8,7 +8,7 @@ public sealed class AiMonthlyBudgetStore(
     IServiceScopeFactory scopeFactory,
     TimeProvider timeProvider)
 {
-    internal const long LimitUsdMicros = 5_000_000;
+    internal const long LimitUsdMicros = 10_000_000;
 
     internal async Task<AiBudgetReservation> ReserveAsync(
         AgentInvocationRequest invocation,
